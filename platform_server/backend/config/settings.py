@@ -153,7 +153,7 @@ if any(not 0 <= amount < 2**63 for amount in LEARNING_POINTS_BY_DIFFICULTY.value
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Private messages are enabled explicitly for each environment.
-CAMPUS_DM_ENABLED = os.environ.get("CAMPUS_DM_ENABLED", "0") == "1"
+CAMPUS_DM_ENABLED = os.environ.get("CAMPUS_DM_ENABLED", "1") == "1"
 
 # 운영 슬롯을 준비한 환경에서만 광고 요청을 활성화한다.
 ADS_ENABLED = os.environ.get("ADS_ENABLED", "0") == "1"

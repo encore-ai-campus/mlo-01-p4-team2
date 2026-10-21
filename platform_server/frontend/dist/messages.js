@@ -30,6 +30,9 @@
     function updateButton(){
       button.hidden=!(meta.canStart||meta.hasInbox);$('dmBadge').hidden=!meta.unread;
       $('dmBadge').textContent=meta.unread>99?'99+':String(meta.unread||0);
+      $('dmBadge').setAttribute('aria-label',`읽지 않은 쪽지 ${meta.unread||0}개`);
+      $('dmBadge').setAttribute('aria-live','polite');
+      button.dataset.unread=String(meta.unread||0);
       button.setAttribute('aria-label',`쪽지함${meta.unread?`, 읽지 않은 쪽지 ${meta.unread}개`:''}`);
       button.title='나와 상대방에게만 보이는 쪽지';
       $('dmNewConversation').hidden=!meta.canStart;
@@ -95,7 +98,23 @@
         await refreshInbox();if(currentId)await loadThread();else status(meta.canStart?'대화를 선택하거나 받는 사람을 검색하세요.':'왼쪽에서 받은 대화를 선택하세요.');
       }catch(error){status(error.message);notify(error.message);}
     }
-    button.addEventListener('click',open);$('dmClose').addEventListener('click',()=>panel.close());
+    async function openCounseling(){
+      await open();if(!panel.open)return;
+      $('dmTitle').textContent='LMS 상담톡';panel.querySelector('.eyebrow').textContent='CAMPUS COUNSELING';panel.querySelector('.dm-header p').textContent='매니저와 나만 볼 수 있는 1:1 상담';
+      status('상담 가능한 매니저를 불러오는 중…');
+      try{
+        const [data,inbox]=await Promise.all([api('counselors/'),api('conversations/')]);if(!panel.open)return;
+        const conversationId=person=>inbox.conversations.find(item=>item.other.id===person.id)?.id||null;
+        const results=$('dmRecipientResults');results.replaceChildren();
+        if(!data.counselors.length){status('등록된 상담 매니저가 없습니다. 운영자에게 문의해 주세요.');return;}
+        for(const person of data.counselors){const row=document.createElement('button');row.type='button';row.textContent=personLabel(person)+' · 상담하기';
+          row.addEventListener('click',()=>{choose(person,conversationId(person));$('dmRecipientHint').textContent='매니저와 나만 볼 수 있는 상담입니다. 오프라인이어도 메시지가 전달됩니다.';});results.append(row);}
+        if(data.counselors.length===1){choose(data.counselors[0],conversationId(data.counselors[0]));$('dmRecipientHint').textContent='매니저와 나만 볼 수 있는 상담입니다. 오프라인이어도 메시지가 전달됩니다.';}
+        else status('왼쪽에서 상담할 매니저를 선택하세요.');
+      }catch(error){status(error.message);}
+    }
+    window.addEventListener('campus:consultation-open',openCounseling);
+    button.addEventListener('click',()=>{$('dmTitle').textContent='쪽지함';panel.querySelector('.eyebrow').textContent='PRIVATE MAILBOX';panel.querySelector('.dm-header p').textContent='실시간 채팅과 별도로 보관되는 나만의 쪽지함';open();});$('dmClose').addEventListener('click',()=>panel.close());
     panel.addEventListener('close',()=>{saveDraft();version++;onClose();});
     input.addEventListener('input',()=>{$('dmBodyCount').textContent=`${input.value.length}/2000`;saveDraft();});
     $('dmRecipientSearch').addEventListener('input',()=>{

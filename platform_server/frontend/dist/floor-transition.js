@@ -6,7 +6,7 @@
   function animate(dialog,{from,to,avatar,kind}){
     const canvas=document.getElementById('floorTransitionCanvas'),g=canvas?.getContext('2d');
     const up=to==='rooftop',start=performance.now(),reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const label=document.getElementById('floorTransitionLabel'),bar=document.getElementById('floorTransitionProgress');
+    const label=document.getElementById('floorTransitionLabel');
     document.getElementById('floorTransitionFrom').textContent=floorName(from);
     document.getElementById('floorTransitionTo').textContent=floorName(to);
     label.textContent=kind==='portal'?(up?'포탈로 옥상 이동 중':'포탈로 18층 이동 중'):(up?'옥상으로 올라가는 중':'18층으로 내려가는 중');
@@ -16,7 +16,6 @@
     function draw(t){
       if(stopped)return;
       const elapsed=Math.max(0,t-start),travel=Math.min(1,Math.max(0,(elapsed-180)/2450));
-      bar.style.transform=`scaleX(${Math.min(.94,elapsed/DURATION_MS*.94)})`;
       if(elapsed>=DURATION_MS&&!waiting){waiting=true;label.textContent='도착할 공간을 준비하고 있어요';}
       if(g&&kind==='portal'){window.CampusPortalTransition.draw(g,{elapsed,avatar,reduced,from,to});}
       else if(g){
@@ -51,12 +50,12 @@
         const drawn=window.CampusAvatars?.draw(g,{avatar,dir:up?'right':'left',moving:!reduced&&travel<1,walkTime:elapsed/1000},t);
         if(!drawn){g.fillStyle='#4e9b91';g.beginPath();g.roundRect(-8,-28,16,21,4);g.fill();g.fillStyle='#e5ba91';g.beginPath();g.arc(0,-34,9,0,Math.PI*2);g.fill();g.fillStyle='#4b4b43';g.fillRect(-7,-8,5,8);g.fillRect(2,-8,5,8);}
         g.restore();
-        g.fillStyle='#978160';g.font='600 12px system-ui,sans-serif';g.textAlign='center';g.fillText('18F',86,319);g.fillText('ROOFTOP',504,187);
+        g.fillStyle='#978160';g.font='600 12px system-ui,sans-serif';g.textAlign='center';g.fillText('18F',86,319);g.textAlign='left';g.fillText('ROOFTOP',left+count*tread+42,base-count*rise-16);
       }
       frame=requestAnimationFrame(draw);
     }
     draw(start);
-    return ()=>{stopped=true;cancelAnimationFrame(frame);bar.style.transform='scaleX(0)';};
+    return ()=>{stopped=true;cancelAnimationFrame(frame);};
   }
   window.CampusFloorTransition={
     DURATION_MS,

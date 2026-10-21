@@ -79,6 +79,8 @@ class World:
         return pose['moving']
 
     def distance(self, obj, pose):
+        if obj.get('action') == 'booth':
+            return 0 if inside(obj.get('footprint', {}), pose['x'], pose['y']) else math.inf
         if obj.get('interactionPoint'):
             return math.hypot(pose['x']-obj['interactionPoint'][0],pose['y']-obj['interactionPoint'][1])
         rect=obj.get('footprint',{})
@@ -218,7 +220,8 @@ class MotionController:
         nearby=min(rows,key=lambda obj:self.world.distance(obj,self.pose),default=None)
         room=next((row for row in reversed(self.world.data['rooms']) if inside(row,self.pose['x'],self.pose['y'])),None)
         entrance=self.world.data.get('entrance')
-        exiting=bool(entrance and inside(entrance,self.pose['x'],self.pose['y']) and self.pose['y']>entrance['y']+6)
+        on_roof_stairs=any(o['type']=='stairs' and o.get('toFloor')=='rooftop' and inside(o['footprint'],self.pose['x'],self.pose['y']) for o in self.world.data['objects'])
+        exiting=bool(entrance and inside(entrance,self.pose['x'],self.pose['y']) and self.pose['y']>entrance['y']+6 and not on_roof_stairs)
         return {'nearbyId':nearby['id'] if nearby else None,'roomId':room['id'] if room else None,'exitRequired':exiting}
 
     def snapshot(self):

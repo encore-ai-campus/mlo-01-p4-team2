@@ -11,7 +11,7 @@ from django.views.decorators.cache import never_cache
 
 from accounts.models import get_avatar, get_nickname, needs_profile_setup
 from .forms import CommentForm, PostForm
-from .models import Comment, Post
+from .models import Comment, Post, MealComment
 from eventing.events import record_comment_event, record_post_event
 
 
@@ -326,3 +326,57 @@ def comment_detail(request, comment_id):
         item.revision = next_revision
         record_comment_event("comment_updated", request.user, request.session.get("platform_session_uuid"), item)
     return JsonResponse({"comment": comment_data(Comment.objects.select_related("author", "author__campus_profile").get(pk=comment_id), request)})
+
+
+def meal_comment_data(item, request):
+    return {"id": item.pk, "body": item.body, "author": author_data(item.author),
+            "createdAt": item.created_at.isoformat(), "updatedAt": item.updated_at.isoformat(),
+            "canEdit": can_manage(request, item), "canDelete": can_manage(request, item)}
+
+
+@community_api(["GET", "POST"])
+def meal_comments(request):
+    from datetime import date
+    try:
+        meal_date = date.fromisoformat(request.GET.get("date", timezone.localdate().isoformat()))
+    except (TypeError, ValueError):
+        return error("날짜를 확인해 주세요.")
+    if request.method == "POST":
+        data, failure = payload(request)
+        if failure:
+            return failure
+        form = CommentForm(data)
+        if not form.is_valid():
+            return form_error(form)
+        item = MealComment.objects.create(author=request.user, meal_date=meal_date, body=form.cleaned_data["body"])
+        return JsonResponse({"comment": meal_comment_data(item, request)}, status=201)
+    items = MealComment.objects.filter(meal_date=meal_date).select_related("author", "author__campus_profile")
+    page = Paginator(items, 20).get_page(request.GET.get("page", 1))
+    return JsonResponse({"date": meal_date.isoformat(), "comments": [meal_comment_data(item, request) for item in page],
+                         "pagination": {"page": page.number, "pages": page.paginator.num_pages, "total": page.paginator.count}})
+
+
+@community_api(["PATCH", "DELETE"])
+def meal_comment_detail(request, comment_id):
+    item = MealComment.objects.select_related("author", "author__campus_profile").filter(pk=comment_id).first()
+    if item is None:
+        return error("댓글을 찾을 수 없어요.", 404)
+    if not can_manage(request, item):
+        return error("본인 댓글만 변경할 수 있어요.", 403)
+    if request.method == "DELETE":
+        item.delete()
+        return JsonResponse({"deleted": True})
+    data, failure = payload(request)
+    if failure:
+        return failure
+    if data.get("version") != item.updated_at.isoformat():
+        return error("댓글이 변경됐어요. 다시 불러와 주세요.", 409)
+    form = CommentForm(data)
+    if not form.is_valid():
+        return form_error(form)
+    now = timezone.now()
+    updated = MealComment.objects.filter(pk=item.pk, updated_at=item.updated_at).update(body=form.cleaned_data["body"], updated_at=now)
+    if not updated:
+        return error("댓글이 변경됐어요. 다시 불러와 주세요.", 409)
+    item.refresh_from_db()
+    return JsonResponse({"comment": meal_comment_data(item, request)})

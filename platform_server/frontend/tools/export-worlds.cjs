@@ -44,7 +44,8 @@ function build(root = FRONTEND) {
   const gate = (subject, roomId) => {
     const room = campus.rooms.find(r => r.id === roomId);
     const top = campus.walls.filter(l => l.y1 === l.y2 && l.y1 === room.y).map(l => [Math.min(l.x1, l.x2), Math.max(l.x1, l.x2)]).sort((a, b) => a[0] - b[0]);
-    const gap = top.slice(1).map((l, i) => [top[i][1], l[0]]).find(([a, b]) => b > a && a >= room.x && b <= room.x + room.w);
+    const edges = [[room.x,room.x],...top.filter(([a,b])=>b>room.x&&a<room.x+room.w).map(([a,b])=>[Math.max(a,room.x),Math.min(b,room.x+room.w)]),[room.x+room.w,room.x+room.w]].sort((a,b)=>a[0]-b[0]);
+    const gap = edges.slice(1).map((l,i)=>[edges[i][1],l[0]]).find(([a,b])=>b>a);
     if (!gap) throw new Error(`${roomId}: 윗벽에 입장 틈이 없다`);
     return {subject, room, left: gap[0], right: gap[1], y: room.y};
   };

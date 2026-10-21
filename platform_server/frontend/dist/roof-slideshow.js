@@ -52,7 +52,7 @@
   }
 
   function tick({ now, floor, renderer }) {
-    if (floor !== 'rooftop' || document.hidden || !renderer) return;
+    if (floor !== 'campus' || document.hidden || !renderer) return;
     if (currentImage && applied.get(renderer) !== currentImage) {
       if (renderer.setDisplayImage('roof-ad-board', currentImage)) applied.set(renderer, currentImage);
     }

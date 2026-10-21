@@ -157,7 +157,7 @@
             655.5
           ],
           "photo": "assets/lounge1.png",
-          "description": "중앙 통로를 비워 둔 라운지입니다. 오른쪽에는 세로로 배치한 콘센트 작업 탁자와 네 좌석이 있습니다. 브라운 벽 쪽에는 마주보는 소파와 흰 탁자, 원형 스툴이 있고, 아래쪽 외벽의 유리 출입문과 두 좌석의 안내 데스크로 이어집니다. 위쪽 회의 탁자와 TV, 노트북용 긴 탁자, 프린터와 휴게 설비도 이용할 수 있습니다.",
+          "description": "중앙 통로를 비워 둔 라운지입니다. 오른쪽에는 세로로 배치한 콘센트 작업 탁자와 세 좌석이 있습니다. 브라운 벽 쪽에는 마주보는 소파와 흰 탁자, 원형 스툴이 있고, 아래쪽 외벽의 유리 출입문과 두 좌석의 안내 데스크로 이어집니다. 위쪽 회의 탁자와 TV, 노트북용 긴 탁자, 프린터와 휴게 설비도 이용할 수 있습니다.",
           "tags": [
             "콘센트 작업 탁자",
             "중앙 통로",
@@ -198,25 +198,25 @@
           "y": 817.5,
           "w": 175.5,
           "h": 129,
-          "floor": "stone",
+          "floor": "wood",
           "target": [
             2233.5,
             904.5
           ],
-          "labelX": 2238,
-          "labelY": 919.8
+          "labelX": 1964.895,
+          "labelY": 1040.22
         },
         {
           "id": "consult-b",
           "name": "상담실 B",
           "x": 2053.5,
           "y": 946.5,
-          "w": 82.5,
-          "h": 130.5,
+          "w": 164.25,
+          "h": 253.5,
           "floor": "orange",
           "target": [
-            2073,
-            1048.5
+            2130,
+            987
           ],
           "photo": "assets/consult.png",
           "description": "사진의 주황색 벽을 반영한 상담실 B입니다. 작은 상담 테이블, 의자, PC 모니터를 배치했습니다.",
@@ -229,14 +229,14 @@
         {
           "id": "consult-a",
           "name": "상담실 A",
-          "x": 2136,
+          "x": 2217.75,
           "y": 946.5,
-          "w": 72,
-          "h": 130.5,
+          "w": 164.25,
+          "h": 253.5,
           "floor": "yellow",
           "target": [
-            2155.5,
-            1048.5
+            2298,
+            987
           ],
           "photo": "assets/consult.png",
           "description": "사진의 노란색 벽을 반영한 상담실 A입니다. 상담 테이블과 의자, PC 모니터가 있는 밝은 공간입니다.",
@@ -305,10 +305,10 @@
       ],
       "portals": [
         {
-          "x": 2218.5,
-          "y": 829.5,
-          "w": 150,
-          "h": 25.2,
+          "x": 1953,
+          "y": 952.5,
+          "w": 91.5,
+          "h": 24.48,
           "objectId": "campus-roof-stairs"
         }
       ],
@@ -318,21 +318,10 @@
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 84,
+            "x": 222,
             "y": 310.5,
             "w": 66,
             "h": 28.5
-          }
-        },
-        {
-          "id": "object-2",
-          "type": "laptop",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 93,
-            "y": 318,
-            "w": 22.5,
-            "h": 18
           }
         },
         {
@@ -340,9 +329,9 @@
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 67.5,
+            "x": 112.19999999999999,
             "y": 246,
-            "w": 75.75,
+            "w": 285.6,
             "h": 30
           }
         },
@@ -351,40 +340,18 @@
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 94.875,
+            "x": 140.7,
             "y": 216,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-5",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 94.875,
-            "y": 258,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
           "id": "object-6",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 161.25,
-            "y": 246,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-7",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 188.625,
+            "x": 244.5,
             "y": 216,
             "w": 21,
             "h": 24
@@ -392,57 +359,35 @@
         },
         {
           "id": "object-8",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 188.625,
-            "y": 258,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-9",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 255,
-            "y": 246,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-10",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 282.375,
+            "x": 348.29999999999995,
             "y": 216,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-11",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 282.375,
-            "y": 258,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-12",
+          "id": "object-10",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 348.75,
-            "y": 246,
-            "w": 75.75,
+            "x": 112.19999999999999,
+            "y": 178.5,
+            "w": 285.6,
             "h": 30
+          }
+        },
+        {
+          "id": "object-11",
+          "type": "chair",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 140.7,
+            "y": 148.5,
+            "w": 21,
+            "h": 24
           }
         },
         {
@@ -450,40 +395,18 @@
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 376.125,
-            "y": 216,
+            "x": 244.5,
+            "y": 148.5,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-14",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 376.125,
-            "y": 258,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
           "id": "object-15",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 67.5,
-            "y": 178.5,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-16",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 94.875,
+            "x": 348.29999999999995,
             "y": 148.5,
             "w": 21,
             "h": 24
@@ -491,57 +414,35 @@
         },
         {
           "id": "object-17",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 94.875,
-            "y": 190.5,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-18",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 161.25,
-            "y": 178.5,
-            "w": 75.75,
+            "x": 112.19999999999999,
+            "y": 111,
+            "w": 285.6,
             "h": 30
           }
         },
         {
-          "id": "object-19",
+          "id": "object-18",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 188.625,
-            "y": 148.5,
+            "x": 140.7,
+            "y": 81,
             "w": 21,
             "h": 24
           }
         },
         {
           "id": "object-20",
-          "type": "monitor",
+          "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 188.625,
-            "y": 190.5,
+            "x": 244.5,
+            "y": 81,
             "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-21",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 255,
-            "y": 178.5,
-            "w": 75.75,
-            "h": 30
+            "h": 24
           }
         },
         {
@@ -549,54 +450,21 @@
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 282.375,
-            "y": 148.5,
+            "x": 348.29999999999995,
+            "y": 81,
             "w": 21,
             "h": 24
-          }
-        },
-        {
-          "id": "object-23",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 282.375,
-            "y": 190.5,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-24",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 348.75,
-            "y": 178.5,
-            "w": 75.75,
-            "h": 30
           }
         },
         {
           "id": "object-25",
-          "type": "chair",
+          "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 376.125,
-            "y": 148.5,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-26",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 376.125,
-            "y": 190.5,
-            "w": 21,
-            "h": 15
+            "x": 222,
+            "y": 675,
+            "w": 66,
+            "h": 28.5
           }
         },
         {
@@ -604,9 +472,9 @@
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 67.5,
-            "y": 111,
-            "w": 75.75,
+            "x": 112.19999999999999,
+            "y": 610.5,
+            "w": 285.6,
             "h": 30
           }
         },
@@ -615,98 +483,54 @@
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 94.875,
-            "y": 81,
+            "x": 140.7,
+            "y": 580.5,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-29",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 94.875,
-            "y": 123,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
           "id": "object-30",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 161.25,
-            "y": 111,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-31",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 188.625,
-            "y": 81,
+            "x": 244.5,
+            "y": 580.5,
             "w": 21,
             "h": 24
           }
         },
         {
           "id": "object-32",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 188.625,
-            "y": 123,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-33",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 255,
-            "y": 111,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-34",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 282.375,
-            "y": 81,
+            "x": 348.29999999999995,
+            "y": 580.5,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-35",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 282.375,
-            "y": 123,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-36",
+          "id": "object-34",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 348.75,
-            "y": 111,
-            "w": 75.75,
+            "x": 112.19999999999999,
+            "y": 543,
+            "w": 285.6,
             "h": 30
+          }
+        },
+        {
+          "id": "object-35",
+          "type": "chair",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 140.7,
+            "y": 513,
+            "w": 21,
+            "h": 24
           }
         },
         {
@@ -714,32 +538,21 @@
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 376.125,
-            "y": 81,
+            "x": 244.5,
+            "y": 513,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-38",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 376.125,
-            "y": 123,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
           "id": "object-39",
-          "type": "plant",
+          "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 48,
-            "y": 318,
-            "w": 30,
-            "h": 30
+            "x": 348.29999999999995,
+            "y": 513,
+            "w": 21,
+            "h": 24
           }
         },
         {
@@ -747,32 +560,21 @@
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 84,
-            "y": 675,
-            "w": 66,
-            "h": 28.5
+            "x": 112.19999999999999,
+            "y": 475.5,
+            "w": 285.6,
+            "h": 30
           }
         },
         {
           "id": "object-42",
-          "type": "laptop",
+          "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 93,
-            "y": 682.5,
-            "w": 22.5,
-            "h": 18
-          }
-        },
-        {
-          "id": "object-43",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 67.5,
-            "y": 610.5,
-            "w": 75.75,
-            "h": 30
+            "x": 140.7,
+            "y": 445.5,
+            "w": 21,
+            "h": 24
           }
         },
         {
@@ -780,54 +582,21 @@
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 94.875,
-            "y": 580.5,
+            "x": 244.5,
+            "y": 445.5,
             "w": 21,
             "h": 24
-          }
-        },
-        {
-          "id": "object-45",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 94.875,
-            "y": 622.5,
-            "w": 21,
-            "h": 15
           }
         },
         {
           "id": "object-46",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 161.25,
-            "y": 610.5,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-47",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 188.625,
-            "y": 580.5,
+            "x": 348.29999999999995,
+            "y": 445.5,
             "w": 21,
             "h": 24
-          }
-        },
-        {
-          "id": "object-48",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 188.625,
-            "y": 622.5,
-            "w": 21,
-            "h": 15
           }
         },
         {
@@ -835,76 +604,43 @@
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 255,
-            "y": 610.5,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-50",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 282.375,
-            "y": 580.5,
-            "w": 21,
-            "h": 24
+            "x": 222,
+            "y": 1039.5,
+            "w": 66,
+            "h": 28.5
           }
         },
         {
           "id": "object-51",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 282.375,
-            "y": 622.5,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-52",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 348.75,
-            "y": 610.5,
-            "w": 75.75,
+            "x": 112.19999999999999,
+            "y": 975,
+            "w": 285.6,
             "h": 30
           }
         },
         {
-          "id": "object-53",
+          "id": "object-52",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 376.125,
-            "y": 580.5,
+            "x": 140.7,
+            "y": 945,
             "w": 21,
             "h": 24
           }
         },
         {
           "id": "object-54",
-          "type": "monitor",
+          "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 376.125,
-            "y": 622.5,
+            "x": 244.5,
+            "y": 945,
             "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-55",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 67.5,
-            "y": 543,
-            "w": 75.75,
-            "h": 30
+            "h": 24
           }
         },
         {
@@ -912,21 +648,10 @@
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 94.875,
-            "y": 513,
+            "x": 348.29999999999995,
+            "y": 945,
             "w": 21,
             "h": 24
-          }
-        },
-        {
-          "id": "object-57",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 94.875,
-            "y": 555,
-            "w": 21,
-            "h": 15
           }
         },
         {
@@ -934,9 +659,9 @@
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 161.25,
-            "y": 543,
-            "w": 75.75,
+            "x": 112.19999999999999,
+            "y": 907.5,
+            "w": 285.6,
             "h": 30
           }
         },
@@ -945,98 +670,54 @@
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 188.625,
-            "y": 513,
+            "x": 140.7,
+            "y": 877.5,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-60",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 188.625,
-            "y": 555,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
           "id": "object-61",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 255,
-            "y": 543,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-62",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 282.375,
-            "y": 513,
+            "x": 244.5,
+            "y": 877.5,
             "w": 21,
             "h": 24
           }
         },
         {
           "id": "object-63",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 282.375,
-            "y": 555,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-64",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 348.75,
-            "y": 543,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-65",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 376.125,
-            "y": 513,
+            "x": 348.29999999999995,
+            "y": 877.5,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-66",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 376.125,
-            "y": 555,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-67",
+          "id": "object-65",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 67.5,
-            "y": 475.5,
-            "w": 75.75,
+            "x": 112.19999999999999,
+            "y": 840,
+            "w": 285.6,
             "h": 30
+          }
+        },
+        {
+          "id": "object-66",
+          "type": "chair",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 140.7,
+            "y": 810,
+            "w": 21,
+            "h": 24
           }
         },
         {
@@ -1044,1430 +725,307 @@
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 94.875,
-            "y": 445.5,
+            "x": 244.5,
+            "y": 810,
             "w": 21,
             "h": 24
-          }
-        },
-        {
-          "id": "object-69",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 94.875,
-            "y": 487.5,
-            "w": 21,
-            "h": 15
           }
         },
         {
           "id": "object-70",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 161.25,
-            "y": 475.5,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-71",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 188.625,
-            "y": 445.5,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-72",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 188.625,
-            "y": 487.5,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-73",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 255,
-            "y": 475.5,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-74",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 282.375,
-            "y": 445.5,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-75",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 282.375,
-            "y": 487.5,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-76",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 348.75,
-            "y": 475.5,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-77",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 376.125,
-            "y": 445.5,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-78",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 376.125,
-            "y": 487.5,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-79",
-          "type": "plant",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 48,
-            "y": 682.5,
-            "w": 30,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-81",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 84,
-            "y": 1039.5,
-            "w": 66,
-            "h": 28.5
-          }
-        },
-        {
-          "id": "object-82",
-          "type": "laptop",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 93,
-            "y": 1047,
-            "w": 22.5,
-            "h": 18
-          }
-        },
-        {
-          "id": "object-83",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 67.5,
-            "y": 975,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-84",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 94.875,
-            "y": 945,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-85",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 94.875,
-            "y": 987,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-86",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 161.25,
-            "y": 975,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-87",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 188.625,
-            "y": 945,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-88",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 188.625,
-            "y": 987,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-89",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 255,
-            "y": 975,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-90",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 282.375,
-            "y": 945,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-91",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 282.375,
-            "y": 987,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-92",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 348.75,
-            "y": 975,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-93",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 376.125,
-            "y": 945,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-94",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 376.125,
-            "y": 987,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-95",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 67.5,
-            "y": 907.5,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-96",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 94.875,
-            "y": 877.5,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-97",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 94.875,
-            "y": 919.5,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-98",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 161.25,
-            "y": 907.5,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-99",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 188.625,
-            "y": 877.5,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-100",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 188.625,
-            "y": 919.5,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-101",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 255,
-            "y": 907.5,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-102",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 282.375,
-            "y": 877.5,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-103",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 282.375,
-            "y": 919.5,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-104",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 348.75,
-            "y": 907.5,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-105",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 376.125,
-            "y": 877.5,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-106",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 376.125,
-            "y": 919.5,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-107",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 67.5,
-            "y": 840,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-108",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 94.875,
+            "x": 348.29999999999995,
             "y": 810,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-109",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 94.875,
-            "y": 852,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-110",
+          "id": "object-121",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 161.25,
-            "y": 840,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-111",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 188.625,
-            "y": 810,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-112",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 188.625,
-            "y": 852,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-113",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 255,
-            "y": 840,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-114",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 282.375,
-            "y": 810,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-115",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 282.375,
-            "y": 852,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-116",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 348.75,
-            "y": 840,
-            "w": 75.75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-117",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 376.125,
-            "y": 810,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-118",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 376.125,
-            "y": 852,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-119",
-          "type": "plant",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 48,
-            "y": 1047,
-            "w": 30,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-201",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 846,
+            "x": 993.75,
             "y": 856.5,
             "w": 66,
             "h": 28.5
           }
         },
         {
-          "id": "object-202",
-          "type": "laptop",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 855,
-            "y": 864,
-            "w": 22.5,
-            "h": 18
-          }
-        },
-        {
-          "id": "object-203",
+          "id": "object-123",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 829.5,
+            "x": 876.1500000000001,
             "y": 792,
-            "w": 78,
+            "w": 301.20000000000005,
             "h": 30
           }
         },
         {
-          "id": "object-204",
+          "id": "object-124",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 858,
+            "x": 904.6500000000001,
             "y": 762,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-205",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 858,
-            "y": 804,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-206",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 929,
-            "y": 792,
-            "w": 78,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-207",
+          "id": "object-126",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 957.5,
+            "x": 1016.25,
             "y": 762,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-208",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 957.5,
-            "y": 804,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-209",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1028.5,
-            "y": 792,
-            "w": 78,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-210",
+          "id": "object-128",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1057,
+            "x": 1127.85,
             "y": 762,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-211",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1057,
-            "y": 804,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-212",
+          "id": "object-130",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1128,
-            "y": 792,
-            "w": 78,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-213",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1156.5,
-            "y": 762,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-214",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1156.5,
-            "y": 804,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-215",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 829.5,
+            "x": 876.1500000000001,
             "y": 724.5,
-            "w": 78,
+            "w": 301.20000000000005,
             "h": 30
           }
         },
         {
-          "id": "object-216",
+          "id": "object-131",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 858,
+            "x": 904.6500000000001,
             "y": 694.5,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-217",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 858,
-            "y": 736.5,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-218",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 929,
-            "y": 724.5,
-            "w": 78,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-219",
+          "id": "object-133",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 957.5,
+            "x": 1016.25,
             "y": 694.5,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-220",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 957.5,
-            "y": 736.5,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-221",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1028.5,
-            "y": 724.5,
-            "w": 78,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-222",
+          "id": "object-135",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1057,
+            "x": 1127.85,
             "y": 694.5,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-223",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1057,
-            "y": 736.5,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-224",
+          "id": "object-137",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1128,
-            "y": 724.5,
-            "w": 78,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-225",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1156.5,
-            "y": 694.5,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-226",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1156.5,
-            "y": 736.5,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-227",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 829.5,
+            "x": 876.1500000000001,
             "y": 657,
-            "w": 78,
+            "w": 301.20000000000005,
             "h": 30
           }
         },
         {
-          "id": "object-228",
+          "id": "object-138",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 858,
+            "x": 904.6500000000001,
             "y": 627,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-229",
-          "type": "monitor",
-          "name": "SQL 객관식",
-          "action": "learning",
-          "contentType": "sql_multiple_choice",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 858,
-            "y": 669,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-230",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 929,
-            "y": 657,
-            "w": 78,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-231",
+          "id": "object-140",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 957.5,
+            "x": 1016.25,
             "y": 627,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-232",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 957.5,
-            "y": 669,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-233",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1028.5,
-            "y": 657,
-            "w": 78,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-234",
+          "id": "object-142",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1057,
+            "x": 1127.85,
             "y": 627,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-235",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1057,
-            "y": 669,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-236",
+          "id": "object-145",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1128,
-            "y": 657,
-            "w": 78,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-237",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1156.5,
-            "y": 627,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-238",
-          "type": "monitor",
-          "name": "SQL 코드 빈칸 채우기",
-          "action": "learning",
-          "contentType": "sql_fill_blank",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1156.5,
-            "y": 669,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-239",
-          "type": "plant",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1204.5,
-            "y": 864,
-            "w": 30,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-241",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1315.5,
+            "x": 1452,
             "y": 856.5,
             "w": 66,
             "h": 28.5
           }
         },
         {
-          "id": "object-242",
-          "type": "laptop",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1324.5,
-            "y": 864,
-            "w": 22.5,
-            "h": 18
-          }
-        },
-        {
-          "id": "object-243",
+          "id": "object-147",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1299,
+            "x": 1343.4,
             "y": 792,
-            "w": 75,
+            "w": 283.20000000000005,
             "h": 30
           }
         },
         {
-          "id": "object-244",
+          "id": "object-148",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1326,
+            "x": 1371.9,
             "y": 762,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-245",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1326,
-            "y": 804,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-246",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1392,
-            "y": 792,
-            "w": 75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-247",
+          "id": "object-150",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1419,
+            "x": 1474.5,
             "y": 762,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-248",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1419,
-            "y": 804,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-249",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1485,
-            "y": 792,
-            "w": 75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-250",
+          "id": "object-152",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1512,
+            "x": 1577.1000000000001,
             "y": 762,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-251",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1512,
-            "y": 804,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-252",
+          "id": "object-154",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1578,
-            "y": 792,
-            "w": 75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-253",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1605,
-            "y": 762,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-254",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1605,
-            "y": 804,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-255",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1299,
+            "x": 1343.4,
             "y": 724.5,
-            "w": 75,
+            "w": 283.20000000000005,
             "h": 30
           }
         },
         {
-          "id": "object-256",
+          "id": "object-155",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1326,
+            "x": 1371.9,
             "y": 694.5,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-257",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1326,
-            "y": 736.5,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-258",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1392,
-            "y": 724.5,
-            "w": 75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-259",
+          "id": "object-157",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1419,
+            "x": 1474.5,
             "y": 694.5,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-260",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1419,
-            "y": 736.5,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-261",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1485,
-            "y": 724.5,
-            "w": 75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-262",
+          "id": "object-159",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1512,
+            "x": 1577.1000000000001,
             "y": 694.5,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-263",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1512,
-            "y": 736.5,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-264",
+          "id": "object-161",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1578,
-            "y": 724.5,
-            "w": 75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-265",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1605,
-            "y": 694.5,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-266",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1605,
-            "y": 736.5,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-267",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1299,
+            "x": 1343.4,
             "y": 657,
-            "w": 75,
+            "w": 283.20000000000005,
             "h": 30
           }
         },
         {
-          "id": "object-268",
+          "id": "object-162",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1326,
+            "x": 1371.9,
             "y": 627,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-269",
-          "type": "monitor",
-          "name": "Python 객관식",
-          "action": "learning",
-          "contentType": "python_multiple_choice",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1326,
-            "y": 669,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-270",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1392,
-            "y": 657,
-            "w": 75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-271",
+          "id": "object-164",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1419,
+            "x": 1474.5,
             "y": 627,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-272",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1419,
-            "y": 669,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-273",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1485,
-            "y": 657,
-            "w": 75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-274",
+          "id": "object-166",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1512,
+            "x": 1577.1000000000001,
             "y": 627,
             "w": 21,
             "h": 24
-          }
-        },
-        {
-          "id": "object-275",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1512,
-            "y": 669,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-276",
-          "type": "desk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1578,
-            "y": 657,
-            "w": 75,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-277",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1605,
-            "y": 627,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-278",
-          "type": "monitor",
-          "name": "코드 빈칸 채우기",
-          "action": "learning",
-          "contentType": "python_fill_blank",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1605,
-            "y": 669,
-            "w": 21,
-            "h": 15
-          }
-        },
-        {
-          "id": "object-279",
-          "type": "plant",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1651.5,
-            "y": 864,
-            "w": 30,
-            "h": 30
           }
         },
         {
@@ -2482,7 +1040,7 @@
           }
         },
         {
-          "id": "object-281",
+          "id": "object-169",
           "type": "water",
           "name": "정수기",
           "confirmTransfer": false,
@@ -2494,7 +1052,7 @@
           }
         },
         {
-          "id": "object-282",
+          "id": "object-170",
           "type": "bin",
           "name": "분리수거함",
           "confirmTransfer": false,
@@ -2506,7 +1064,7 @@
           }
         },
         {
-          "id": "object-283",
+          "id": "object-171",
           "type": "bin",
           "name": "분리수거함",
           "confirmTransfer": false,
@@ -2518,7 +1076,7 @@
           }
         },
         {
-          "id": "object-284",
+          "id": "object-172",
           "type": "bin",
           "name": "분리수거함",
           "confirmTransfer": false,
@@ -2530,7 +1088,7 @@
           }
         },
         {
-          "id": "object-285",
+          "id": "object-173",
           "type": "desk",
           "name": "공용 회의 테이블",
           "confirmTransfer": false,
@@ -2542,7 +1100,7 @@
           }
         },
         {
-          "id": "object-286",
+          "id": "object-174",
           "type": "tv",
           "name": "긴 탁자 PC 연결 TV",
           "confirmTransfer": false,
@@ -2554,7 +1112,7 @@
           }
         },
         {
-          "id": "object-287",
+          "id": "object-175",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -2565,7 +1123,7 @@
           }
         },
         {
-          "id": "object-288",
+          "id": "object-176",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -2576,7 +1134,7 @@
           }
         },
         {
-          "id": "object-289",
+          "id": "object-177",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -2587,7 +1145,7 @@
           }
         },
         {
-          "id": "object-290",
+          "id": "object-178",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -2598,7 +1156,7 @@
           }
         },
         {
-          "id": "object-291",
+          "id": "object-179",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -2609,7 +1167,7 @@
           }
         },
         {
-          "id": "object-292",
+          "id": "object-180",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -2620,7 +1178,7 @@
           }
         },
         {
-          "id": "object-293",
+          "id": "object-181",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -2631,7 +1189,7 @@
           }
         },
         {
-          "id": "object-294",
+          "id": "object-182",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -2639,28 +1197,6 @@
             "y": 330,
             "w": 21,
             "h": 24
-          }
-        },
-        {
-          "id": "object-295",
-          "type": "laptop",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 612,
-            "y": 196.5,
-            "w": 27,
-            "h": 21
-          }
-        },
-        {
-          "id": "object-296",
-          "type": "notebook",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 613.5,
-            "y": 298.5,
-            "w": 27,
-            "h": 19.5
           }
         },
         {
@@ -2676,84 +1212,7 @@
           }
         },
         {
-          "id": "object-298",
-          "type": "stool",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 715.5,
-            "y": 136.5,
-            "w": 24,
-            "h": 27
-          }
-        },
-        {
-          "id": "object-299",
-          "type": "stool",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 715.5,
-            "y": 186,
-            "w": 24,
-            "h": 27
-          }
-        },
-        {
-          "id": "object-300",
-          "type": "stool",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 715.5,
-            "y": 235.5,
-            "w": 24,
-            "h": 27
-          }
-        },
-        {
-          "id": "object-301",
-          "type": "stool",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 715.5,
-            "y": 285,
-            "w": 24,
-            "h": 27
-          }
-        },
-        {
-          "id": "object-302",
-          "type": "stool",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 715.5,
-            "y": 334.5,
-            "w": 24,
-            "h": 27
-          }
-        },
-        {
-          "id": "object-303",
-          "type": "plant",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 505.5,
-            "y": 135,
-            "w": 33,
-            "h": 33
-          }
-        },
-        {
-          "id": "object-304",
-          "type": "plant",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 505.5,
-            "y": 387,
-            "w": 36,
-            "h": 36
-          }
-        },
-        {
-          "id": "object-305",
+          "id": "object-185",
           "type": "rug",
           "confirmTransfer": false,
           "footprint": {
@@ -2764,18 +1223,7 @@
           }
         },
         {
-          "id": "object-306",
-          "type": "plant",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 715.5,
-            "y": 583.5,
-            "w": 40.5,
-            "h": 40.5
-          }
-        },
-        {
-          "id": "object-307",
+          "id": "object-186",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
@@ -2786,7 +1234,7 @@
           }
         },
         {
-          "id": "object-308",
+          "id": "object-187",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -2797,7 +1245,7 @@
           }
         },
         {
-          "id": "object-309",
+          "id": "object-188",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -2808,7 +1256,7 @@
           }
         },
         {
-          "id": "object-310",
+          "id": "object-189",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -2819,7 +1267,7 @@
           }
         },
         {
-          "id": "object-311",
+          "id": "object-190",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -2830,7 +1278,7 @@
           }
         },
         {
-          "id": "object-312",
+          "id": "object-191",
           "type": "tv",
           "name": "회의용 TV",
           "confirmTransfer": false,
@@ -2842,18 +1290,7 @@
           }
         },
         {
-          "id": "object-313",
-          "type": "laptop",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 663,
-            "y": 696,
-            "w": 25.5,
-            "h": 19.5
-          }
-        },
-        {
-          "id": "object-314",
+          "id": "object-193",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
@@ -2864,7 +1301,7 @@
           }
         },
         {
-          "id": "object-315",
+          "id": "object-194",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -2875,7 +1312,7 @@
           }
         },
         {
-          "id": "object-316",
+          "id": "object-195",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -2886,7 +1323,7 @@
           }
         },
         {
-          "id": "object-317",
+          "id": "object-196",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -2897,7 +1334,7 @@
           }
         },
         {
-          "id": "object-318",
+          "id": "object-197",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -2908,7 +1345,7 @@
           }
         },
         {
-          "id": "object-319",
+          "id": "object-198",
           "type": "tv",
           "name": "회의용 TV",
           "confirmTransfer": false,
@@ -2920,31 +1357,20 @@
           }
         },
         {
-          "id": "object-320",
-          "type": "laptop",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 663,
-            "y": 855,
-            "w": 25.5,
-            "h": 19.5
-          }
-        },
-        {
-          "id": "extinguisher-meeting2",
-          "type": "fire-extinguisher",
-          "name": "소화기 · 옥상 이동",
+          "id": "campus-lounge2-portal",
+          "type": "floor-portal",
+          "name": "옥상으로 이동",
           "toFloor": "rooftop",
           "arrival": [
-            145,
-            1610
+            850,
+            950
           ],
-          "confirmTransfer": true,
+          "confirmTransfer": false,
           "footprint": {
-            "x": 487.5,
-            "y": 912,
-            "w": 24,
-            "h": 33
+            "x": 610.5,
+            "y": 484.5,
+            "w": 60,
+            "h": 60
           }
         },
         {
@@ -2959,7 +1385,7 @@
           }
         },
         {
-          "id": "object-323",
+          "id": "object-202",
           "type": "water",
           "name": "정수기",
           "confirmTransfer": false,
@@ -2971,7 +1397,7 @@
           }
         },
         {
-          "id": "object-324",
+          "id": "object-203",
           "type": "coffee-machine",
           "name": "커피머신",
           "confirmTransfer": false,
@@ -2983,7 +1409,7 @@
           }
         },
         {
-          "id": "object-325",
+          "id": "object-204",
           "type": "bin",
           "name": "분리수거함",
           "confirmTransfer": false,
@@ -2995,7 +1421,7 @@
           }
         },
         {
-          "id": "object-326",
+          "id": "object-205",
           "type": "bin",
           "name": "분리수거함",
           "confirmTransfer": false,
@@ -3007,7 +1433,7 @@
           }
         },
         {
-          "id": "object-327",
+          "id": "object-206",
           "type": "bin",
           "name": "분리수거함",
           "confirmTransfer": false,
@@ -3019,19 +1445,7 @@
           }
         },
         {
-          "id": "object-328",
-          "type": "printer",
-          "name": "대형 사무용 프린터",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1978.5,
-            "y": 46.5,
-            "w": 52.5,
-            "h": 61.5
-          }
-        },
-        {
-          "id": "object-329",
+          "id": "object-207",
           "type": "cabinet",
           "confirmTransfer": false,
           "footprint": {
@@ -3042,7 +1456,7 @@
           }
         },
         {
-          "id": "object-330",
+          "id": "object-208",
           "type": "cabinet",
           "confirmTransfer": false,
           "footprint": {
@@ -3053,7 +1467,7 @@
           }
         },
         {
-          "id": "object-331",
+          "id": "object-209",
           "type": "box",
           "confirmTransfer": false,
           "footprint": {
@@ -3064,7 +1478,7 @@
           }
         },
         {
-          "id": "object-332",
+          "id": "object-210",
           "type": "box",
           "confirmTransfer": false,
           "footprint": {
@@ -3075,7 +1489,7 @@
           }
         },
         {
-          "id": "object-333",
+          "id": "object-211",
           "type": "desk",
           "name": "노트북용 긴 탁자",
           "confirmTransfer": false,
@@ -3087,18 +1501,7 @@
           }
         },
         {
-          "id": "object-334",
-          "type": "laptop",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1896,
-            "y": 169.5,
-            "w": 36,
-            "h": 28.5
-          }
-        },
-        {
-          "id": "object-335",
+          "id": "object-213",
           "type": "desk",
           "name": "팀 회의 탁자 1",
           "confirmTransfer": false,
@@ -3110,7 +1513,7 @@
           }
         },
         {
-          "id": "object-336",
+          "id": "object-214",
           "type": "tv",
           "name": "PC 연결 TV · 1번 탁자",
           "confirmTransfer": false,
@@ -3122,7 +1525,7 @@
           }
         },
         {
-          "id": "object-337",
+          "id": "object-215",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3133,7 +1536,7 @@
           }
         },
         {
-          "id": "object-338",
+          "id": "object-216",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3144,7 +1547,7 @@
           }
         },
         {
-          "id": "object-339",
+          "id": "object-217",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3155,7 +1558,7 @@
           }
         },
         {
-          "id": "object-340",
+          "id": "object-218",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3166,7 +1569,7 @@
           }
         },
         {
-          "id": "object-341",
+          "id": "object-219",
           "type": "desk",
           "name": "팀 회의 탁자 2",
           "confirmTransfer": false,
@@ -3178,7 +1581,7 @@
           }
         },
         {
-          "id": "object-342",
+          "id": "object-220",
           "type": "tv",
           "name": "PC 연결 TV · 2번 탁자",
           "confirmTransfer": false,
@@ -3190,7 +1593,7 @@
           }
         },
         {
-          "id": "object-343",
+          "id": "object-221",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3201,7 +1604,7 @@
           }
         },
         {
-          "id": "object-344",
+          "id": "object-222",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3212,7 +1615,7 @@
           }
         },
         {
-          "id": "object-345",
+          "id": "object-223",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3223,7 +1626,7 @@
           }
         },
         {
-          "id": "object-346",
+          "id": "object-224",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3234,7 +1637,7 @@
           }
         },
         {
-          "id": "object-347",
+          "id": "object-225",
           "type": "desk",
           "name": "팀 회의 탁자 3",
           "confirmTransfer": false,
@@ -3246,7 +1649,7 @@
           }
         },
         {
-          "id": "object-348",
+          "id": "object-226",
           "type": "tv",
           "name": "PC 연결 TV · 3번 탁자",
           "confirmTransfer": false,
@@ -3258,7 +1661,7 @@
           }
         },
         {
-          "id": "object-349",
+          "id": "object-227",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3269,7 +1672,7 @@
           }
         },
         {
-          "id": "object-350",
+          "id": "object-228",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3280,7 +1683,7 @@
           }
         },
         {
-          "id": "object-351",
+          "id": "object-229",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3291,7 +1694,7 @@
           }
         },
         {
-          "id": "object-352",
+          "id": "object-230",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3302,18 +1705,7 @@
           }
         },
         {
-          "id": "object-353",
-          "type": "laptop",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1765.5,
-            "y": 271.5,
-            "w": 25.5,
-            "h": 21
-          }
-        },
-        {
-          "id": "object-354",
+          "id": "object-232",
           "type": "notebook",
           "confirmTransfer": false,
           "footprint": {
@@ -3321,17 +1713,6 @@
             "y": 324,
             "w": 27,
             "h": 19.5
-          }
-        },
-        {
-          "id": "object-355",
-          "type": "laptop",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2040,
-            "y": 276,
-            "w": 25.5,
-            "h": 21
           }
         },
         {
@@ -3347,7 +1728,7 @@
           }
         },
         {
-          "id": "object-358",
+          "id": "object-236",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3358,29 +1739,18 @@
           }
         },
         {
-          "id": "object-359",
+          "id": "object-237",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
             "x": 2122.5,
-            "y": 472.5,
+            "y": 492.75,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-360",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2122.5,
-            "y": 513,
-            "w": 21,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-361",
+          "id": "object-238",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3391,29 +1761,7 @@
           }
         },
         {
-          "id": "object-362",
-          "type": "laptop",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2086.5,
-            "y": 444,
-            "w": 21,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-363",
-          "type": "laptop",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2086.5,
-            "y": 531,
-            "w": 21,
-            "h": 30
-          }
-        },
-        {
-          "id": "object-372",
+          "id": "object-249",
           "type": "rug",
           "confirmTransfer": false,
           "footprint": {
@@ -3424,7 +1772,7 @@
           }
         },
         {
-          "id": "object-373",
+          "id": "object-250",
           "type": "woodwall",
           "name": "브라운 벽",
           "confirmTransfer": false,
@@ -3436,7 +1784,7 @@
           }
         },
         {
-          "id": "object-374",
+          "id": "object-251",
           "type": "sofa",
           "name": "소파 라운지",
           "confirmTransfer": false,
@@ -3448,7 +1796,7 @@
           }
         },
         {
-          "id": "object-375",
+          "id": "object-252",
           "type": "sofa",
           "name": "2칸 소파",
           "confirmTransfer": false,
@@ -3460,7 +1808,7 @@
           }
         },
         {
-          "id": "object-376",
+          "id": "object-253",
           "type": "coffee",
           "confirmTransfer": false,
           "footprint": {
@@ -3471,7 +1819,7 @@
           }
         },
         {
-          "id": "object-377",
+          "id": "object-254",
           "type": "ottoman",
           "confirmTransfer": false,
           "footprint": {
@@ -3482,7 +1830,7 @@
           }
         },
         {
-          "id": "object-378",
+          "id": "object-255",
           "type": "ottoman",
           "confirmTransfer": false,
           "footprint": {
@@ -3493,7 +1841,7 @@
           }
         },
         {
-          "id": "object-379",
+          "id": "object-256",
           "type": "ottoman",
           "confirmTransfer": false,
           "footprint": {
@@ -3504,7 +1852,7 @@
           }
         },
         {
-          "id": "object-380",
+          "id": "object-257",
           "type": "roundtable",
           "confirmTransfer": false,
           "footprint": {
@@ -3515,7 +1863,7 @@
           }
         },
         {
-          "id": "object-381",
+          "id": "object-258",
           "type": "roundtable",
           "confirmTransfer": false,
           "footprint": {
@@ -3526,7 +1874,7 @@
           }
         },
         {
-          "id": "object-382",
+          "id": "object-259",
           "type": "roundtable",
           "confirmTransfer": false,
           "footprint": {
@@ -3537,7 +1885,7 @@
           }
         },
         {
-          "id": "object-383",
+          "id": "object-260",
           "type": "bookshelf-side",
           "name": "라운지 책장",
           "confirmTransfer": false,
@@ -3549,41 +1897,41 @@
           }
         },
         {
-          "id": "object-384",
+          "id": "object-261",
           "type": "glass-wall",
           "confirmTransfer": false,
           "footprint": {
             "x": 1923,
             "y": 945,
-            "w": 42,
+            "w": 30,
             "h": 4.5
           }
         },
         {
-          "id": "object-385",
+          "id": "object-262",
           "type": "glass-wall",
           "confirmTransfer": false,
           "footprint": {
-            "x": 2016,
+            "x": 2044.5,
             "y": 945,
-            "w": 37.5,
+            "w": 9,
             "h": 4.5
           }
         },
         {
-          "id": "object-386",
+          "id": "campus-entrance-glass-door",
           "type": "sliding-door",
-          "name": "외부 유리 출입문",
+          "name": "유리 출입문",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1965,
-            "y": 939,
-            "w": 51,
-            "h": 18
+            "x": 1953,
+            "y": 945,
+            "w": 91.5,
+            "h": 4.5
           }
         },
         {
-          "id": "object-387",
+          "id": "object-264",
           "type": "desk",
           "name": "안내 데스크",
           "confirmTransfer": false,
@@ -3595,18 +1943,29 @@
           }
         },
         {
-          "id": "object-388",
-          "type": "monitor",
+          "id": "object-265",
+          "type": "laptop",
           "confirmTransfer": false,
           "footprint": {
             "x": 2026.5,
             "y": 822,
             "w": 24,
-            "h": 18
+            "h": 27
           }
         },
         {
-          "id": "object-389",
+          "id": "object-266",
+          "type": "laptop",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 2026.5,
+            "y": 883.5,
+            "w": 24,
+            "h": 27
+          }
+        },
+        {
+          "id": "object-267",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3617,7 +1976,7 @@
           }
         },
         {
-          "id": "object-390",
+          "id": "object-268",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3628,7 +1987,7 @@
           }
         },
         {
-          "id": "object-391",
+          "id": "object-269",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
@@ -3639,7 +1998,7 @@
           }
         },
         {
-          "id": "object-392",
+          "id": "object-270",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3650,18 +2009,7 @@
           }
         },
         {
-          "id": "object-393",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2299.5,
-            "y": 103.5,
-            "w": 31.5,
-            "h": 19.5
-          }
-        },
-        {
-          "id": "object-394",
+          "id": "object-272",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
@@ -3672,7 +2020,7 @@
           }
         },
         {
-          "id": "object-395",
+          "id": "object-273",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3683,18 +2031,7 @@
           }
         },
         {
-          "id": "object-396",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2299.5,
-            "y": 183,
-            "w": 31.5,
-            "h": 19.5
-          }
-        },
-        {
-          "id": "object-397",
+          "id": "object-275",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
@@ -3705,7 +2042,7 @@
           }
         },
         {
-          "id": "object-398",
+          "id": "object-276",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3716,18 +2053,7 @@
           }
         },
         {
-          "id": "object-399",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2299.5,
-            "y": 262.5,
-            "w": 31.5,
-            "h": 19.5
-          }
-        },
-        {
-          "id": "object-400",
+          "id": "object-278",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
@@ -3738,7 +2064,7 @@
           }
         },
         {
-          "id": "object-401",
+          "id": "object-279",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3749,18 +2075,7 @@
           }
         },
         {
-          "id": "object-402",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2299.5,
-            "y": 342,
-            "w": 31.5,
-            "h": 19.5
-          }
-        },
-        {
-          "id": "object-403",
+          "id": "object-281",
           "type": "cabinet",
           "confirmTransfer": false,
           "footprint": {
@@ -3771,18 +2086,7 @@
           }
         },
         {
-          "id": "object-404",
-          "type": "plant",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2326.5,
-            "y": 444,
-            "w": 34.5,
-            "h": 34.5
-          }
-        },
-        {
-          "id": "object-405",
+          "id": "object-282",
           "type": "desk",
           "confirmTransfer": false,
           "footprint": {
@@ -3793,7 +2097,7 @@
           }
         },
         {
-          "id": "object-406",
+          "id": "object-283",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3804,7 +2108,7 @@
           }
         },
         {
-          "id": "object-407",
+          "id": "object-284",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3815,7 +2119,7 @@
           }
         },
         {
-          "id": "object-408",
+          "id": "object-285",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3826,7 +2130,7 @@
           }
         },
         {
-          "id": "object-409",
+          "id": "object-286",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3837,7 +2141,7 @@
           }
         },
         {
-          "id": "object-410",
+          "id": "object-287",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3848,7 +2152,7 @@
           }
         },
         {
-          "id": "object-411",
+          "id": "object-288",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
@@ -3859,7 +2163,7 @@
           }
         },
         {
-          "id": "object-412",
+          "id": "object-289",
           "type": "tv",
           "name": "회의용 TV",
           "confirmTransfer": false,
@@ -3871,137 +2175,96 @@
           }
         },
         {
-          "id": "object-413",
-          "type": "plant",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2326.5,
-            "y": 763.5,
-            "w": 31.5,
-            "h": 31.5
-          }
-        },
-        {
           "id": "campus-roof-stairs",
           "type": "stairs",
           "name": "옥상으로 올라가기",
           "toFloor": "rooftop",
           "arrival": [
-            2325,
-            1565
+            1760,
+            880
           ],
           "confirmTransfer": false,
+          "interactionPoint": [
+            1983,
+            720
+          ],
           "footprint": {
-            "x": 2218.5,
-            "y": 829.5,
-            "w": 150,
-            "h": 105
+            "x": 1953,
+            "y": 952.5,
+            "w": 91.5,
+            "h": 102
           }
         },
         {
-          "id": "object-415",
+          "id": "object-291",
           "type": "desk",
           "name": "상담 테이블",
           "confirmTransfer": false,
           "footprint": {
-            "x": 2083.5,
-            "y": 981,
-            "w": 30,
-            "h": 42
+            "x": 2097,
+            "y": 1047,
+            "w": 78,
+            "h": 54
           }
         },
         {
-          "id": "object-416",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2086.5,
-            "y": 982.5,
-            "w": 22.5,
-            "h": 16.5
-          }
-        },
-        {
-          "id": "object-417",
+          "id": "object-292",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 2061,
-            "y": 984,
-            "w": 18,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-418",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2083.5,
-            "y": 1035,
+            "x": 2125.5,
+            "y": 1011,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "object-419",
-          "type": "desk",
-          "name": "상담 테이블",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2166,
-            "y": 981,
-            "w": 30,
-            "h": 42
-          }
-        },
-        {
-          "id": "object-420",
-          "type": "monitor",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2169,
-            "y": 982.5,
-            "w": 22.5,
-            "h": 16.5
-          }
-        },
-        {
-          "id": "object-421",
+          "id": "object-293",
           "type": "chair",
           "confirmTransfer": false,
           "footprint": {
-            "x": 2143.5,
-            "y": 984,
-            "w": 18,
-            "h": 24
-          }
-        },
-        {
-          "id": "object-422",
-          "type": "chair",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2166,
-            "y": 1035,
+            "x": 2125.5,
+            "y": 1113,
             "w": 21,
             "h": 24
           }
         },
         {
-          "id": "extinguisher-corridor",
-          "type": "fire-extinguisher",
-          "name": "소화기",
+          "id": "object-294",
+          "type": "desk",
+          "name": "상담 테이블",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1249.5,
-            "y": 420,
-            "w": 24,
-            "h": 33
+            "x": 2261.25,
+            "y": 1047,
+            "w": 78,
+            "h": 54
           }
         },
         {
-          "id": "object-424",
+          "id": "object-295",
+          "type": "chair",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 2289.75,
+            "y": 1011,
+            "w": 21,
+            "h": 24
+          }
+        },
+        {
+          "id": "object-296",
+          "type": "chair",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 2289.75,
+            "y": 1113,
+            "w": 21,
+            "h": 24
+          }
+        },
+        {
+          "id": "object-297",
           "type": "floor-arrow",
           "confirmTransfer": false,
           "footprint": {
@@ -4012,7 +2275,7 @@
           }
         },
         {
-          "id": "object-425",
+          "id": "object-298",
           "type": "floor-arrow",
           "confirmTransfer": false,
           "footprint": {
@@ -4051,9 +2314,9 @@
           "type": "wall-sign",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1348.5,
+            "x": 1279.5,
             "y": 561,
-            "w": 270,
+            "w": 265.5,
             "h": 4.5
           }
         },
@@ -4062,10 +2325,23 @@
           "type": "wall-sign",
           "confirmTransfer": false,
           "footprint": {
-            "x": 889.5,
+            "x": 957,
             "y": 561,
-            "w": 270,
+            "w": 250.5,
             "h": 4.5
+          }
+        },
+        {
+          "id": "campus-guide-kkuwang",
+          "type": "guide-npc",
+          "name": "메타버스 가이드 꾸왕이",
+          "action": "guide",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 1134,
+            "y": 287.5,
+            "w": 48,
+            "h": 40
           }
         }
       ],
@@ -4136,35 +2412,28 @@
         {
           "x": 2053.5,
           "y": 946.5,
-          "w": 10.5,
+          "w": 40.5,
           "h": 0,
           "pad": 5
         },
         {
-          "x": 2110.5,
+          "x": 2163,
           "y": 946.5,
-          "w": 25.5,
+          "w": 54.75,
           "h": 0,
           "pad": 5
         },
         {
-          "x": 2136,
+          "x": 2217.75,
           "y": 946.5,
-          "w": 12,
+          "w": 42.75,
           "h": 0,
           "pad": 5
         },
         {
-          "x": 2194.5,
+          "x": 2329.5,
           "y": 946.5,
-          "w": 13.5,
-          "h": 0,
-          "pad": 5
-        },
-        {
-          "x": 2208,
-          "y": 946.5,
-          "w": 174,
+          "w": 52.5,
           "h": 0,
           "pad": 5
         },
@@ -4232,44 +2501,16 @@
           "pad": 5
         },
         {
-          "x": 792,
-          "y": 400.5,
-          "w": 28.5,
-          "h": 0,
-          "pad": 5
-        },
-        {
-          "x": 885,
-          "y": 400.5,
-          "w": 732,
-          "h": 0,
-          "pad": 5
-        },
-        {
-          "x": 1681.5,
-          "y": 400.5,
-          "w": 27,
-          "h": 0,
-          "pad": 5
-        },
-        {
-          "x": 792,
+          "x": 933,
           "y": 553.5,
-          "w": 28.5,
+          "w": 630,
           "h": 0,
           "pad": 5
         },
         {
-          "x": 885,
+          "x": 1698,
           "y": 553.5,
-          "w": 732,
-          "h": 0,
-          "pad": 5
-        },
-        {
-          "x": 1681.5,
-          "y": 553.5,
-          "w": 27,
+          "w": 10.5,
           "h": 0,
           "pad": 5
         },
@@ -4305,14 +2546,14 @@
           "x": 2206.5,
           "y": 780,
           "w": 0,
-          "h": 85.5,
+          "h": 37.5,
           "pad": 5
         },
         {
           "x": 2206.5,
-          "y": 913.5,
+          "y": 946.5,
           "w": 0,
-          "h": 33,
+          "h": 0,
           "pad": 5
         },
         {
@@ -4389,517 +2630,167 @@
           "x": 2053.5,
           "y": 946.5,
           "w": 0,
-          "h": 130.5,
+          "h": 253.5,
           "pad": 5
         },
         {
-          "x": 2136,
+          "x": 2217.75,
           "y": 946.5,
           "w": 0,
-          "h": 130.5,
+          "h": 253.5,
           "pad": 5
         },
         {
-          "x": 2208,
+          "x": 2382,
           "y": 946.5,
           "w": 0,
-          "h": 130.5,
+          "h": 253.5,
           "pad": 5
         },
         {
           "x": 2053.5,
-          "y": 1077,
-          "w": 154.5,
+          "y": 1200,
+          "w": 328.5,
           "h": 0,
           "pad": 5
         },
         {
-          "x": 84,
+          "x": 222,
           "y": 310.5,
           "w": 66,
           "h": 28.5,
           "pad": 0
         },
         {
-          "x": 67.5,
+          "x": 112.19999999999999,
           "y": 246,
-          "w": 75.75,
+          "w": 285.6,
           "h": 30,
           "pad": 0
         },
         {
-          "x": 161.25,
-          "y": 246,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 255,
-          "y": 246,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 348.75,
-          "y": 246,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 67.5,
+          "x": 112.19999999999999,
           "y": 178.5,
-          "w": 75.75,
+          "w": 285.6,
           "h": 30,
           "pad": 0
         },
         {
-          "x": 161.25,
-          "y": 178.5,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 255,
-          "y": 178.5,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 348.75,
-          "y": 178.5,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 67.5,
+          "x": 112.19999999999999,
           "y": 111,
-          "w": 75.75,
+          "w": 285.6,
           "h": 30,
           "pad": 0
         },
         {
-          "x": 161.25,
-          "y": 111,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 255,
-          "y": 111,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 348.75,
-          "y": 111,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 48,
-          "y": 318,
-          "w": 30,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 84,
+          "x": 222,
           "y": 675,
           "w": 66,
           "h": 28.5,
           "pad": 0
         },
         {
-          "x": 67.5,
+          "x": 112.19999999999999,
           "y": 610.5,
-          "w": 75.75,
+          "w": 285.6,
           "h": 30,
           "pad": 0
         },
         {
-          "x": 161.25,
-          "y": 610.5,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 255,
-          "y": 610.5,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 348.75,
-          "y": 610.5,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 67.5,
+          "x": 112.19999999999999,
           "y": 543,
-          "w": 75.75,
+          "w": 285.6,
           "h": 30,
           "pad": 0
         },
         {
-          "x": 161.25,
-          "y": 543,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 255,
-          "y": 543,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 348.75,
-          "y": 543,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 67.5,
+          "x": 112.19999999999999,
           "y": 475.5,
-          "w": 75.75,
+          "w": 285.6,
           "h": 30,
           "pad": 0
         },
         {
-          "x": 161.25,
-          "y": 475.5,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 255,
-          "y": 475.5,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 348.75,
-          "y": 475.5,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 48,
-          "y": 682.5,
-          "w": 30,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 84,
+          "x": 222,
           "y": 1039.5,
           "w": 66,
           "h": 28.5,
           "pad": 0
         },
         {
-          "x": 67.5,
+          "x": 112.19999999999999,
           "y": 975,
-          "w": 75.75,
+          "w": 285.6,
           "h": 30,
           "pad": 0
         },
         {
-          "x": 161.25,
-          "y": 975,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 255,
-          "y": 975,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 348.75,
-          "y": 975,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 67.5,
+          "x": 112.19999999999999,
           "y": 907.5,
-          "w": 75.75,
+          "w": 285.6,
           "h": 30,
           "pad": 0
         },
         {
-          "x": 161.25,
-          "y": 907.5,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 255,
-          "y": 907.5,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 348.75,
-          "y": 907.5,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 67.5,
+          "x": 112.19999999999999,
           "y": 840,
-          "w": 75.75,
+          "w": 285.6,
           "h": 30,
           "pad": 0
         },
         {
-          "x": 161.25,
-          "y": 840,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 255,
-          "y": 840,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 348.75,
-          "y": 840,
-          "w": 75.75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 48,
-          "y": 1047,
-          "w": 30,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 846,
+          "x": 993.75,
           "y": 856.5,
           "w": 66,
           "h": 28.5,
           "pad": 0
         },
         {
-          "x": 829.5,
+          "x": 876.1500000000001,
           "y": 792,
-          "w": 78,
+          "w": 301.20000000000005,
           "h": 30,
           "pad": 0
         },
         {
-          "x": 929,
-          "y": 792,
-          "w": 78,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 1028.5,
-          "y": 792,
-          "w": 78,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 1128,
-          "y": 792,
-          "w": 78,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 829.5,
+          "x": 876.1500000000001,
           "y": 724.5,
-          "w": 78,
+          "w": 301.20000000000005,
           "h": 30,
           "pad": 0
         },
         {
-          "x": 929,
-          "y": 724.5,
-          "w": 78,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 1028.5,
-          "y": 724.5,
-          "w": 78,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 1128,
-          "y": 724.5,
-          "w": 78,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 829.5,
+          "x": 876.1500000000001,
           "y": 657,
-          "w": 78,
+          "w": 301.20000000000005,
           "h": 30,
           "pad": 0
         },
         {
-          "x": 929,
-          "y": 657,
-          "w": 78,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 1028.5,
-          "y": 657,
-          "w": 78,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 1128,
-          "y": 657,
-          "w": 78,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 1204.5,
-          "y": 864,
-          "w": 30,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 1315.5,
+          "x": 1452,
           "y": 856.5,
           "w": 66,
           "h": 28.5,
           "pad": 0
         },
         {
-          "x": 1299,
+          "x": 1343.4,
           "y": 792,
-          "w": 75,
+          "w": 283.20000000000005,
           "h": 30,
           "pad": 0
         },
         {
-          "x": 1392,
-          "y": 792,
-          "w": 75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 1485,
-          "y": 792,
-          "w": 75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 1578,
-          "y": 792,
-          "w": 75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 1299,
+          "x": 1343.4,
           "y": 724.5,
-          "w": 75,
+          "w": 283.20000000000005,
           "h": 30,
           "pad": 0
         },
         {
-          "x": 1392,
-          "y": 724.5,
-          "w": 75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 1485,
-          "y": 724.5,
-          "w": 75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 1578,
-          "y": 724.5,
-          "w": 75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 1299,
+          "x": 1343.4,
           "y": 657,
-          "w": 75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 1392,
-          "y": 657,
-          "w": 75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 1485,
-          "y": 657,
-          "w": 75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 1578,
-          "y": 657,
-          "w": 75,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 1651.5,
-          "y": 864,
-          "w": 30,
+          "w": 283.20000000000005,
           "h": 30,
           "pad": 0
         },
@@ -4960,27 +2851,6 @@
           "pad": 0
         },
         {
-          "x": 505.5,
-          "y": 135,
-          "w": 33,
-          "h": 33,
-          "pad": 0
-        },
-        {
-          "x": 505.5,
-          "y": 387,
-          "w": 36,
-          "h": 36,
-          "pad": 0
-        },
-        {
-          "x": 715.5,
-          "y": 583.5,
-          "w": 40.5,
-          "h": 40.5,
-          "pad": 0
-        },
-        {
           "x": 633,
           "y": 691.5,
           "w": 85.5,
@@ -5006,13 +2876,6 @@
           "y": 849,
           "w": 21,
           "h": 51,
-          "pad": 0
-        },
-        {
-          "x": 487.5,
-          "y": 912,
-          "w": 24,
-          "h": 33,
           "pad": 0
         },
         {
@@ -5055,13 +2918,6 @@
           "y": 61.5,
           "w": 27,
           "h": 27,
-          "pad": 0
-        },
-        {
-          "x": 1978.5,
-          "y": 46.5,
-          "w": 52.5,
-          "h": 61.5,
           "pad": 0
         },
         {
@@ -5214,14 +3070,14 @@
         {
           "x": 1923,
           "y": 945,
-          "w": 42,
+          "w": 30,
           "h": 4.5,
           "pad": 0
         },
         {
-          "x": 2016,
+          "x": 2044.5,
           "y": 945,
-          "w": 37.5,
+          "w": 9,
           "h": 4.5,
           "pad": 0
         },
@@ -5268,13 +3124,6 @@
           "pad": 0
         },
         {
-          "x": 2326.5,
-          "y": 444,
-          "w": 34.5,
-          "h": 34.5,
-          "pad": 0
-        },
-        {
           "x": 2268,
           "y": 579,
           "w": 61.5,
@@ -5289,31 +3138,17 @@
           "pad": 0
         },
         {
-          "x": 2326.5,
-          "y": 763.5,
-          "w": 31.5,
-          "h": 31.5,
+          "x": 2097,
+          "y": 1047,
+          "w": 78,
+          "h": 54,
           "pad": 0
         },
         {
-          "x": 2083.5,
-          "y": 981,
-          "w": 30,
-          "h": 42,
-          "pad": 0
-        },
-        {
-          "x": 2166,
-          "y": 981,
-          "w": 30,
-          "h": 42,
-          "pad": 0
-        },
-        {
-          "x": 1249.5,
-          "y": 420,
-          "w": 24,
-          "h": 33,
+          "x": 2261.25,
+          "y": 1047,
+          "w": 78,
+          "h": 54,
           "pad": 0
         },
         {
@@ -5321,6 +3156,13 @@
           "y": 583.5,
           "w": 27,
           "h": 72,
+          "pad": 0
+        },
+        {
+          "x": 1134,
+          "y": 287.5,
+          "w": 48,
+          "h": 40,
           "pad": 0
         }
       ]
@@ -5373,9 +3215,9 @@
         {
           "id": "roof-terrace",
           "name": "중앙 계단형 쉼터",
-          "x": 1044,
+          "x": 1179,
           "y": 64,
-          "w": 360,
+          "w": 225,
           "h": 1672,
           "target": [
             1224,
@@ -5384,11 +3226,11 @@
           "floor": "roof",
           "labelX": 1160,
           "labelY": 590,
-          "description": "맵의 1/2 지점에 세로로 길게 놓은 여덟 단 쉼터입니다. 낮은 단과 난간을 따라 두 계단 통로로 오갈 수 있습니다.",
+          "description": "맵의 1/2 지점에 세로로 길게 놓은 다섯 단 쉼터입니다. 낮은 단과 난간을 따라 두 계단 통로로 오갈 수 있습니다.",
           "tags": [
             "중앙 1/2",
             "세로 배치",
-            "낮은 8단 계단"
+            "낮은 5단 계단"
           ]
         },
         {
@@ -5396,16 +3238,16 @@
           "name": "01 유튜브 스튜디오",
           "x": 420,
           "y": 290,
-          "w": 290,
+          "w": 194,
           "h": 320,
           "target": [
-            706,
+            610,
             440
           ],
           "floor": "roof",
-          "labelX": 670,
+          "labelX": 574,
           "labelY": 615,
-          "description": "영상 제작을 테마로 꾸민 열린 부스입니다. 카메라·삼각대, 마이크, 영상 편집 화면, 재생 버튼 기념패를 배치했습니다.",
+          "description": "영상 제작을 테마로 꾸민 열린 부스입니다. 영상 화면과 재생 버튼 기념패를 배치했습니다.",
           "tags": [
             "SECTION 01",
             "YouTube",
@@ -5414,19 +3256,19 @@
         },
         {
           "id": "festival-instagram",
-          "name": "02 심리 테스트 존",
+          "name": "02 심리테스트",
           "x": 420,
           "y": 750,
-          "w": 290,
+          "w": 194,
           "h": 320,
           "target": [
-            706,
+            610,
             900
           ],
           "floor": "roof",
-          "labelX": 670,
+          "labelX": 574,
           "labelY": 1075,
-          "description": "성격과 기분을 알아보는 심리 테스트 공간입니다. 마음 유형 보드, 질문 키오스크, 감정 카드 진열대를 두고 부스 중앙에서 E를 누르면 심심테스트가 열립니다.",
+          "description": "성격과 기분을 알아보는 심리 테스트 공간입니다. 심리테스트 안내 보드를 두고 부스 안에서 E를 누르면 심심테스트가 열립니다.",
           "tags": [
             "SECTION 02",
             "심리 테스트",
@@ -5438,14 +3280,14 @@
           "name": "03 게임 부스",
           "x": 420,
           "y": 1210,
-          "w": 290,
+          "w": 194,
           "h": 320,
           "target": [
-            706,
+            610,
             1360
           ],
           "floor": "roof",
-          "labelX": 670,
+          "labelX": 574,
           "labelY": 1535,
           "description": "아케이드 기기, 닌텐도 휴대용 콘솔과 스팀 게이밍 PC로 꾸민 게임 부스입니다. 중앙에서 E를 누르면 오목·테트리스·죽림고수·팔라독·솔리테어 등 16가지 게임 카드가 열리고, 선택한 게임을 같은 팝업에서 플레이할 수 있습니다.",
           "tags": [
@@ -5454,44 +3296,13 @@
             "아케이드 · 게이밍 PC",
             "오목 · 전쟁시대 · 아빠와 나 · 지뢰찾기"
           ]
-        },
-        {
-          "id": "roof-stairs",
-          "name": "18층 연결 계단",
-          "x": 2220,
-          "y": 1550,
-          "w": 154,
-          "h": 174,
-          "target": [
-            2325,
-            1565
-          ],
-          "floor": "roof",
-          "labelX": 2300,
-          "labelY": 1545,
-          "description": "계단으로 들어가거나 가까이에서 E를 누르면 18층 캠퍼스로 내려갑니다."
         }
       ],
       "spawn": [
-        2325,
-        1565
+        1760,
+        880
       ],
-      "portals": [
-        {
-          "x": 2260,
-          "y": 1688,
-          "w": 100,
-          "h": 32,
-          "objectId": "roof-campus-stairs"
-        },
-        {
-          "x": 119,
-          "y": 1584,
-          "w": 52,
-          "h": 52,
-          "objectId": "roof-lounge2-portal"
-        }
-      ],
+      "portals": [],
       "objects": [
         {
           "id": "roof-object-0",
@@ -5561,17 +3372,6 @@
         },
         {
           "id": "roof-object-6",
-          "type": "planter",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2292,
-            "y": 160,
-            "w": 63,
-            "h": 30
-          }
-        },
-        {
-          "id": "roof-object-7",
           "type": "tree",
           "confirmTransfer": false,
           "footprint": {
@@ -5582,18 +3382,7 @@
           }
         },
         {
-          "id": "roof-object-8",
-          "type": "planter",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2292,
-            "y": 780,
-            "w": 63,
-            "h": 30
-          }
-        },
-        {
-          "id": "roof-object-9",
+          "id": "roof-object-7",
           "type": "tree",
           "confirmTransfer": false,
           "footprint": {
@@ -5604,58 +3393,80 @@
           }
         },
         {
-          "id": "roof-object-10",
-          "type": "planter",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2292,
-            "y": 1350,
-            "w": 63,
-            "h": 30
-          }
-        },
-        {
-          "id": "roof-object-11",
+          "id": "roof-object-8",
           "type": "tree",
           "confirmTransfer": false,
           "footprint": {
             "x": 2300,
-            "y": 1320,
+            "y": 1540,
             "w": 42,
             "h": 42
           }
         },
         {
-          "id": "roof-object-12",
-          "type": "planter",
+          "id": "roof-object-9",
+          "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
-            "x": 750,
-            "y": 520,
-            "w": 130,
-            "h": 30
+            "x": 1190,
+            "y": 310,
+            "w": 22,
+            "h": 240
+          }
+        },
+        {
+          "id": "roof-object-10",
+          "type": "terrace-bench",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 1190,
+            "y": 670,
+            "w": 22,
+            "h": 210
+          }
+        },
+        {
+          "id": "roof-object-11",
+          "type": "terrace-bench",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 1190,
+            "y": 1400,
+            "w": 22,
+            "h": 240
+          }
+        },
+        {
+          "id": "roof-object-12",
+          "type": "tree",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 1181,
+            "y": 605,
+            "w": 42,
+            "h": 42
           }
         },
         {
           "id": "roof-object-13",
-          "type": "terrace-bench",
+          "type": "planter",
           "confirmTransfer": false,
           "footprint": {
-            "x": 825,
-            "y": 580,
-            "w": 26,
-            "h": 70
+            "x": 1189,
+            "y": 1310,
+            "w": 24,
+            "h": 74
           }
         },
         {
           "id": "roof-object-14",
-          "type": "planter",
+          "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
-            "x": 750,
-            "y": 1590,
-            "w": 130,
-            "h": 30
+            "x": 1235,
+            "y": 310,
+            "w": 22,
+            "h": 240
           }
         },
         {
@@ -5663,10 +3474,10 @@
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
-            "x": 825,
-            "y": 1650,
-            "w": 26,
-            "h": 70
+            "x": 1235,
+            "y": 670,
+            "w": 22,
+            "h": 210
           }
         },
         {
@@ -5674,32 +3485,32 @@
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1055,
-            "y": 310,
+            "x": 1235,
+            "y": 1400,
             "w": 22,
             "h": 240
           }
         },
         {
           "id": "roof-object-17",
-          "type": "terrace-bench",
+          "type": "planter",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1055,
-            "y": 670,
-            "w": 22,
-            "h": 210
+            "x": 1234,
+            "y": 590,
+            "w": 24,
+            "h": 74
           }
         },
         {
           "id": "roof-object-18",
-          "type": "terrace-bench",
+          "type": "planter",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1055,
-            "y": 1040,
-            "w": 22,
-            "h": 200
+            "x": 1234,
+            "y": 1310,
+            "w": 24,
+            "h": 74
           }
         },
         {
@@ -5707,32 +3518,32 @@
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1055,
-            "y": 1400,
+            "x": 1280,
+            "y": 310,
             "w": 22,
             "h": 240
           }
         },
         {
           "id": "roof-object-20",
-          "type": "planter",
+          "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1054,
-            "y": 590,
-            "w": 24,
-            "h": 74
+            "x": 1280,
+            "y": 670,
+            "w": 22,
+            "h": 210
           }
         },
         {
           "id": "roof-object-21",
-          "type": "tree",
+          "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1046,
-            "y": 605,
-            "w": 42,
-            "h": 42
+            "x": 1280,
+            "y": 1400,
+            "w": 22,
+            "h": 240
           }
         },
         {
@@ -5740,8 +3551,8 @@
           "type": "planter",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1054,
-            "y": 1310,
+            "x": 1279,
+            "y": 590,
             "w": 24,
             "h": 74
           }
@@ -5751,7 +3562,7 @@
           "type": "tree",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1046,
+            "x": 1271,
             "y": 1325,
             "w": 42,
             "h": 42
@@ -5762,7 +3573,7 @@
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1100,
+            "x": 1325,
             "y": 310,
             "w": 22,
             "h": 240
@@ -5773,7 +3584,7 @@
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1100,
+            "x": 1325,
             "y": 670,
             "w": 22,
             "h": 210
@@ -5784,21 +3595,21 @@
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1100,
-            "y": 1040,
+            "x": 1325,
+            "y": 1400,
             "w": 22,
-            "h": 200
+            "h": 240
           }
         },
         {
           "id": "roof-object-27",
-          "type": "terrace-bench",
+          "type": "planter",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1100,
-            "y": 1400,
-            "w": 22,
-            "h": 240
+            "x": 1324,
+            "y": 590,
+            "w": 24,
+            "h": 74
           }
         },
         {
@@ -5806,630 +3617,113 @@
           "type": "planter",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1099,
-            "y": 590,
+            "x": 1324,
+            "y": 1310,
             "w": 24,
             "h": 74
           }
         },
         {
           "id": "roof-object-29",
-          "type": "planter",
+          "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1099,
-            "y": 1310,
-            "w": 24,
-            "h": 74
+            "x": 1370,
+            "y": 310,
+            "w": 22,
+            "h": 240
           }
         },
         {
           "id": "roof-object-30",
-          "type": "ottoman",
+          "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1100,
-            "y": 1250,
-            "w": 23,
-            "h": 23
+            "x": 1370,
+            "y": 670,
+            "w": 22,
+            "h": 210
           }
         },
         {
           "id": "roof-object-31",
-          "type": "ottoman",
+          "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1100,
-            "y": 1650,
-            "w": 23,
-            "h": 23
+            "x": 1370,
+            "y": 1400,
+            "w": 22,
+            "h": 240
           }
         },
         {
           "id": "roof-object-32",
-          "type": "terrace-bench",
+          "type": "tree",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1145,
-            "y": 310,
-            "w": 22,
-            "h": 240
+            "x": 1361,
+            "y": 605,
+            "w": 42,
+            "h": 42
           }
         },
         {
           "id": "roof-object-33",
-          "type": "terrace-bench",
+          "type": "planter",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1145,
-            "y": 670,
-            "w": 22,
-            "h": 210
+            "x": 1369,
+            "y": 1310,
+            "w": 24,
+            "h": 74
           }
         },
         {
           "id": "roof-object-34",
-          "type": "terrace-bench",
+          "type": "stair-handrail",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1145,
-            "y": 1040,
-            "w": 22,
-            "h": 200
+            "x": 1179,
+            "y": 285,
+            "w": 225,
+            "h": 6
           }
         },
         {
           "id": "roof-object-35",
-          "type": "terrace-bench",
+          "type": "stair-handrail",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1145,
-            "y": 1400,
-            "w": 22,
-            "h": 240
+            "x": 1179,
+            "y": 900,
+            "w": 225,
+            "h": 6
           }
         },
         {
           "id": "roof-object-36",
-          "type": "planter",
+          "type": "stair-handrail",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1144,
-            "y": 590,
-            "w": 24,
-            "h": 74
+            "x": 1179,
+            "y": 1240,
+            "w": 225,
+            "h": 6
           }
         },
         {
           "id": "roof-object-37",
-          "type": "tree",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1136,
-            "y": 605,
-            "w": 42,
-            "h": 42
-          }
-        },
-        {
-          "id": "roof-object-38",
-          "type": "planter",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1144,
-            "y": 1310,
-            "w": 24,
-            "h": 74
-          }
-        },
-        {
-          "id": "roof-object-39",
-          "type": "tree",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1136,
-            "y": 1325,
-            "w": 42,
-            "h": 42
-          }
-        },
-        {
-          "id": "roof-object-40",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1190,
-            "y": 310,
-            "w": 22,
-            "h": 240
-          }
-        },
-        {
-          "id": "roof-object-41",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1190,
-            "y": 670,
-            "w": 22,
-            "h": 210
-          }
-        },
-        {
-          "id": "roof-object-42",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1190,
-            "y": 1040,
-            "w": 22,
-            "h": 200
-          }
-        },
-        {
-          "id": "roof-object-43",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1190,
-            "y": 1400,
-            "w": 22,
-            "h": 240
-          }
-        },
-        {
-          "id": "roof-object-44",
-          "type": "planter",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1189,
-            "y": 590,
-            "w": 24,
-            "h": 74
-          }
-        },
-        {
-          "id": "roof-object-45",
-          "type": "planter",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1189,
-            "y": 1310,
-            "w": 24,
-            "h": 74
-          }
-        },
-        {
-          "id": "roof-object-46",
-          "type": "ottoman",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1190,
-            "y": 1250,
-            "w": 23,
-            "h": 23
-          }
-        },
-        {
-          "id": "roof-object-47",
-          "type": "ottoman",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1190,
-            "y": 1650,
-            "w": 23,
-            "h": 23
-          }
-        },
-        {
-          "id": "roof-object-48",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1235,
-            "y": 310,
-            "w": 22,
-            "h": 240
-          }
-        },
-        {
-          "id": "roof-object-49",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1235,
-            "y": 670,
-            "w": 22,
-            "h": 210
-          }
-        },
-        {
-          "id": "roof-object-50",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1235,
-            "y": 1040,
-            "w": 22,
-            "h": 200
-          }
-        },
-        {
-          "id": "roof-object-51",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1235,
-            "y": 1400,
-            "w": 22,
-            "h": 240
-          }
-        },
-        {
-          "id": "roof-object-52",
-          "type": "planter",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1234,
-            "y": 590,
-            "w": 24,
-            "h": 74
-          }
-        },
-        {
-          "id": "roof-object-53",
-          "type": "tree",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1226,
-            "y": 605,
-            "w": 42,
-            "h": 42
-          }
-        },
-        {
-          "id": "roof-object-54",
-          "type": "planter",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1234,
-            "y": 1310,
-            "w": 24,
-            "h": 74
-          }
-        },
-        {
-          "id": "roof-object-55",
-          "type": "tree",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1226,
-            "y": 1325,
-            "w": 42,
-            "h": 42
-          }
-        },
-        {
-          "id": "roof-object-56",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1280,
-            "y": 310,
-            "w": 22,
-            "h": 240
-          }
-        },
-        {
-          "id": "roof-object-57",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1280,
-            "y": 670,
-            "w": 22,
-            "h": 210
-          }
-        },
-        {
-          "id": "roof-object-58",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1280,
-            "y": 1040,
-            "w": 22,
-            "h": 200
-          }
-        },
-        {
-          "id": "roof-object-59",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1280,
-            "y": 1400,
-            "w": 22,
-            "h": 240
-          }
-        },
-        {
-          "id": "roof-object-60",
-          "type": "planter",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1279,
-            "y": 590,
-            "w": 24,
-            "h": 74
-          }
-        },
-        {
-          "id": "roof-object-61",
-          "type": "planter",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1279,
-            "y": 1310,
-            "w": 24,
-            "h": 74
-          }
-        },
-        {
-          "id": "roof-object-62",
-          "type": "ottoman",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1280,
-            "y": 1250,
-            "w": 23,
-            "h": 23
-          }
-        },
-        {
-          "id": "roof-object-63",
-          "type": "ottoman",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1280,
-            "y": 1650,
-            "w": 23,
-            "h": 23
-          }
-        },
-        {
-          "id": "roof-object-64",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1325,
-            "y": 310,
-            "w": 22,
-            "h": 240
-          }
-        },
-        {
-          "id": "roof-object-65",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1325,
-            "y": 670,
-            "w": 22,
-            "h": 210
-          }
-        },
-        {
-          "id": "roof-object-66",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1325,
-            "y": 1040,
-            "w": 22,
-            "h": 200
-          }
-        },
-        {
-          "id": "roof-object-67",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1325,
-            "y": 1400,
-            "w": 22,
-            "h": 240
-          }
-        },
-        {
-          "id": "roof-object-68",
-          "type": "planter",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1324,
-            "y": 590,
-            "w": 24,
-            "h": 74
-          }
-        },
-        {
-          "id": "roof-object-69",
-          "type": "tree",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1316,
-            "y": 605,
-            "w": 42,
-            "h": 42
-          }
-        },
-        {
-          "id": "roof-object-70",
-          "type": "planter",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1324,
-            "y": 1310,
-            "w": 24,
-            "h": 74
-          }
-        },
-        {
-          "id": "roof-object-71",
-          "type": "tree",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1316,
-            "y": 1325,
-            "w": 42,
-            "h": 42
-          }
-        },
-        {
-          "id": "roof-object-72",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1370,
-            "y": 310,
-            "w": 22,
-            "h": 240
-          }
-        },
-        {
-          "id": "roof-object-73",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1370,
-            "y": 670,
-            "w": 22,
-            "h": 210
-          }
-        },
-        {
-          "id": "roof-object-74",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1370,
-            "y": 1040,
-            "w": 22,
-            "h": 200
-          }
-        },
-        {
-          "id": "roof-object-75",
-          "type": "terrace-bench",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1370,
-            "y": 1400,
-            "w": 22,
-            "h": 240
-          }
-        },
-        {
-          "id": "roof-object-76",
-          "type": "planter",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1369,
-            "y": 590,
-            "w": 24,
-            "h": 74
-          }
-        },
-        {
-          "id": "roof-object-77",
-          "type": "planter",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1369,
-            "y": 1310,
-            "w": 24,
-            "h": 74
-          }
-        },
-        {
-          "id": "roof-object-78",
-          "type": "ottoman",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1370,
-            "y": 1250,
-            "w": 23,
-            "h": 23
-          }
-        },
-        {
-          "id": "roof-object-79",
-          "type": "ottoman",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1370,
-            "y": 1650,
-            "w": 23,
-            "h": 23
-          }
-        },
-        {
-          "id": "roof-object-80",
-          "type": "stair-handrail",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1044,
-            "y": 140,
-            "w": 360,
-            "h": 6
-          }
-        },
-        {
-          "id": "roof-object-81",
-          "type": "stair-handrail",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1044,
-            "y": 285,
-            "w": 360,
-            "h": 6
-          }
-        },
-        {
-          "id": "roof-object-82",
-          "type": "stair-handrail",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1044,
-            "y": 900,
-            "w": 360,
-            "h": 6
-          }
-        },
-        {
-          "id": "roof-object-83",
-          "type": "stair-handrail",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1044,
-            "y": 1005,
-            "w": 360,
-            "h": 6
-          }
-        },
-        {
-          "id": "roof-object-84",
           "type": "rug",
           "confirmTransfer": false,
           "footprint": {
             "x": 420,
             "y": 300,
-            "w": 270,
+            "w": 174,
             "h": 280
           }
         },
         {
-          "id": "roof-object-85",
+          "id": "roof-object-38",
           "type": "exhibition-booth",
           "name": "01 유튜브 스튜디오",
           "confirmTransfer": false,
@@ -6441,53 +3735,53 @@
           }
         },
         {
-          "id": "roof-object-86",
+          "id": "roof-object-39",
           "type": "booth-collider",
           "confirmTransfer": false,
           "footprint": {
             "x": 420,
             "y": 300,
-            "w": 9,
+            "w": 5.8,
             "h": 280
           }
         },
         {
-          "id": "roof-object-87",
+          "id": "roof-object-40",
           "type": "booth-side",
           "confirmTransfer": false,
           "footprint": {
             "x": 420,
             "y": 570,
-            "w": 270,
+            "w": 174,
             "h": 10
           }
         },
         {
-          "id": "roof-object-88",
+          "id": "roof-object-41",
           "type": "booth-side",
           "confirmTransfer": false,
           "footprint": {
             "x": 420,
             "y": 300,
-            "w": 270,
+            "w": 174,
             "h": 10
           }
         },
         {
-          "id": "roof-object-89",
+          "id": "roof-object-42",
           "type": "rug",
           "confirmTransfer": false,
           "footprint": {
             "x": 420,
             "y": 760,
-            "w": 270,
+            "w": 174,
             "h": 280
           }
         },
         {
-          "id": "roof-object-90",
+          "id": "roof-object-43",
           "type": "exhibition-booth",
-          "name": "02 심리 테스트 존",
+          "name": "02 심리테스트",
           "confirmTransfer": false,
           "footprint": {
             "x": 420,
@@ -6497,51 +3791,51 @@
           }
         },
         {
-          "id": "roof-object-91",
+          "id": "roof-object-44",
           "type": "booth-collider",
           "confirmTransfer": false,
           "footprint": {
             "x": 420,
             "y": 760,
-            "w": 9,
+            "w": 5.8,
             "h": 280
           }
         },
         {
-          "id": "roof-object-92",
+          "id": "roof-object-45",
           "type": "booth-side",
           "confirmTransfer": false,
           "footprint": {
             "x": 420,
             "y": 1030,
-            "w": 270,
+            "w": 174,
             "h": 10
           }
         },
         {
-          "id": "roof-object-93",
+          "id": "roof-object-46",
           "type": "booth-side",
           "confirmTransfer": false,
           "footprint": {
             "x": 420,
             "y": 760,
-            "w": 270,
+            "w": 174,
             "h": 10
           }
         },
         {
-          "id": "roof-object-94",
+          "id": "roof-object-47",
           "type": "rug",
           "confirmTransfer": false,
           "footprint": {
             "x": 420,
             "y": 1220,
-            "w": 270,
+            "w": 174,
             "h": 280
           }
         },
         {
-          "id": "roof-object-95",
+          "id": "roof-object-48",
           "type": "exhibition-booth",
           "name": "03 게임 부스",
           "confirmTransfer": false,
@@ -6553,179 +3847,36 @@
           }
         },
         {
-          "id": "roof-object-96",
+          "id": "roof-object-49",
           "type": "booth-collider",
           "confirmTransfer": false,
           "footprint": {
             "x": 420,
             "y": 1220,
-            "w": 9,
+            "w": 5.8,
             "h": 280
           }
         },
         {
-          "id": "roof-object-97",
+          "id": "roof-object-50",
           "type": "booth-side",
           "confirmTransfer": false,
           "footprint": {
             "x": 420,
             "y": 1490,
-            "w": 270,
+            "w": 174,
             "h": 10
           }
         },
         {
-          "id": "roof-object-98",
+          "id": "roof-object-51",
           "type": "booth-side",
           "confirmTransfer": false,
           "footprint": {
             "x": 420,
             "y": 1220,
-            "w": 270,
+            "w": 174,
             "h": 10
-          }
-        },
-        {
-          "id": "roof-object-99",
-          "type": "creator-screen",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 455.1,
-            "y": 417,
-            "w": 14.4,
-            "h": 133
-          }
-        },
-        {
-          "id": "roof-object-100",
-          "type": "camera-tripod",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 601.8,
-            "y": 496,
-            "w": 39.6,
-            "h": 44
-          }
-        },
-        {
-          "id": "roof-object-101",
-          "type": "microphone-stand",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 632.4,
-            "y": 430,
-            "w": 27,
-            "h": 30
-          }
-        },
-        {
-          "id": "roof-object-102",
-          "type": "creator-console",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 492,
-            "y": 338,
-            "w": 46.800000000000004,
-            "h": 112
-          }
-        },
-        {
-          "id": "roof-object-103",
-          "type": "creator-award",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 456,
-            "y": 332,
-            "w": 32.4,
-            "h": 48
-          }
-        },
-        {
-          "id": "roof-object-104",
-          "type": "stool",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 634.2,
-            "y": 338,
-            "w": 28.8,
-            "h": 32
-          }
-        },
-        {
-          "id": "roof-object-105",
-          "type": "psych-test-backdrop",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 456.9,
-            "y": 853,
-            "w": 12.6,
-            "h": 160
-          }
-        },
-        {
-          "id": "roof-object-106",
-          "type": "psych-type-wheel",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 604.5,
-            "y": 961,
-            "w": 40.5,
-            "h": 44
-          }
-        },
-        {
-          "id": "roof-object-107",
-          "type": "psych-question-kiosk",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 465,
-            "y": 770,
-            "w": 40.5,
-            "h": 45
-          }
-        },
-        {
-          "id": "roof-object-108",
-          "type": "psych-mood-cards",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 582,
-            "y": 790,
-            "w": 45,
-            "h": 110
-          }
-        },
-        {
-          "id": "roof-object-109",
-          "type": "stool",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 635.1,
-            "y": 783,
-            "w": 28.8,
-            "h": 32
-          }
-        },
-        {
-          "id": "roof-object-110",
-          "type": "game-arcade",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 465.9,
-            "y": 1412,
-            "w": 57.6,
-            "h": 58
-          }
-        },
-        {
-          "id": "roof-object-111",
-          "type": "game-arcade",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 465.9,
-            "y": 1332,
-            "w": 57.6,
-            "h": 58
           }
         },
         {
@@ -6733,93 +3884,14 @@
           "type": "game-brand-sign",
           "confirmTransfer": false,
           "footprint": {
-            "x": 425.4,
+            "x": 423.48,
             "y": 1229,
-            "w": 8.1,
+            "w": 5.22,
             "h": 262
           }
         },
         {
-          "id": "game-steam-pc",
-          "type": "game-pc-station",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 539.7,
-            "y": 1411,
-            "w": 69.3,
-            "h": 76
-          }
-        },
-        {
-          "id": "game-nintendo-display",
-          "type": "game-console-display",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 542.4,
-            "y": 1234,
-            "w": 39.6,
-            "h": 66
-          }
-        },
-        {
-          "id": "roof-object-115",
-          "type": "stool",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 646.8,
-            "y": 1370,
-            "w": 25.2,
-            "h": 28
-          }
-        },
-        {
-          "id": "roof-object-116",
-          "type": "stool",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 646.8,
-            "y": 1302,
-            "w": 25.2,
-            "h": 28
-          }
-        },
-        {
-          "id": "roof-fountain",
-          "type": "fountain",
-          "name": "광장 분수대",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1530,
-            "y": 750,
-            "w": 300,
-            "h": 300
-          }
-        },
-        {
-          "id": "roof-ad-board",
-          "type": "plaza-display",
-          "name": "광고 · 행사 게시판",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2038,
-            "y": 1385,
-            "w": 24,
-            "h": 250
-          }
-        },
-        {
-          "id": "roof-object-119",
-          "type": "plaza-paving",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1436,
-            "y": 656,
-            "w": 488,
-            "h": 488
-          }
-        },
-        {
-          "id": "roof-object-120",
+          "id": "roof-object-53",
           "type": "plaza-paving",
           "confirmTransfer": false,
           "footprint": {
@@ -6830,29 +3902,7 @@
           }
         },
         {
-          "id": "roof-object-121",
-          "type": "plaza-paving",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1410,
-            "y": 1120,
-            "w": 815,
-            "h": 88
-          }
-        },
-        {
-          "id": "roof-object-122",
-          "type": "plaza-paving",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1870,
-            "y": 1642,
-            "w": 405,
-            "h": 58
-          }
-        },
-        {
-          "id": "roof-object-123",
+          "id": "roof-object-54",
           "type": "plaza-paving",
           "confirmTransfer": false,
           "footprint": {
@@ -6863,7 +3913,7 @@
           }
         },
         {
-          "id": "roof-object-124",
+          "id": "roof-object-55",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -6874,7 +3924,7 @@
           }
         },
         {
-          "id": "roof-object-125",
+          "id": "roof-object-56",
           "type": "planter",
           "confirmTransfer": false,
           "footprint": {
@@ -6885,7 +3935,7 @@
           }
         },
         {
-          "id": "roof-object-126",
+          "id": "roof-object-57",
           "type": "plaza-lamp",
           "confirmTransfer": false,
           "footprint": {
@@ -6896,7 +3946,7 @@
           }
         },
         {
-          "id": "roof-object-127",
+          "id": "roof-object-58",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -6907,7 +3957,7 @@
           }
         },
         {
-          "id": "roof-object-128",
+          "id": "roof-object-59",
           "type": "planter",
           "confirmTransfer": false,
           "footprint": {
@@ -6918,7 +3968,7 @@
           }
         },
         {
-          "id": "roof-object-129",
+          "id": "roof-object-60",
           "type": "plaza-lamp",
           "confirmTransfer": false,
           "footprint": {
@@ -6929,7 +3979,7 @@
           }
         },
         {
-          "id": "roof-object-130",
+          "id": "roof-object-61",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -6940,7 +3990,7 @@
           }
         },
         {
-          "id": "roof-object-131",
+          "id": "roof-object-62",
           "type": "planter",
           "confirmTransfer": false,
           "footprint": {
@@ -6951,7 +4001,7 @@
           }
         },
         {
-          "id": "roof-object-132",
+          "id": "roof-object-63",
           "type": "plaza-lamp",
           "confirmTransfer": false,
           "footprint": {
@@ -6962,7 +4012,7 @@
           }
         },
         {
-          "id": "roof-object-133",
+          "id": "roof-object-64",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -6973,7 +4023,7 @@
           }
         },
         {
-          "id": "roof-object-134",
+          "id": "roof-object-65",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -6984,7 +4034,7 @@
           }
         },
         {
-          "id": "roof-object-135",
+          "id": "roof-object-66",
           "type": "planter",
           "confirmTransfer": false,
           "footprint": {
@@ -6995,62 +4045,7 @@
           }
         },
         {
-          "id": "roof-object-136",
-          "type": "tree",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2078,
-            "y": 162,
-            "w": 42,
-            "h": 42
-          }
-        },
-        {
-          "id": "roof-object-137",
-          "type": "tree",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2225,
-            "y": 162,
-            "w": 42,
-            "h": 42
-          }
-        },
-        {
-          "id": "roof-object-138",
-          "type": "roundtable",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2120,
-            "y": 340,
-            "w": 70,
-            "h": 70
-          }
-        },
-        {
-          "id": "roof-object-139",
-          "type": "stool",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2080,
-            "y": 354,
-            "w": 30,
-            "h": 30
-          }
-        },
-        {
-          "id": "roof-object-140",
-          "type": "stool",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2140,
-            "y": 435,
-            "w": 30,
-            "h": 30
-          }
-        },
-        {
-          "id": "roof-object-141",
+          "id": "roof-object-67",
           "type": "planter",
           "confirmTransfer": false,
           "footprint": {
@@ -7061,7 +4056,7 @@
           }
         },
         {
-          "id": "roof-object-142",
+          "id": "roof-object-68",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -7072,7 +4067,7 @@
           }
         },
         {
-          "id": "roof-object-143",
+          "id": "roof-object-69",
           "type": "plaza-lamp",
           "confirmTransfer": false,
           "footprint": {
@@ -7083,76 +4078,29 @@
           }
         },
         {
-          "id": "roof-object-144",
-          "type": "balloons",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 705,
-            "y": 470,
-            "w": 20,
-            "h": 20
-          }
-        },
-        {
-          "id": "roof-object-145",
-          "type": "balloons",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 705,
-            "y": 930,
-            "w": 20,
-            "h": 20
-          }
-        },
-        {
-          "id": "roof-campus-stairs",
-          "type": "stairs",
-          "name": "18층으로 내려가기",
-          "toFloor": "campus",
-          "arrival": [
-            2233.5,
-            912
-          ],
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2260,
-            "y": 1610,
-            "w": 100,
-            "h": 110
-          }
-        },
-        {
           "id": "festival-youtube-interaction",
           "type": "booth-interaction",
           "name": "유튜브 부스 안내",
           "action": "booth",
           "confirmTransfer": false,
-          "interactionPoint": [
-            555,
-            440
-          ],
           "footprint": {
-            "x": 543,
-            "y": 428,
-            "w": 24,
-            "h": 24
+            "x": 430,
+            "y": 310,
+            "w": 154,
+            "h": 260
           }
         },
         {
           "id": "festival-instagram-interaction",
           "type": "booth-interaction",
-          "name": "심리 테스트 존 안내",
+          "name": "심리테스트 안내",
           "action": "booth",
           "confirmTransfer": false,
-          "interactionPoint": [
-            555,
-            900
-          ],
           "footprint": {
-            "x": 543,
-            "y": 888,
-            "w": 24,
-            "h": 24
+            "x": 430,
+            "y": 770,
+            "w": 154,
+            "h": 260
           }
         },
         {
@@ -7161,15 +4109,11 @@
           "name": "게임 선택",
           "action": "booth",
           "confirmTransfer": false,
-          "interactionPoint": [
-            555,
-            1360
-          ],
           "footprint": {
-            "x": 543,
-            "y": 1348,
-            "w": 24,
-            "h": 24
+            "x": 430,
+            "y": 1230,
+            "w": 154,
+            "h": 260
           }
         },
         {
@@ -7178,13 +4122,13 @@
           "name": "18F 라운지 2로 이동",
           "toFloor": "campus",
           "arrival": [
-            529.5,
-            928.5
+            640.5,
+            514.5
           ],
-          "confirmTransfer": true,
+          "confirmTransfer": false,
           "footprint": {
-            "x": 105,
-            "y": 1570,
+            "x": 810,
+            "y": 910,
             "w": 80,
             "h": 80
           }
@@ -7218,20 +4162,6 @@
           "w": 0,
           "h": 1672,
           "pad": 5
-        },
-        {
-          "x": 2260,
-          "y": 1610,
-          "w": 4,
-          "h": 110,
-          "pad": 0
-        },
-        {
-          "x": 2356,
-          "y": 1610,
-          "w": 4,
-          "h": 110,
-          "pad": 0
         },
         {
           "x": 90,
@@ -7276,13 +4206,6 @@
           "pad": 0
         },
         {
-          "x": 2292,
-          "y": 160,
-          "w": 63,
-          "h": 30,
-          "pad": 0
-        },
-        {
           "x": 2300,
           "y": 130,
           "w": 42,
@@ -7290,13 +4213,6 @@
           "pad": 0
         },
         {
-          "x": 2292,
-          "y": 780,
-          "w": 63,
-          "h": 30,
-          "pad": 0
-        },
-        {
           "x": 2300,
           "y": 750,
           "w": 42,
@@ -7304,122 +4220,17 @@
           "pad": 0
         },
         {
-          "x": 2292,
-          "y": 1350,
-          "w": 63,
-          "h": 30,
-          "pad": 0
-        },
-        {
           "x": 2300,
-          "y": 1320,
+          "y": 1540,
           "w": 42,
           "h": 42,
           "pad": 0
         },
         {
-          "x": 750,
-          "y": 520,
-          "w": 130,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 750,
-          "y": 1590,
-          "w": 130,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 1054,
-          "y": 590,
-          "w": 24,
-          "h": 74,
-          "pad": 0
-        },
-        {
-          "x": 1046,
+          "x": 1181,
           "y": 605,
           "w": 42,
           "h": 42,
-          "pad": 0
-        },
-        {
-          "x": 1054,
-          "y": 1310,
-          "w": 24,
-          "h": 74,
-          "pad": 0
-        },
-        {
-          "x": 1046,
-          "y": 1325,
-          "w": 42,
-          "h": 42,
-          "pad": 0
-        },
-        {
-          "x": 1099,
-          "y": 590,
-          "w": 24,
-          "h": 74,
-          "pad": 0
-        },
-        {
-          "x": 1099,
-          "y": 1310,
-          "w": 24,
-          "h": 74,
-          "pad": 0
-        },
-        {
-          "x": 1100,
-          "y": 1250,
-          "w": 23,
-          "h": 23,
-          "pad": 0
-        },
-        {
-          "x": 1100,
-          "y": 1650,
-          "w": 23,
-          "h": 23,
-          "pad": 0
-        },
-        {
-          "x": 1144,
-          "y": 590,
-          "w": 24,
-          "h": 74,
-          "pad": 0
-        },
-        {
-          "x": 1136,
-          "y": 605,
-          "w": 42,
-          "h": 42,
-          "pad": 0
-        },
-        {
-          "x": 1144,
-          "y": 1310,
-          "w": 24,
-          "h": 74,
-          "pad": 0
-        },
-        {
-          "x": 1136,
-          "y": 1325,
-          "w": 42,
-          "h": 42,
-          "pad": 0
-        },
-        {
-          "x": 1189,
-          "y": 590,
-          "w": 24,
-          "h": 74,
           "pad": 0
         },
         {
@@ -7430,31 +4241,10 @@
           "pad": 0
         },
         {
-          "x": 1190,
-          "y": 1250,
-          "w": 23,
-          "h": 23,
-          "pad": 0
-        },
-        {
-          "x": 1190,
-          "y": 1650,
-          "w": 23,
-          "h": 23,
-          "pad": 0
-        },
-        {
           "x": 1234,
           "y": 590,
           "w": 24,
           "h": 74,
-          "pad": 0
-        },
-        {
-          "x": 1226,
-          "y": 605,
-          "w": 42,
-          "h": 42,
           "pad": 0
         },
         {
@@ -7465,13 +4255,6 @@
           "pad": 0
         },
         {
-          "x": 1226,
-          "y": 1325,
-          "w": 42,
-          "h": 42,
-          "pad": 0
-        },
-        {
           "x": 1279,
           "y": 590,
           "w": 24,
@@ -7479,24 +4262,10 @@
           "pad": 0
         },
         {
-          "x": 1279,
-          "y": 1310,
-          "w": 24,
-          "h": 74,
-          "pad": 0
-        },
-        {
-          "x": 1280,
-          "y": 1250,
-          "w": 23,
-          "h": 23,
-          "pad": 0
-        },
-        {
-          "x": 1280,
-          "y": 1650,
-          "w": 23,
-          "h": 23,
+          "x": 1271,
+          "y": 1325,
+          "w": 42,
+          "h": 42,
           "pad": 0
         },
         {
@@ -7507,220 +4276,87 @@
           "pad": 0
         },
         {
-          "x": 1316,
+          "x": 1324,
+          "y": 1310,
+          "w": 24,
+          "h": 74,
+          "pad": 0
+        },
+        {
+          "x": 1361,
           "y": 605,
           "w": 42,
           "h": 42,
           "pad": 0
         },
         {
-          "x": 1324,
-          "y": 1310,
-          "w": 24,
-          "h": 74,
-          "pad": 0
-        },
-        {
-          "x": 1316,
-          "y": 1325,
-          "w": 42,
-          "h": 42,
-          "pad": 0
-        },
-        {
-          "x": 1369,
-          "y": 590,
-          "w": 24,
-          "h": 74,
-          "pad": 0
-        },
-        {
           "x": 1369,
           "y": 1310,
           "w": 24,
           "h": 74,
-          "pad": 0
-        },
-        {
-          "x": 1370,
-          "y": 1250,
-          "w": 23,
-          "h": 23,
-          "pad": 0
-        },
-        {
-          "x": 1370,
-          "y": 1650,
-          "w": 23,
-          "h": 23,
           "pad": 0
         },
         {
           "x": 420,
           "y": 300,
-          "w": 9,
+          "w": 5.8,
           "h": 280,
           "pad": 0
         },
         {
           "x": 420,
           "y": 570,
-          "w": 270,
+          "w": 174,
           "h": 10,
           "pad": 0
         },
         {
           "x": 420,
           "y": 300,
-          "w": 270,
+          "w": 174,
           "h": 10,
           "pad": 0
         },
         {
           "x": 420,
           "y": 760,
-          "w": 9,
+          "w": 5.8,
           "h": 280,
           "pad": 0
         },
         {
           "x": 420,
           "y": 1030,
-          "w": 270,
+          "w": 174,
           "h": 10,
           "pad": 0
         },
         {
           "x": 420,
           "y": 760,
-          "w": 270,
+          "w": 174,
           "h": 10,
           "pad": 0
         },
         {
           "x": 420,
           "y": 1220,
-          "w": 9,
+          "w": 5.8,
           "h": 280,
           "pad": 0
         },
         {
           "x": 420,
           "y": 1490,
-          "w": 270,
+          "w": 174,
           "h": 10,
           "pad": 0
         },
         {
           "x": 420,
           "y": 1220,
-          "w": 270,
+          "w": 174,
           "h": 10,
-          "pad": 0
-        },
-        {
-          "x": 455.1,
-          "y": 417,
-          "w": 14.4,
-          "h": 133,
-          "pad": 0
-        },
-        {
-          "x": 601.8,
-          "y": 496,
-          "w": 39.6,
-          "h": 44,
-          "pad": 0
-        },
-        {
-          "x": 632.4,
-          "y": 430,
-          "w": 27,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 492,
-          "y": 338,
-          "w": 46.800000000000004,
-          "h": 112,
-          "pad": 0
-        },
-        {
-          "x": 456,
-          "y": 332,
-          "w": 32.4,
-          "h": 48,
-          "pad": 0
-        },
-        {
-          "x": 456.9,
-          "y": 853,
-          "w": 12.6,
-          "h": 160,
-          "pad": 0
-        },
-        {
-          "x": 604.5,
-          "y": 961,
-          "w": 40.5,
-          "h": 44,
-          "pad": 0
-        },
-        {
-          "x": 465,
-          "y": 770,
-          "w": 40.5,
-          "h": 45,
-          "pad": 0
-        },
-        {
-          "x": 582,
-          "y": 790,
-          "w": 45,
-          "h": 110,
-          "pad": 0
-        },
-        {
-          "x": 465.9,
-          "y": 1412,
-          "w": 57.6,
-          "h": 58,
-          "pad": 0
-        },
-        {
-          "x": 465.9,
-          "y": 1332,
-          "w": 57.6,
-          "h": 58,
-          "pad": 0
-        },
-        {
-          "x": 539.7,
-          "y": 1411,
-          "w": 69.3,
-          "h": 76,
-          "pad": 0
-        },
-        {
-          "x": 542.4,
-          "y": 1234,
-          "w": 39.6,
-          "h": 66,
-          "pad": 0
-        },
-        {
-          "x": 1530,
-          "y": 750,
-          "w": 300,
-          "h": 300,
-          "pad": 0
-        },
-        {
-          "x": 2038,
-          "y": 1385,
-          "w": 24,
-          "h": 250,
           "pad": 0
         },
         {
@@ -7770,27 +4406,6 @@
           "y": 165,
           "w": 200,
           "h": 40,
-          "pad": 0
-        },
-        {
-          "x": 2078,
-          "y": 162,
-          "w": 42,
-          "h": 42,
-          "pad": 0
-        },
-        {
-          "x": 2225,
-          "y": 162,
-          "w": 42,
-          "h": 42,
-          "pad": 0
-        },
-        {
-          "x": 2120,
-          "y": 340,
-          "w": 70,
-          "h": 70,
           "pad": 0
         },
         {
@@ -9066,8 +5681,8 @@
         "label": false,
         "info": false
       },
-      "left": 1617,
-      "right": 1681.5,
+      "left": 1563,
+      "right": 1698,
       "y": 553.5
     },
     {
@@ -9089,8 +5704,8 @@
         "label": false,
         "info": false
       },
-      "left": 820.5,
-      "right": 885,
+      "left": 792,
+      "right": 933,
       "y": 553.5
     }
   ],

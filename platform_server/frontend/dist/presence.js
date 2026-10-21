@@ -22,7 +22,15 @@
 
       function setStatus(text, state) {
         status.hidden = false;
-        status.textContent = text;
+        status.replaceChildren();
+        if(state==='connected'){
+          const icon=document.createElement('span');icon.className='snb-presence-icon';icon.setAttribute('aria-hidden','true');
+          icon.innerHTML='<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="9" cy="7" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2m1-16a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 5v2"/></svg><i></i>';
+          const label=document.createElement('span');label.className='snb-presence-label';label.textContent='접속 중';
+          const count=document.createElement('strong');count.className='snb-presence-count';count.textContent=String(peers.size+1);
+          const unit=document.createElement('span');unit.className='snb-presence-unit';unit.textContent='명';
+          status.append(icon,label,count,unit);
+        }else status.textContent=text;
         status.dataset.state = state;
         onConnectionChange(state === 'connected');
       }

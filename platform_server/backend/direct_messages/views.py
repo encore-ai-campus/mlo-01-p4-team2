@@ -69,6 +69,14 @@ def recipients(request):
 
 
 @endpoint(['GET'])
+def counselors(request):
+    profiles = Profile.objects.select_related('user').filter(
+        user__is_active=True, user__is_staff=True, setup_complete=True,
+    ).exclude(user=request.user).order_by('nickname', 'user_uuid')[:50]
+    return JsonResponse({'counselors': [service.identity(profile.user) for profile in profiles]})
+
+
+@endpoint(['GET'])
 def inbox(request):
     items=[]
     for conversation in service.conversations(request.user).select_related('first_user__campus_profile','second_user__campus_profile').order_by('-updated_at')[:50]:

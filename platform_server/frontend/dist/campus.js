@@ -23,7 +23,7 @@
   const lunchWheel=window.CampusLunchWheel?.create();
   let menuRequest=null,menuVersion=0;
   let directMessages=null;
-  const isDialogOpen=(includeClassroom=true)=>directMessages?.blocking||(includeClassroom&&classroom.blocking)||window.CampusLearning?.blocking||window.CampusGuide?.blocking||window.CampusSession?.ending||floorTransition.blocking||dialog.open||boardDialog.open||exitDialog.open||transferDialog.open||$('settingsDialog').open||social.isTyping||boothUI.blocking;
+  const isDialogOpen=(includeClassroom=true,includeTyping=true)=>directMessages?.blocking||(includeClassroom&&classroom.blocking)||window.CampusLearning?.blocking||window.CampusGuide?.blocking||window.CampusSession?.ending||floorTransition.blocking||$('lunchDialog').open||dialog.open||boardDialog.open||exitDialog.open||transferDialog.open||$('settingsDialog').open||(includeTyping&&social.isTyping)||boothUI.blocking;
   const renderers=new Map();
   const displayRefresh=new Map();
   let renderer=window.CampusIsometric.create({data:D}), P=renderer.projection, scene=renderer.scene;
@@ -106,15 +106,23 @@
     $('cameraStatus').textContent=camera.follow?'내 위치 고정':'자유 보기 · 드래그';$('cameraHint').textContent=camera.follow?'내 위치 화면':'자유 보기';canvas.style.cursor=isAdmin&&!camera.follow?'grab':'default';
   }
   function resize(){
-    const oldWidth=vw,oldHeight=vh,r=viewport.getBoundingClientRect();vw=r.width;vh=r.height;dpr=pixelScale(vw,vh);
-    canvas.width=Math.round(vw*dpr);canvas.height=Math.round(vh*dpr);
+    const r=viewport.getBoundingClientRect();if(r.width<=0||r.height<=0)return;
+    const nextDpr=pixelScale(r.width,r.height);
+    if(vw===r.width&&vh===r.height&&dpr===nextDpr)return;
+    const oldWidth=vw,oldHeight=vh;vw=r.width;vh=r.height;dpr=nextDpr;
+    const width=Math.round(vw*dpr),height=Math.round(vh*dpr);
+    if(canvas.width!==width)canvas.width=width;
+    if(canvas.height!==height)canvas.height=height;
     if(camera.follow)focusPlayer();else{camera.x+=(vw-oldWidth)/2;camera.y+=(vh-oldHeight)/2;}updateZoom();
+    // A canvas resize clears its bitmap: repaint before ResizeObserver yields to the browser.
+    render(performance.now());
   }
   function render(t){
     ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle=D.id==='campus'?'#eee5d6':'#ecf0eb';ctx.fillRect(0,0,vw,vh);
     ctx.save();ctx.translate(camera.x,camera.y);ctx.scale(camera.zoom,camera.zoom);
     const actors=visibleActors();
     renderer.draw(ctx,{camera,actors,t,hover,nearby,viewportWidth:vw,viewportHeight:vh,showNicknames:social.preferences.nicknames});ctx.restore();
+    window.CampusWorldActions?.update({floor:D.id,project:worldToScreen,width:vw,height:vh,blocked:isDialogOpen(true,false)});
     window.CampusAds?.tick({now:t,floor:D.id,renderer,camera,canvas,width:vw,height:vh,blocked:isDialogOpen()});
     social.render(t,{actors,camera,projectActor:actor=>{const q=renderer.projectActor(actor);return {...q,y:q.y-window.CampusJump.height(actor,t)};},selfId:presence.selfId,floor:D.id,avatarSize:window.CampusAvatars.size});
   }
@@ -131,7 +139,7 @@
     focusPlayer();
     const r=D.rooms.find(room=>room.id===serverHints.roomId);if(r&&r.id!==lastRoom){lastRoom=r.id;spaceGuide.setRoom(r.id);$('currentRoom').textContent=r.name;for(const b of document.querySelectorAll('[data-room]')){b.classList.toggle('active',b.dataset.room===r.id);b.setAttribute('aria-current',b.dataset.room===r.id?'location':'false');}}
     nearby=D.objects.find(object=>object.id===serverHints.nearbyId)||null;
-    $('interactionPrompt').hidden=!nearby;if(nearby){$('interactionPrompt').querySelector('span').textContent=nearby.name;$('interactionPrompt').querySelector('button').textContent='보기';}
+    $('interactionPrompt').hidden=!nearby;if(nearby){$('interactionPrompt').querySelector('span').textContent=nearby.name;$('interactionPrompt').querySelector('button').textContent=nearby.type==='sliding-door'?'열기 / 닫기':'보기';}
     render(t);requestAnimationFrame(update);
   }
   function toast(message){$('toast').textContent=message;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,2800);}
@@ -221,13 +229,15 @@
     logoutForm.requestSubmit();
   }
   function showDetail(item,{keyboard=false}={}){
+    if(item.type==='sliding-door'){const r={x:item.x,y:item.y,w:item.w,h:item.h};const distance=Math.hypot(Math.max(r.x-player.x,0,player.x-r.x-r.w),Math.max(r.y-player.y,0,player.y-r.y-r.h));if(distance>50){toast('유리문 가까이에서 E키를 눌러주세요.');return;}const open=renderer.toggleDoor(item.id);toast(open?'유리문을 열었습니다.':'유리문을 닫았습니다.');return;}
     if(item.action==='learning'){toast(window.CampusClassroom?'학습교실 출입구로 입장해 주세요.':'로그인한 서버 화면에서 학습교실을 이용해 주세요.');return;}
     if(floorTransition.blocking||window.CampusSession?.ending)return;
     if(item.id==='roof-ad-board'){window.CampusAds?.clickRoof();return;}
     if(item.info===false)return;
+    if(item.action==='guide'){window.CampusGuide?.open();return;}
     if(item.action==='booth'){presence.command('open_booth',{objectId:item.id}).then(()=>boothUI.open(item)).catch(error=>toast(error.message));return;}
     if(item.toFloor&&(keyboard||item.confirmTransfer)){useStairs(item);return;}
-    if(item.type==='noticeboard'){showBoard();return;}
+    if(item.type==='noticeboard'){showBoard();communityUI.open();return;}
     if(item.type==='plaza-display'&&item.source==='menu'){showBoard();showMenuPhoto();return;}
     const r=D.rooms.find(r=>r.id===(item.roomId||item.id));
     $('detailTitle').textContent=item.name;$('detailEyebrow').textContent=item.type?'FACILITY GUIDE':'SPACE GUIDE';
@@ -237,22 +247,18 @@
     keys.clear();player.moving=false;dialog.showModal();
   }
   function showBoard(){
-    keys.clear();player.moving=false;
-    showBoardChoices(false);
-    for(const card of boardCards){card.setAttribute('aria-pressed','false');card.querySelector('.board-card-state').textContent='선택하기';}
-    $('boardSelection').textContent='';boardDialog.showModal();$('boardMenuCard').focus({preventScroll:true});
+    keys.clear();player.moving=false;communityUI.hide();cancelMenuRequest();
+    $('boardChoices').hidden=true;$('boardDescription').hidden=true;$('boardSelection').hidden=true;
+    $('boardMenuView').hidden=true;boardDialog.showModal();$('closeBoardDialog').focus({preventScroll:true});
   }
   function cancelMenuRequest(){lunchWheel?.cancel();menuRequest?.abort();menuRequest=null;menuVersion++;$('boardMenuImage').onload=$('boardMenuImage').onerror=null;$('boardMenuImage').removeAttribute('src');}
-  function showBoardChoices(focus=true){
-    communityUI.hide();
-    cancelMenuRequest();$('boardMenuView').hidden=true;$('boardChoices').hidden=false;$('boardDescription').hidden=false;$('boardSelection').hidden=false;
-    if(focus)$('boardMenuCard').focus({preventScroll:true});
-  }
+  function showBoardChoices(){if(communityUI.canLeave())boardDialog.close();}
   async function showMenuPhoto(){
+    communityUI.hide();boardDialog.dataset.view='menu';window.CampusMealComments?.open();$('boardTitle').textContent='지하1층 구내식당 & Talk';
     cancelMenuRequest();const version=menuVersion;menuRequest=new AbortController();
     $('boardChoices').hidden=true;$('boardDescription').hidden=true;$('boardSelection').hidden=true;$('boardMenuView').hidden=false;$('boardMenuView').setAttribute('aria-busy','true');
-    $('boardMenuImage').hidden=true;$('boardMenuOpen').hidden=true;$('boardMenuOpen').removeAttribute('href');$('boardMenuUpdated').textContent='';$('boardMenuStatus').textContent='식단 사진을 불러오는 중이에요.';$('boardMenuBack').focus({preventScroll:true});
-    const failed=()=>{if(version!==menuVersion)return;$('boardMenuView').setAttribute('aria-busy','false');$('boardMenuImage').hidden=true;$('boardMenuOpen').hidden=true;$('boardMenuStatus').textContent='식단 사진을 불러오지 못했어요. 카드 선택으로 돌아가 다시 선택해 주세요.';};
+    $('boardMenuImage').hidden=true;$('boardMenuOpen').hidden=true;$('boardMenuOpen').removeAttribute('href');$('boardMenuUpdated').textContent='';$('boardMenuStatus').textContent='식단 사진을 불러오는 중이에요.';$('closeBoardDialog').focus({preventScroll:true});
+    const failed=()=>{if(version!==menuVersion)return;$('boardMenuView').setAttribute('aria-busy','false');$('boardMenuImage').hidden=true;$('boardMenuOpen').hidden=true;$('boardMenuStatus').textContent='식단 사진을 불러오지 못했어요. 창을 닫고 구내식당 메뉴를 다시 열어 주세요.';};
     try{
       const response=await fetch('/api/board/menu/',{credentials:'same-origin',cache:'no-store',signal:menuRequest.signal});
       if(!response.ok||response.redirected||!response.headers.get('content-type')?.includes('application/json'))throw new Error('Menu unavailable');
@@ -302,8 +308,9 @@
   window.addEventListener('blur',()=>{keys.clear();suppressedKeys.clear();});
   $('zoomIn').onclick=()=>zoomBy(1.25);$('zoomOut').onclick=()=>zoomBy(1/1.25);
   $('closeDialog').onclick=$('detailClose').onclick=()=>{dialog.close();canvas.focus({preventScroll:true});};
-  $('closeBoardDialog').onclick=$('boardClose').onclick=()=>{if(communityUI.canLeave())boardDialog.close();};
-  $('openBoardShortcut').onclick=()=>{if(D.id==='campus'&&!isDialogOpen())showBoard();};
+  $('closeBoardDialog').onclick=()=>{if(communityUI.canLeave())boardDialog.close();};
+  $('openBoardShortcut').onclick=()=>{if(D.id==='campus'&&!isDialogOpen()){showBoard();communityUI.open();}};
+  $('openCafeteriaShortcut').onclick=()=>{if(D.id==='campus'&&!isDialogOpen()){showBoard();showMenuPhoto();}};
   $('chatOpen').onclick=()=>{if(!isDialogOpen())social.focusChat();};
   for(const card of boardCards)card.addEventListener('click',()=>{
     for(const option of boardCards){const selected=option===card;option.setAttribute('aria-pressed',String(selected));option.querySelector('.board-card-state').textContent=selected?'선택됨':'선택하기';}
@@ -311,7 +318,14 @@
     if(card.id==='boardMenuCard')showMenuPhoto();
     if(card.id==='boardEncoreCard'){cancelMenuRequest();communityUI.open();}
   });
-  $('boardMenuBack').onclick=()=>showBoardChoices();
+
+  window.addEventListener('campus:open-service',event=>{
+    if(D.id!=='campus'||isDialogOpen())return;
+    if(event.detail==='lunch'){keys.clear();player.moving=false;$('lunchDialog').showModal();$('lunchDialog').querySelector('[data-lunch-spin]').focus();return;}
+    showBoard();if(event.detail==='menu')showMenuPhoto();else communityUI.open();
+  });
+  $('lunchDialogClose').onclick=()=>$('lunchDialog').close();
+  $('lunchDialog').addEventListener('close',()=>{lunchWheel?.cancel();canvas.focus({preventScroll:true});});
   boardDialog.addEventListener('close',()=>{cancelMenuRequest();communityUI.hide();keys.clear();canvas.focus({preventScroll:true});});
   boardDialog.addEventListener('cancel',e=>{if(!communityUI.canLeave())e.preventDefault();});
   boardDialog.addEventListener('click',e=>{if(e.target!==boardDialog)return;const r=boardDialog.getBoundingClientRect();if((e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)&&communityUI.canLeave())boardDialog.close();});
@@ -335,7 +349,7 @@
   dialog.addEventListener('click',e=>{const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();});
   $('interactionPrompt').querySelector('button').onclick=()=>nearby&&showDetail(nearby);
   // 이미지 주소·이름이 같으면 다시 넣지 않는다(계획 5단계)
-  function updateAvatarPreview(){const id=window.CampusAvatars.resolve(player.avatar),src=`assets/characters/${id}-preview.png`,name=window.CampusAvatars.definitions[id].name;if($('avatarPreview').getAttribute('src')!==src)$('avatarPreview').src=src;if($('avatarName').textContent!==name)$('avatarName').textContent=name;}
+  function updateAvatarPreview(){const id=window.CampusAvatars.resolve(player.avatar),src=`assets/characters/${id.startsWith('female-')?'female':'male'}-face.png`,name=window.CampusAvatars.definitions[id].name;if($('avatarPreview').getAttribute('src')!==src)$('avatarPreview').src=src;if($('avatarName').textContent!==name)$('avatarName').textContent=name;}
   updateAvatarPreview();
   window.addEventListener('campus:avatar',updateAvatarPreview);
   window.CampusApp={showDetail,get scene(){return scene;},player,camera,screenToWorld,worldToScreen,canZoom:isAdmin,canFreeCamera:isAdmin,boothUI,floorTransition,social,presence,classroom,poke,get nearby(){return nearby;},get renderer(){return renderer;},get floor(){return D.id;},get data(){return D;},visibleActors,switchFloor,render,toast,zoomBy};

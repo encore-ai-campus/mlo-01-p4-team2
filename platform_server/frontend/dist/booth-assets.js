@@ -2,9 +2,9 @@
 (() => {
   'use strict';
   const themes={
-    'festival-youtube':{accent:'#d56558',soft:'#efdbd0',dark:'#43534e',title:'YouTube',subtitle:'CREATOR STUDIO',platform:'youtube'},
-    'festival-instagram':{accent:'#9283a7',soft:'#e6dfed',dark:'#5d586c',title:'MIND LAB',subtitle:'PSYCHOLOGY TEST',platform:'psych'},
-    'festival-booth3':{accent:'#658c97',soft:'#d6e5e5',dark:'#334a55',title:'GAME ARCADE',subtitle:'PLAY • DISCOVER',platform:'game'},
+    'festival-youtube':{accent:'#d56558',soft:'#efdbd0',dark:'#43534e',title:'YouTube',subtitle:'영상시청하기',platform:'youtube'},
+    'festival-instagram':{accent:'#9283a7',soft:'#e6dfed',dark:'#5d586c',title:'PSYCHOLOGY TEST',subtitle:'심리테스트하기',platform:'psych'},
+    'festival-booth3':{accent:'#658c97',soft:'#d6e5e5',dark:'#334a55',title:'GAME ARCADE',subtitle:'게임하기',platform:'game'},
   };
   const types=new Set(['exhibition-booth','booth-side','creator-screen','camera-tripod','microphone-stand',
     'creator-console','creator-award','psych-test-backdrop','psych-type-wheel','psych-question-kiosk',
@@ -71,15 +71,15 @@
         g.fillStyle='#f0e8d8';g.fillRect(0,0,width,height);
         for(let i=0;i<width;i+=13){g.fillStyle=i%26?'#d9c9ad':'#dfcfb5';g.fillRect(i,height*.45,6,height*.55);}
         rounded(17,18,width-34,height*.41,3,theme.soft);
-        platformIcon(width*.19,height*.32,24,theme.platform);
-        text(theme.subtitle,width*.62,height*.32,11,theme.dark,width*.63);
+        platformIcon(width*.19,18+height*.205,24,theme.platform);
+        text(theme.subtitle,width/2,18+height*.205,17,theme.dark,width-72,700);
         g.strokeStyle='#c5b69b';g.lineWidth=.8;g.beginPath();g.moveTo(0,height-1);g.lineTo(width,height-1);g.stroke();
       });
       for(const bx of [x,x+w-8])block(bx,y,8,12,0,145,wood);
       block(x-1,y-1,w+2,14,126,20,['#eee3ce','#d5c3a3','#b7a58c']);
       face(x+11,y+13,w-22,17,128,(width,height)=>{
         g.fillStyle=theme.dark;g.fillRect(0,0,width,height);platformIcon(16,height/2,11,theme.platform);
-        text(theme.title,width/2+8,height/2,15,'#fff9e9',width-48,700);
+        text(theme.title,width/2,height/2,18,'#fff9e9',width-48,700);
       });
       for(const bx of [x+45,x+w-49]){
         segment(bx,y+7,146,bx,y+18,150,'#6b7264',1.4);
@@ -145,7 +145,7 @@
           g.beginPath();g.arc(bx+card*.5,58,3,0,Math.PI);g.strokeStyle='#86777c';g.lineWidth=.8;g.stroke();
           text(['E','N','F','P'][i],bx+card/2,70,7,'#6c6770',card-4);
         }
-        text('마음 유형 연구소',width/2,92,10,theme.dark,width-12);
+        text('심리테스트',width/2,92,10,theme.dark,width-12);
       });
     }else if(o.type==='psych-type-wheel'){
       block(x+5,y+9,w-10,h-14,0,20,wood);

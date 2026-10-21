@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#167d79">
   <meta name="description" content="실제 설계도와 사진을 반영한 PLAYDATA 캠퍼스. 캐릭터로 라운지, 강의실, 상담실을 둘러보세요.">
   <title>PLAYDATA · 캠퍼스 메타버스</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23167d79'/%3E%3Cpath d='M9 24V8h8a6 6 0 0 1 0 12h-4v4zm4-8h4a2 2 0 0 0 0-4h-4z' fill='white'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="messages.css">
   <link rel="stylesheet" href="campus-guide.css">
@@ -21,6 +21,8 @@
   <link rel="stylesheet" href="lunch-wheel.css">
   <link rel="stylesheet" href="campus-layout.css">
   <link rel="stylesheet" href="campus-space-guide.css">
+  <link rel="stylesheet" href="campus-snb.css">
+  <link rel="stylesheet" href="campus-brand.css">
   <link rel="preload" href="assets/fonts/PressStart2P-Regular.ttf" as="font" type="font/ttf" crossorigin>
 </head>
 <body>
@@ -28,7 +30,7 @@
     <section class="map-shell" aria-label="메타버스 캠퍼스">
       <div class="map-toolbar">
         <button id="campusNavToggle" class="map-guide-toggle" type="button" aria-expanded="false" aria-controls="campusSpaceGuide" title="캠퍼스 공간 안내 펼치기">
-          <span class="map-title"><span class="map-brand-mark" aria-hidden="true">P</span><span class="map-location"><strong>PLAYDATA CAMPUS</strong><span id="currentFloor" class="floor-badge">18F 캠퍼스</span></span></span>
+          <span class="map-title"><span class="map-brand-mark" aria-hidden="true"><img src="assets/logo.png" alt=""></span><span class="map-location"><strong>PLAYDATA CAMPUS</strong><span id="currentFloor" class="floor-badge">18F 캠퍼스</span></span></span>
           <span id="currentRoom" class="map-current-room">라운지 1</span>
           <svg class="map-guide-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
@@ -37,7 +39,7 @@
         <button id="followBtn" class="toolbtn" type="button" aria-pressed="true" hidden>화면 고정: 켬</button>
       </div>
       <aside id="campusSpaceGuide" class="campus-space-guide" aria-labelledby="spaceGuideTitle" hidden>
-        <div class="space-guide-heading"><span class="eyebrow">CAMPUS GUIDE</span><button id="spaceGuideClose" type="button" aria-label="공간 안내 접기">×</button><h2 id="spaceGuideTitle">공간 둘러보기</h2><p>공간 안내를 확인하고 키보드로 이동하세요.</p></div>
+        <div class="space-guide-heading"><span class="eyebrow">CAMPUS GUIDE</span><h2 id="spaceGuideTitle">공간 둘러보기</h2><p>공간 안내를 확인하고 키보드로 이동하세요.</p></div>
         <nav id="roomNav" aria-label="현재 층 공간 안내"></nav>
       </aside>
       <div id="viewport" class="viewport">
@@ -72,12 +74,13 @@
           <div class="chat-composer-meta" hidden><span id="chatStatus" role="status">채팅 연결 중…</span><span id="chatCount">0/200</span></div>
         </section>
         <section id="boardShortcut" class="board-shortcut" aria-labelledby="boardShortcutTitle" hidden>
-          <div class="board-shortcut-heading"><span class="board-shortcut-mark" aria-hidden="true">P</span><strong id="boardShortcutTitle">18F 게시판</strong></div>
+          <div class="board-shortcut-heading"><span class="board-shortcut-mark" aria-hidden="true"><img src="assets/logo.png" alt=""></span><strong id="boardShortcutTitle">캠퍼스 메뉴</strong></div>
           <div class="board-shortcut-previews">
-            <div class="board-shortcut-preview"><span class="board-shortcut-menu" aria-hidden="true"><svg viewBox="0 0 80 48" fill="none"><rect x="2" y="2" width="76" height="44" rx="10" fill="#fffdf5"/><circle cx="40" cy="24" r="16" stroke="#a6bba1" stroke-width="2"/><circle cx="40" cy="24" r="11" fill="#d5e1c6"/><path d="M15 13v10m4-10v10m-4-2c0 5 4 5 4 0m-2 5v9m46-22v22m0-22c-5 4-5 12 0 13" stroke="#829584" stroke-width="2" stroke-linecap="round"/></svg></span><span>구내식당 메뉴</span></div>
-            <div class="board-shortcut-preview"><span class="board-shortcut-logo"><img src="assets/encore-time-logo.png" width="1927" height="816" alt="엔코아 타임 로고"></span><span>엔코아 타임</span></div>
+            <div class="board-shortcut-preview"><span class="board-shortcut-menu" aria-hidden="true"><svg viewBox="0 0 80 48" fill="none"><rect x="2" y="2" width="76" height="44" rx="10" fill="#fffdf5"/><circle cx="40" cy="24" r="16" stroke="#a6bba1" stroke-width="2"/><circle cx="40" cy="24" r="11" fill="#d5e1c6"/><path d="M15 13v10m4-10v10m-4-2c0 5 4 5 4 0m-2 5v9m46-22v22m0-22c-5 4-5 12 0 13" stroke="#829584" stroke-width="2" stroke-linecap="round"/></svg></span><span>지하1층 구내식당 &amp; Talk</span></div>
+            <div class="board-shortcut-preview"><span class="board-shortcut-logo"><img src="assets/logo.png" class="campus-p-logo" width="64" height="64" alt="PLAYDATA"></span><span>PLAYDATA 게시판</span></div>
           </div>
-          <button id="openBoardShortcut" class="board-shortcut-open" type="button" aria-haspopup="dialog" aria-controls="boardDialog">게시판 열기 <span aria-hidden="true">↗</span></button>
+          <button id="openBoardShortcut" class="board-shortcut-open" type="button" aria-haspopup="dialog" aria-controls="boardDialog">PLAYDATA 게시판 <span aria-hidden="true">↗</span></button>
+          <button id="openCafeteriaShortcut" class="board-shortcut-open" type="button" aria-haspopup="dialog" aria-controls="boardDialog">지하1층 구내식당 &amp; Talk <span aria-hidden="true">↗</span></button>
         </section>
         <div id="interactionPrompt" class="interaction-prompt" hidden><kbd>E</kbd><span></span><button aria-label="가까운 시설 안내 보기">보기</button></div>
         <div id="toast" class="toast" role="status" hidden></div>
@@ -103,10 +106,8 @@
           <p class="settings-hint">내 화면에 표시할 항목을 선택하세요.</p>
           <h3>화면 표시</h3>
           <label class="setting-row"><span class="setting-copy"><strong>다른 사람 닉네임</strong><small>캐릭터 머리 위 이름 표시</small></span><span class="setting-control"><span class="setting-state" aria-hidden="true">켬</span><input id="settingNicknames" type="checkbox" role="switch" checked></span></label>
-          <label class="setting-row"><span class="setting-copy"><strong>채팅창</strong><small>Enter로 입력 · 새 메시지 후 10초 표시</small></span><span class="setting-control"><span class="setting-state" aria-hidden="true">켬</span><input id="settingChat" type="checkbox" role="switch" checked></span></label>
-          <label class="setting-row"><span class="setting-copy"><strong>말풍선</strong><small>캐릭터 위에 5초 동안 표시</small></span><span class="setting-control"><span class="setting-state" aria-hidden="true">켬</span><input id="settingBubbles" type="checkbox" role="switch" checked></span></label>
-          <h3>이용 안내</h3>
-          <button id="campusGuideOpen" class="campus-guide-open" type="button"><span>처음 이용 안내 다시 보기</span><span aria-hidden="true">›</span></button>
+          <label class="setting-row"><span class="setting-copy"><strong>채팅창</strong><small>Enter로 입력 · 새 메시지 후 30초 표시</small></span><span class="setting-control"><span class="setting-state" aria-hidden="true">켬</span><input id="settingChat" type="checkbox" role="switch" checked></span></label>
+          <label class="setting-row"><span class="setting-copy"><strong>말풍선</strong><small>캐릭터 위에 10초 동안 표시</small></span><span class="setting-control"><span class="setting-state" aria-hidden="true">켬</span><input id="settingBubbles" type="checkbox" role="switch" checked></span></label>
           <div id="settingsAccount" class="settings-account"></div>
         </div>
       </dialog>
@@ -117,60 +118,40 @@
           <canvas id="floorTransitionCanvas" width="640" height="340" aria-hidden="true"></canvas>
           <p id="floorTransitionLabel" class="floor-transition-label" role="status" aria-live="polite">옥상으로 올라가는 중</p>
           <p id="floorTransitionSubtitle" class="floor-transition-subtitle">계단을 따라 다음 공간으로 이동하고 있어요</p>
-          <div class="floor-transition-track" aria-hidden="true"><span id="floorTransitionProgress"></span></div>
           <section id="floorTransitionAdSlot" aria-label="층 전환 광고" hidden></section>
         </div>
       </dialog>
       <footer class="map-footer">
         <div class="map-key-guide" aria-label="조작키 안내">
           <span class="map-key-item"><kbd>WASD</kbd><span> / 방향키 이동</span></span>
+          <button id="chatOpen" class="chat-open" type="button" aria-controls="chatPanel" aria-expanded="false" title="채팅 입력 (Enter)" disabled><kbd>Enter</kbd> 채팅</button>
           <span class="map-key-item"><kbd>E</kbd><span>상호작용</span></span>
           <span class="map-key-item"><kbd>Z</kbd><span>찌르기</span></span>
           <button id="campusJumpButton" class="jump-key-button" type="button" aria-label="점프, 스페이스바"><kbd>Space</kbd><span>점프</span></button>
-          <button id="chatOpen" class="chat-open" type="button" aria-controls="chatPanel" aria-expanded="false" title="채팅 입력 (Enter)" disabled><kbd>Enter</kbd> 채팅</button>
+
           <span class="map-key-item"><kbd>Esc</kbd><span>설정</span></span>
+          <span class="map-key-item"><kbd>Tab</kbd><span>메뉴 접기·펼치기</span></span>
         </div>
         <div class="map-player-tools">
-          <div class="map-player" aria-label="나의 캐릭터와 닉네임"><img id="avatarPreview" class="avatar-preview" src="assets/characters/male-1-preview.png" alt="나의 캐릭터"><div class="map-player-copy"><span class="map-player-label">나의 캐릭터</span><!-- campus-account --><span id="avatarName" class="sr-only">민트 후드</span></div></div>
+          <div class="map-player" aria-label="나의 캐릭터와 닉네임"><img id="avatarPreview" class="avatar-preview" src="assets/characters/male-face.png" alt="나의 캐릭터"><div class="map-player-copy"><span class="map-player-label">나의 캐릭터</span><!-- campus-account --><span id="avatarName" class="sr-only">민트 후드</span></div></div>
           <button id="settingsBtn" class="toolbtn settings-button" type="button" aria-haspopup="dialog" aria-controls="settingsDialog" title="설정 (Esc)"><span aria-hidden="true">⚙</span><span>설정</span></button>
         </div>
       </footer>
     </section>
   </main>
   <dialog id="campusGuideDialog" class="campus-guide" aria-labelledby="campusGuideTitle" aria-describedby="campusGuideText">
-    <header class="campus-guide-header"><div class="campus-guide-brand"><span aria-hidden="true">P</span>처음 이용 안내</div><button id="campusGuideSkip" class="campus-guide-skip" type="button">건너뛰기</button></header>
+    <header class="campus-guide-header"><div class="campus-guide-brand"><span class="guide-p-mark" aria-hidden="true"><img src="assets/logo.png" alt=""></span>처음 이용 안내 <small class="campus-guide-version">2026.10.20 업데이트</small></div><button id="campusGuideSkip" class="campus-guide-skip" type="button">건너뛰기</button></header>
     <div id="campusGuideScroll" class="campus-guide-scroll"><div class="campus-guide-content">
       <section class="campus-guide-copy"><p id="campusGuideCategory" class="campus-guide-category"></p><h2 id="campusGuideTitle" class="campus-guide-title" tabindex="-1"></h2><p id="campusGuideText" class="campus-guide-text"></p><ol id="campusGuideItems" class="campus-guide-items"></ol><div id="campusGuideKeys" class="campus-guide-keys"></div></section>
       <figure class="campus-guide-figure"><div class="campus-guide-image-wrap"><img id="campusGuideImage" class="campus-guide-image" width="1200" height="900" alt="" decoding="async"><p id="campusGuideImageError" class="campus-guide-image-error" hidden>화면 예시를 불러오지 못했어요.<br>옆의 설명을 따라 이용해 주세요.</p></div><figcaption class="campus-guide-caption"><span>화면 예시 · 이름과 수치는 실제와 다를 수 있어요.</span><button id="campusGuideEnlarge" class="campus-guide-enlarge" type="button">화면 크게 보기</button></figcaption></figure>
     </div></div>
     <footer class="campus-guide-footer"><div class="campus-guide-progress"><span id="campusGuideCounter" class="campus-guide-counter" aria-live="polite" aria-atomic="true"></span><nav id="campusGuideSteps" class="campus-guide-steps" aria-label="이용 안내 단계"></nav></div><div class="campus-guide-actions"><button id="campusGuideBack" class="campus-guide-back" type="button">이전</button><button id="campusGuideNext" class="campus-guide-next" type="button">다음</button></div></footer>
   </dialog>
-  <dialog id="campusGuideImageDialog" class="campus-guide-image-dialog" aria-labelledby="campusGuideLargeTitle"><header class="campus-guide-image-heading"><h2 id="campusGuideLargeTitle">화면 예시</h2><button id="campusGuideImageClose" type="button">닫기</button></header><div class="campus-guide-large-wrap"><img id="campusGuideLargeImage" alt=""></div></dialog>
+  <dialog id="campusGuideImageDialog" class="campus-guide-image-dialog" aria-labelledby="campusGuideLargeTitle"><header class="campus-guide-image-heading"><h2 id="campusGuideLargeTitle">화면 예시</h2><button id="campusGuideImageClose" type="button" aria-label="화면 예시 닫기">닫기</button></header><div class="campus-guide-large-wrap"><img id="campusGuideLargeImage" alt=""></div></dialog>
   <dialog id="detailDialog" aria-labelledby="detailTitle"><div class="dialog-top"><div><span id="detailEyebrow" class="eyebrow">SPACE GUIDE</span><h2 id="detailTitle"></h2></div><button id="closeDialog" class="close-button" aria-label="안내 닫기">×</button></div><img id="detailImage" alt="" hidden><div class="dialog-content"><p id="detailText"></p><div id="detailTags" class="detail-tags"></div><div class="dialog-actions"><button id="detailClose" class="btn quiet">닫기</button></div></div></dialog>
-  <dialog id="boardDialog" aria-labelledby="boardTitle" aria-describedby="boardDescription">
-    <div class="dialog-top"><div><span id="boardEyebrow" class="eyebrow">CAMPUS BOARD</span><h2 id="boardTitle">PLAYDATA 게시판</h2></div><button id="closeBoardDialog" type="button" class="close-button" aria-label="게시판 닫기">×</button></div>
-    <div class="dialog-content">
-      <p id="boardDescription">확인할 카드를 선택해 주세요.</p>
-      <div id="boardChoices" class="board-cards" role="group" aria-label="게시판 카드 선택">
-        <button id="boardMenuCard" type="button" class="board-card" data-board-choice="구내식당 메뉴" aria-label="구내식당 메뉴 선택" aria-pressed="false">
-          <span class="board-card-media board-card-menu" aria-hidden="true">
-            <svg viewBox="0 0 160 110" width="160" height="110" fill="none"><rect x="21" y="20" width="118" height="74" rx="18" fill="#fffdf5" stroke="#dbd6bd" stroke-width="2"/><circle cx="80" cy="55" r="25" fill="#f0eddb"/><circle cx="80" cy="55" r="18" fill="#fffdf5" stroke="#d9d4be" stroke-width="2"/><path d="M79 41c-14 1-17 11-10 16 9 6 22-1 25-10-6-6-11-7-15-6Z" fill="#7eaa7f"/><path d="m74 53 11-7" stroke="#fffdf5" stroke-width="2" stroke-linecap="round"/><circle cx="87" cy="61" r="6" fill="#e7a26d"/><path d="M40 39v13m5-13v13m5-13v13m-10-2c0 7 10 7 10 0m-5 6v17m73-35c-6 6-6 17 0 18v17m0-35v18" stroke="#829584" stroke-width="3" stroke-linecap="round"/></svg>
-          </span>
-          <span class="board-card-label"><strong>구내식당 메뉴</strong><span class="board-card-indicator" aria-hidden="true">✓</span></span>
-          <span class="board-card-state" aria-hidden="true">선택하기</span>
-        </button>
-        <button id="boardEncoreCard" type="button" class="board-card" data-board-choice="엔코아 타임" aria-label="엔코아 타임 선택" aria-pressed="false">
-          <span class="board-card-media board-card-encore"><img src="assets/encore-time-logo.png" width="1927" height="816" alt="함께하는 부트캠프 엔코아 타임 로고"></span>
-          <span class="board-card-label"><strong>엔코아 타임</strong><span class="board-card-indicator" aria-hidden="true">✓</span></span>
-          <span class="board-card-state" aria-hidden="true">선택하기</span>
-        </button>
-      </div>
-      <section id="boardMenuView" class="board-menu-view" aria-labelledby="boardMenuTitle" hidden>
-        <div class="board-menu-heading"><div><h3 id="boardMenuTitle">구내식당 메뉴</h3><span id="boardMenuSource">더좋은밥상 · 카카오 채널 프로필</span></div><button id="boardMenuBack" type="button" class="toolbtn">← 카드 선택</button></div>
-        <p id="boardMenuStatus" class="board-menu-status" role="status" aria-live="polite"></p>
-        <img id="boardMenuImage" alt="더좋은밥상 구내식당 식단 사진" hidden>
-        <div class="board-menu-caption"><span id="boardMenuUpdated"></span><a id="boardMenuOpen" class="toolbtn" target="_blank" rel="noopener" hidden>사진 크게 보기 ↗</a></div>
-        <section id="lunchWheel" class="lunch-wheel-panel" aria-labelledby="lunchWheelTitle">
+  <dialog id="lunchDialog" class="lunch-dialog" aria-labelledby="lunchDialogTitle">
+    <div class="dialog-top"><div><span class="eyebrow">TODAY’S LUNCH</span><h2 id="lunchDialogTitle">점심추천 돌림판</h2></div><button id="lunchDialogClose" type="button" class="close-button" aria-label="점메추 닫기">×</button></div>
+    <div class="dialog-content">        <section id="lunchWheel" class="lunch-wheel-panel" aria-labelledby="lunchWheelTitle">
           <header class="lunch-wheel-heading"><h4 id="lunchWheelTitle">결정장애를 위한 오늘의 점메추</h4><p>오늘 점심 고민 끝! 돌림판으로 골라보세요.</p></header>
           <div class="lunch-wheel-layout">
             <div class="lunch-wheel-stage" aria-hidden="true">
@@ -184,21 +165,40 @@
               <ul class="lunch-wheel-options" data-lunch-options aria-label="추천 메뉴 종류"></ul>
             </div>
           </div>
+        </section></div>
+  </dialog>
+  <dialog id="boardDialog" aria-labelledby="boardTitle" aria-describedby="boardDescription">
+    <div class="dialog-top"><div><span id="boardEyebrow" class="eyebrow">CAMPUS BOARD</span><h2 id="boardTitle">PLAYDATA 게시판</h2></div><button id="closeBoardDialog" type="button" class="close-button" aria-label="게시판 닫기">×</button></div>
+    <div class="dialog-content">
+      <p id="boardDescription" hidden></p>
+      <div id="boardChoices" hidden></div>
+      <section id="boardMenuView" class="board-menu-view" aria-labelledby="boardMenuTitle" hidden>
+        <div class="board-menu-heading"><div><h3 id="boardMenuTitle">지하1층 구내식당 &amp; Talk</h3><span id="boardMenuSource">더좋은밥상 · 카카오 채널 프로필</span></div></div>
+        <p id="boardMenuStatus" class="board-menu-status" role="status" aria-live="polite"></p>
+        <img id="boardMenuImage" alt="더좋은밥상 구내식당 식단 사진" hidden>
+        <div class="board-menu-caption"><span id="boardMenuUpdated"></span><a id="boardMenuOpen" class="toolbtn" target="_blank" rel="noopener" hidden>사진 크게 보기 ↗</a></div>
+        <section class="meal-comments" aria-labelledby="mealCommentsTitle">
+          <header><h4 id="mealCommentsTitle">오늘의 식단 댓글</h4><span id="mealCommentsDate"></span></header>
+          <p id="mealCommentsStatus" role="status" aria-live="polite"></p>
+          <ul id="mealCommentsList" aria-label="식단 댓글" hidden></ul>
+          <nav class="meal-comment-pages" aria-label="식단 댓글 페이지" hidden><button id="mealCommentsPrev" type="button">이전</button><span id="mealCommentsPage"></span><button id="mealCommentsNext" type="button">다음</button></nav>
+          <form id="mealCommentForm"><label for="mealCommentBody" class="sr-only">식단 댓글 입력</label><textarea id="mealCommentBody" rows="3" maxlength="2000" required placeholder="의견을 남겨 주세요."></textarea><div><button id="mealCommentCancel" type="button" hidden>수정 취소</button><button id="mealCommentSubmit" type="submit">댓글 등록</button></div></form>
         </section>
+
       </section>
-      <section id="communityPanel" class="community-panel" aria-label="엔코아 타임 커뮤니티" hidden>
+      <section id="communityPanel" class="community-panel" aria-label="PLAYDATA 게시판 커뮤니티" hidden>
         <div class="community-toolbar">
-          <button id="communityBack" type="button" class="toolbtn">← 카드 선택</button>
+
           <div class="community-self"><span class="community-self-mark" aria-hidden="true">나</span><strong id="communityNickname"></strong><span id="communityRole" class="community-role"></span></div>
         </div>
         <div class="community-layout">
           <aside class="community-sidebar">
-            <div class="community-brand"><img src="assets/encore-time-logo.png" width="1927" height="816" alt="엔코아 타임"><p>함께 배우고, 함께 나누는 공간</p></div>
+            <div class="community-brand"><img src="assets/logo.png" class="campus-p-logo" width="64" height="64" alt="PLAYDATA"><p>함께 배우고, 함께 나누는 공간</p></div>
             <nav id="communityTabs" class="community-tabs" role="tablist" aria-label="커뮤니티 게시판" aria-orientation="vertical"></nav>
             <div class="community-guide"><strong>작은 공유가 큰 도움이 돼요</strong><p>발견한 정보, 만든 프로젝트,<br>오늘의 질문을 편하게 남겨 주세요.</p></div>
           </aside>
           <section id="communityContent" class="community-main" role="tabpanel" aria-labelledby="communityHeading">
-            <header class="community-heading"><div><span class="community-kicker">ENCORE TIME</span><h3 id="communityHeading" tabindex="-1">전체글</h3><p id="communityDescription">캠퍼스의 모든 이야기를 한곳에서 만나보세요.</p></div><button id="communityWrite" type="button" class="btn solid">+ 글쓰기</button></header>
+            <header class="community-heading"><div><span class="community-kicker">PLAYDATA COMMUNITY</span><h3 id="communityHeading" tabindex="-1">전체글</h3><p id="communityDescription">캠퍼스의 모든 이야기를 한곳에서 만나보세요.</p></div><button id="communityWrite" type="button" class="btn solid">+ 글쓰기</button></header>
             <p id="communityStatus" class="community-status" role="status" aria-live="polite" hidden></p>
             <section id="communityListView" aria-label="게시글 목록">
               <div class="community-list-tools"><span id="communityPostCount" class="community-count"></span><form id="communitySearch" class="community-search" role="search"><label class="community-sr" for="communitySearchInput">제목·내용 검색</label><input id="communitySearchInput" type="search" maxlength="100" placeholder="제목·내용 검색" autocomplete="off"><button type="submit" class="toolbtn">검색</button><button id="communitySearchReset" type="button" class="toolbtn" hidden>초기화</button></form></div>
@@ -222,7 +222,7 @@
           </section>
         </div>
       </section>
-      <div class="board-dialog-footer"><span id="boardSelection" class="board-selection" role="status" aria-live="polite" aria-atomic="true"></span><button id="boardClose" type="button" class="btn quiet">닫기</button></div>
+      <span id="boardSelection" hidden></span>
     </div>
   </dialog>
   <dialog id="exitDialog" class="exit-dialog" aria-labelledby="exitTitle" aria-describedby="exitDescription">
@@ -238,7 +238,7 @@
       <div class="booth-panel-heading"><div><span class="eyebrow">ROOFTOP STUDIO</span><h2 id="boothTitle">전시 부스</h2></div><div class="booth-window-actions"><button id="boothReturn" type="button" class="toolbtn" hidden>맵 팝업으로</button><button id="boothPiP" type="button" class="toolbtn">PiP로 띄우기</button><button id="boothClose" type="button" class="close-button" aria-label="부스 창 닫기">×</button></div></div>
       <div class="booth-body">
         <div class="booth-service-card">
-          <span class="booth-service-icon" aria-hidden="true"><svg class="booth-youtube-icon" viewBox="0 0 80 60"><rect x="0" y="3" width="80" height="54" rx="15" fill="#ff0033"/><path d="M32 17 55 30 32 43Z" fill="#fff"/></svg><svg class="booth-psych-icon" viewBox="0 0 80 80"><rect x="2" y="2" width="76" height="76" rx="23" fill="#e8e2f7"/><path d="M40 15c-8-8-23-2-23 10-8 5-7 18 1 22-3 10 6 18 15 15 3 6 11 6 14 0 9 3 18-5 15-15 8-4 9-17 1-22 0-12-15-18-23-10Z" fill="#fff" stroke="#8575b8" stroke-width="4" stroke-linejoin="round"/><path d="M40 16v46M28 25c7 1 8 6 8 11m-16 1c7-2 11 1 12 7m20-19c-7 1-8 6-8 11m16 1c-7-2-11 1-12 7M29 54c5-4 8-3 11 1m11-1c-5-4-8-3-11 1" fill="none" stroke="#a18fc9" stroke-width="3" stroke-linecap="round"/><circle cx="29" cy="42" r="3" fill="#8674b4"/><circle cx="51" cy="42" r="3" fill="#8674b4"/></svg><span class="booth-basic-icon">P</span></span>
+          <span class="booth-service-icon" aria-hidden="true"><svg class="booth-youtube-icon" viewBox="0 0 80 60"><rect x="0" y="3" width="80" height="54" rx="15" fill="#ff0033"/><path d="M32 17 55 30 32 43Z" fill="#fff"/></svg><svg class="booth-psych-icon" viewBox="0 0 80 80"><rect x="2" y="2" width="76" height="76" rx="23" fill="#e8e2f7"/><path d="M40 15c-8-8-23-2-23 10-8 5-7 18 1 22-3 10 6 18 15 15 3 6 11 6 14 0 9 3 18-5 15-15 8-4 9-17 1-22 0-12-15-18-23-10Z" fill="#fff" stroke="#8575b8" stroke-width="4" stroke-linejoin="round"/><path d="M40 16v46M28 25c7 1 8 6 8 11m-16 1c7-2 11 1 12 7m20-19c-7 1-8 6-8 11m16 1c-7-2-11 1-12 7M29 54c5-4 8-3 11 1m11-1c-5-4-8-3-11 1" fill="none" stroke="#a18fc9" stroke-width="3" stroke-linecap="round"/><circle cx="29" cy="42" r="3" fill="#8674b4"/><circle cx="51" cy="42" r="3" fill="#8674b4"/></svg><span class="booth-basic-icon"><img src="assets/logo.png" alt=""></span></span>
           <p id="boothIntro"></p>
         </div>
         <section id="boothGameChoices" class="booth-game-choices" hidden aria-label="게임 카드 선택">
@@ -346,6 +346,11 @@
   <script src="roof-slideshow-config.js"></script>
   <script src="roof-slideshow.js"></script>
   <script src="messages.js"></script>
+  <script src="meal-comments.js"></script>
+  <script src="campus-world-actions.js"></script>
   <script src="campus.js"></script>
+  <script src="campus-snb.js"></script>
+  <script src="consultation-chat.js" defer></script>
+  <button type="button" id="consultationChatOpen" class="consultation-chat-launcher" aria-label="LMS 상담톡 열기" title="LMS 상담톡"><svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><path fill="currentColor" d="M20 3C10.6 3 3 10.4 3 19.5S10.6 36 20 36c2.4 0 4.7-.5 6.8-1.4l7.1 1.9-1.6-7.1A16.2 16.2 0 0 0 37 19.5C37 10.4 29.4 3 20 3Z"/><path class="consultation-smile" d="M12.5 22.5c3.9 5.2 11.1 5.2 15 0" fill="none" stroke-width="4.5" stroke-linecap="round"/></svg></button>
 </body>
 </html>

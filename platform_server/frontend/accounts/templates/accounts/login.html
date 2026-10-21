@@ -1,14 +1,49 @@
-{% extends "accounts/base.html" %}
-{% block title %}로그인{% endblock %}
-{% block heading %}캠퍼스로 들어오세요{% endblock %}
-{% block description %}로그인하고 PLAYDATA 캠퍼스를 둘러보세요.{% endblock %}
-{% block content %}
-  {% if session_expired_message %}<p class="auth-description" role="status">{{ session_expired_message }}</p>{% endif %}
-  <form method="post" action="{% url 'accounts:login' %}" class="auth-form">
-    {% csrf_token %}
-    <input type="hidden" name="next" value="{{ next }}">
-    {% include "accounts/form_fields.html" %}
-    <button type="submit" class="auth-submit">로그인</button>
-  </form>
-  <p class="auth-switch">처음 방문하셨나요? <a href="{% url 'accounts:signup' %}">회원가입</a></p>
-{% endblock %}
+{% load static %}
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#006d70">
+  <link rel="icon" type="image/png" href="{% static 'campus/assets/logo.png' %}">
+  <title>로그인 · PLAYDATA 캠퍼스</title>
+  <link rel="stylesheet" href="{% static 'accounts/login.css' %}?v={{ login_css_version }}">
+  <script src="{% static 'accounts/login.js' %}?v=20261020-1" defer></script>
+</head>
+<body class="login-page">
+  <div class="login-sparkles" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+
+  <main class="login-main">
+    <section class="login-card" aria-labelledby="login-title">
+      <img class="login-quokka" src="{% static 'campus/assets/login-quokka.png' %}?v=7b5f939448b4" alt="" aria-hidden="true" width="1360" height="1136">
+      <div class="login-brand">
+        <div class="login-logo-tile"><img class="login-logo" src="{% static 'campus/assets/logo.png' %}?v={{ login_logo_version }}" alt="" aria-hidden="true"></div>
+        <h1 id="login-title">PLAYDATA<span>VIRTUAL CAMPUS</span></h1>
+      </div>
+      {% if session_expired_message %}<p class="login-notice" role="status">{{ session_expired_message }}</p>{% endif %}
+      <form method="post" action="{% url 'accounts:login' %}" class="login-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+        {% if form.non_field_errors %}<div class="login-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+        <div class="login-field">
+          <label for="id_username" class="sr-only">아이디</label>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>
+          <input id="id_username" name="username" type="text" value="{{ form.username.value|default_if_none:'' }}" placeholder="아이디를 입력하세요" autocomplete="username" maxlength="150" required {% if form.username.errors %}aria-invalid="true" aria-describedby="username-errors"{% endif %}>
+        </div>
+        {% if form.username.errors %}<div id="username-errors" class="login-errors" role="alert">{{ form.username.errors }}</div>{% endif %}
+        <div class="login-field">
+          <label for="id_password" class="sr-only">비밀번호</label>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></svg>
+          <input id="id_password" name="password" type="password" placeholder="비밀번호를 입력하세요" autocomplete="current-password" required {% if form.password.errors %}aria-invalid="true" aria-describedby="password-errors"{% endif %}>
+          <button class="password-toggle" type="button" aria-label="비밀번호 표시" aria-pressed="false" aria-controls="id_password"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path class="eye-slash" d="m3 3 18 18"/></svg></button>
+        </div>
+        {% if form.password.errors %}<div id="password-errors" class="login-errors" role="alert">{{ form.password.errors }}</div>{% endif %}
+        <div class="login-options"><label><input id="remember-id" type="checkbox">아이디 저장</label><button class="recovery-button" type="button">비밀번호 찾기</button></div>
+        <button type="submit" class="login-submit">로그인</button>
+      </form>
+      <p class="login-signup">계정이 없으신가요? <a href="{% url 'accounts:signup' %}">회원가입</a></p>
+    </section>
+  </main>
+  <dialog class="recovery-dialog" aria-labelledby="recovery-title"><h2 id="recovery-title">비밀번호 찾기</h2><p>비밀번호 재설정은 캠퍼스 관리자에게 문의해 주세요.</p><form method="dialog"><button class="login-submit">확인</button></form></dialog>
+</body>
+</html>

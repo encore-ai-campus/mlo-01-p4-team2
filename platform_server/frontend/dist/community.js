@@ -319,10 +319,10 @@
       active = true; category = 'all'; search = ''; page = 1; $('communitySearchInput').value = '';
       $('boardChoices').hidden = $('boardDescription').hidden = $('boardSelection').hidden = true;
       $('boardMenuView').hidden = true; panel.hidden = false; dialog.dataset.view = 'community';
-      $('boardTitle').textContent = '엔코아 타임'; $('boardEyebrow').textContent = 'CAMPUS COMMUNITY';
+      $('boardTitle').textContent = 'PLAYDATA 게시판'; $('boardEyebrow').textContent = 'CAMPUS COMMUNITY';
       loadList({focus: true});
     }
-    $('communityBack').addEventListener('click', () => { if (canLeave()) onBack(); });
+    $('communityBack')?.addEventListener('click', () => { if (canLeave()) onBack(); });
     $('communityWrite').addEventListener('click', () => { if (!busy) compose(); });
     $('communitySearch').addEventListener('submit', event => {event.preventDefault(); if (busy) return; search = $('communitySearchInput').value.trim(); page = 1; loadList({focus: true});});
     $('communitySearchReset').addEventListener('click', () => {if (busy) return; search = ''; page = 1; $('communitySearchInput').value = ''; loadList({focus: true});});

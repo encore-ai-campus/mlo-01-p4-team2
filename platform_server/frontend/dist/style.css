@@ -37,3 +37,26 @@
 @media(max-width:900px){.booth-game-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.booth-game-card .board-card-media{height:118px}.booth-game-card .board-card-label{margin:14px 10px 6px}.booth-game-card .board-card-label strong{font-size:14px}.game-card-description{padding:0 10px 5px;font-size:11px}.booth-game-card .board-card-state{margin:0 10px;font-size:11px}}
 
 .game-card-tetris{background:#eaf1fa}.game-card-worlds-hardest-game{background:#f0eef9}.game-card-bamboo-master{background:#edf4e9}.game-card-sword-upgrade{background:#f8f0e2}.game-card-walk-the-stork{background:#eaf4f5}.game-card-isaac{background:#eee7e5}.game-card-paladog{background:#edf1e5}.game-card-solitaire{background:#e8f2ef}
+
+/* Shared popup close controls. */
+:is(body,#learningDialog,#settingsDialog) :is(.close-button,#dmClose,#campusGuideImageClose,#mapWalletHistoryClose,#home-button,.chat-kkuwang-picker-heading button,#spaceGuideClose) {
+  position:relative;display:inline-flex;align-items:center;justify-content:center;
+  flex:0 0 36px;width:36px;height:36px;padding:0;margin:0;
+  border:1px solid #dce7e1;border-radius:50%;background:#f3f7f4;
+  color:#617b70;font-size:0;line-height:1;
+  transition:background-color .15s,border-color .15s,color .15s,transform .15s;
+}
+:is(body,#learningDialog,#settingsDialog) :is(.close-button,#dmClose,#campusGuideImageClose,#mapWalletHistoryClose,#home-button,.chat-kkuwang-picker-heading button,#spaceGuideClose)::before,
+:is(body,#learningDialog,#settingsDialog) :is(.close-button,#dmClose,#campusGuideImageClose,#mapWalletHistoryClose,#home-button,.chat-kkuwang-picker-heading button,#spaceGuideClose)::after {
+  content:'';position:absolute;left:50%;top:50%;width:16px;height:2px;
+  border-radius:2px;background:currentColor;pointer-events:none;
+  transform:translate(-50%,-50%) rotate(45deg);
+}
+:is(body,#learningDialog,#settingsDialog) :is(.close-button,#dmClose,#campusGuideImageClose,#mapWalletHistoryClose,#home-button,.chat-kkuwang-picker-heading button,#spaceGuideClose)::after {transform:translate(-50%,-50%) rotate(-45deg)}
+:is(body,#learningDialog,#settingsDialog) :is(.close-button,#dmClose,#campusGuideImageClose,#mapWalletHistoryClose,#home-button,.chat-kkuwang-picker-heading button,#spaceGuideClose):hover {background:#e7f1eb;border-color:#b8cfc1;color:#246b60}
+:is(body,#learningDialog,#settingsDialog) :is(.close-button,#dmClose,#campusGuideImageClose,#mapWalletHistoryClose,#home-button,.chat-kkuwang-picker-heading button,#spaceGuideClose):active {background:#dcebe2;transform:scale(.94)}
+:is(body,#learningDialog,#settingsDialog) :is(.close-button,#dmClose,#campusGuideImageClose,#mapWalletHistoryClose,#home-button,.chat-kkuwang-picker-heading button,#spaceGuideClose):focus-visible {outline:3px solid #36a9a1;outline-offset:3px}
+@media (prefers-reduced-motion:reduce) {:is(body,#learningDialog,#settingsDialog) :is(.close-button,#dmClose,#campusGuideImageClose,#mapWalletHistoryClose,#home-button,.chat-kkuwang-picker-heading button,#spaceGuideClose) {transition:none}}
+
+/* Preserve the guide header close button anchor. */
+body #spaceGuideClose {position:absolute}

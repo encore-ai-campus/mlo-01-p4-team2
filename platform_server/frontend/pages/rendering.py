@@ -55,6 +55,10 @@ def render_document(data, root, debug=True):
         raise ValueError('Unsupported presentation template')
     engine = template_engine(root, debug)
     context = context_from_data(data)
+    if name == 'accounts/login.html':
+        context['login_foliage_version'] = asset_version(root, 'dist/assets/login-foliage.png')
+        context['login_logo_version'] = asset_version(root, 'dist/assets/logo.png')
+        context['login_css_version'] = asset_version(root, 'accounts/static/accounts/login.css')
     def render(name):
         return engine.get_template(name).render(Context(context))
     html = render(name)

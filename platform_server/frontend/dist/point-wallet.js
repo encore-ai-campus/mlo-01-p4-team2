@@ -126,7 +126,7 @@
     if(!history.hidden){closeHistory();return;}
     history.hidden=false;wallet.setAttribute('aria-expanded','true');fitHistory();loadHistory();refresh();
   });
-  document.getElementById('mapWalletHistoryClose').addEventListener('click',()=>closeHistory(true));
+
   more.addEventListener('click',()=>loadHistory(true));
   retry.addEventListener('click',()=>loadHistory(retryAppend));
   document.addEventListener('pointerdown',event=>{if(!history.hidden&&!anchor.contains(event.target))closeHistory();});

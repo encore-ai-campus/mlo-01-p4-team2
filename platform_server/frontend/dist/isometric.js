@@ -725,14 +725,16 @@
         if(image){
           const height=o.posterHeight||w*image.height/image.width;
           const q=p(x,y,base+(o.posterBottom||0)+height),v=drawingVector(1,0);
+          if(o.ledFrame){
+            const legHeight=Math.max(8,(o.posterBottom||0)-3);
+            for(const legX of [w*.08,w*.92]){
+              box(x+legX-11,y-4,22,13,base,3,'#7f9394','#40585c','#2a4146');
+              box(x+legX-4,y-1,8,7,base+3,legHeight,'#8c9fa0','#526d71','#2d474d');
+              line(p(x+legX-3,y+6,base+4),p(x+legX-3,y+6,base+3+legHeight),'#a3b6b5',.7);
+            }
+          }
           g.save();g.transform(v.x,v.y,0,1,q.x,q.y);
           if(o.ledFrame){
-            const legHeight=Math.max(8,(o.posterBottom||0)-4);
-            for(const legX of [w*.08,w*.92]){
-              g.fillStyle='#243b3e';g.fillRect(legX-4,height+3,8,legHeight);
-              g.fillStyle='#607679';g.fillRect(legX-3,height+3,2,legHeight);
-              g.fillStyle='#344d50';g.fillRect(legX-9,height+legHeight,18,3);
-            }
             g.fillStyle='#1d2e31';g.fillRect(-5,-5,w+10,height+10);
             g.strokeStyle='#657a7b';g.lineWidth=1;g.strokeRect(-4.5,-4.5,w+9,height+9);
             g.fillStyle='#0a171c';g.fillRect(-2,-2,w+4,height+4);

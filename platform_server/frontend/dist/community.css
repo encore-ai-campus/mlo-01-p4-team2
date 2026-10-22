@@ -155,3 +155,29 @@
   #communityPanel .community-article h4 { font-size:20px; }
   #communityPanel .community-post-body { font-size:13px; }
 }
+
+/* Keep the logo in place; only category links scroll on short screens. */
+#communityPanel .community-layout {grid-template-rows:minmax(0,1fr)}
+#communityPanel .community-sidebar {display:flex;flex-direction:column;min-height:0;overflow:hidden;padding:16px 15px}
+#communityPanel .community-brand {flex:none;padding:0 10px 12px;background:#f4f7f3}
+#communityPanel .community-tabs {min-height:0;overflow-y:auto;flex:1;scrollbar-width:thin}
+#communityPanel .community-tab {min-height:38px;padding:8px 10px}
+#communityPanel .community-guide {flex:none;margin-top:12px;padding-top:12px}
+#communityPanel .community-main {min-height:0;padding:18px 28px}
+#communityPanel .community-heading {padding-bottom:16px;margin-bottom:16px}
+#communityPanel .community-empty {padding:24px 20px 28px}
+#communityPanel .community-empty-mark {margin-bottom:10px;width:44px;height:48px}
+#communityPanel .community-empty p {margin-bottom:12px}
+#communityPanel .community-pagination {margin-top:12px;padding-top:10px}
+@media(max-height:740px){
+ #boardDialog[data-view="community"]>.dialog-top {padding:14px 24px}
+ #communityPanel .community-toolbar {padding:8px 24px}
+ #communityPanel .community-main {padding:14px 22px}
+ #communityPanel .community-heading {padding-bottom:12px;margin-bottom:12px}
+ #communityPanel .community-empty {padding:18px 16px}
+}
+@media(max-width:700px){
+ #communityPanel .community-layout {grid-template-rows:auto minmax(0,1fr)}
+ #communityPanel .community-sidebar {display:block;padding:7px 10px}
+ #communityPanel .community-tabs {overflow-x:auto;overflow-y:hidden}
+}

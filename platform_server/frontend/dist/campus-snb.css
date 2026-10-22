@@ -197,3 +197,10 @@
  .campus-snb .snb-services {padding-top:7px;padding-bottom:7px}
  .campus-snb .snb-player {min-height:54px;padding-bottom:6px}
 }
+
+/* Join the menu handle seamlessly to the sidebar surface. */
+.campus-snb-toggle::before {
+  content:'';position:absolute;left:-5px;top:0;bottom:0;width:7px;
+  background:#fffdf8;pointer-events:none;
+}
+.campus-snb-toggle svg {position:relative;z-index:1}

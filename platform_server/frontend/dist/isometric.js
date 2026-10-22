@@ -430,7 +430,7 @@
         return;
       }
       const {x,y,w,h,type}=o,c=o.color;
-      if(!o.mounted&&!['monitor','laptop','notebook','festival-banner','stair-handrail','stair-rail','stairs','floor-portal','booth-interaction','guide-npc'].includes(type))shadow(o,base);
+      if(!o.mounted&&o.type!=='wall-poster'&&!['monitor','laptop','notebook','festival-banner','stair-handrail','stair-rail','stairs','floor-portal','booth-interaction','guide-npc'].includes(type))shadow(o,base);
       if(['desk','coffee','roundtable'].includes(type)) {
         for(const [lx,ly] of [[x+3,y+3],[x+w-6,y+3],[x+3,y+h-6],[x+w-6,y+h-6]])leg(lx,ly,base,17);
         box(x,y,w,h,base+17,4,c||(['coffee','roundtable'].includes(type)?'#f8f5e9':'#e4c99b'),'#bea37c','#a48a63');
@@ -486,7 +486,15 @@
           const height=o.panelHeight||29,bottom=o.mountHeight??6;
           const v=drawingVector(1,0),q=p(x,y+h,base+bottom+height);
           g.save();g.transform(v.x,v.y,0,1,q.x,q.y);
-          playdataNoticeboard(w,height);g.restore();
+          if(o.adScreen){
+            g.fillStyle='#263c3d';g.fillRect(-3,-3,w+6,height+6);
+            const bg=g.createLinearGradient(0,0,w,height);bg.addColorStop(0,'#102f3c');bg.addColorStop(1,'#167d79');g.fillStyle=bg;g.fillRect(0,0,w,height);
+            g.fillStyle='#ffffff0a';for(let yy=2;yy<height;yy+=3)g.fillRect(0,yy,w,1);
+            g.textAlign='left';g.textBaseline='middle';g.fillStyle='#a9e8d8';g.font=`700 8px ${font}`;g.fillText('PLAYDATA · CAMPUS AD',18,18);
+            g.fillStyle='#fffdf2';g.font=`800 24px ${font}`;g.fillText('당신의 아이디어를 펼쳐보세요',18,height*.5,w-36);
+            g.fillStyle='#d3eee6';g.font=`600 10px ${font}`;g.fillText('프로젝트 · 스터디 · 커뮤니티 소식을 전하는 광고 공간',18,height*.76,w-36);
+            g.fillStyle='#b1f1cf';g.beginPath();g.arc(w-14,13,2,0,Math.PI*2);g.fill();
+          }else playdataNoticeboard(w,height);g.restore();
         }else{
           const foot=footprint(o),bx=foot.x,by=foot.y+foot.h*.5,span=foot.w;
           for(const lx of [bx+4,bx+span-8]){box(lx,by-4,5,9,0,51,'#dcb77c','#b99158','#976c3e');box(lx-4,by-6,13,13,0,4,'#d5b075','#b58b4f','#97713e');}
@@ -718,7 +726,17 @@
           const height=o.posterHeight||w*image.height/image.width;
           const q=p(x,y,base+(o.posterBottom||0)+height),v=drawingVector(1,0);
           g.save();g.transform(v.x,v.y,0,1,q.x,q.y);
-          g.fillStyle='#d5c3a5';g.fillRect(-3,-3,w+6,height+6);
+          if(o.ledFrame){
+            const legHeight=Math.max(8,(o.posterBottom||0)-4);
+            for(const legX of [w*.08,w*.92]){
+              g.fillStyle='#243b3e';g.fillRect(legX-4,height+3,8,legHeight);
+              g.fillStyle='#607679';g.fillRect(legX-3,height+3,2,legHeight);
+              g.fillStyle='#344d50';g.fillRect(legX-9,height+legHeight,18,3);
+            }
+            g.fillStyle='#1d2e31';g.fillRect(-5,-5,w+10,height+10);
+            g.strokeStyle='#657a7b';g.lineWidth=1;g.strokeRect(-4.5,-4.5,w+9,height+9);
+            g.fillStyle='#0a171c';g.fillRect(-2,-2,w+4,height+4);
+          }else if(!o.imageOnly){g.fillStyle='#d5c3a5';g.fillRect(-3,-3,w+6,height+6);}
           g.drawImage(image,0,0,w,height);g.restore();
         }
       } else if(type==='plaza-display') {
@@ -1055,7 +1073,7 @@
     }
     function drawSprite(ctx,s,alpha=1){ctx.save();ctx.globalAlpha=alpha;if(s.o.type==='sliding-door'&&doorStates.has(s.o.id)){const progress=doorProgress(doorStates.get(s.o.id),performance.now());g=ctx;furniture({...s.o,x:s.o.x-s.o.w*progress,closed:true},0);}else ctx.drawImage(s.canvas,s.b.x,s.b.y,s.b.w,s.b.h);ctx.restore();}
     const scene=makeCanvas(P.width*resolution,P.height*resolution),sg=scene.getContext('2d');
-    function repaintScene(){sg.setTransform(1,0,0,1,0,0);sg.clearRect(0,0,scene.width,scene.height);sg.setTransform(resolution,0,0,resolution,0,0);city?.draw(sg);sg.drawImage(floorCanvas,0,0,P.width,P.height);for(const s of sprites){drawSprite(sg,s);if(s.o.type==='fountain'){g=sg;fountainWater(s.o,0);}if(s.o.type==='floor-portal'){g=sg;if(s.o.portalStyle==='compact')compactPortalEnergy(s.o);else portalEnergy(s.o,groundHeight(s.o.x+s.o.w/2,s.o.y+s.o.h/2));}else if(s.o.type==='stair-portal'||(s.o.type==='fire-extinguisher'&&s.o.portalGlow)){g=sg;compactPortalEnergy(s.o);}}for(const sprite of sprites.filter(sprite=>sprite.o.type==='wall-sign'))drawSprite(sg,sprite);drawLabels(sg);}
+    function repaintScene(){sg.setTransform(1,0,0,1,0,0);sg.clearRect(0,0,scene.width,scene.height);sg.setTransform(resolution,0,0,resolution,0,0);city?.draw(sg);sg.drawImage(floorCanvas,0,0,P.width,P.height);for(const s of sprites){drawSprite(sg,s);if(s.o.type==='fountain'){g=sg;fountainWater(s.o,0);}if(s.o.type==='floor-portal'){g=sg;if(s.o.portalStyle==='compact')compactPortalEnergy(s.o);else portalEnergy(s.o,groundHeight(s.o.x+s.o.w/2,s.o.y+s.o.h/2));}else if(s.o.type==='stair-portal'||(s.o.type==='fire-extinguisher'&&s.o.portalGlow)){g=sg;compactPortalEnergy(s.o);}}for(const sprite of sprites.filter(sprite=>sprite.o.type==='wall-sign'||(sprite.o.type==='wall-poster'&&sprite.o.inFrontOfWalls)))drawSprite(sg,sprite);drawLabels(sg);}
     repaintScene();
     function setDisplayImage(id,image){const s=sprites.find(s=>s.o.id===id&&(s.o.type==='plaza-display'||s.o.type==='wall-poster'));if(!s)return false;const depth=s.depth;displayImages.set(id,image);Object.assign(s,cacheSprite(s.o,()=>furniture(s.o,groundHeight(s.o.x+s.o.w/2,s.o.y+s.o.h/2))));s.depth=depth;repaintScene();return true;}
     function drawActor(ctx,actor,t,zoom,labelText,self) {
@@ -1107,7 +1125,7 @@
       g=ctx;
       floorOverlay?.(ctx,P);
       if(path.length){ctx.strokeStyle='#2586789c';ctx.lineWidth=1.5/camera.zoom;ctx.setLineDash([4/camera.zoom,5/camera.zoom]);ctx.beginPath();let q=projectGround(actors[0].x,actors[0].y);ctx.moveTo(q.x,q.y);for(const a of path){q=projectGround(a.x,a.y);ctx.lineTo(q.x,q.y);}ctx.stroke();ctx.setLineDash([]);}
-      const focused=hover||nearby;if(focused&&focused.type!=='stairs'&&focused.type!=='floor-portal'&&focused.type!=='booth-interaction'){const r=footprint(focused);plane(r.x-3,r.y-3,r.w+6,r.h+6,groundHeight(r.x+r.w/2,r.y+r.h/2)+.5,'#37a29022','#258876');}
+      const focused=hover||nearby;if(focused&&focused.id!=='roof-ad-board'&&focused.type!=='stairs'&&focused.type!=='floor-portal'&&focused.type!=='booth-interaction'){const r=footprint(focused);plane(r.x-3,r.y-3,r.w+6,r.h+6,groundHeight(r.x+r.w/2,r.y+r.h/2)+.5,'#37a29022','#258876');}
       const visible=sprites.filter(s=>{const b=s.b;return b.x*camera.zoom+camera.x<viewportWidth&&b.y*camera.zoom+camera.y<viewportHeight&&(b.x+b.w)*camera.zoom+camera.x>0&&(b.y+b.h)*camera.zoom+camera.y>0;});
       const entities=placeActors(visible,actors);
       for(const e of entities){
@@ -1118,7 +1136,7 @@
         if(e.o.type==='floor-portal'){g=ctx;if(e.o.portalStyle==='compact')compactPortalEnergy(e.o,portalMotion?.matches?0:t);else portalEnergy(e.o,groundHeight(e.o.x+e.o.w/2,e.o.y+e.o.h/2),portalMotion?.matches?0:t);}
         else if(e.o.type==='stair-portal'||(e.o.type==='fire-extinguisher'&&e.o.portalGlow)){g=ctx;compactPortalEnergy(e.o,portalMotion?.matches?0:t);}
       }
-      for(const sprite of visible.filter(sprite=>sprite.o.type==='wall-sign'))drawSprite(ctx,sprite);
+      for(const sprite of visible.filter(sprite=>sprite.o.type==='wall-sign'||(sprite.o.type==='wall-poster'&&sprite.o.inFrontOfWalls)))drawSprite(ctx,sprite);
       // Keep the stair destination marker readable above nearby walls.
       for(const marker of visible.filter(s=>s.o.type==='stair-portal'))drawSprite(ctx,marker);
       drawLabels(ctx,actors);
@@ -1128,12 +1146,16 @@
     function displayPolygon(id){
       const o=D.objects.find(o=>o.id===id),image=displayImages.get(id);
       if(!o||!image)return null;
+      if(o.type==='wall-poster'){
+        const base=groundHeight(o.x+o.w/2,o.y+o.h/2),height=o.posterHeight||o.w*image.height/image.width,z=base+(o.posterBottom||0);
+        return [p(o.x,o.y,z+height),p(o.x+o.w,o.y,z+height),p(o.x+o.w,o.y,z),p(o.x,o.y,z)];
+      }
       const q=projectGround(o.x+o.w/2,o.y+o.h/2),sw=o.screenWidth||250;
       const sh=o.imageOnly?sw*image.height/image.width:o.screenHeight||150;
       const v=o.displayAxis==='y'?P.vector(0,-1):{x:1,y:0};
       return [[-sw/2,-44-sh],[sw/2,-44-sh],[sw/2,-44],[-sw/2,-44]].map(([x,y])=>({x:q.x+v.x*x,y:q.y+v.y*x+y}));
     }
-    return {toggleDoor,projection:P,scene,draw,footprint,drawActor,hitTest,projectGround,projectActor,unprojectGround,setDisplayImage,displayPolygon};
+    return {toggleDoor,projection:P,scene,draw,footprint,drawActor,hitTest,projectGround,projectActor,unprojectGround,setDisplayImage,displayPolygon,hasDisplay:id=>D.objects.some(o=>o.id===id)};
   }
   window.CampusIsometric={createProjection,create};
 })();

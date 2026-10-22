@@ -97,6 +97,7 @@
   const shortcut=obj('floor-portal',810,910,80,80,{id:'roof-lounge2-portal',name:'18F 라운지 2로 이동',roomId:'roof-upper',toFloor:'campus',arrival:[extinguisher.x+extinguisher.w/2,extinguisher.y+extinguisher.h/2],approach:[850,950],confirmTransfer:false,solid:false,portalStyle:'compact',portalScale:1.5,portalRadius:12,portalLabel:'18F',renderHeight:80,description:'18층 통합 강의실과 연결된 포탈입니다. 가까이에서 E를 누르면 18층 라운지 2로 이동합니다.',tags:['18층 라운지 2 연결','E키 이동']});
   for(const [i,o] of objects.filter(o=>o.type==='balloons').entries()){const [, ,x,y]=boothLayout[i];Object.assign(o,{x:x+285,y:y+170});}
   for(let i=objects.length-1;i>=0;i--)if(['laptop','keyboard','monitor'].includes(objects[i].type))objects.splice(i,1);
+  obj('guide-npc',1794,798,52,44,{id:'roof-lunch-wheel',name:'점심추천 돌림판',action:'lunch',roomId:'roof-plaza',solid:true,renderHeight:0});
   const rooftop={id:'rooftop',name:'RF 옥상 광장',width,height,padding:140,paddingTop:440,rooms,objects,walls,surfaces,terrace,elevationAt,wallHeight:18,wallColor:'#e8eee8',spawn:[1760,880],portals:[]};
   window.CampusWorlds={campus,rooftop};
 })();

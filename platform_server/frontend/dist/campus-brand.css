@@ -193,3 +193,7 @@
 .consultation-pending-badge {padding:3px 7px;border-radius:6px;background:#ffffff20;color:#e0e8e2;font-size:11px;font-weight:600;white-space:nowrap}
 .consultation-greeting-detail::before {background:#a8b5ae}
 .consultation-launcher-pending {position:absolute;top:-8px;right:-7px;padding:4px 7px;border:1px solid #ccdbd1;border-radius:8px;background:#fffdf7;color:#557365;font-size:10px;font-weight:700;white-space:nowrap;line-height:1.3}
+
+/* Keep counseling controls above the footer at every viewport width. */
+.consultation-chat-launcher {bottom:calc(var(--campus-help-height,54px) + 12px + env(safe-area-inset-bottom,0px))}
+.consultation-greeting {bottom:calc(var(--campus-help-height,54px) + 92px + env(safe-area-inset-bottom,0px))}

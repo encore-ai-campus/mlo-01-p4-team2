@@ -34,11 +34,11 @@ window.CampusData = (() => {
   walls.find(w=>w.x1===456&&w.x2===456&&w.y1===24).occludes=['lounge2-bar'];
   wall(769,369,769,631);
   // Open the merged classroom directly onto the corridor.
-  horizontal(369,550,1067,[[970,1060]]);
+  wall(550,369,970,369);
   vertical(1067,24,631,[[267,369]]);vertical(1399,24,631,[[287,323],[485,520],[545,631]]);
   wall(1399,347,1516,347);wall(1399,545,1516,545);
   // The utility counter stays open to the lounge; only the storage front keeps its wall and doorway.
-  horizontal(84,1290,1399,[[1320,1353]]);wall(1290,24,1290,84);
+  // Open the former storage enclosure to the lounge.
   vertical(315,425,631,[[463,501],[565,603]]);wall(315,425,456,425);wall(315,531,456,531);
   wall(1297,631,1297,800,'#bd7656');wall(1406.5,631,1406.5,800,'#dbb446');wall(1516,631,1516,800,'#dfc053');wall(1297,800,1516,800);
   const obj=(type,x,y,w,h,extra={})=>{objects.push({id:'object-'+objects.length,type,x,y,w,h,...extra});return objects[objects.length-1];};
@@ -100,9 +100,9 @@ window.CampusData = (() => {
   [1101,1191,1281].forEach((x,i)=>{desk(x,175,37,81,{color:'#f5f3e9',name:`팀 회의 탁자 ${i+1}`,roomId:'lounge1'});tv(x-6,156,49,17,'lounge1',{name:`PC 연결 TV · ${i+1}번 탁자`,description:`라운지 1의 ${i+1}번 회의 탁자에 배치한 PC 연결용 TV입니다. 세 탁자에 한 대씩 놓았습니다.`});for(let j=0;j<2;j++){chair(x-19,184+j*39,'right','#657f88');chair(x+42,184+j*39,'left','#657f88');}});
   obj('laptop',1105,181,17,14,{solid:false});obj('notebook',1197,216,18,13,{solid:false});obj('laptop',1288,184,17,14,{solid:false});
   obj('noticeboard',1210,285,68,74,{id:'lounge1-noticeboard',name:'PLAYDATA 안내 게시판',roomId:'lounge1',photo:false,collision:{x:2,y:64,w:64,h:11},description:'두 기둥 사이 통로를 막지 않도록 중앙 위쪽으로 옮긴 이동식 칠판입니다. 아래 받침만 바닥을 차지하므로 칠판 뒤쪽으로 지나갈 수 있습니다. 사진처럼 나무 테두리와 받침대를 두고, 검은 칠판에 playdata를 적었습니다.',tags:['아래 받침','뒤쪽 통행','playdata']});
-  desk(1306,276,28,115,{id:'lounge1-worktable',color:'#e1c598',powered:true,name:'콘센트 작업 탁자',roomId:'lounge1',photo:false,description:'라운지 1 오른쪽에 세로로 배치한 긴 작업 탁자입니다. 탁자를 따라 콘센트 네 곳과 오른쪽의 세 좌석을 두어 노트북 작업을 할 수 있는 공간으로 표현했습니다.',tags:['세로 작업 탁자','콘센트 4곳','작업 좌석 3개']});
-  for(let i=0;i<3;i++)Object.assign(chair(1343,288+i*40.5,'left','#657f88'),{roomId:'lounge1',workSeat:true});
-  obj('laptop',1319,296,14,20,{orientation:'vertical',solid:false,roomId:'lounge1'});obj('laptop',1319,354,14,20,{orientation:'vertical',solid:false,roomId:'lounge1'});
+  desk(1306,346,28,115,{id:'lounge1-worktable',color:'#e1c598',powered:true,name:'콘센트 작업 탁자',roomId:'lounge1',photo:false,description:'라운지 1 오른쪽에 세로로 배치한 긴 작업 탁자입니다. 탁자를 따라 콘센트 네 곳과 오른쪽의 세 좌석을 두어 노트북 작업을 할 수 있는 공간으로 표현했습니다.',tags:['세로 작업 탁자','콘센트 4곳','작업 좌석 3개']});
+  for(let i=0;i<3;i++)Object.assign(chair(1343,358+i*40.5,'left','#657f88'),{roomId:'lounge1',workSeat:true});
+  obj('laptop',1319,366,14,20,{orientation:'vertical',solid:false,roomId:'lounge1'});obj('laptop',1319,424,14,20,{orientation:'vertical',solid:false,roomId:'lounge1'});
   // Move the right pillar and its bookshelves as one group, leaving a working area above.
   for(const [x,y] of [[1144,374],[1300,400]]){obj('pillar',x,y,40,40,{roomId:'lounge1'});obj('bookshelf',x-7,y-9,54,15,{name:'기둥 책장',roomId:'lounge1',photo:'assets/books.png',description:'라운지 1의 두 기둥에 사진 속 흰 프레임과 나무 선반의 책장을 반영했습니다. 색색의 책들이 둘러진 작은 도서 공간입니다.',tags:['기둥 주변 책장','흰 프레임','나무 선반']});obj('bookshelf',x-7,y+39,54,15,{name:'기둥 책장',roomId:'lounge1',photo:'assets/books.png'});obj('bookshelf-side',x+38,y+2,14,35,{name:'기둥 책장',roomId:'lounge1',photo:'assets/books.png'});}
   // Rotate the photographed seating group so its wood wall follows classroom 1's side.
@@ -132,7 +132,7 @@ window.CampusData = (() => {
   rooms.splice(combinedIndex,2,{id:'class3-4',name:'강의실 3·4',x:456,y:24,w:611,h:243,floor:'class',target:[758,145],label:false,info:false});
   for(const r of rooms.filter(r=>r.floor==='class'))Object.assign(r,{label:false,info:false});
   // A wall-mounted board sits on the inner face of the long rear wall.
-  obj('noticeboard',591.5,27,340,1,{id:'class3-4-noticeboard',name:'PLAYDATA 대형 게시판',roomId:'class3-4',mounted:true,solid:false,panelHeight:100,mountHeight:12,renderHeight:132,description:'통합 강의실의 긴 벽 가운데에 달린 PLAYDATA 게시판입니다.'});
+  obj('wall-poster',631.5,36,260,1,{id:'roof-ad-board',name:'광고',roomId:'class3-4',solid:false,posterHeight:175,posterBottom:40,renderHeight:240,inFrontOfWalls:true,imageOnly:true,ledFrame:true,source:'ad',imageUrl:'',description:'기존 광고 서버에서 제공하는 광고를 표시합니다.'});
   // Leave clearance from the wall's visible thickness so the entire freestanding bookcase stays in front.
   obj('bookshelf-side',1084,389,18,48,{id:'lounge1-corridor-bookshelf',name:'벽면 책장',roomId:'lounge1',bookcaseHeight:58,photo:false,description:'라운지 1에서 복도로 들어가기 전 왼쪽 벽 앞에 놓인 책장입니다. 옆 휴식 공간과 복도 입구 사이의 벽면에 배치했습니다.'});
   // Keep the lounge and main wing proportions while making room for the wider classrooms.

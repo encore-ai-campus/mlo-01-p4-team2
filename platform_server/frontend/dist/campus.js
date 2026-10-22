@@ -138,7 +138,7 @@
     }
     focusPlayer();
     const r=D.rooms.find(room=>room.id===serverHints.roomId);if(r&&r.id!==lastRoom){lastRoom=r.id;spaceGuide.setRoom(r.id);$('currentRoom').textContent=r.name;for(const b of document.querySelectorAll('[data-room]')){b.classList.toggle('active',b.dataset.room===r.id);b.setAttribute('aria-current',b.dataset.room===r.id?'location':'false');}}
-    nearby=D.objects.find(object=>object.id===serverHints.nearbyId)||null;
+    nearby=D.objects.find(object=>object.id===serverHints.nearbyId&&object.id!=='roof-ad-board')||null;
     $('interactionPrompt').hidden=!nearby;if(nearby){$('interactionPrompt').querySelector('span').textContent=nearby.name;$('interactionPrompt').querySelector('button').textContent=nearby.type==='sliding-door'?'열기 / 닫기':'보기';}
     render(t);requestAnimationFrame(update);
   }
@@ -232,6 +232,7 @@
     if(item.type==='sliding-door'){const r={x:item.x,y:item.y,w:item.w,h:item.h};const distance=Math.hypot(Math.max(r.x-player.x,0,player.x-r.x-r.w),Math.max(r.y-player.y,0,player.y-r.y-r.h));if(distance>50){toast('유리문 가까이에서 E키를 눌러주세요.');return;}const open=renderer.toggleDoor(item.id);toast(open?'유리문을 열었습니다.':'유리문을 닫았습니다.');return;}
     if(item.action==='learning'){toast(window.CampusClassroom?'학습교실 출입구로 입장해 주세요.':'로그인한 서버 화면에서 학습교실을 이용해 주세요.');return;}
     if(floorTransition.blocking||window.CampusSession?.ending)return;
+    if(item.action==='lunch'){window.dispatchEvent(new CustomEvent('campus:open-service',{detail:'lunch'}));return;}
     if(item.id==='roof-ad-board'){window.CampusAds?.clickRoof();return;}
     if(item.info===false)return;
     if(item.action==='guide'){window.CampusGuide?.open();return;}
@@ -320,8 +321,9 @@
   });
 
   window.addEventListener('campus:open-service',event=>{
-    if(D.id!=='campus'||isDialogOpen())return;
+    if(isDialogOpen())return;
     if(event.detail==='lunch'){keys.clear();player.moving=false;$('lunchDialog').showModal();$('lunchDialog').querySelector('[data-lunch-spin]').focus();return;}
+    if(D.id!=='campus')return;
     showBoard();if(event.detail==='menu')showMenuPhoto();else communityUI.open();
   });
   $('lunchDialogClose').onclick=()=>$('lunchDialog').close();

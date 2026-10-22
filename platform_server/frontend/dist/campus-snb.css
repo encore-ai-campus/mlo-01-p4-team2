@@ -204,3 +204,7 @@
   background:#fffdf8;pointer-events:none;
 }
 .campus-snb-toggle svg {position:relative;z-index:1}
+
+/* Keep the pending student menu compact instead of stretching the account gap. */
+.campus-snb .snb-student-menu {flex:0 0 auto;padding-bottom:0}
+.campus-snb .snb-account-actions {margin-top:4px}

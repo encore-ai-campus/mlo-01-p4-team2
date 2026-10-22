@@ -2,7 +2,7 @@
 from types import SimpleNamespace
 import threading
 import uuid
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -56,8 +56,8 @@ class IdleWorkerTests(SimpleTestCase):
             if len(waits) == 7:
                 stop.set()
 
-        queryset = Mock()
-        queryset.order_by.return_value.first.return_value = None
+        queryset = MagicMock()
+        queryset.exclude.return_value.order_by.return_value.__getitem__.return_value = []
         producer = Mock()
         with patch.object(publisher.EventOutbox.objects, "filter", return_value=queryset) as query, \
                 patch.object(publisher, "close_old_connections"), \
@@ -72,17 +72,17 @@ class IdleWorkerTests(SimpleTestCase):
     def test_commit_during_empty_read_is_not_lost_before_waiting(self):
         stop = threading.Event()
         wake = threading.Event()
-        queryset = Mock()
+        queryset = MagicMock()
         calls = []
 
-        def read():
+        def read(unused_slice):
             calls.append(True)
             publisher.notify_outbox_ready()
             if len(calls) == 2:
                 stop.set()
-            return None
+            return []
 
-        queryset.order_by.return_value.first.side_effect = read
+        queryset.exclude.return_value.order_by.return_value.__getitem__.side_effect = read
         with patch.object(publisher.EventOutbox.objects, "filter", return_value=queryset), \
                 patch.object(publisher, "close_old_connections"), \
                 patch.object(publisher, "_wakeup", wake), \
@@ -94,8 +94,8 @@ class IdleWorkerTests(SimpleTestCase):
     @override_settings(CAMPUS_OUTBOX_IDLE_POLL_SECONDS=.1)
     def test_configured_fallback_poll_ceiling_is_respected(self):
         stop = threading.Event()
-        queryset = Mock()
-        queryset.order_by.return_value.first.return_value = None
+        queryset = MagicMock()
+        queryset.exclude.return_value.order_by.return_value.__getitem__.return_value = []
         with patch.object(publisher.EventOutbox.objects, "filter", return_value=queryset), \
                 patch.object(publisher, "close_old_connections"), \
                 patch.object(publisher, "_wait_for_work", side_effect=lambda *_: stop.set()) as wait:
@@ -126,7 +126,6 @@ class WorkerConnectionTests(SimpleTestCase):
             publisher._publisher_loop(threading.Event())
         self.assertIs(database.settings_dict, original)
         connections.close_all.assert_called_once_with()
-        producer.flush.assert_called_once_with(5)
 
     def test_sqlite_keeps_its_existing_connection_policy(self):
         original = {"CONN_MAX_AGE":0, "CONN_HEALTH_CHECKS":False}

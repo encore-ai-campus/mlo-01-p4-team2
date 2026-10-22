@@ -4,9 +4,11 @@ import logging
 import os
 import threading
 import time
+from collections import deque
 
 from django.conf import settings
-from django.db import close_old_connections, connections
+from django.db import close_old_connections, connections, transaction
+from django.db.models import F
 from django.utils import timezone
 
 from .events import build_envelope
@@ -38,6 +40,8 @@ def producer_config():
         "acks": "all",
         "enable.idempotence": True,
         "compression.type": "zstd",
+        "linger.ms": 10,
+        "batch.num.messages": settings.CAMPUS_OUTBOX_PUBLISH_RATE_PER_SECOND,
         "message.send.max.retries": 2147483647,
         "retry.backoff.ms": 100,
         "retry.backoff.max.ms": 1000,
@@ -52,69 +56,124 @@ def producer_config():
     return config
 
 
-def _deliver(producer, topic, key, value):
-    result = {"done": False, "error": None}
-
-    def callback(error, message):
-        result["error"] = error
-        result["done"] = True
-
-    producer.produce(
-        topic,
-        key=str(key).encode("utf-8"),
-        value=json.dumps(value, ensure_ascii=False, separators=(",", ":"), allow_nan=False).encode("utf-8"),
-        on_delivery=callback,
-    )
-    deadline = time.monotonic() + 125
-    while not result["done"] and time.monotonic() < deadline and not _stop.is_set():
-        producer.poll(0.25)
-    if not result["done"]:
-        raise TimeoutError("Kafka delivery acknowledgement timed out")
-    if result["error"] is not None:
-        raise RuntimeError(str(result["error"]))
+def _record_deliveries(inflight, delivered, retry_at):
+    if not delivered:
+        return
+    successful = [event_uuid for event_uuid, error in delivered.items() if error is None]
+    failed = [event_uuid for event_uuid, error in delivered.items() if error is not None]
+    with transaction.atomic():
+        if successful:
+            EventOutbox.objects.filter(event_uuid__in=successful, published_at__isnull=True).update(
+                published_at=timezone.now(),
+            )
+        if failed:
+            EventOutbox.objects.filter(event_uuid__in=failed, published_at__isnull=True).update(
+                retry_count=F("retry_count") + 1,
+            )
+    # Keep each key occupied until its acknowledgement has committed to the DB.
+    for event_uuid, error in delivered.items():
+        row = inflight.pop(event_uuid)
+        if error is not None:
+            retry_at[row.message_key] = time.monotonic() + 1
+            logger.warning("Kafka delivery failed; event remains in outbox: event=%s topic=%s error=%s",
+                           event_uuid, row.topic, error)
+    delivered.clear()
 
 
 def _publish_pending(producer, stop):
+    limit = settings.CAMPUS_OUTBOX_PUBLISH_RATE_PER_SECOND
+    accepted = deque()
+    inflight, delivered, retry_at = {}, {}, {}
     idle_delay = 0.25
     max_idle_delay = settings.CAMPUS_OUTBOX_IDLE_POLL_SECONDS
-    while not stop.is_set():
-        # Clear before reading: a commit during the read must still wake the wait.
-        _wakeup.clear()
-        close_old_connections()
-        try:
-            row = EventOutbox.objects.filter(published_at__isnull=True).order_by("created_at", "event_uuid").first()
-            if row is None:
-                producer.poll(0)
-                _wait_for_work(stop, min(idle_delay, max_idle_delay))
-                idle_delay = min(idle_delay * 2, max_idle_delay)
-                continue
-            idle_delay = 0.25
-            if row.payload_json is None:
-                row.payload_json = build_envelope(row.event_uuid, row.event_type, row.occurred_at, row.raw_data)
-                if row.payload_json is None:
-                    logger.error("Outbox event remains pending until xxhash is installed: event=%s", row.event_uuid)
-                    stop.wait(5)
-                    continue
-                EventOutbox.objects.filter(event_uuid=row.event_uuid, payload_json__isnull=True).update(
-                    payload_json=row.payload_json
-                )
+    try:
+        while not stop.is_set():
+            # Clear before reading: a commit during the read must still wake the wait.
+            _wakeup.clear()
+            close_old_connections()
             try:
-                _deliver(producer, row.topic, row.message_key, row.payload_json)
+                producer.poll(0)
+                _record_deliveries(inflight, delivered, retry_at)
+                now = time.monotonic()
+                while accepted and accepted[0] <= now - 1:
+                    accepted.popleft()
+                retry_at = {key: deadline for key, deadline in retry_at.items() if deadline > now}
+                capacity = min(limit - len(inflight), limit - len(accepted))
+                queued = 0
+                buffer_full = False
+                while capacity > 0 and not stop.is_set():
+                    blocked_keys = {row.message_key for row in inflight.values()} | retry_at.keys()
+                    rows = list(EventOutbox.objects.filter(published_at__isnull=True).exclude(
+                        message_key__in=blocked_keys,
+                    ).order_by("created_at", "event_uuid")[:capacity])
+                    if not rows:
+                        break
+                    for row in rows:
+                        if stop.is_set():
+                            break
+                        if row.message_key in blocked_keys:
+                            continue
+                        inflight[row.event_uuid] = row
+                        try:
+                            if row.payload_json is None:
+                                row.payload_json = build_envelope(
+                                    row.event_uuid, row.event_type, row.occurred_at, row.raw_data,
+                                )
+                                if row.payload_json is None:
+                                    raise RuntimeError("xxhash is required to build the Kafka envelope")
+                                EventOutbox.objects.filter(
+                                    event_uuid=row.event_uuid, payload_json__isnull=True,
+                                ).update(payload_json=row.payload_json)
+                            value = json.dumps(row.payload_json, ensure_ascii=False, separators=(",", ":"),
+                                               allow_nan=False).encode("utf-8")
+
+                            def callback(error, message, event_uuid=row.event_uuid):
+                                delivered[event_uuid] = error
+
+                            producer.produce(row.topic, key=str(row.message_key).encode("utf-8"),
+                                             value=value, on_delivery=callback)
+                        except BufferError:
+                            inflight.pop(row.event_uuid)
+                            buffer_full = True
+                            break
+                        except Exception as error:
+                            delivered[row.event_uuid] = error
+                        else:
+                            accepted.append(time.monotonic())
+                            queued += 1
+                        blocked_keys.add(row.message_key)
+                        capacity -= 1
+                    if buffer_full:
+                        break
+                    # Query again so a page of one user's rows cannot hide other users.
+                    capacity = min(capacity, limit - len(inflight), limit - len(accepted))
+                if queued:
+                    idle_delay = 0.25
+                if inflight:
+                    producer.poll(0.1)
+                if delivered:
+                    continue
+                if buffer_full:
+                    stop.wait(0.1)
+                elif not queued:
+                    delay = min(idle_delay, max_idle_delay)
+                    if accepted and len(accepted) >= limit:
+                        delay = min(delay, max(0.001, accepted[0] + 1 - time.monotonic()))
+                    _wait_for_work(stop, delay)
+                    idle_delay = min(idle_delay * 2, max_idle_delay)
             except Exception:
-                EventOutbox.objects.filter(event_uuid=row.event_uuid, published_at__isnull=True).update(
-                    retry_count=row.retry_count + 1
-                )
-                logger.warning("Kafka delivery failed; event remains in outbox: event=%s topic=%s",
-                               row.event_uuid, row.topic)
+                connections.close_all()
+                logger.exception("Raw event publisher loop failed; pending events will be retried")
                 stop.wait(1)
-                continue
-            EventOutbox.objects.filter(event_uuid=row.event_uuid, published_at__isnull=True).update(
-                published_at=timezone.now()
-            )
+    finally:
+        try:
+            producer.flush(5)
         except Exception:
-            connections.close_all()
-            logger.exception("Raw event publisher loop failed; pending events will be retried")
-            stop.wait(1)
+            logger.exception("Kafka producer could not flush during shutdown")
+        try:
+            _record_deliveries(inflight, delivered, retry_at)
+        except Exception:
+            logger.exception("Kafka acknowledgements could not be saved during shutdown; outbox rows remain pending")
 
 
 def _publisher_loop(stop):
@@ -142,13 +201,8 @@ def _publisher_loop(stop):
     try:
         _publish_pending(producer, stop)
     finally:
-        try:
-            producer.flush(5)
-        except Exception:
-            logger.exception("Kafka producer could not flush during shutdown")
-        finally:
-            connections.close_all()
-            database.settings_dict = original_options
+        connections.close_all()
+        database.settings_dict = original_options
 
 
 def start_outbox_publisher():

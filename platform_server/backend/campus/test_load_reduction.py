@@ -41,15 +41,16 @@ class IdleTrafficTests(TransactionTestCase):
         client.force_login(user)
         return f'{settings.SESSION_COOKIE_NAME}={client.cookies[settings.SESSION_COOKIE_NAME].value}'.encode()
 
-    async def connect(self, cookie):
+    async def connect(self, cookie, compact=False):
         from config.asgi import application
-        socket = WebsocketCommunicator(application, '/ws/campus/', headers=[
+        socket = WebsocketCommunicator(application, '/ws/campus/' + ('?moves=compact' if compact else ''), headers=[
             (b'origin', b'http://127.0.0.1'), (b'host', b'127.0.0.1'), (b'cookie', cookie)])
         self.assertTrue((await socket.connect(timeout=5))[0])
         self.sockets.append(socket)
         while (packet := await socket.receive_json_from(timeout=2))['type'] != 'welcome':
             pass
         socket.player_id = packet['selfId']
+        socket.welcome = packet
         return socket
 
     async def drain(self, socket, seconds=0.0):
@@ -88,6 +89,60 @@ class IdleTrafficTests(TransactionTestCase):
     async def test_walking_is_relayed_and_the_final_stop_always_arrives(self):
         try:
             await self.check_walking()
+        finally:
+            await self.disconnect_all()
+
+    async def test_negotiated_compact_client_receives_cached_identity_moves_and_the_final_stop(self):
+        try:
+            a = await self.connect(self.cookies[0])
+            b = await self.connect(self.cookies[1], compact=True)
+            self.assertFalse(self.room.sockets[a.player_id].compact_moves)
+            self.assertTrue(self.room.sockets[b.player_id].compact_moves)
+            await self.drain(a, .3)
+            await self.drain(b)
+            await a.send_json_to({'type': 'input', 'keys': ['w']})
+            await asyncio.sleep(.25)
+            await a.send_json_to({'type': 'input', 'keys': ['w']})
+            await asyncio.sleep(.2)
+            await a.send_json_to({'type': 'input', 'keys': []})
+            moves = self.positions_of(await self.drain(b, .3), a)
+            self.assertTrue(any('nickname' not in state for state in moves))
+            self.assertFalse(moves[-1]['moving'])
+            self.assertEqual(moves[-1]['x'], self.room.players[a.player_id]['x'])
+            self.assertEqual(moves[-1]['y'], self.room.players[a.player_id]['y'])
+        finally:
+            await self.disconnect_all()
+
+    async def test_new_compact_client_recovers_identity_after_a_stale_remote_snapshot(self):
+        async def next_remote_move(socket):
+            for _ in range(20):
+                packet = await socket.receive_json_from(timeout=2)
+                if packet['type'] == 'moves':
+                    for state in packet['players']:
+                        if state['id'] == 'remote-avatar':
+                            return state
+            self.fail('remote movement was not received')
+
+        try:
+            a = await self.connect(self.cookies[0], compact=True)
+            current = {**self.room.players[a.player_id], 'id': 'remote-avatar', 'nickname': '새 이름',
+                       'avatar': 'male-1', 'moving': True}
+            stale = {**current, 'nickname': '이전 이름', 'avatar': 'female-2'}
+            entry = {'id': current['id'], 'state': current, 'channel': 'remote.channel', 'session': 'remote-session'}
+            joined = self.room.cluster.apply({'kind': 'join', 'proc': 'other-process', 'seq': 3, 'entry': entry})
+            await consumers.send_to_sockets(self.room, joined)
+            self.room.cluster.remote_moves[current['id']] = current
+            self.assertEqual((await next_remote_move(a))['nickname'], current['nickname'])
+            # A delayed snapshot can replace the remote copy without notifying known clients.
+            self.room.cluster.apply({'kind': 'snapshot', 'proc': 'other-process', 'seq': 2,
+                                     'players': [{**entry, 'state': stale}]})
+            b = await self.connect(self.cookies[1], compact=True)
+            restored = next(state for state in b.welcome['players'] if state['id'] == current['id'])
+            self.assertEqual(restored['nickname'], stale['nickname'])
+            self.room.cluster.apply({'kind': 'moves', 'proc': 'other-process', 'seq': 4, 'players': [current]})
+            recovered = await next_remote_move(b)
+            self.assertEqual(recovered.get('nickname'), current['nickname'])
+            self.assertEqual(recovered.get('avatar'), current['avatar'])
         finally:
             await self.disconnect_all()
 

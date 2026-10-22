@@ -65,7 +65,7 @@ const floors={campus:{width:2448,height:1230,objects:[]},rooftop:{width:2448,hei
 const plain=value=>JSON.parse(JSON.stringify(value));
 test('standalone creates no socket; authenticated connections negotiate server control and WSS',()=>{
  const offline=app({authenticated:false});offline.tick(200);assert.equal(offline.sockets.length,0);
- for(const secure of [false,true]){const f=app({secure});assert.equal(f.sockets[0].url,`${secure?'wss':'ws'}://127.0.0.1:8000/ws/campus/?control=server`);f.presence.close();}
+ for(const secure of [false,true]){const f=app({secure});assert.equal(f.sockets[0].url,`${secure?'wss':'ws'}://127.0.0.1:8000/ws/campus/?control=server&moves=compact`);f.presence.close();}
 });
 test('only allowed keyboard inputs are sent; client coordinates never become movement commands',()=>{
  const f=app({floors});f.welcome();f.presence.setInput(['w','d','d','teleport']);
@@ -95,6 +95,46 @@ test('batched moves update known people only, so a late batch cannot bring back 
  assert.ok(f.presence.peers.get('peer').x>1200&&f.presence.peers.get('peer').moving);assert.equal(f.presence.peers.has('stranger'),false);
  f.sockets[0].receive({type:'leave',id:'peer'});f.sockets[0].receive({type:'moves',players:[f.peer({x:1240})]});
  assert.equal(f.presence.peers.has('peer'),false);assert.deepEqual(f.element('presenceStatus').children.slice(1).map(child=>child.textContent),['접속 중','1','명']);f.presence.close();
+});
+test('compact moves retain identity, accepted fractions, final stops and classroom/floor changes',()=>{
+ const f=app({floors});f.welcome();const socket=f.sockets[0];
+ const move={id:'peer',floor:'campus',x:1230.125,y:440.875,dir:'right',moving:true,inClassroom:false};
+ socket.receive({type:'moves',players:[move]});
+ let peer=f.presence.peers.get('peer');
+ assert.equal(peer.targetX,1230.125);assert.equal(peer.targetY,440.875);assert.equal(peer.moving,true);
+ assert.equal(peer.nickname,'조원 이름');assert.equal(peer.avatar,'female-2');assert.equal(peer.color,'#4e9b91');
+ socket.receive({type:'moves',players:[{...move,floor:'rooftop',x:2200.125,y:1700.875,moving:false,inClassroom:true}]});
+ assert.equal(peer.x,2200.125);assert.equal(peer.y,1700.875);assert.equal(peer.moving,false);
+ assert.equal(peer.floor,'rooftop');assert.equal(peer.inClassroom,true);
+ socket.receive({type:'move',player:f.peer({nickname:'새 이름',avatar:'male-2',color:'#8a78bb'})});
+ socket.receive({type:'moves',players:[{...move,x:1231,moving:false}]});
+ assert.equal(peer.nickname,'새 이름');assert.equal(peer.avatar,'male-2');assert.equal(peer.color,'#8a78bb');
+ assert.equal(f.element('presencePeers').children[0].textContent,'새 이름');f.presence.close();
+});
+test('partial moves cannot create peers or bypass full-state and coordinate validation',()=>{
+ const f=app({floors});f.welcome();const socket=f.sockets[0];
+ const move={id:'peer',floor:'campus',x:1230,y:440,dir:'right',moving:true,inClassroom:false};
+ socket.receive({type:'join',player:{...move,id:'partial-join'}});
+ socket.receive({type:'move',player:f.peer({id:'late-move'})});
+ socket.receive({type:'moves',players:[{...move,id:'unknown'},{...move,id:'self'}]});
+ assert.equal(f.presence.peers.size,1);assert.equal(f.player.x,1200);
+ for(const bad of [{x:-1},{x:Infinity},{floor:'unknown'},{floor:undefined},{moving:'yes'},{dir:'sideways'},
+   {inClassroom:'yes'},{inClassroom:undefined},{nickname:null},{avatar:'unknown'},{color:'#000000'}]){
+   socket.receive({type:'moves',players:[{...move,...bad}]});
+   assert.equal(f.presence.peers.get('peer').targetX,1200);
+ }
+ const {moving,...incomplete}=move;socket.receive({type:'moves',players:[incomplete]});
+ assert.equal(f.presence.peers.get('peer').targetX,1200);
+ socket.receive({type:'leave',id:'peer'});socket.receive({type:'moves',players:[move]});
+ socket.receive({type:'move',player:f.peer()});assert.equal(f.presence.peers.size,0);f.presence.close();
+});
+test('reconnection restores full identities before compact updates resume',()=>{
+ const f=app({floors});f.welcome();f.sockets[0].close(1006);
+ [...f.timers.values()][0].callback();const socket=f.sockets.at(-1);
+ socket.receive({type:'welcome',selfId:'self',players:[f.peer({id:'self'}),f.peer({nickname:'복구 이름',avatar:'male-1',x:1500})]});
+ socket.receive({type:'moves',players:[{id:'peer',floor:'campus',x:1501.5,y:437,dir:'left',moving:false,inClassroom:false}]});
+ const peer=f.presence.peers.get('peer');assert.equal(peer.nickname,'복구 이름');assert.equal(peer.avatar,'male-1');
+ assert.equal(peer.targetX,1501.5);f.presence.close();
 });
 test('the same avatar and nickname do not redraw the avatar panel; a real change does once',()=>{
  const f=app({floors});f.welcome();const avatar=()=>f.events.filter(type=>type==='campus:avatar').length;const first=avatar();

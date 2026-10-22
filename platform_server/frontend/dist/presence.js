@@ -68,6 +68,16 @@
           moving: p.moving, nickname: p.nickname, avatar:p.avatar, floor:p.floor, inClassroom:p.inClassroom, receivedAt: now});
         return renamed;
       }
+      function updatePeer(p) {
+        const peer = p && peers.get(p.id);
+        if (!peer) return false;
+        if (!validPeer(p) && (typeof p.floor !== 'string' || typeof p.inClassroom !== 'boolean')) return false;
+        // Only known avatars can reuse cached identity for a partial movement.
+        return upsert({...p,
+          nickname:p.nickname === undefined ? peer.nickname : p.nickname,
+          avatar:p.avatar === undefined ? peer.avatar : p.avatar,
+          color:p.color === undefined ? peer.color : p.color});
+      }
       function publish(t, force = false) {
         if (!ready || socket?.readyState !== WebSocket.OPEN || (!force && t - lastSent < 100)) return;
         socket.send(JSON.stringify({type:'input',keys:inputKeys,...(poking?{poking:true,...(force?{pokeContext}: {})}: {})}));
@@ -124,6 +134,7 @@
         const url = new URL(config.socketPath, window.location.href);
         url.protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         url.searchParams.set('control','server');
+        url.searchParams.set('moves','compact');
         socket = new WebSocket(url.href);
         const current = socket;
         current.onmessage = event => {
@@ -166,11 +177,13 @@
             window.CampusSession?.expire(message.reason);
           } else if (ready && message.type === 'identity') {
             applyIdentity(message.player);
-          } else if (ready && (message.type === 'join' || message.type === 'move')) {
+          } else if (ready && message.type === 'join') {
+            if (upsert(message.player)) updateRoster();
+          } else if (ready && message.type === 'move' && message.player && peers.has(message.player.id)) {
             if (upsert(message.player)) updateRoster();
           } else if (ready && message.type === 'moves' && Array.isArray(message.players)) {
             // 0.1초마다 묶여 오는 위치. 이미 아는 사람만 갱신한다(떠난 사람이 늦게 온 묶음으로 되살아나지 않게, 새 사람은 join 으로 온다)
-            let renamed=false;for(const p of message.players)if(p&&peers.has(p.id))renamed=upsert(p)||renamed;
+            let renamed=false;for(const p of message.players)renamed=updatePeer(p)||renamed;
             if(renamed)updateRoster();
             // 같은 묶음에 실려 오는 점프·찌르기(서버가 소켓마다 초당 10프레임으로 줄였다)
             if(Array.isArray(message.effects))for(const effect of message.effects){

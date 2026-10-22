@@ -39,6 +39,7 @@ class CampusRoom:
         self.lock = asyncio.Lock()
         self.sockets = {}  # player_id → 소켓(묶음을 채널 계층 없이 바로 쓴다)
         self.pending_moves = {}  # 다음 묶음에 실을 최신 상태(사람마다 하나)
+        self.move_identities = {}
         self.pending_effects = {}  # player_id → 다음 묶음에 실을 꾸밈 효과(JSON 글)들(계획 §8)
         self.flusher = None
         self.cluster = cluster.Cluster()  # 다른 프로세스의 사람(Redis 를 쓸 때만, 계획 M3)
@@ -58,6 +59,7 @@ async def flush_moves(campus):
     브라우저는 이미 아는 사람만 갱신하므로, 떠난 뒤 늦게 도착한 묶음이 그 사람을 되살리지 않는다.
     여러 프로세스면(계획 M3) 이 프로세스 사람의 변경만 다른 프로세스에 알리고, 받은 것은 다음 자기 묶음에 합친다.
     """
+    identities = campus.move_identities
     try:
         campus.cluster.remote_moves.clear()  # 이 프로세스에 사람이 없던 동안 쌓인 것은 버린다
         while campus.players:
@@ -72,13 +74,26 @@ async def flush_moves(campus):
             effects, campus.pending_effects = campus.pending_effects, {}
             if not players and not effects:
                 continue
-            head = '{"type": "moves", "players": ' + json.dumps(players, ensure_ascii=False, allow_nan=False)
+            compact_players = []
+            for player in players:
+                identity = tuple(player.get(key) for key in ("nickname", "avatar", "color"))
+                # Identity changes carry a full state; walking keeps only the dynamic fields.
+                compact_players.append(player if identities.get(player["id"]) != identity else {
+                    key: value for key, value in player.items() if key not in ("nickname", "avatar", "color")})
+                identities[player["id"]] = identity
+            for player_id in identities.keys() - campus.players.keys() - campus.cluster.remote.keys():
+                identities.pop(player_id)
+            heads = {}
             for player_id, socket in list(campus.sockets.items()):
                 mine = effects.get(player_id)
                 if not players and not mine:
                     continue
                 try:
-                    await socket.send(text_data=head + (', "effects": [' + ", ".join(mine) + "]}" if mine else "}"))
+                    compact = getattr(socket, "compact_moves", False) is True
+                    if compact not in heads:
+                        heads[compact] = '{"type":"moves","players":' + json.dumps(
+                            compact_players if compact else players, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
+                    await socket.send(text_data=heads[compact] + (',"effects":[' + ",".join(mine) + "]}" if mine else "}"))
                 except Exception:  # noqa: BLE001 — 끊기는 중인 소켓 하나가 다른 사람의 묶음을 막지 않는다
                     logging.getLogger(__name__).debug("Could not send a moves batch", exc_info=True)
     finally:
@@ -89,7 +104,7 @@ SLOW_DB_SECONDS = 1.0
 async def send_to_sockets(campus, payloads):
     """다른 프로세스에서 온 입장·퇴장을 이 프로세스의 모든 소켓에, 효과는 받을 사람에게 보낸다(계획 M3·M8)."""
     for payload in payloads:
-        text = json.dumps(payload, ensure_ascii=False, allow_nan=False)
+        text = json.dumps(payload, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
         for socket in list(campus.sockets.values()):
             try:
                 await socket.send(text_data=text)
@@ -122,7 +137,7 @@ async def deliver_effect(campus, payload, to=None, near=None):
         targets = list(campus.sockets)
     if not targets:
         return
-    text = json.dumps(payload, ensure_ascii=False, allow_nan=False)
+    text = json.dumps(payload, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
     if payload["type"] in BATCHED_EFFECTS:
         for player_id in targets:
             campus.pending_effects.setdefault(player_id, []).append(text)
@@ -189,6 +204,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
         self.controller = None
         self.control_lock = asyncio.Lock()
         self.server_control = not getattr(settings, "CAMPUS_TEST_LEGACY_MOVEMENT", False) or b"control=server" in self.scope.get("query_string", b"")
+        self.compact_moves = b"moves=compact" in self.scope.get("query_string", b"").split(b"&")
         self.session_group = None
         self.direct_message_group = None
         self.policy_status = None
@@ -317,6 +333,8 @@ class CampusConsumer(AsyncWebsocketConsumer):
             await self.accept()
             players = [*room.players.values(), *(row["state"] for row in room.cluster.remote.values())]
             await self.send_packet({"type": "welcome", "selfId": self.player_id, "players": players, "session": self.policy_status, "serverControl": self.server_control})
+            # A newcomer may have received an older remote snapshot than the last public batch.
+            room.move_identities.clear()
             self.seen_by_peers = self.state.copy()
             await self.tell_local({"type": "join", "player": self.state.copy()})
             await room.cluster.joined(self)
@@ -774,7 +792,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
         await self.send_packet({"type": "chat_error", "message": message})
 
     async def send_packet(self, payload):
-        await self.send(text_data=json.dumps(payload, ensure_ascii=False, allow_nan=False))
+        await self.send(text_data=json.dumps(payload, ensure_ascii=False, allow_nan=False, separators=(",", ":")))
 
     async def tell_local(self, payload):
         """입장·퇴장은 이 프로세스의 소켓에 바로 보낸다(계획 M2·M3).
@@ -782,7 +800,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
         채널 계층(Redis)을 거치면 늦게 도착해, 막 붙은 소켓이 welcome 과 join 을 모두 놓칠 수 있다.
         다른 프로세스는 묶음 흐름(cluster)으로 알게 되어 자기 소켓에 알린다.
         """
-        text = json.dumps(payload, ensure_ascii=False, allow_nan=False)
+        text = json.dumps(payload, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
         for player_id, socket in list(room.sockets.items()):
             if player_id != self.player_id:
                 try:

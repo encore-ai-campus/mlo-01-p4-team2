@@ -103,5 +103,5 @@ class EffectTests(SimpleTestCase):
         room.cluster.effects_in = [{"payload": {"type": "jump"}, "to": None, "near": ["campus", 0, 0, 100]},
                                    {"payload": {"type": "poke_hit"}, "to": ["roof", "elsewhere"], "near": None}]
         await consumers.send_to_sockets(room, [])
-        self.assertEqual(room.pending_effects, {"me": ['{"type": "jump"}'], "roof": ['{"type": "poke_hit"}']})
+        self.assertEqual(room.pending_effects, {"me": ['{"type":"jump"}'], "roof": ['{"type":"poke_hit"}']})
         self.assertEqual(room.cluster.effects_in, [])

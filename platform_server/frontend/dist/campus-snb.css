@@ -208,3 +208,6 @@
 /* Keep the pending student menu compact instead of stretching the account gap. */
 .campus-snb .snb-student-menu {flex:0 0 auto;padding-bottom:0}
 .campus-snb .snb-account-actions {margin-top:4px}
+
+/* Center both service navigation labels. */
+.campus-snb .snb-services button {display:flex;align-items:center;justify-content:center;text-align:center}

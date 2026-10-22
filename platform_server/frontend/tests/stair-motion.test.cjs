@@ -9,7 +9,7 @@ const roof=worlds.rooftop,t=roof.terrace,depth=t.w/t.levels;
 test('terrace height is continuous, reversible and meets both landings and tread centers',()=>{
   const samples=[];
   for(let x=t.x-10;x<=t.x+t.w+10;x+=.25)samples.push(S.heightAt(roof,x,950));
-  assert.equal(samples[0],96);assert.equal(samples.at(-1),0);
+  assert.equal(samples[0],60);assert.equal(samples.at(-1),0);
   for(let i=1;i<samples.length;i++) {
     assert.ok(samples[i]<=samples[i-1]+1e-9,'descending path must never climb');
     assert.ok(samples[i-1]-samples[i]<.3,'a nosing must not introduce a height jump');
@@ -19,7 +19,7 @@ test('terrace height is continuous, reversible and meets both landings and tread
     assert.equal(S.heightAt(roof,x,950),roof.elevationAt(x,950),'feet must rest on tread centers');
     assert.equal(S.groundAt(roof,x,950),roof.elevationAt(x,950),'physical step heights are retained');
   }
-  assert.equal(S.heightAt(roof,800,950),96);assert.equal(S.heightAt(roof,1600,950),0);
+  assert.equal(S.heightAt(roof,800,950),60);assert.equal(S.heightAt(roof,1600,950),0);
 });
 
 test('both walking directions follow actual height and alternate all four poses',()=>{
@@ -62,16 +62,10 @@ test('standing still and moving across a tread do not animate climbing',()=>{
   assert.equal(actor.stairFrame,null);assert.equal(actor.visualZ,height);
 });
 
-test('portal stairs rise above 18F and descend below the rooftop floor',()=>{
-  for(const [data,sign] of [[worlds.campus,1],[roof,-1]]) {
-    const o=data.objects.find(o=>o.type==='stairs'),x=o.x+o.w/2;
-    const bottom=S.heightAt(data,x,o.y+S.flightFor(data,o).run-1);
-    assert.ok(bottom*sign>0);
-    assert.ok(S.heightAt(data,x,o.y+o.h+8)<=.00001||sign<0);
-    const midway=S.heightAt(data,x,o.y+S.flightFor(data,o).run/2);
-    assert.ok(midway*sign>10,'a visible flight must have meaningful height');
-    assert.equal(S.heightAt(data,x,o.y-10),0);
-  }
+test('18F flight retains height while the removed roof descent stays absent',()=>{
+ const data=worlds.campus,o=data.objects.find(o=>o.type==='stairs'),f=S.flightFor(data,o),x=o.x+o.w/2;
+ assert.equal(f.top-f.bottom,33);assert.ok(S.heightAt(data,x,o.y+f.run/2)>10);
+ assert.equal(S.heightAt(data,x,o.y-10),0);assert.equal(roof.objects.some(o=>o.type==='stairs'),false);
 });
 
 test('restoring and teleporting never borrow an old stair height or walking pose',()=>{
@@ -81,34 +75,22 @@ test('restoring and teleporting never borrow an old stair height or walking pose
   assert.equal(actor.stairFrame,null);assert.equal(actor.stairMotion.lift,0);
   assert.equal(actor.visualZ,S.heightAt(worlds.campus,actor.x,actor.y));
   Object.assign(actor,{floor:'rooftop',x:900,y:950,moving:true});S.updateActor(roof,actor,1/60);
-  assert.equal(actor.visualZ,96);assert.equal(actor.stairMotion.direction,null);
+  assert.equal(actor.visualZ,60);assert.equal(actor.stairMotion.direction,null);
   actor.x=1700;S.updateActor(roof,actor,1/60);
   assert.equal(actor.visualZ,0);assert.equal(actor.stairMotion.lift,0);
 });
 
-test('18F side doorway leads onto a level landing clear of the stair rails',()=>{
-  const data=worlds.campus,o=data.objects.find(o=>o.type==='stairs');
-  assert.equal(S.barriers(data).length,0,'18F stairs have no handrail collision');
-  const room=data.rooms.find(r=>r.id===o.roomId);
-  const sideWalls=data.walls.filter(w=>w.x1===room.x&&w.x2===room.x&&w.y2>room.y&&w.y1<room.y+room.h);
-  const upper=sideWalls.find(w=>w.y2<room.y+room.h),lower=sideWalls.find(w=>w.y1>upper.y2);
-  const doorY=(upper.y2+lower.y1)/2;
-  assert.ok(lower.y1-upper.y2>=40,'the actual lounge door must retain its width');
-  const f=S.flightFor(data,o);assert.ok(o.y+f.run<doorY);
-  for(let x=room.x-15;x<=o.x+o.w/2;x+=1) {
-    assert.equal(S.heightAt(data,x,doorY),0,'side entry cannot jump onto a raised tread');
-    for(const r of S.barriers(data)) {
-      const d=Math.hypot(Math.max(r.x-x,0,x-r.x-r.w),Math.max(r.y-doorY,0,doorY-r.y-r.h));
-      assert.ok(d>5.5,'handrail must not obstruct entry or exit');
-    }
-  }
-  assert.equal(S.heightAt(data,2233.5,912),0,'returning from the roof lands on a flat exit path');
+test('18F entry and portal return stay on a flat clear landing',()=>{
+ const data=worlds.campus,o=data.objects.find(o=>o.id==='campus-roof-stairs');
+ assert.equal(S.barriers(data).length,0);assert.equal(S.railLength(data,o,'left'),0);assert.equal(S.railLength(data,o,'right'),0);
+ const returnPoint=o.portalAnchor;
+ for(let dx=-20;dx<=20;dx++)assert.equal(S.heightAt(data,returnPoint[0]+dx,returnPoint[1]),0);
+ const [x,y]=o.arrival;assert.equal(S.heightAt(roof,x,y),0);
 });
 
-test('rooftop descent keeps its full guarded opening and previous depth',()=>{
-  const o=roof.objects.find(o=>o.type==='stairs'),f=S.flightFor(roof,o);
-  assert.equal(f.run,o.h);assert.equal(f.top,0);assert.equal(f.bottom,-40);
-  for(const side of ['left','right'])assert.equal(S.railLength(roof,o,side),o.h);
+test('removed rooftop descent adds no flights or handrail barriers',()=>{
+ assert.equal(roof.objects.filter(o=>o.type==='stairs').length,0);
+ assert.equal(S.barriers(roof).length,0);
 });
 
 test('stairs and poses add no fields to movement reports or change world coordinates',()=>{

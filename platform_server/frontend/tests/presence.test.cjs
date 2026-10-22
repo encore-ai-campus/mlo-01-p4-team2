@@ -8,11 +8,19 @@ function app({authenticated = true, secure = false, floors, restore = false, ses
   let clock = 0, nextTimer = 0, redirected = null, expired = 0;
   const chats = [], chatErrors = [], connectionChanges = [], restores = [], controlErrors = [], jumps = [], pokes = [];
   const events = [];
+  function domElement() {
+    return {
+      hidden:true,textContent:'',dataset:{},children:[],attributes:{},
+      setAttribute(name,value){this.attributes[name]=String(value);},
+      getAttribute(name){return this.attributes[name]??null;},
+      replaceChildren(...items){this.children=[...items];},
+      append(...items){this.children.push(...items);},
+    };
+  }
   function element(id) {
     if (id === 'campusPresenceConfig' && !authenticated) return null;
     if (!elements.has(id)) elements.set(id, {
-      hidden: true, textContent: '', dataset: {}, children: [],
-      replaceChildren() {this.children = [];}, append(item) {this.children.push(item);},
+      ...domElement(),
       addEventListener(name, callback) {listeners.set(id + ':' + name, callback);},
     });
     return elements.get(id);
@@ -29,7 +37,7 @@ function app({authenticated = true, secure = false, floors, restore = false, ses
   const context = vm.createContext({URL, Event, WebSocket: Socket, performance: {now: () => clock},
     window: {location: {protocol, href: protocol + '//127.0.0.1:8000/', assign(url) {redirected = url;}},
       addEventListener(name, callback) {listeners.set('window:' + name, callback);}, dispatchEvent(event) {events.push(event.type);}, CampusSession: session},
-    document: {getElementById: element, createElement: () => ({textContent: ''}),
+    document: {getElementById: element, createElement: () => domElement(),
       addEventListener(name, callback) {listeners.set('document:' + name, callback);}},
     setTimeout(callback, delay) {const id = ++nextTimer; timers.set(id, {callback, delay}); return id;},
     clearTimeout(id) {timers.delete(id);},
@@ -73,11 +81,11 @@ test('an idle player sends no input; held keys keep the 0.1s refresh and a relea
  for(let t=1516;t<=2500;t+=16)f.tick(t);assert.equal(inputs(),released);f.presence.close();
 });
 test('accepted state supplies self position and interpolates remote walking across both floors',()=>{
- const f=app({floors});f.welcome();assert.equal(f.element('presenceStatus').textContent,'전체 접속 2명');
+ const f=app({floors});f.welcome();assert.deepEqual(f.element('presenceStatus').children.slice(1).map(child=>child.textContent),['접속 중','2','명']);
  f.sockets[0].receive({type:'move',player:f.peer({x:1230.25,moving:true})});f.tick(116);
  assert.ok(f.presence.peers.get('peer').x>1200&&f.presence.peers.get('peer').x<1230.25);
  f.sockets[0].receive({type:'move',player:f.peer({floor:'rooftop',x:2200,y:1700})});
- assert.equal(f.presence.peers.get('peer').x,2200);assert.equal(f.element('presenceStatus').textContent,'전체 접속 2명');
+ assert.equal(f.presence.peers.get('peer').x,2200);assert.deepEqual(f.element('presenceStatus').children.slice(1).map(child=>child.textContent),['접속 중','2','명']);
  f.sockets[0].receive({type:'control_state',state:{main:f.peer({id:'self',x:1400,y:600,dir:'right'})}});
  assert.equal(f.player.targetX,1400);assert.equal(f.player.dir,'right');f.presence.close();
 });
@@ -86,7 +94,7 @@ test('batched moves update known people only, so a late batch cannot bring back 
  f.sockets[0].receive({type:'moves',players:[f.peer({x:1230.25,moving:true}),f.peer({id:'self',x:5}),f.peer({id:'stranger',x:900})]});f.tick(116);
  assert.ok(f.presence.peers.get('peer').x>1200&&f.presence.peers.get('peer').moving);assert.equal(f.presence.peers.has('stranger'),false);
  f.sockets[0].receive({type:'leave',id:'peer'});f.sockets[0].receive({type:'moves',players:[f.peer({x:1240})]});
- assert.equal(f.presence.peers.has('peer'),false);assert.equal(f.element('presenceStatus').textContent,'전체 접속 1명');f.presence.close();
+ assert.equal(f.presence.peers.has('peer'),false);assert.deepEqual(f.element('presenceStatus').children.slice(1).map(child=>child.textContent),['접속 중','1','명']);f.presence.close();
 });
 test('the same avatar and nickname do not redraw the avatar panel; a real change does once',()=>{
  const f=app({floors});f.welcome();const avatar=()=>f.events.filter(type=>type==='campus:avatar').length;const first=avatar();

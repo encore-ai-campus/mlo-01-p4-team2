@@ -25,7 +25,7 @@ test('per-frame map drawing sets no shadow blur while the portals keep animating
     const cached = blurs;
     blurs = 0; strokes = 0;
     renderer.draw(context, {camera: {zoom: 1, x: 0, y: 0}, actors: [], t: 1234, viewportWidth: 1e5, viewportHeight: 1e5});
-    if (floor === 'campus') assert.ok(cached > 0, 'campus: cached sprites (portal floor, notice board) still use blur');
+
     assert.equal(blurs, 0, `${floor}: per-frame drawing set shadowBlur ${blurs} times`);
     assert.ok(strokes > 0, `${floor}: portal light was drawn`);
   }

@@ -26,46 +26,36 @@ test('central vertical terrace divides equal areas with three aligned open booth
   }
   assert.ok(booths.every(o=>o.entrance==='right'&&o.rotation===90&&o.x+o.w<roof.terrace.x&&o.solid===false&&o.collision.w===9));
   const t=roof.terrace,upper=roof.surfaces[0],lower=roof.surfaces.at(-1);
-  const rowCenter={x:booths[0].x+booths[0].w/2,y:(booths[0].y+booths.at(-1).y+booths.at(-1).h)/2};
-  assert.ok(Math.abs(rowCenter.x-(upper.x+upper.w/2))<2,'booth row must be centered across the upper plaza');
-  assert.ok(Math.abs(rowCenter.y-(upper.y+upper.h/2))<2,'booth row must have balanced margins along the floor');
-  assert.ok(t.h>t.w*3);assert.equal(t.axis,'x');assert.equal(lower.w,upper.w);
-  const fromLowerEnd=(lower.x+lower.w-(t.x+t.w/2))/(lower.x+lower.w-upper.x);
-  assert.equal(fromLowerEnd,.5);
-  assert.equal(t.levels,8);assert.equal(t.rise,12);assert.equal(roof.elevationAt(500,950),96);assert.equal(roof.elevationAt(1500,950),0);
+  assert.equal(t.levels,5);assert.equal(t.rise,12);
+  assert.equal(roof.elevationAt(booths[0].x,950),60);assert.equal(roof.elevationAt(1500,950),0);
   for(let i=0;i<t.levels;i++)assert.equal(roof.elevationAt(t.x+(i+.5)*t.w/t.levels,950),(t.levels-i)*t.rise);
-  assert.ok(!roof.objects.some(o=>o.id==='roof-menu-board'||o.source==='menu'));
-  assert.equal(roof.objects.filter(o=>o.type==='plaza-display').length,1);
-  const tall=roof.walls.filter(w=>(w.height||roof.wallHeight)>roof.wallHeight);
-  assert.equal(tall.length,1);assert.equal(tall[0].height,420);assert.equal(tall[0].topZ,420);
-  assert.equal(tall[0].y1,tall[0].y2);assert.equal(tall[0].y1,64);
-  assert.equal(tall[0].x1,64);assert.equal(tall[0].x2,2384);
-  assert.ok(!roof.walls.some(w=>w.x1===2384&&w.x2===2384&&w.height>roof.wallHeight));
-  for(const x of [64,1044,1089,1224,1404,2384]){
-    const q=P.project(x,64,tall[0].topZ+4);
-    assert.ok(q.y>15&&q.y<P.height,'wall over both landings and stairs must not be cropped');
-    assert.ok(tall[0].topZ-roof.elevationAt(x,64)>300,'wall must stay tall above every tier');
-  }
+  assert.equal(t.x-(booths[0].x+booths[0].w),328,'front aisle reduced by a further 20 percent');
+  assert.equal(booths[0].x-upper.x,265.5,'rear aisle remains half of the original gap');
+  assert.ok(!roof.objects.some(o=>o.type==='fountain'||o.type==='plaza-display'));
+  assert.ok(!roof.objects.some(o=>['tree','planter'].includes(o.type)&&o.x<booths[0].x));
+  assert.equal(lower.x+lower.w,2384);assert.equal(upper.x+upper.w,t.x);
+  const rear=roof.walls.find(w=>w.x1===upper.x&&w.x2===upper.x);assert.ok(rear);
+  const tall=roof.walls.find(w=>w.topZ===420);assert.ok(tall);assert.equal(tall.x1,upper.x);
+
 });
-test('extinguisher shortcut touches classroom 5 wall and arrives at screen-left rooftop',()=>{
-  const o=worlds.campus.objects.find(o=>o.id==='extinguisher-meeting2');
-  assert.equal(o.x,487.5);assert.equal(o.y,912);assert.equal(o.toFloor,'rooftop');
-  assert.equal(o.confirmTransfer,true);
-  assert.deepEqual(Array.from(o.arrival),[145,1610]);
-  assert.ok(!worlds.campus.portals.some(p=>p.objectId===o.id));
-  const P=sandbox.window.CampusIsometric.createProjection(roof),q=P.project(...o.arrival,96);
-  assert.ok(q.x<P.width*.15);
-  const back=roof.objects.find(o=>o.id==='roof-lounge2-portal'),trigger=roof.portals.find(p=>p.objectId===back.id);
-  assert.equal(back.toFloor,'campus');assert.equal(back.confirmTransfer,true);assert.equal(back.solid,false);
-  assert.deepEqual(Array.from(back.approach),Array.from(o.arrival));
-  assert.ok(o.arrival[0]>=trigger.x&&o.arrival[0]<=trigger.x+trigger.w&&o.arrival[1]>=trigger.y&&o.arrival[1]<=trigger.y+trigger.h);
-  assert.ok(Math.hypot(back.arrival[0]-(o.x+o.w),back.arrival[1]-(o.y+o.h/2))<35);
+test('lounge portal and relocated roof portal connect without automatic transfer',()=>{
+ const from=worlds.campus.objects.find(o=>o.id==='campus-lounge2-portal');
+ const back=roof.objects.find(o=>o.id==='roof-lounge2-portal');
+ assert.ok(from&&back);assert.equal(from.toFloor,'rooftop');assert.equal(back.toFloor,'campus');
+ assert.equal(from.confirmTransfer,false);assert.equal(back.confirmTransfer,false);assert.equal(back.solid,false);
+ assert.deepEqual(Array.from(from.arrival),[1110,1000]);assert.deepEqual(Array.from(back.approach),Array.from(from.arrival));
+ assert.deepEqual(Array.from(back.arrival),[from.x+from.w/2,from.y+from.h/2]);
+ assert.ok(!worlds.campus.portals.some(p=>p.objectId===from.id));assert.equal(roof.portals.length,0);
+ assert.ok(back.x+back.w<roof.terrace.x,'portal remains clear of the stairs');
 });
+
 test('all three booth centers have usable interaction points outside their furniture',()=>{
   const actions=roof.objects.filter(o=>o.action==='booth');assert.equal(actions.length,3);
   for(const action of actions){
     const shell=roof.objects.find(o=>o.roomId===action.roomId&&o.type==='exhibition-booth');
-    const [x,y]=action.interactionPoint;assert.equal(x,shell.x+shell.w/2);assert.equal(y,shell.y+shell.h/2);
+    assert.equal(action.interactionPoint,undefined);
+    assert.equal(action.x,shell.x+10);assert.equal(action.y,shell.y+10);assert.equal(action.w,shell.w-20);assert.equal(action.h,shell.h-20);
+    const x=action.x+action.w/2,y=action.y+action.h/2;
     for(const o of roof.objects.filter(o=>o.solid!==false)){
       const r=o.collision?{x:o.x+o.collision.x,y:o.y+o.collision.y,w:o.collision.w,h:o.collision.h}:o;
       const distance=Math.hypot(Math.max(r.x-x,0,x-r.x-r.w),Math.max(r.y-y,0,y-r.y-r.h));

@@ -1362,8 +1362,8 @@
           "name": "옥상으로 이동",
           "toFloor": "rooftop",
           "arrival": [
-            850,
-            950
+            1110,
+            1000
           ],
           "confirmTransfer": false,
           "footprint": {
@@ -3152,9 +3152,9 @@
         {
           "id": "roof-plaza",
           "name": "분수 광장",
-          "x": 64,
+          "x": 411.5,
           "y": 64,
-          "w": 2320,
+          "w": 1972.5,
           "h": 1672,
           "target": [
             1680,
@@ -3167,12 +3167,12 @@
         {
           "id": "roof-upper",
           "name": "위쪽 휴게 광장",
-          "x": 90,
+          "x": 437.5,
           "y": 100,
-          "w": 920,
+          "w": 572.5,
           "h": 1510,
           "target": [
-            350,
+            697.5,
             950
           ],
           "floor": "roof",
@@ -3208,16 +3208,16 @@
         {
           "id": "festival-youtube",
           "name": "01 유튜브 스튜디오",
-          "x": 420,
+          "x": 677,
           "y": 290,
           "w": 194,
           "h": 320,
           "target": [
-            610,
+            867,
             440
           ],
           "floor": "roof",
-          "labelX": 574,
+          "labelX": 831,
           "labelY": 615,
           "description": "영상 제작을 테마로 꾸민 열린 부스입니다. 영상 화면과 재생 버튼 기념패를 배치했습니다.",
           "tags": [
@@ -3229,16 +3229,16 @@
         {
           "id": "festival-instagram",
           "name": "02 심리테스트",
-          "x": 420,
+          "x": 677,
           "y": 750,
           "w": 194,
           "h": 320,
           "target": [
-            610,
+            867,
             900
           ],
           "floor": "roof",
-          "labelX": 574,
+          "labelX": 831,
           "labelY": 1075,
           "description": "성격과 기분을 알아보는 심리 테스트 공간입니다. 심리테스트 안내 보드를 두고 부스 안에서 E를 누르면 심심테스트가 열립니다.",
           "tags": [
@@ -3250,16 +3250,16 @@
         {
           "id": "festival-booth3",
           "name": "03 게임 부스",
-          "x": 420,
+          "x": 677,
           "y": 1210,
           "w": 194,
           "h": 320,
           "target": [
-            610,
+            867,
             1360
           ],
           "floor": "roof",
-          "labelX": 574,
+          "labelX": 831,
           "labelY": 1535,
           "description": "아케이드 기기, 닌텐도 휴대용 콘솔과 스팀 게이밍 PC로 꾸민 게임 부스입니다. 중앙에서 E를 누르면 오목·테트리스·죽림고수·팔라독·솔리테어 등 16가지 게임 카드가 열리고, 선택한 게임을 같은 팝업에서 플레이할 수 있습니다.",
           "tags": [
@@ -3278,72 +3278,6 @@
       "objects": [
         {
           "id": "roof-object-0",
-          "type": "planter",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 90,
-            "y": 160,
-            "w": 63,
-            "h": 30
-          }
-        },
-        {
-          "id": "roof-object-1",
-          "type": "tree",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 98,
-            "y": 130,
-            "w": 42,
-            "h": 42
-          }
-        },
-        {
-          "id": "roof-object-2",
-          "type": "planter",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 90,
-            "y": 1130,
-            "w": 63,
-            "h": 30
-          }
-        },
-        {
-          "id": "roof-object-3",
-          "type": "tree",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 98,
-            "y": 1100,
-            "w": 42,
-            "h": 42
-          }
-        },
-        {
-          "id": "roof-object-4",
-          "type": "planter",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 90,
-            "y": 1350,
-            "w": 63,
-            "h": 30
-          }
-        },
-        {
-          "id": "roof-object-5",
-          "type": "tree",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 98,
-            "y": 1320,
-            "w": 42,
-            "h": 42
-          }
-        },
-        {
-          "id": "roof-object-6",
           "type": "tree",
           "confirmTransfer": false,
           "footprint": {
@@ -3354,7 +3288,7 @@
           }
         },
         {
-          "id": "roof-object-7",
+          "id": "roof-object-1",
           "type": "tree",
           "confirmTransfer": false,
           "footprint": {
@@ -3365,7 +3299,7 @@
           }
         },
         {
-          "id": "roof-object-8",
+          "id": "roof-object-2",
           "type": "tree",
           "confirmTransfer": false,
           "footprint": {
@@ -3376,7 +3310,7 @@
           }
         },
         {
-          "id": "roof-object-9",
+          "id": "roof-object-3",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -3387,7 +3321,7 @@
           }
         },
         {
-          "id": "roof-object-10",
+          "id": "roof-object-4",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -3398,7 +3332,7 @@
           }
         },
         {
-          "id": "roof-object-11",
+          "id": "roof-object-5",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -3409,7 +3343,7 @@
           }
         },
         {
-          "id": "roof-object-12",
+          "id": "roof-object-6",
           "type": "tree",
           "confirmTransfer": false,
           "footprint": {
@@ -3420,7 +3354,7 @@
           }
         },
         {
-          "id": "roof-object-13",
+          "id": "roof-object-7",
           "type": "planter",
           "confirmTransfer": false,
           "footprint": {
@@ -3431,7 +3365,7 @@
           }
         },
         {
-          "id": "roof-object-14",
+          "id": "roof-object-8",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -3442,7 +3376,7 @@
           }
         },
         {
-          "id": "roof-object-15",
+          "id": "roof-object-9",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -3453,7 +3387,7 @@
           }
         },
         {
-          "id": "roof-object-16",
+          "id": "roof-object-10",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -3464,7 +3398,7 @@
           }
         },
         {
-          "id": "roof-object-17",
+          "id": "roof-object-11",
           "type": "planter",
           "confirmTransfer": false,
           "footprint": {
@@ -3475,7 +3409,7 @@
           }
         },
         {
-          "id": "roof-object-18",
+          "id": "roof-object-12",
           "type": "planter",
           "confirmTransfer": false,
           "footprint": {
@@ -3486,7 +3420,7 @@
           }
         },
         {
-          "id": "roof-object-19",
+          "id": "roof-object-13",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -3497,7 +3431,7 @@
           }
         },
         {
-          "id": "roof-object-20",
+          "id": "roof-object-14",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -3508,7 +3442,7 @@
           }
         },
         {
-          "id": "roof-object-21",
+          "id": "roof-object-15",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -3519,7 +3453,7 @@
           }
         },
         {
-          "id": "roof-object-22",
+          "id": "roof-object-16",
           "type": "planter",
           "confirmTransfer": false,
           "footprint": {
@@ -3530,7 +3464,7 @@
           }
         },
         {
-          "id": "roof-object-23",
+          "id": "roof-object-17",
           "type": "tree",
           "confirmTransfer": false,
           "footprint": {
@@ -3541,7 +3475,7 @@
           }
         },
         {
-          "id": "roof-object-24",
+          "id": "roof-object-18",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -3552,7 +3486,7 @@
           }
         },
         {
-          "id": "roof-object-25",
+          "id": "roof-object-19",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -3563,7 +3497,7 @@
           }
         },
         {
-          "id": "roof-object-26",
+          "id": "roof-object-20",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -3574,7 +3508,7 @@
           }
         },
         {
-          "id": "roof-object-27",
+          "id": "roof-object-21",
           "type": "planter",
           "confirmTransfer": false,
           "footprint": {
@@ -3585,7 +3519,7 @@
           }
         },
         {
-          "id": "roof-object-28",
+          "id": "roof-object-22",
           "type": "planter",
           "confirmTransfer": false,
           "footprint": {
@@ -3596,7 +3530,7 @@
           }
         },
         {
-          "id": "roof-object-29",
+          "id": "roof-object-23",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -3607,7 +3541,7 @@
           }
         },
         {
-          "id": "roof-object-30",
+          "id": "roof-object-24",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -3618,7 +3552,7 @@
           }
         },
         {
-          "id": "roof-object-31",
+          "id": "roof-object-25",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -3629,7 +3563,7 @@
           }
         },
         {
-          "id": "roof-object-32",
+          "id": "roof-object-26",
           "type": "tree",
           "confirmTransfer": false,
           "footprint": {
@@ -3640,7 +3574,7 @@
           }
         },
         {
-          "id": "roof-object-33",
+          "id": "roof-object-27",
           "type": "planter",
           "confirmTransfer": false,
           "footprint": {
@@ -3651,7 +3585,7 @@
           }
         },
         {
-          "id": "roof-object-34",
+          "id": "roof-object-28",
           "type": "stair-handrail",
           "confirmTransfer": false,
           "footprint": {
@@ -3662,7 +3596,7 @@
           }
         },
         {
-          "id": "roof-object-35",
+          "id": "roof-object-29",
           "type": "stair-handrail",
           "confirmTransfer": false,
           "footprint": {
@@ -3673,7 +3607,7 @@
           }
         },
         {
-          "id": "roof-object-36",
+          "id": "roof-object-30",
           "type": "stair-handrail",
           "confirmTransfer": false,
           "footprint": {
@@ -3684,37 +3618,104 @@
           }
         },
         {
-          "id": "roof-object-37",
+          "id": "roof-object-31",
           "type": "rug",
           "confirmTransfer": false,
           "footprint": {
-            "x": 420,
+            "x": 677,
             "y": 300,
             "w": 174,
             "h": 280
           }
         },
         {
-          "id": "roof-object-38",
+          "id": "roof-object-32",
           "type": "exhibition-booth",
           "name": "01 유튜브 스튜디오",
           "confirmTransfer": false,
           "footprint": {
-            "x": 420,
+            "x": 677,
             "y": 300,
             "w": 9,
             "h": 280
           }
         },
         {
-          "id": "roof-object-39",
+          "id": "roof-object-33",
           "type": "booth-collider",
           "confirmTransfer": false,
           "footprint": {
-            "x": 420,
+            "x": 677,
             "y": 300,
             "w": 5.8,
             "h": 280
+          }
+        },
+        {
+          "id": "roof-object-34",
+          "type": "booth-side",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 677,
+            "y": 570,
+            "w": 174,
+            "h": 10
+          }
+        },
+        {
+          "id": "roof-object-35",
+          "type": "booth-side",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 677,
+            "y": 300,
+            "w": 174,
+            "h": 10
+          }
+        },
+        {
+          "id": "roof-object-36",
+          "type": "rug",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 677,
+            "y": 760,
+            "w": 174,
+            "h": 280
+          }
+        },
+        {
+          "id": "roof-object-37",
+          "type": "exhibition-booth",
+          "name": "02 심리테스트",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 677,
+            "y": 760,
+            "w": 9,
+            "h": 280
+          }
+        },
+        {
+          "id": "roof-object-38",
+          "type": "booth-collider",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 677,
+            "y": 760,
+            "w": 5.8,
+            "h": 280
+          }
+        },
+        {
+          "id": "roof-object-39",
+          "type": "booth-side",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 677,
+            "y": 1030,
+            "w": 174,
+            "h": 10
           }
         },
         {
@@ -3722,55 +3723,55 @@
           "type": "booth-side",
           "confirmTransfer": false,
           "footprint": {
-            "x": 420,
-            "y": 570,
+            "x": 677,
+            "y": 760,
             "w": 174,
             "h": 10
           }
         },
         {
           "id": "roof-object-41",
-          "type": "booth-side",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 420,
-            "y": 300,
-            "w": 174,
-            "h": 10
-          }
-        },
-        {
-          "id": "roof-object-42",
           "type": "rug",
           "confirmTransfer": false,
           "footprint": {
-            "x": 420,
-            "y": 760,
+            "x": 677,
+            "y": 1220,
             "w": 174,
             "h": 280
           }
         },
         {
-          "id": "roof-object-43",
+          "id": "roof-object-42",
           "type": "exhibition-booth",
-          "name": "02 심리테스트",
+          "name": "03 게임 부스",
           "confirmTransfer": false,
           "footprint": {
-            "x": 420,
-            "y": 760,
+            "x": 677,
+            "y": 1220,
             "w": 9,
             "h": 280
           }
         },
         {
-          "id": "roof-object-44",
+          "id": "roof-object-43",
           "type": "booth-collider",
           "confirmTransfer": false,
           "footprint": {
-            "x": 420,
-            "y": 760,
+            "x": 677,
+            "y": 1220,
             "w": 5.8,
             "h": 280
+          }
+        },
+        {
+          "id": "roof-object-44",
+          "type": "booth-side",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 677,
+            "y": 1490,
+            "w": 174,
+            "h": 10
           }
         },
         {
@@ -3778,74 +3779,7 @@
           "type": "booth-side",
           "confirmTransfer": false,
           "footprint": {
-            "x": 420,
-            "y": 1030,
-            "w": 174,
-            "h": 10
-          }
-        },
-        {
-          "id": "roof-object-46",
-          "type": "booth-side",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 420,
-            "y": 760,
-            "w": 174,
-            "h": 10
-          }
-        },
-        {
-          "id": "roof-object-47",
-          "type": "rug",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 420,
-            "y": 1220,
-            "w": 174,
-            "h": 280
-          }
-        },
-        {
-          "id": "roof-object-48",
-          "type": "exhibition-booth",
-          "name": "03 게임 부스",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 420,
-            "y": 1220,
-            "w": 9,
-            "h": 280
-          }
-        },
-        {
-          "id": "roof-object-49",
-          "type": "booth-collider",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 420,
-            "y": 1220,
-            "w": 5.8,
-            "h": 280
-          }
-        },
-        {
-          "id": "roof-object-50",
-          "type": "booth-side",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 420,
-            "y": 1490,
-            "w": 174,
-            "h": 10
-          }
-        },
-        {
-          "id": "roof-object-51",
-          "type": "booth-side",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 420,
+            "x": 677,
             "y": 1220,
             "w": 174,
             "h": 10
@@ -3856,14 +3790,14 @@
           "type": "game-brand-sign",
           "confirmTransfer": false,
           "footprint": {
-            "x": 423.48,
+            "x": 680.48,
             "y": 1229,
             "w": 5.22,
             "h": 262
           }
         },
         {
-          "id": "roof-object-53",
+          "id": "roof-object-47",
           "type": "plaza-paving",
           "confirmTransfer": false,
           "footprint": {
@@ -3874,7 +3808,7 @@
           }
         },
         {
-          "id": "roof-object-54",
+          "id": "roof-object-48",
           "type": "plaza-paving",
           "confirmTransfer": false,
           "footprint": {
@@ -3885,7 +3819,7 @@
           }
         },
         {
-          "id": "roof-object-55",
+          "id": "roof-object-49",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -3896,7 +3830,7 @@
           }
         },
         {
-          "id": "roof-object-56",
+          "id": "roof-object-50",
           "type": "planter",
           "confirmTransfer": false,
           "footprint": {
@@ -3907,7 +3841,7 @@
           }
         },
         {
-          "id": "roof-object-57",
+          "id": "roof-object-51",
           "type": "plaza-lamp",
           "confirmTransfer": false,
           "footprint": {
@@ -3918,7 +3852,7 @@
           }
         },
         {
-          "id": "roof-object-58",
+          "id": "roof-object-52",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -3929,7 +3863,7 @@
           }
         },
         {
-          "id": "roof-object-59",
+          "id": "roof-object-53",
           "type": "planter",
           "confirmTransfer": false,
           "footprint": {
@@ -3940,7 +3874,7 @@
           }
         },
         {
-          "id": "roof-object-60",
+          "id": "roof-object-54",
           "type": "plaza-lamp",
           "confirmTransfer": false,
           "footprint": {
@@ -3951,7 +3885,7 @@
           }
         },
         {
-          "id": "roof-object-61",
+          "id": "roof-object-55",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -3962,7 +3896,7 @@
           }
         },
         {
-          "id": "roof-object-62",
+          "id": "roof-object-56",
           "type": "planter",
           "confirmTransfer": false,
           "footprint": {
@@ -3973,7 +3907,7 @@
           }
         },
         {
-          "id": "roof-object-63",
+          "id": "roof-object-57",
           "type": "plaza-lamp",
           "confirmTransfer": false,
           "footprint": {
@@ -3984,7 +3918,7 @@
           }
         },
         {
-          "id": "roof-object-64",
+          "id": "roof-object-58",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -3995,7 +3929,7 @@
           }
         },
         {
-          "id": "roof-object-65",
+          "id": "roof-object-59",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -4006,7 +3940,7 @@
           }
         },
         {
-          "id": "roof-object-66",
+          "id": "roof-object-60",
           "type": "planter",
           "confirmTransfer": false,
           "footprint": {
@@ -4017,7 +3951,7 @@
           }
         },
         {
-          "id": "roof-object-67",
+          "id": "roof-object-61",
           "type": "planter",
           "confirmTransfer": false,
           "footprint": {
@@ -4028,7 +3962,7 @@
           }
         },
         {
-          "id": "roof-object-68",
+          "id": "roof-object-62",
           "type": "terrace-bench",
           "confirmTransfer": false,
           "footprint": {
@@ -4039,7 +3973,7 @@
           }
         },
         {
-          "id": "roof-object-69",
+          "id": "roof-object-63",
           "type": "plaza-lamp",
           "confirmTransfer": false,
           "footprint": {
@@ -4056,7 +3990,7 @@
           "action": "booth",
           "confirmTransfer": false,
           "footprint": {
-            "x": 430,
+            "x": 687,
             "y": 310,
             "w": 154,
             "h": 260
@@ -4069,7 +4003,7 @@
           "action": "booth",
           "confirmTransfer": false,
           "footprint": {
-            "x": 430,
+            "x": 687,
             "y": 770,
             "w": 154,
             "h": 260
@@ -4082,7 +4016,7 @@
           "action": "booth",
           "confirmTransfer": false,
           "footprint": {
-            "x": 430,
+            "x": 687,
             "y": 1230,
             "w": 154,
             "h": 260
@@ -4099,8 +4033,8 @@
           ],
           "confirmTransfer": false,
           "footprint": {
-            "x": 810,
-            "y": 910,
+            "x": 1070,
+            "y": 960,
             "w": 80,
             "h": 80
           }
@@ -4121,9 +4055,9 @@
       ],
       "colliders": [
         {
-          "x": 64,
+          "x": 411.5,
           "y": 64,
-          "w": 2320,
+          "w": 1972.5,
           "h": 0,
           "pad": 5
         },
@@ -4135,60 +4069,18 @@
           "pad": 5
         },
         {
-          "x": 64,
+          "x": 411.5,
           "y": 1736,
-          "w": 2320,
+          "w": 1972.5,
           "h": 0,
           "pad": 5
         },
         {
-          "x": 64,
+          "x": 411.5,
           "y": 64,
           "w": 0,
           "h": 1672,
           "pad": 5
-        },
-        {
-          "x": 90,
-          "y": 160,
-          "w": 63,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 98,
-          "y": 130,
-          "w": 42,
-          "h": 42,
-          "pad": 0
-        },
-        {
-          "x": 90,
-          "y": 1130,
-          "w": 63,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 98,
-          "y": 1100,
-          "w": 42,
-          "h": 42,
-          "pad": 0
-        },
-        {
-          "x": 90,
-          "y": 1350,
-          "w": 63,
-          "h": 30,
-          "pad": 0
-        },
-        {
-          "x": 98,
-          "y": 1320,
-          "w": 42,
-          "h": 42,
-          "pad": 0
         },
         {
           "x": 2300,
@@ -4282,63 +4174,63 @@
           "pad": 0
         },
         {
-          "x": 420,
+          "x": 677,
           "y": 300,
           "w": 5.8,
           "h": 280,
           "pad": 0
         },
         {
-          "x": 420,
+          "x": 677,
           "y": 570,
           "w": 174,
           "h": 10,
           "pad": 0
         },
         {
-          "x": 420,
+          "x": 677,
           "y": 300,
           "w": 174,
           "h": 10,
           "pad": 0
         },
         {
-          "x": 420,
+          "x": 677,
           "y": 760,
           "w": 5.8,
           "h": 280,
           "pad": 0
         },
         {
-          "x": 420,
+          "x": 677,
           "y": 1030,
           "w": 174,
           "h": 10,
           "pad": 0
         },
         {
-          "x": 420,
+          "x": 677,
           "y": 760,
           "w": 174,
           "h": 10,
           "pad": 0
         },
         {
-          "x": 420,
+          "x": 677,
           "y": 1220,
           "w": 5.8,
           "h": 280,
           "pad": 0
         },
         {
-          "x": 420,
+          "x": 677,
           "y": 1490,
           "w": 174,
           "h": 10,
           "pad": 0
         },
         {
-          "x": 420,
+          "x": 677,
           "y": 1220,
           "w": 174,
           "h": 10,

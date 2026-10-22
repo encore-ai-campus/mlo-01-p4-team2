@@ -214,13 +214,24 @@ Producer는 `acks=all`, `enable.idempotence=True`를 사용함. ACK 직후 종�
 수신 서비스는 `event_uuid` 기준으로 중복을 제거해야 함. 브로커 주소가 없으면 이벤트는 Outbox에 대기함.
 
 
+**발행 완료 행 정리**
+
+- 한국 시간 `Asia/Seoul` 기준 매일 08:30 이후 하루 한 번 정리함.
+- 60초마다 시각을 확인하므로 실제 시작은 08:30보다 최대 약 60초 늦을 수 있음.
+- 당일 08:30까지 발행 완료된 행만 삭제함. 미발행 행과 이후 완료 행은 보존함.
+- 1,000행씩 삭제하고 각 묶음을 확정함. 삭제 직전 완료 조건을 다시 확인함.
+- 완료 날짜를 `var/outbox-cleanup.json`에 기록함. 실패하면 다음 확인에서 남은 행을 다시 처리함.
+- 08:30 이후 재시작하면 아직 수행하지 않은 당일 정리를 실행함.
+- Kafka 연결 여부와 독립적으로 실행함. 다중 소켓 구성에서는 `campus_jobs`를 한 프로세스만 실행함.
+- 완료 행도 하루 동안 누적됨. 미발행 적체까지 지우거나 디스크 파일을 줄이는 처리는 아님.
+
 ## 7. 설정·실행·검증
 
 - 연결 정보는 `backend/.env`에서 설정함. 예시는 `backend/.env.example`에 있음.
 - `KAFKA_BOOTSTRAP_SERVERS`가 발행기 시작에 필요하며, 인증을 사용하는 환경에서는 `KAFKA_SECURITY_PROTOCOL`, `KAFKA_SASL_MECHANISM`, `KAFKA_SASL_USERNAME`, `KAFKA_SASL_PASSWORD`도 설정함.
 - 기본 출처는 `CAMPUS_RAW_SOURCE=platform_server_1`임.
 - 빈 조회 최대 간격은 `CAMPUS_OUTBOX_IDLE_POLL_SECONDS=0.25`, MySQL 발행기 연결 재사용 수명은 `CAMPUS_OUTBOX_CONNECTION_MAX_AGE_SECONDS=60`으로 조정함. 변경 후 백엔드를 재시작함.
-- `run-campus.py`와 `manage.py runserver` 모두 실제 서비스 프로세스에서 발행기를 시작함. 자동 재시작을 감시하는 부모 프로세스에서는 시작하지 않으며, 마이그레이션·검사·테스트 명령도 발행기를 시작하지 않음.
+- `run-campus.py`와 `manage.py runserver` 모두 실제 서비스 프로세스에서 발행기와 정리기를 시작함. 자동 재시작을 감시하는 부모 프로세스에서는 시작하지 않으며, 마이그레이션·검사·테스트 명령도 발행기를 시작하지 않음.
 - 토픽 생성, 파티션·복제 수 설정과 수신 서비스 구독은 별도로 관리함. 토픽·이벤트 코드가 구현되었다는 사실과 실제 브로커 송수신 확인을 구분함.
 
 2026-10-13 기준 검증: 이동 체크포인트·정지 사용자 제외·최종 위치·오래된 좌표 제외·Outbox 실패 시 전체 취소·전송 재시도와 기존 학습·포인트 기능을 포함한 **테스트 66개 통과**. DB 스키마 변경 없이 기존 Outbox를 사용함. 이 검증은 실제 브로커 연결 검증과 별개임.
@@ -245,7 +256,8 @@ python manage.py test learning.tests eventing.test_publisher campus.test_publish
 | [backend/eventing/events.py](backend/eventing/events.py) | 토픽 매핑, 필드 검증, 메시지 구조, Outbox 기록 |
 | [backend/campus/consumers.py](backend/campus/consumers.py) | 변경 표시와 약 5초 체크포인트, 실시간 이동·최종 위치 처리 |
 | [backend/campus/positions.py](backend/campus/positions.py) | 위치 갱신과 이동 Outbox를 같은 트랜잭션으로 저장 |
-| [backend/eventing/publisher.py](backend/eventing/publisher.py) | Outbox 전송, Kafka ACK 확인, 실패 재시도 |
+| [backend/eventing/publisher.py](backend/eventing/publisher.py) | 초당 100건 접수 제한, 비동기 발행, ACK 일괄 완료 표시 |
+| [backend/eventing/cleanup.py](backend/eventing/cleanup.py) | 한국 시간 매일 08:30 완료 행 정리 |
 | [backend/learning/services.py](backend/learning/services.py) | 학습 열기·답안 채점·포인트·Outbox를 연결 |
 | [backend/learning/point_integration.py](backend/learning/point_integration.py) | 실제 지갑 적립과 지급 원장 |
 | [backend/accounts/views.py](backend/accounts/views.py), [backend/accounts/session_policy.py](backend/accounts/session_policy.py) | 로그아웃·세션 만료의 최종 위치 저장 |

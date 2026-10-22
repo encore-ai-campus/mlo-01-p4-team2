@@ -23,7 +23,7 @@ from accounts.session_policy import check_session
 from eventing.events import ensure_platform_session, record_chat, record_floor_transfer, touch_platform_session
 from . import cluster, session_registry, poke, socket_db
 from .motion import CLASSROOM_TRANSITION_DELAY, MotionController, ControlError, geometry, world
-from .positions import DIRECTIONS, FLOOR_BOUNDS, get_position, save_position, validate_position
+from .positions import DIRECTIONS, FLOOR_BOUNDS, flush_movement_event, get_position, movement_event_due_at, save_position, validate_position
 from direct_messages.live import user_group as direct_message_group
 
 
@@ -194,6 +194,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
         self.policy_status = None
         self.last_activity_write = -math.inf
         self.position_dirty = False
+        self.movement_event_due_at = None
         self.pending_floor_transfer = None
         self.seen_by_peers = None  # 다른 사람에게 마지막으로 보낸 내 상태(바뀐 것이 있을 때만 다시 보낸다)
         self.control_key = None  # 마지막으로 보낸 control_state 의 바탕(같으면 다시 보내지 않는다)
@@ -233,6 +234,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
         self.position_changed_at = None
         identity = await socket_db.run(get_identity, self.user)
         position = await socket_db.run(get_position, self.user)
+        self.movement_event_due_at = await socket_db.run(movement_event_due_at, self.user)
         live = await socket_db.run(cluster.stored_position, self.session_key, self.user.pk) if cluster.enabled() else None
         if live and validate_position(live[0]):
             # 같은 세션이 다른 프로세스에서 막 끊겼다(그 프로세스가 죽은 경우 등): DB 체크포인트(5초)보다 새 위치로 이어 붙는다(계획 M3)
@@ -828,11 +830,15 @@ class CampusConsumer(AsyncWebsocketConsumer):
     def store_position_now(self, position, observed_at, transfer_from=None):
         user = self.session_user()
         if user is not None:
-            if transfer_from:
-                return record_floor_transfer(
+            if position is None:
+                flush_movement_event(user)
+            elif transfer_from:
+                record_floor_transfer(
                     user, self.platform_session_uuid, transfer_from, position["floor"], position, observed_at
                 )
-            return save_position(user, position, observed_at, session_uuid=self.platform_session_uuid)
+            else:
+                save_position(user, position, observed_at, session_uuid=self.platform_session_uuid)
+            return movement_event_due_at(user)
 
     async def checkpoint(self, force=False, wait=True):
         """최신 위치 하나를 저장한다(5초마다, 층 이동·종료는 바로). 쓰기는 따로 돌리고 `wait` 일 때만 끝까지 기다린다(계획 3단계).
@@ -845,17 +851,21 @@ class CampusConsumer(AsyncWebsocketConsumer):
                 return  # 저장 중이다: 끝난 뒤 다음 기회(다음 틱·세션 확인)에 다시 본다
             await saving
         force = force or self.pending_floor_transfer is not None
-        if not self.position_dirty or (not force and time.monotonic() - self.last_checkpoint < self.position_interval):
+        sample_due = self.movement_event_due_at is not None and timezone.now() >= self.movement_event_due_at
+        if not self.position_dirty and not sample_due:
+            return
+        if not force and time.monotonic() - self.last_checkpoint < self.position_interval:
             return
         self.last_checkpoint = time.monotonic()
-        self.saving = asyncio.create_task(self.write_position(self.state.copy(), self.position_changed_at, self.pending_floor_transfer))
+        state = self.state.copy() if self.position_dirty else None
+        self.saving = asyncio.create_task(self.write_position(state, self.position_changed_at, self.pending_floor_transfer))
         if wait:
             await self.saving
 
     async def write_position(self, state, observed_at, transfer):
         try:
             started = time.monotonic()
-            await self.store_position(state, observed_at, transfer[0] if transfer else None)
+            self.movement_event_due_at = await self.store_position(state, observed_at, transfer[0] if transfer else None)
             note_slow_db("position save", started)
         except DatabaseError:
             logging.getLogger(__name__).exception("Could not save the campus position")
@@ -863,7 +873,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
             logging.getLogger(__name__).exception("Unexpected error while saving the campus position")
         else:
             # A newer frame may arrive while the database write is awaiting.
-            if self.position_changed_at == observed_at:
+            if state is not None and self.position_changed_at == observed_at:
                 self.position_dirty = False
             if self.pending_floor_transfer == transfer:
                 self.pending_floor_transfer = None

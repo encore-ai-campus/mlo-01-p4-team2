@@ -160,11 +160,12 @@ class CheckpointTimingTests(SimpleTestCase):
         self.consumer.state = {"floor": "campus", "x": 100.0, "y": 200.0, "dir": "up",
                                "color": "#dfa34d", "moving": False}
         self.consumer.position_dirty = False
+        self.consumer.movement_event_due_at = None
         self.consumer.position_changed_at = None
         self.consumer.pending_floor_transfer = None
         self.consumer.last_checkpoint = 0
         self.consumer.last_move = 0
-        self.consumer.store_position = AsyncMock(return_value=True)
+        self.consumer.store_position = AsyncMock(return_value=None)
         self.consumer.broadcast = AsyncMock()
         self.consumer.touch_activity = AsyncMock()
         self.consumer.session_group = None
@@ -219,7 +220,7 @@ class CheckpointTimingTests(SimpleTestCase):
         self.assertEqual(self.consumer.store_position.await_count, 1)
 
     async def test_failed_outbox_write_keeps_dirty_flag_for_next_checkpoint(self):
-        self.consumer.store_position.side_effect = [DatabaseError("outbox unavailable"), True]
+        self.consumer.store_position.side_effect = [DatabaseError("outbox unavailable"), None]
         self.clock[0] = 1
         await self.move(125)
         self.clock[0] = 5
@@ -240,7 +241,7 @@ class CheckpointTimingTests(SimpleTestCase):
             self.consumer.state["x"] = 200
             self.consumer.position_changed_at = observed_at + timedelta(seconds=1)
             self.consumer.position_dirty = True
-            return True
+            return None
 
         self.consumer.store_position.side_effect = write
         self.clock[0] = 5

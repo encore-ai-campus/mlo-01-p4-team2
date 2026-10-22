@@ -21,6 +21,8 @@ class Profile(models.Model):
     guide_completed = models.BooleanField(default=False)
     last_position = LosslessJSONField(null=True, blank=True)
     last_position_at = models.DateTimeField(null=True, blank=True)
+    last_movement_event_at = models.DateTimeField(null=True, blank=True)
+    movement_event_pending = LosslessJSONField(null=True, blank=True)
 
     @property
     def course(self):

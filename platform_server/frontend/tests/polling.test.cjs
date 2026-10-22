@@ -35,15 +35,15 @@ function load(file, {elements = {}, body = () => ({})} = {}) {
   return {window, fetched, every: delay => intervals.find(item => item.delay === delay).callback};
 }
 
-test('private message status is not polled while connected unless the inbox is open', async () => {
+test('private message status follows chat connectivity independently of movement', async () => {
   const app = load('messages.js', {body: () => ({unread: 0, canStart: true, hasInbox: false})});
   app.window.CampusMessages.create({config: {enabled: true}});
   await flush(); await flush();
   const poll = app.every(15000), before = app.fetched.length;
-  app.window.CampusApp = {presence: {connected: true}};
+  app.window.CampusApp = {presence: {connected: true, chatConnected: true}};
   await poll(); await flush();
   assert.equal(app.fetched.length, before);  // 새 쪽지는 소켓(private_message)이 알려 준다
-  app.window.CampusApp.presence.connected = false;
+  app.window.CampusApp.presence.chatConnected = false;
   await poll(); await flush();
   assert.equal(app.fetched.length, before + 1);
 });

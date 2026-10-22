@@ -5,6 +5,8 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock,patch
 from channels.db import database_sync_to_async
 from channels.layers import get_channel_layer
+from channels.testing import WebsocketCommunicator
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client,TestCase,TransactionTestCase,override_settings
 from django.utils import timezone
@@ -135,14 +137,19 @@ class DirectMessageTests(TestCase):
 @override_settings(CAMPUS_DM_ENABLED=True,ALLOWED_HOSTS=['127.0.0.1','testserver'],KAFKA_BOOTSTRAP_SERVERS='')
 class PrivateSocketTests(TransactionTestCase):
     setUp=PokeSocketTests.setUp
-    socket=PokeSocketTests.socket
     packets=PokeSocketTests.packets
+
+    def socket(self, client):
+        from config.service_asgi import application
+        key = client.cookies[settings.SESSION_COOKIE_NAME].value
+        return WebsocketCommunicator(application, '/ws/chat/', headers=[(b'origin', b'http://127.0.0.1'),
+            (b'host', b'127.0.0.1'), (b'cookie', f'{settings.SESSION_COOKIE_NAME}={key}'.encode())])
 
     async def test_notification_is_sent_only_to_the_recipient_group(self):
         left,right=[self.socket(client) for client in self.clients]
         try:
-            await left.connect();await self.packets(left,{'welcome'})
-            await right.connect();await self.packets(right,{'welcome'})
+            await left.connect();await self.packets(left,{'chat_ready'})
+            await right.connect();await self.packets(right,{'chat_ready'})
             user_id=await database_sync_to_async(lambda:self.clients[1].session['_auth_user_id'])()
             conversation_id=str(uuid.uuid4())
             await get_channel_layer().group_send(user_group(user_id),{'type':'direct.message','conversationId':conversation_id})

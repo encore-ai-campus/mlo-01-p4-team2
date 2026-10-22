@@ -5,7 +5,7 @@ from django.test import Client, TransactionTestCase, override_settings
 from . import tests as socket_tests
 
 
-@override_settings(ALLOWED_HOSTS=["127.0.0.1", "localhost", "testserver"], DEBUG=False)
+@override_settings(ALLOWED_HOSTS=["127.0.0.1", "localhost", "testserver"], DEBUG=False, CAMPUS_TEST_LEGACY_MOVEMENT=True)
 class SingleLoginSocketTests(TransactionTestCase):
     setUp = socket_tests.CampusSocketTests.setUp
     socket = socket_tests.CampusSocketTests.socket

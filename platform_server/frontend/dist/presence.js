@@ -7,14 +7,16 @@
       const status = document.getElementById('presenceStatus');
       const roster = document.getElementById('presencePeers');
       const peers = new Map();
-      if (!configElement) return {peers, connected:false, selfId:null, sendChat(){return false;}, setPoking(){}, setInput() {}, command(){return Promise.reject(new Error('연결이 필요해요.'));}, tick() {}, close() {}};
+      if (!configElement) return {peers, connected:false, chatConnected:false, selfId:null, sendChat(){return false;}, setPoking(){}, setInput() {}, command(){return Promise.reject(new Error('연결이 필요해요.'));}, tick() {}, close() {}};
       const config = JSON.parse(configElement.textContent);
-      let socket = null, selfId = null, ready = false, closed = false;
+      let socket = null, chatSocket = null, selfId = null, ready = false, chatReady = false, closed = false;
+      let chatToken = null, chatTokenFloor = null, connectionAvailable = null;
       let inputKeys = [], sequence = 0, poking = false, pokeContext = null;
       const pending = new Map();
       const allowedKeys = new Set(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright']);
       let retry = null, retryDelay = 1000, heartbeat = null, lastSent = -Infinity, lastInput = '', authChecked = false;
-      let lastReceived = 0;
+      let chatRetry = null, chatRetryDelay = 1000, chatHeartbeat = null, chatAuthChecked = false;
+      let lastReceived = 0, lastChatReceived = 0;
       const floorBounds = floors || {campus:{width,height}};
       const colors = new Set(['#dfa34d', '#4e9b91', '#8a78bb', '#cb7773', '#648eb5']);
       const directions = new Set(['up', 'down', 'left', 'right']);
@@ -32,7 +34,18 @@
           status.append(icon,label,count,unit);
         }else status.textContent=text;
         status.dataset.state = state;
-        onConnectionChange(state === 'connected');
+        notifyConnection();
+      }
+      function notifyConnection() {
+        const available = ready && chatReady && !!chatToken;
+        if (available !== connectionAvailable) {connectionAvailable = available;onConnectionChange(available);}
+      }
+      function acceptChatToken(message, own) {
+        const floor = own.floor || 'campus';
+        if (floor !== chatTokenFloor) chatToken = null;
+        chatTokenFloor = floor;
+        if (typeof message.chatToken === 'string' && message.chatToken) chatToken = message.chatToken;
+        notifyConnection();
       }
       function updateRoster() {
         setStatus(`전체 접속 ${peers.size + 1}명`, 'connected');
@@ -122,7 +135,7 @@
       function reconnectNow() {
         if(closed)return;
         const previous=socket;socket=null;
-        rejectPending();ready=false;peers.clear();roster.replaceChildren();
+        rejectPending();ready=false;chatToken=null;notifyConnection();peers.clear();roster.replaceChildren();
         clearInterval(heartbeat);clearTimeout(retry);
         previous?.close(4000,'Reconnecting');
         connect();
@@ -130,8 +143,9 @@
       function connect() {
         if (closed) return;
         clearTimeout(retry);
+        ready = false;chatToken = null;chatTokenFloor = null;
         setStatus('연결 중…', 'connecting');
-        const url = new URL(config.socketPath, window.location.href);
+        const url = new URL(config.movementSocketPath, window.location.href);
         url.protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         url.searchParams.set('control','server');
         url.searchParams.set('moves','compact');
@@ -141,24 +155,29 @@
           if (current !== socket || closed) return;
           let message;
           try {message = JSON.parse(event.data);} catch {return;}
+          if (!message || typeof message !== 'object') return;
           lastReceived=performance.now();
           if (message.type === 'welcome' && Array.isArray(message.players)) {
+            const own = message.players.find(p => p?.id === message.selfId);
+            if (!validPeer(own)) return;
             window.CampusSession?.receive(message.session);
             selfId = message.selfId; peers.clear();
-            const own = message.players.find(p => p.id === selfId);
+            acceptChatToken(message, own);
             applyIdentity(own);
             
             if(validPeer(own)){onRestore(own);acceptSelf(own);}
             for (const p of message.players) upsert(p);
             ready = true; retryDelay = 1000; lastSent = -Infinity; lastInput = ''; authChecked = false;
             updateRoster(); publish(performance.now());
+            if (!chatSocket) connectChat();
             clearInterval(heartbeat);
             heartbeat = setInterval(() => {
               if(current!==socket||closed||current.readyState!==WebSocket.OPEN)return;
               if(!document.hidden&&performance.now()-lastReceived>10000){reconnectNow();return;}
               current.send(JSON.stringify({type: 'ping'}));
             }, 5000);
-          } else if (ready && message.type === 'control_state' && validPeer(message.state?.main)) {
+          } else if (ready && message.type === 'control_state' && validPeer(message.state?.main) && message.state.main.id === selfId) {
+            acceptChatToken(message, message.state.main);
             onState(message.state);acceptSelf(message.state.main);
           } else if (ready && message.type === 'control_event' && message.event) {
             onControlEvent(message.event);
@@ -171,9 +190,8 @@
             if(task){pending.delete(message.requestId);clearTimeout(task.timer);if(message.error)task.reject(new Error(message.error));else task.resolve(message.result);}
           } else if (ready && message.type === 'control_error' && typeof message.message === 'string') {
             onControlError(message.message);
-          } else if (ready && message.type === 'private_message' && typeof message.conversationId === 'string') {
-            window.dispatchEvent(new CustomEvent('campus:private-message',{detail:{conversationId:message.conversationId}}));
           } else if (message.type === 'session_expired') {
+            close();
             window.CampusSession?.expire(message.reason);
           } else if (ready && message.type === 'identity') {
             applyIdentity(message.player);
@@ -191,23 +209,14 @@
             }
           } else if (ready && message.type === 'leave') {
             if (peers.delete(message.id)) updateRoster();
-          } else if (ready && message.type === 'chat') {
-            const m = message.message;
-            if (m && typeof m.id === 'string' && typeof m.playerId === 'string'
-                && typeof m.nickname === 'string' && typeof m.text === 'string'
-                && m.text.trim() && Array.from(m.text).length <= 200
-                && typeof m.floor === 'string' && Object.hasOwn(floorBounds,m.floor)
-                && typeof m.sentAt === 'string' && Number.isFinite(Date.parse(m.sentAt))) onChat(m);
-          } else if (ready && message.type === 'chat_error' && typeof message.message === 'string') {
-            onChatError(message.message);
           }
         };
         current.onclose = event => {
           if (current !== socket) return;
-          rejectPending();ready = false; peers.clear(); roster.replaceChildren(); clearInterval(heartbeat);
+          rejectPending();ready = false; chatToken = null; notifyConnection();peers.clear(); roster.replaceChildren(); clearInterval(heartbeat);
           if (closed) return;
           if(event.code===4409){
-            closed=true;setStatus('새 연결로 전환됨 · 이 창에서 계속하려면 새로고침하세요','disconnected');
+            close();setStatus('새 연결로 전환됨 · 이 창에서 계속하려면 새로고침하세요','disconnected');
             return;
           }
           if (event.code === 4401 && window.CampusSession?.verify && !authChecked) {
@@ -217,20 +226,82 @@
             window.CampusSession.verify().then(alive => {
               if (closed || current !== socket) return;
               if (alive) retry = setTimeout(connect, backoff());
-              else {closed = true; setStatus('로그인이 필요해요', 'disconnected'); onAuthExpired();}
+              else expireAuthentication();
             });
             return;
           }
           if (event.code === 4401) {
-            closed = true; setStatus('로그인이 필요해요', 'disconnected');
-            onAuthExpired();
-            if(window.CampusSession)window.CampusSession.expire();else window.location.assign(config.loginUrl);
+            expireAuthentication();
             return;
           }
           setStatus('연결 끊김 · 다시 연결 중…', 'disconnected');
           retry = setTimeout(connect, backoff());
         };
         // onclose performs recovery; avoid a separate retry for the same failure.
+        current.onerror = () => {};
+      }
+      function expireAuthentication() {
+        close();setStatus('로그인이 필요해요', 'disconnected');onAuthExpired();
+        if(window.CampusSession)window.CampusSession.expire();else window.location.assign(config.loginUrl);
+      }
+      function chatBackoff() {
+        const delay = chatRetryDelay * (0.5 + Math.random());
+        chatRetryDelay = Math.min(chatRetryDelay * 2, 10000);return delay;
+      }
+      function reconnectChat() {
+        if (closed) return;
+        const previous = chatSocket;chatSocket = null;chatReady = false;notifyConnection();
+        clearTimeout(chatRetry);clearInterval(chatHeartbeat);
+        previous?.close(4000, 'Reconnecting');connectChat();
+      }
+      function connectChat() {
+        if (closed || selfId === null) return;
+        clearTimeout(chatRetry);chatReady = false;notifyConnection();
+        const url = new URL(config.chatSocketPath, window.location.href);
+        url.protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const current = chatSocket = new WebSocket(url.href);
+        current.onmessage = event => {
+          if (current !== chatSocket || closed) return;
+          let message;try {message = JSON.parse(event.data);} catch {return;}
+          if (!message || typeof message !== 'object') return;
+          lastChatReceived = performance.now();
+          if (message.type === 'chat_ready') {
+            chatReady = true;chatRetryDelay = 1000;chatAuthChecked = false;notifyConnection();
+            clearInterval(chatHeartbeat);
+            chatHeartbeat = setInterval(() => {
+              if (current !== chatSocket || closed || current.readyState !== WebSocket.OPEN) return;
+              if (!document.hidden && performance.now() - lastChatReceived > 10000) {reconnectChat();return;}
+              current.send(JSON.stringify({type:'ping'}));
+            }, 5000);
+          } else if (message.type === 'session_expired') {
+            close();window.CampusSession?.expire(message.reason);
+          } else if (chatReady && message.type === 'private_message' && typeof message.conversationId === 'string') {
+            window.dispatchEvent(new CustomEvent('campus:private-message',{detail:{conversationId:message.conversationId}}));
+          } else if (chatReady && message.type === 'chat') {
+            const m = message.message;
+            if (m && typeof m.id === 'string' && typeof m.playerId === 'string'
+                && typeof m.nickname === 'string' && typeof m.text === 'string'
+                && m.text.trim() && Array.from(m.text).length <= 200
+                && typeof m.floor === 'string' && Object.hasOwn(floorBounds,m.floor)
+                && typeof m.sentAt === 'string' && Number.isFinite(Date.parse(m.sentAt))) onChat(m);
+          } else if (chatReady && message.type === 'chat_error' && typeof message.message === 'string') onChatError(message.message);
+        };
+        current.onclose = event => {
+          if (current !== chatSocket) return;
+          chatReady = false;notifyConnection();clearInterval(chatHeartbeat);
+          if (closed) return;
+          if (event.code === 4409) {close();setStatus('새 연결로 전환됨 · 이 창에서 계속하려면 새로고침하세요','disconnected');return;}
+          if (event.code === 4401 && window.CampusSession?.verify && !chatAuthChecked) {
+            chatAuthChecked = true;
+            window.CampusSession.verify().then(alive => {
+              if (closed || current !== chatSocket) return;
+              if (alive) chatRetry = setTimeout(connectChat, chatBackoff());else expireAuthentication();
+            });
+            return;
+          }
+          if (event.code === 4401) {expireAuthentication();return;}
+          chatRetry = setTimeout(connectChat, chatBackoff());
+        };
         current.onerror = () => {};
       }
       function applyIdentity(p) {
@@ -247,10 +318,12 @@
           socket.send(JSON.stringify({type:'input',keys:[]}));
           socket.send(JSON.stringify({type:'leave'}));
         }
-        rejectPending();closed = true; ready = false; peers.clear();
-        onConnectionChange(false);
-        clearTimeout(retry); clearInterval(heartbeat);
-        socket?.close(1000);
+        rejectPending();closed = true; ready = false; chatReady = false;chatToken = null;peers.clear();
+        notifyConnection();
+        clearTimeout(retry); clearInterval(heartbeat);clearTimeout(chatRetry);clearInterval(chatHeartbeat);
+        const previous = socket, previousChat = chatSocket;
+        socket = chatSocket = null;selfId = null;
+        previous?.close(1000);previousChat?.close(1000);
       }
       window.addEventListener('pagehide', close);
       window.addEventListener('pageshow', event => {
@@ -259,23 +332,24 @@
       document.getElementById('campusLogoutForm')?.addEventListener('submit', close);
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden && !closed && (socket?.readyState === WebSocket.CLOSED||performance.now()-lastReceived>10000)) reconnectNow();
+        if (!document.hidden && !closed && (chatSocket?.readyState === WebSocket.CLOSED||performance.now()-lastChatReceived>10000)) reconnectChat();
       });
       window.addEventListener('online',()=>{
         if(!closed&&(!ready||performance.now()-lastReceived>10000))reconnectNow();
+        if(!closed&&(!chatReady||performance.now()-lastChatReceived>10000))reconnectChat();
       });
       connect();
       return {
         peers, close, setInput, setPoking, command,
         get connected() {return ready;},
+        get chatConnected() {return chatReady;},
         get selfId() {return selfId;},
         get inputKeys() {return [...inputKeys];},
         sendChat(text) {
-          if (!ready || socket?.readyState !== WebSocket.OPEN || typeof text !== 'string') return false;
+          if (!ready || !chatReady || !chatToken || chatSocket?.readyState !== WebSocket.OPEN || typeof text !== 'string') return false;
           text = text.trim();
           if (!text || Array.from(text).length > 200) return false;
-          // Input is forwarded separately; the backend supplies the accepted floor.
-          publish(performance.now(), true);
-          socket.send(JSON.stringify({type:'chat',text}));
+          chatSocket.send(JSON.stringify({type:'chat',text,actorToken:chatToken}));
           return true;
         },
         tick(t, dt) {

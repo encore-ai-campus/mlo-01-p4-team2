@@ -1,4 +1,4 @@
-"""Authenticated presence and live chat for the single-process campus prototype."""
+"""Authenticated authoritative movement, presence and transient movement effects."""
 import asyncio
 from copy import copy, deepcopy
 from contextlib import suppress
@@ -20,11 +20,11 @@ from django.utils import timezone
 
 from accounts.models import get_identity, needs_profile_setup
 from accounts.session_policy import check_session
-from eventing.events import ensure_platform_session, record_chat, record_floor_transfer, touch_platform_session
+from eventing.events import ensure_platform_session, record_floor_transfer, touch_platform_session
 from . import cluster, session_registry, poke, socket_db
 from .motion import CLASSROOM_TRANSITION_DELAY, MotionController, ControlError, geometry, world
 from .positions import DIRECTIONS, FLOOR_BOUNDS, flush_movement_event, get_position, movement_event_due_at, save_position, validate_position
-from direct_messages.live import user_group as direct_message_group
+from .chat_tokens import issue_actor_token
 
 
 class CampusRoom:
@@ -189,8 +189,6 @@ def note_slow_db(what, started):
 class CampusConsumer(AsyncWebsocketConsumer):
     session_check_interval = 10
     idle_timeout = 60
-    max_chat_length = 200
-    chat_interval = 0.8
     position_interval = 5
     jump_duration = 0.72
     colors = {"#dfa34d", "#4e9b91", "#8a78bb", "#cb7773", "#648eb5"}
@@ -206,7 +204,6 @@ class CampusConsumer(AsyncWebsocketConsumer):
         self.server_control = not getattr(settings, "CAMPUS_TEST_LEGACY_MOVEMENT", False) or b"control=server" in self.scope.get("query_string", b"")
         self.compact_moves = b"moves=compact" in self.scope.get("query_string", b"").split(b"&")
         self.session_group = None
-        self.direct_message_group = None
         self.policy_status = None
         self.last_activity_write = -math.inf
         self.position_dirty = False
@@ -236,7 +233,6 @@ class CampusConsumer(AsyncWebsocketConsumer):
         self.player_id = uuid4().hex
         self.last_seen = time.monotonic()
         self.last_move = 0
-        self.last_chat = -math.inf
         self.last_poke = -math.inf
         self.last_jump = -math.inf
         self.poke_requested = False
@@ -332,15 +328,15 @@ class CampusConsumer(AsyncWebsocketConsumer):
                 if self.controller.interior:room.interiors.add(self.player_id)
             await self.accept()
             players = [*room.players.values(), *(row["state"] for row in room.cluster.remote.values())]
-            await self.send_packet({"type": "welcome", "selfId": self.player_id, "players": players, "session": self.policy_status, "serverControl": self.server_control})
+            self.chat_token_floor = self.state["floor"]
+            self.chat_token = issue_actor_token(self.user.pk, self.session_key, self.player_id, self.chat_token_floor)
+            await self.send_packet({"type": "welcome", "selfId": self.player_id, "players": players,
+                "session": self.policy_status, "serverControl": self.server_control, "chatToken": self.chat_token})
             # A newcomer may have received an older remote snapshot than the last public batch.
             room.move_identities.clear()
             self.seen_by_peers = self.state.copy()
             await self.tell_local({"type": "join", "player": self.state.copy()})
             await room.cluster.joined(self)
-        if settings.CAMPUS_DM_ENABLED:
-            self.direct_message_group = direct_message_group(self.user.pk)
-            await self.channel_layer.group_add(self.direct_message_group, self.channel_name)
         self.guard_task = asyncio.create_task(self.check_session_loop())
         if self.server_control:
             await self.send_control_state()
@@ -400,7 +396,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
             await self.receive_control(data)
             return
         if data.get("type") == "chat":
-            await self.receive_chat(data)
+            await self.send_packet({"type": "control_error", "message": "채팅 연결로 메시지를 보내 주세요."})
             return
         if data.get("type") == "ping":
             self.last_seen = time.monotonic()
@@ -499,7 +495,13 @@ class CampusConsumer(AsyncWebsocketConsumer):
         packet["main"] = {**self.state, **packet["main"]}
         if packet["interior"]:
             packet["interior"]["actor"].update(avatar=self.state.get("avatar", "male-1"), color=self.state["color"])
-        await self.send_packet({"type": "control_state", "state": packet})
+        payload = {"type": "control_state", "state": packet}
+        floor = packet["main"]["floor"]
+        if getattr(self, "chat_token_floor", floor) != floor:
+            self.chat_token_floor = floor
+            self.chat_token = issue_actor_token(self.user.pk, self.session_key, self.player_id, floor)
+            payload["chatToken"] = self.chat_token
+        await self.send_packet(payload)
         return True
 
     def wake_motion(self):
@@ -722,53 +724,6 @@ class CampusConsumer(AsyncWebsocketConsumer):
                     "targetId": target_id, "dir": direction, "floor": self.state["floor"], **scope,
                 })
 
-    async def receive_chat(self, data):
-        text = data.get("text")
-        if not isinstance(text, str):
-            await self.chat_error("메시지를 입력해 주세요.")
-            return
-        text = " ".join(text.split())
-        try:
-            text.encode("utf-8")
-        except UnicodeEncodeError:
-            await self.chat_error("메시지에 사용할 수 없는 문자가 있어요.")
-            return
-        if not text or len(text) > self.max_chat_length or any(ord(c) < 32 or ord(c) == 127 for c in text):
-            await self.chat_error("메시지는 1~200자로 입력해 주세요.")
-            return
-        now = time.monotonic()
-        if now - self.last_chat < self.chat_interval:
-            await self.chat_error("잠시 후 다시 보내 주세요.")
-            return
-        # Re-check the session before publishing chat, including logout in another tab.
-        identity = await self.current_identity()
-        if identity is None:
-            await self.session_expired({"reason": self.policy_status.get("reason", "signed_out")})
-            return
-        if self.player_id not in room.players:
-            return
-        try:
-            message_id = await socket_db.run(record_chat, self.user, self.platform_session_uuid, text, self.state["floor"])
-        except DatabaseError:
-            logging.getLogger(__name__).exception("Could not store accepted chat message")
-            await self.chat_error("메시지를 저장하지 못했어요. 잠시 후 다시 보내 주세요.")
-            return
-        self.last_seen = self.last_chat = now
-        self.state.update(identity)
-        async with room.lock:
-            if self.player_id not in room.players:
-                return
-            room.players[self.player_id] = self.state.copy()
-            await share_effect(room, {"type": "chat", "message": {
-                "id": message_id,
-                "playerId": self.player_id,
-                "nickname": identity["nickname"],
-                "floor": self.state["floor"],
-                "text": text,
-                "sentAt": timezone.now().isoformat(),
-            }})
-        await self.touch_activity()
-
     async def touch_activity(self, wait=True):
         now = time.monotonic()
         if now - self.last_activity_write < settings.CAMPUS_SESSION_ACTIVITY_WRITE_INTERVAL_SECONDS:
@@ -787,9 +742,6 @@ class CampusConsumer(AsyncWebsocketConsumer):
             return
         if state.get("reason") != "retry":
             self.policy_status = state
-
-    async def chat_error(self, message):
-        await self.send_packet({"type": "chat_error", "message": message})
 
     async def send_packet(self, payload):
         await self.send(text_data=json.dumps(payload, ensure_ascii=False, allow_nan=False, separators=(",", ":")))
@@ -814,13 +766,9 @@ class CampusConsumer(AsyncWebsocketConsumer):
         })
 
     async def presence_packet(self, event):
-        # 채널 계층으로 오는 방송은 이동(이름·아바타 바뀜, 예전 이동 방식)뿐이다. 찌르기·점프·채팅은 share_effect(계획 M8)
+        # 채널 계층으로 오는 방송은 이동뿐이다. 찌르기·점프는 share_effect로 보낸다.
         if self.player_id in room.players and event["sender"] != self.player_id:
             await self.send_packet(event["payload"])
-
-    async def direct_message(self, event):
-        if self.player_id in room.players and settings.CAMPUS_DM_ENABLED:
-            await self.send_packet({"type":"private_message", "conversationId":event["conversationId"]})
 
     async def current_identity(self):
         return await socket_db.run(self.identity_now)
@@ -942,8 +890,6 @@ class CampusConsumer(AsyncWebsocketConsumer):
             await self.send_packet({"type": "identity", "player": self.state.copy()})
 
     async def leave(self):
-        if getattr(self, "direct_message_group", None):
-            await self.channel_layer.group_discard(self.direct_message_group, self.channel_name)
         if self.player_id not in room.players:
             session_registry.unregister(self.player_id)
             if self.session_group:

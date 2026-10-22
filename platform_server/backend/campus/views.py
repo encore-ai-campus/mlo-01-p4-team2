@@ -27,7 +27,7 @@ def map_view(request):
             "privateMessages": message_configuration(request.user),
             "guidePending": bool(profile and not profile.guide_completed),
             "guideCompleteUrl": reverse("accounts-api:guide-complete")},
-        "presence_config": {"socketPath": "/ws/campus/", "loginUrl": reverse("accounts:login"),
+        "presence_config": {"movementSocketPath": "/ws/movement/", "chatSocketPath": "/ws/chat/", "loginUrl": reverse("accounts:login"),
             "avatar": get_avatar(request.user), "preferencesKey": f"campus-display-v1:{request.user.pk}",
             "position": get_position(request.user)},
     })

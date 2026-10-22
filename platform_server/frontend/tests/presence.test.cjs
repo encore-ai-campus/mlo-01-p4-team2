@@ -25,7 +25,7 @@ function app({authenticated = true, secure = false, floors, restore = false, ses
     });
     return elements.get(id);
   }
-  if (authenticated) element('campusPresenceConfig').textContent = JSON.stringify({socketPath: '/ws/campus/', loginUrl: '/accounts/login/'});
+  if (authenticated) element('campusPresenceConfig').textContent = JSON.stringify({movementSocketPath: '/ws/movement/', chatSocketPath:'/ws/chat/', loginUrl: '/accounts/login/'});
   class Socket {
     static OPEN = 1; static CLOSED = 3;
     constructor(url) {this.url = url; this.readyState = 1; this.sent = []; sockets.push(this);}
@@ -34,7 +34,7 @@ function app({authenticated = true, secure = false, floors, restore = false, ses
     receive(data) {this.onmessage({data: JSON.stringify(data)});}
   }
   const protocol = secure ? 'https:' : 'http:';
-  const context = vm.createContext({URL, Event, WebSocket: Socket, performance: {now: () => clock},
+  const context = vm.createContext({URL, Event, CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}}, WebSocket: Socket, performance: {now: () => clock},
     window: {location: {protocol, href: protocol + '//127.0.0.1:8000/', assign(url) {redirected = url;}},
       addEventListener(name, callback) {listeners.set('window:' + name, callback);}, dispatchEvent(event) {events.push(event.type);}, CampusSession: session},
     document: {getElementById: element, createElement: () => domElement(),
@@ -52,10 +52,13 @@ function app({authenticated = true, secure = false, floors, restore = false, ses
     onControlError(message) {controlErrors.push(message);}, onJump(message) {jumps.push(message);}, onPoke(message) {pokes.push(message);}});
   const peer = (changes = {}) => ({id: 'peer', nickname: '조원 이름', avatar: 'female-2', x: 1200, y: 437,
     dir: 'down', color: '#4e9b91', moving: false, ...changes});
-  function welcome(socket = sockets.at(-1)) {
-    socket.receive({type: 'welcome', selfId: 'self', players: [peer({id: 'self', nickname: '내 이름'}), peer()]});
+  const movement = () => sockets.findLast(socket=>new URL(socket.url).pathname==='/ws/movement/');
+  const chat = () => sockets.findLast(socket=>new URL(socket.url).pathname==='/ws/chat/');
+  function welcome(socket = movement(), {selfId='self',token='token-campus',readyChat=true} = {}) {
+    socket.receive({type: 'welcome', selfId, chatToken:token, players: [peer({id: selfId, nickname: '내 이름'}), peer()]});
+    if(readyChat)chat().receive({type:'chat_ready'});
   }
-  return {presence, player, sockets, timers, intervals, listeners, element, peer, welcome, events, chats, chatErrors, connectionChanges, restores, controlErrors, jumps, pokes,
+  return {presence, player, sockets, timers, intervals, listeners, element, peer, welcome, movement, chat, events, chats, chatErrors, connectionChanges, restores, controlErrors, jumps, pokes,
     tick(t, dt = .016) {clock = t; presence.tick(t, dt);},
     get redirected() {return redirected;}, get expired() {return expired;}};
 }
@@ -65,7 +68,7 @@ const floors={campus:{width:2448,height:1230,objects:[]},rooftop:{width:2448,hei
 const plain=value=>JSON.parse(JSON.stringify(value));
 test('standalone creates no socket; authenticated connections negotiate server control and WSS',()=>{
  const offline=app({authenticated:false});offline.tick(200);assert.equal(offline.sockets.length,0);
- for(const secure of [false,true]){const f=app({secure});assert.equal(f.sockets[0].url,`${secure?'wss':'ws'}://127.0.0.1:8000/ws/campus/?control=server&moves=compact`);f.presence.close();}
+ for(const secure of [false,true]){const f=app({secure});assert.equal(f.sockets[0].url,`${secure?'wss':'ws'}://127.0.0.1:8000/ws/movement/?control=server&moves=compact`);assert.equal(f.sockets.length,1);f.welcome();assert.equal(f.chat().url,`${secure?'wss':'ws'}://127.0.0.1:8000/ws/chat/`);f.presence.close();}
 });
 test('only allowed keyboard inputs are sent; client coordinates never become movement commands',()=>{
  const f=app({floors});f.welcome();f.presence.setInput(['w','d','d','teleport']);
@@ -145,9 +148,9 @@ test('the same avatar and nickname do not redraw the avatar panel; a real change
 });
 test('chat validation stays routed to the server; door messages are gone and control errors still reach the toast',()=>{
  const f=app({floors});f.welcome();assert.equal(f.presence.sendChat('가'.repeat(201)),false);assert.equal(f.presence.sendChat('   '),false);
- assert.equal(f.presence.sendChat('  안녕  '),true);assert.deepEqual(plain(f.sockets[0].sent.at(-1)),{type:'chat',text:'안녕'});
+ assert.equal(f.presence.sendChat('  안녕  '),true);assert.deepEqual(plain(f.chat().sent.at(-1)),{type:'chat',text:'안녕',actorToken:'token-campus'});
  const message={id:'m1',playerId:'peer',nickname:'조원',floor:'rooftop',text:'안녕',sentAt:'2026-10-13T01:00:00Z'};
- f.sockets[0].receive({type:'chat',message});f.sockets[0].receive({type:'chat',message:{...message,floor:'unknown'}});assert.equal(f.chats.length,1);
+ f.chat().receive({type:'chat',message});f.chat().receive({type:'chat',message:{...message,floor:'unknown'}});assert.equal(f.chats.length,1);
  assert.equal('requestDoor' in f.presence,false);f.sockets[0].receive({type:'door_state',doorId:'door-storage',open:true});  // 문은 없앴다(계획 M1)
  f.sockets[0].receive({type:'control_error',message:'잠시 후 다시 시도해 주세요.'});assert.deepEqual(f.controlErrors,['잠시 후 다시 시도해 주세요.']);
  f.presence.close();
@@ -158,12 +161,12 @@ test('control results match request IDs and disconnect rejects pending actions',
  const pending=f.presence.command('interact');f.presence.close();await assert.rejects(pending,/연결/);assert.equal(f.timers.size,0);
 });
 test('unexpected disconnection reconnects once and expired authentication cannot retry',()=>{
- const f=app({floors});f.welcome();f.sockets[0].close(1006);assert.equal(f.timers.size,1);[...f.timers.values()][0].callback();assert.equal(f.sockets.length,2);f.presence.close();
+ const f=app({floors});f.welcome();f.sockets[0].close(1006);assert.equal(f.timers.size,1);[...f.timers.values()][0].callback();assert.equal(f.sockets.length,3);f.presence.close();
  const expired=app();expired.welcome();expired.sockets[0].close(4401);assert.equal(expired.expired,1);assert.equal(expired.timers.size,0);
 });
 test('reconnect delays are spread per person around the doubling backoff',()=>{
  const f=app({floors});f.welcome();const delays=[];
- for(let i=0;i<5;i++){f.sockets.at(-1).close(1006);const timer=[...f.timers.values()].at(-1);delays.push(timer.delay);f.timers.clear();timer.callback();}
+ for(let i=0;i<5;i++){f.movement().close(1006);const timer=[...f.timers.values()].at(-1);delays.push(timer.delay);f.timers.clear();timer.callback();}
  [1000,2000,4000,8000,10000].forEach((base,i)=>assert.ok(delays[i]>=base*.5&&delays[i]<=base*1.5,String(delays)));
  assert.notDeepEqual(delays,[1000,2000,4000,8000,10000]);f.presence.close();  // 모두가 같은 순간에 다시 오지 않는다
 });
@@ -171,8 +174,8 @@ test('a 4401 is checked against the session first: alive reconnects, expired goe
  const flush=()=>new Promise(resolve=>setImmediate(resolve));
  let verified=0;const alive=app({floors,session:{verify:async()=>{verified++;return true;},expire(){},receive(){}}});alive.welcome();
  alive.sockets[0].close(4401);await flush();assert.equal(alive.expired,0);assert.equal(alive.timers.size,1);
- [...alive.timers.values()][0].callback();assert.equal(alive.sockets.length,2);
- alive.sockets[1].close(4401);await flush();assert.equal(verified,1);assert.equal(alive.expired,1);  // 다시 붙기 전에 또 4401: 확인 없이 끝낸다
+ [...alive.timers.values()][0].callback();assert.equal(alive.sockets.length,3);
+ alive.movement().close(4401);await flush();assert.equal(verified,1);assert.equal(alive.expired,1);  // 다시 붙기 전에 또 4401: 확인 없이 끝낸다
  const gone=app({floors,session:{verify:async()=>false,expire(){},receive(){}}});gone.welcome();
  gone.sockets[0].close(4401);await flush();assert.equal(gone.expired,1);assert.equal(gone.timers.size,0);
 });
@@ -188,4 +191,90 @@ test('jumps and pokes riding the 0.1s moves batch reach the same handlers as sin
  socket.receive({type:'moves',players:[]});
  assert.deepEqual(plain(f.jumps).map(row=>row.id),['j1','j2']);
  f.presence.close();
+});
+
+test('chat waits for its ready message and the current movement actor token',()=>{
+ const f=app({floors});assert.equal(f.presence.sendChat('hello'),false);
+ assert.equal(f.sockets.length,1);f.listeners.get('window:online')();assert.equal(f.sockets.length,2);
+ assert.equal(f.chat(),undefined);
+ f.welcome(f.movement(),{readyChat:false});assert.equal(f.presence.sendChat('hello'),false);
+ for(const invalid of [null,1,'bad']){f.movement().receive(invalid);f.chat().receive(invalid);}
+ f.chat().receive({type:'chat_ready'});assert.equal(f.presence.sendChat('hello'),true);
+ assert.deepEqual(plain(f.chat().sent.at(-1)),{type:'chat',text:'hello',actorToken:'token-campus'});
+ assert.equal(f.movement().sent.some(packet=>packet.type==='chat'),false);
+ assert.equal(f.connectionChanges.at(-1),true);f.presence.close();
+ const missing=app({floors});
+ missing.movement().receive({type:'welcome',selfId:'self',players:[missing.peer({id:'self'})]});
+ missing.chat().receive({type:'chat_ready'});
+ assert.equal(missing.presence.sendChat('hello'),false);missing.presence.close();
+});
+
+test('floor changes rotate the token without reconnecting chat and foreign actors cannot replace it',()=>{
+ const f=app({floors});f.welcome();const chat=f.chat();
+ f.movement().receive({type:'control_state',state:{main:f.peer({id:'self',x:1210})}});
+ f.presence.sendChat('same floor');assert.equal(chat.sent.at(-1).actorToken,'token-campus');
+ f.movement().receive({type:'control_state',chatToken:'foreign-token',state:{main:f.peer({id:'other',floor:'rooftop'})}});
+ f.presence.sendChat('same actor');assert.equal(chat.sent.at(-1).actorToken,'token-campus');
+ f.movement().receive({type:'control_state',chatToken:'token-roof',state:{main:f.peer({id:'self',floor:'rooftop',x:2200,y:1700})}});
+ assert.equal(f.presence.sendChat('roof'),true);assert.equal(chat.sent.at(-1).actorToken,'token-roof');
+ assert.equal(f.chat(),chat);assert.equal(f.sockets.length,2);
+ f.movement().receive({type:'control_state',state:{main:f.peer({id:'self',floor:'campus'})}});
+ assert.equal(f.presence.sendChat('missing floor token'),false);f.presence.close();
+});
+
+test('movement reconnect replaces actor and token while late old messages cannot overwrite them',()=>{
+ const f=app({floors});f.welcome();const old=f.movement(),chat=f.chat();
+ old.close(1006);assert.equal(f.presence.sendChat('during reconnect'),false);
+ [...f.timers.values()][0].callback();const current=f.movement();
+ f.welcome(current,{selfId:'new-self',token:'fresh-token',readyChat:false});
+ old.receive({type:'welcome',selfId:'self',chatToken:'old-token',players:[f.peer({id:'self'})]});
+ old.receive({type:'control_state',chatToken:'old-token',state:{main:f.peer({id:'new-self'})}});
+ old.onclose({code:4401});
+ assert.equal(f.presence.selfId,'new-self');assert.equal(f.chat(),chat);
+ assert.equal(f.presence.sendChat('fresh'),true);assert.equal(chat.sent.at(-1).actorToken,'fresh-token');
+ assert.equal(f.expired,0);f.presence.close();
+});
+
+test('chat reconnect leaves movement active and rejects callbacks from its old connection',()=>{
+ const f=app({floors});f.welcome();const movement=f.movement(),old=f.chat();
+ old.close(1006);assert.equal(f.presence.connected,true);assert.equal(f.presence.sendChat('wait'),false);
+ [...f.timers.values()][0].callback();const current=f.chat();
+ assert.equal(f.movement(),movement);assert.equal(f.presence.sendChat('wait'),false);
+ current.receive({type:'chat_ready'});
+ old.receive({type:'chat_ready'});old.receive({type:'chat_error',message:'old error'});old.onclose({code:4401});
+ assert.equal(f.presence.sendChat('ready'),true);assert.equal(current.sent.at(-1).actorToken,'token-campus');
+ assert.deepEqual(f.chatErrors,[]);assert.equal(f.expired,0);f.presence.close();
+});
+
+test('chat alone receives messages and private notifications; expiry stops both connections',()=>{
+ const f=app({floors,session:{receive(){},expire(){}}});f.welcome();
+ const message={id:'m1',playerId:'peer',nickname:'조원',floor:'campus',text:'안녕',sentAt:'2026-10-13T01:00:00Z'};
+ f.movement().receive({type:'chat',message});f.movement().receive({type:'private_message',conversationId:'old'});
+ assert.equal(f.chats.length,0);assert.equal(f.events.includes('campus:private-message'),false);
+ f.chat().receive({type:'chat',message});f.chat().receive({type:'private_message',conversationId:'current'});
+ f.chat().receive({type:'chat_error',message:'채팅 오류'});
+ assert.equal(f.chats.length,1);assert.equal(f.events.includes('campus:private-message'),true);
+ assert.deepEqual(f.chatErrors,['채팅 오류']);
+ f.chat().receive({type:'session_expired',reason:'replaced'});
+ assert.equal(f.movement().readyState,3);assert.equal(f.chat().readyState,3);
+ assert.equal(f.timers.size,0);assert.equal(f.intervals.size,0);assert.equal(f.presence.connected,false);
+});
+
+test('page lifecycle closes and restores both transports with no stale token',()=>{
+ const f=app({floors});f.welcome();const oldMovement=f.movement(),oldChat=f.chat();
+ f.listeners.get('window:pagehide')();assert.equal(f.intervals.size,0);
+ f.listeners.get('window:pageshow')({persisted:true});
+ oldMovement.receive({type:'welcome',selfId:'old',chatToken:'stale',players:[f.peer({id:'old'})]});
+ oldChat.receive({type:'chat_ready'});assert.equal(f.presence.sendChat('wait'),false);
+ f.welcome(f.movement(),{token:'restored-token'});
+ assert.equal(f.presence.sendChat('restored'),true);assert.equal(f.chat().sent.at(-1).actorToken,'restored-token');f.presence.close();
+});
+
+test('chat 4401 checks the session once and cannot close a newer chat connection',async()=>{
+ const flush=()=>new Promise(resolve=>setImmediate(resolve));let resolveVerification;
+ const f=app({floors,session:{verify:()=>new Promise(resolve=>{resolveVerification=resolve;}),expire(){},receive(){}}});
+ f.welcome();const old=f.chat();old.close(4401);
+ f.listeners.get('window:online')();const fresh=f.chat();
+ resolveVerification(false);await flush();assert.equal(f.expired,0);assert.notEqual(fresh,old);
+ fresh.receive({type:'chat_ready'});assert.equal(f.presence.sendChat('fresh'),true);f.presence.close();
 });

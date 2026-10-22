@@ -7,4 +7,6 @@ from django.urls import path
 from pages.sockets import BackendSocket
 
 application = ProtocolTypeRouter({'http': django_application,
-    'websocket': URLRouter([path('ws/campus/', BackendSocket.as_asgi())])})
+    'websocket': URLRouter([path('ws/movement/', BackendSocket.as_asgi()),
+                            path('ws/chat/', BackendSocket.as_asgi()),
+                            path('ws/campus/', BackendSocket.as_asgi())])})

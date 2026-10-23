@@ -121,6 +121,21 @@ class SplitSocketTests(TransactionTestCase):
                 await a.chat.send_json_to({'type': 'input', 'keys': ['w']})
                 self.assertTrue(await a.chat.receive_nothing(timeout=.02))
 
+    @override_settings(CHANNEL_LAYERS={
+        "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},
+        "service": {"BACKEND": "channels.layers.InMemoryChannelLayer"}})
+    async def test_separate_role_layers_deliver_chat_and_close_both_session_sockets(self):
+        from asgiref.sync import sync_to_async
+        from accounts.session_policy import notify_expiry
+
+        async with self.connections(self.a) as (a,):
+            await self.send(a, '서로 다른 채널 계층')
+            self.assertEqual((await a.chat.receive_json_from())['type'], 'chat')
+            key = self.a.cookies[settings.SESSION_COOKIE_NAME].value
+            await sync_to_async(notify_expiry)(key, 'signed_out')
+            self.assertEqual(await self.close_code(a.move), 4401)
+            self.assertEqual(await self.close_code(a.chat), 4401)
+
     async def test_chat_first_reads_the_platform_session_created_by_later_movement(self):
         from config.movement_asgi import application
         before = await database_sync_to_async(PlatformSession.objects.count)()

@@ -39,6 +39,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
     chat_interval = 0.8
     max_chat_length = 200
 
+    @property
+    def channel_layer_alias(self):
+        return "service" if "service" in settings.CHANNEL_LAYERS else "default"
+
     async def connect(self):
         self.groups_joined = []
         self.guard_task = None

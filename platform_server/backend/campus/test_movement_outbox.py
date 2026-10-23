@@ -133,9 +133,11 @@ class MovementSnapshotTests(TestCase):
         self.addCleanup(session_registry.unregister, "final-position")
         return key, self.client.session.get(SESSION_KEY)
 
-    def test_http_logout_commits_final_movement_before_ending_session(self):
+    def test_http_logout_keeps_the_position_already_saved_by_movement(self):
         key, identity = self.register_final_position()
-        self.assertEqual(self.client.post("/accounts/logout/").status_code, 302)
+        save_position(self.user, self.position, timezone.now(), session_uuid=identity)
+        with patch("campus.session_registry.latest", side_effect=AssertionError("HTTP must not read positions")):
+            self.assertEqual(self.client.post("/accounts/logout/").status_code, 302)
         self.profile.refresh_from_db()
         self.assertEqual(self.profile.last_position, self.position)
         row = EventOutbox.objects.get(event_type="movement_observed")

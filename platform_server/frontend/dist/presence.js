@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   window.CampusPresence = {
-    create({player, width, height, floors, onAuthExpired, onRestore = () => {}, onState = () => {}, onControlEvent = () => {}, onPoke = () => {}, onJump = () => {}, onChat = () => {}, onChatError = () => {}, onConnectionChange = () => {}, onControlError = () => {}}) {
+    create({player, width, height, floors, onAuthExpired, onRestore = () => {}, onState = () => {}, onControlEvent = () => {}, onPoke = () => {}, onJump = () => {}, onChat = () => {}, onChatError = () => {}, onConnectionChange = () => {}, onControlError = () => {}, onLogoutPending = () => {}}) {
       const configElement = document.getElementById('campusPresenceConfig');
       const status = document.getElementById('presenceStatus');
       const roster = document.getElementById('presencePeers');
@@ -329,7 +329,19 @@
       window.addEventListener('pageshow', event => {
         if (event.persisted) {closed = false; connect();}
       });
-      document.getElementById('campusLogoutForm')?.addEventListener('submit', close);
+      const logoutForm=document.getElementById('campusLogoutForm');let logoutPending=false;
+      logoutForm?.addEventListener('submit',async event=>{
+        event.preventDefault();
+        if(logoutPending)return;
+        logoutPending=true;onLogoutPending(true);setPoking(false,null,[]);
+        try{
+          const result=await command('prepare_logout');
+          if(result?.saved!==true)throw new Error('위치 저장을 확인하지 못했어요. 다시 시도해 주세요.');
+          close();logoutForm.submit();
+        }catch(error){
+          logoutPending=false;onLogoutPending(false);onControlError(error.message);
+        }
+      });
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden && !closed && (socket?.readyState === WebSocket.CLOSED||performance.now()-lastReceived>10000)) reconnectNow();
         if (!document.hidden && !closed && (chatSocket?.readyState === WebSocket.CLOSED||performance.now()-lastChatReceived>10000)) reconnectChat();

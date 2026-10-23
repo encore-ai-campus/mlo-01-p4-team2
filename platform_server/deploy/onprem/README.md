@@ -113,7 +113,9 @@ sh deploy/onprem/test.sh node
 전체 Backend 테스트도 같은 격리 설정으로 실행할 수 있다.
 
 ```bash
-PYTHONPATH="$PWD" .venv/bin/python backend/manage.py test --settings=deploy.onprem.test_settings --noinput
+cd backend
+PYTHONPATH="$PWD/.." ../.venv/bin/python manage.py test --settings=deploy.onprem.test_settings --noinput
+cd ..
 ```
 
 | 현재 검증 | 결과 |
@@ -122,11 +124,20 @@ PYTHONPATH="$PWD" .venv/bin/python backend/manage.py test --settings=deploy.onpr
 | 정적 파일 수집·원본 비교 | 110개 일치 |
 | 부하 도구 단위 테스트 | 2개 통과 |
 | 실행기 단위 테스트 | 4개 통과 |
-| 관련 Backend 회귀 | 97개 통과·기존 생략 1개·기존 오류 1개 |
+| 관련 Backend 회귀 | 98개 통과·기존 생략 1개 |
+| 계단 이동·승인 관련 | 3개 통과 |
 | Front Node 전체 | 113개 통과 |
+| Backend 전체·현재 로컬 환경 | 588개 실행·실패 3개·오류 11개·생략 8개 |
 
-기존 오류: `AuthoritativeSocketTests.test_transfer_approval_returns_a_user_bound_ad_token_before_moving`의 `KeyError('result')`.
-동일 설정으로 기준 `dev`의 `9390cc6`에서도 재현했다. 테스트 스크립트는 오류를 숨기지 않고 실패로 종료한다.
+기준 `dev 9390cc6`에서도 재현한 계단 테스트의 `KeyError('result')`를 수정했다.
+실제 지도의 계단 위치를 사용하고, 계단 선택·승인 응답의 성공 여부를 각각 검사한다.
+같은 고정 좌표를 사용하던 모션 테스트 2개도 갱신했다. 서버의 이동 규칙은 유지한다.
+
+전체 Backend 결과에는 별도 문제가 남아 있다.
+
+- 오류 7개: 현재 로컬 환경의 MySQLdb·Kafka 모듈을 불러오지 못함.
+- 나머지 실패·오류 7개: 부스·위치 관련 테스트. 기준 `dev 9390cc6`에서도 동일하게 재현함.
+- 기본 스크립트의 관련 회귀 통과와 전체 Backend 통과는 구분한다.
 
 - 로컬 Python·Node 검증 결과다. WSL·Nginx 실제 기동·두 PC 연동 결과는 아니다.
 - 실제 PC에서는 패키지 설치 후 Nginx 문법·프로세스 시작·종료를 다시 검증한다.
@@ -190,3 +201,4 @@ cd ..
 | 날짜 | 변경 | 변경한 절 |
 |---|---|---|
 | 2026-10-23 | dev 병합 없이 WSL2에서 직접 실행할 배포·테스트 절차 작성 | 1. 준비 · 2. 환경변수 · 3. DB 준비와 실행 · 4. 테스트 · 5. 150명 부하 확인 · 6. 서비스 등록·갱신·복구 · 7. 변경 이력 |
+| 2026-10-23 | 계단 테스트 좌표·응답 검증 수정과 회귀 결과 반영, 전체 Backend 테스트 명령의 실행 위치 보완 | 4. 테스트 · 7. 변경 이력 |

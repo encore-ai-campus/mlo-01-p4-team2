@@ -109,7 +109,9 @@ class PositionStorageTests(PresentationTestCase):
         self.assertEqual(self.profile.last_position, self.position)
 
 
-@override_settings(ALLOWED_HOSTS=["127.0.0.1", "localhost", "testserver"], DEBUG=False)
+# These storage compatibility tests send coordinates through the legacy protocol.
+@override_settings(ALLOWED_HOSTS=["127.0.0.1", "localhost", "testserver"], DEBUG=False,
+                   CAMPUS_TEST_LEGACY_MOVEMENT=True)
 class PositionSocketTests(TransactionTestCase):
     setUp = socket_tests.CampusSocketTests.setUp
     socket = socket_tests.CampusSocketTests.socket

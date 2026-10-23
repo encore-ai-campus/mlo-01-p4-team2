@@ -1,0 +1,14 @@
+# Edit a copy on each PC. Never commit real credentials.
+# Use the local WSL interface address for peer access, not an arbitrary remote IP.
+bind 127.0.0.1 REPLACE_WITH_LOCAL_PRIVATE_INTERFACE_IP
+port 6379
+protected-mode yes
+daemonize no
+supervised systemd
+dir /var/lib/redis
+logfile ""
+appendonly yes
+appendfsync everysec
+save ""
+# Match the password in both PCs' URL-encoded Redis connection strings.
+user default on >REPLACE_WITH_REDIS_PASSWORD ~* &* +@all -@dangerous

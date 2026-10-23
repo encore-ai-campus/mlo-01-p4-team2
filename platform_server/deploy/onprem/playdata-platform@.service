@@ -1,0 +1,21 @@
+[Unit]
+Description=Playdata platform %i (native WSL2/Linux)
+After=network-online.target redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Replace PLATFORM_USER and the repository path before installing this example.
+User=PLATFORM_USER
+Group=PLATFORM_USER
+WorkingDirectory=/home/PLATFORM_USER/mlo-01-p4-team2/platform_server
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/PLATFORM_USER/mlo-01-p4-team2/platform_server/.venv/bin/python /home/PLATFORM_USER/mlo-01-p4-team2/platform_server/deploy/onprem/run.py %i --env-file /etc/playdata/%i.env
+Restart=on-failure
+RestartSec=3
+KillMode=control-group
+TimeoutStopSec=40
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

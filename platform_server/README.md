@@ -7,7 +7,7 @@ PLAYDATA 캠퍼스를 옮겨 온 실시간 메타버스 서비스입니다. 닉�
 
 ## 이벤트맵 운영 안내
 
-> 빼빼로 이벤트맵 운영 브랜치: `feat/18`. 공통 배포 기반은 `feat/15`임. [맵 전환 절차](deploy/onprem/MAP_SWITCHING.md) · [통합 검증 결과](deploy/onprem/VALIDATION-20261026.md)
+> 빼빼로 이벤트맵 작업 브랜치: `feat/18` → 통합·배포 브랜치: `event`. 공통 배포 기반은 이벤트 변경 전 `feat/15`임. [맵 전환 절차](deploy/onprem/MAP_SWITCHING.md) · [통합 검증 결과](deploy/onprem/VALIDATION-20261026.md)
 > Draft 검토 상태임. 전체 회귀 미통과 항목을 해결하고 실제 두 PC 환경을 검증한 뒤 배포할 버전을 결정함.
 
 ## 브랜치

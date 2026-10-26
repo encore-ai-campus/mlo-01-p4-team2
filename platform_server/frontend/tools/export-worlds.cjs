@@ -1,5 +1,5 @@
 // 프론트 지도 데이터에서 서버 판정용 지도(backend/campus/data/worlds.json)를 만든다.
-// 지도(map-data·rooftop-data·classroom-map 등)를 고치면 dev/ 에서: node frontend/tools/export-worlds.cjs
+// 이벤트 원본: frontend/maps/pepero-worlds.json. 변경 후 node frontend/tools/build-event-map.cjs 실행.
 // frontend/tests/worlds-export.test.cjs 가 두 쪽이 어긋나면 실패한다.
 const fs = require('node:fs');
 const path = require('node:path');
@@ -7,7 +7,7 @@ const vm = require('node:vm');
 
 const FRONTEND = path.join(__dirname, '..');
 const TARGET = path.join(FRONTEND, '../backend/campus/data/worlds.json');
-const SOURCES = ['dist/map-data.js', 'dist/rooftop-data.js', 'dist/stair-motion.js', 'dist/avatars.js', 'learning/static/learning/classroom-map.js'];
+const SOURCES = ['dist/event-map.js', 'dist/stair-motion.js', 'dist/avatars.js', 'learning/static/learning/classroom-map.js'];
 // 교실 소품에는 solid 표시가 없다: 책상 위 물건과 출입구 문턱만 지나간다
 const CLASSROOM_PASSABLE = new Set(['laptop', 'monitor', 'door-threshold']);
 // 앉는 가구(의자·소파·스툴·옥상 벤치)는 어디서나 지나간다(18F·옥상·교실, 사용자 결정 10/19)
@@ -27,11 +27,12 @@ function build(root = FRONTEND) {
     for (const key of ['toFloor', 'arrival', 'action', 'contentType']) if (o[key] !== undefined) row[key] = o[key];
     row.confirmTransfer = o.confirmTransfer === true;
     if (o.interactionPoint) row.interactionPoint = o.interactionPoint;
+    if (o.interactionRadius !== undefined) row.interactionRadius = o.interactionRadius;
     row.footprint = rect(footprint(o));
     return row;
   };
   const solid = data => data.objects.filter(o => o.solid !== false && !PASSABLE.has(o.type) && !(o.classroomAsset && CLASSROOM_PASSABLE.has(o.type)))
-    .map(o => ({...rect(footprint(o)), pad: 0}));
+    .flatMap(o => o.collisionPolygon ? [{x:Math.min(...o.collisionPolygon.map(p=>p[0])),y:Math.min(...o.collisionPolygon.map(p=>p[1])),w:Math.max(...o.collisionPolygon.map(p=>p[0]))-Math.min(...o.collisionPolygon.map(p=>p[0])),h:Math.max(...o.collisionPolygon.map(p=>p[1]))-Math.min(...o.collisionPolygon.map(p=>p[1])),points:o.collisionPolygon,pad:0,objectId:o.id}] : (o.collisionParts || [o.collision || {x:0,y:0,w:o.w,h:o.h}]).map(part => ({x:o.x+part.x,y:o.y+part.y,w:part.w,h:part.h,pad:0,objectId:o.id})));
   const base = (data, radius) => ({id: data.id, name: data.name, width: data.width, height: data.height,
     angle: data.angle ?? Math.PI / 4, tilt: data.tilt ?? .58, privateRoom: data.privateRoom === true, radius, rooms: data.rooms});
   const floor = data => ({...base(data, 5.5), ...(data.entrance ? {entrance: data.entrance} : {}), spawn: data.spawn, portals: data.portals,

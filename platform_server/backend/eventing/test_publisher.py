@@ -1,5 +1,6 @@
 """Publisher checks without a broker or wall-clock waits."""
 import uuid
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.db import connection
@@ -75,11 +76,17 @@ class Producer:
 class OutboxPublisherTests(TestCase):
     def row(self, key=None, *, payload=True):
         event_uuid = uuid.uuid4()
-        return EventOutbox.objects.create(
+        self._row_sequence = getattr(self, '_row_sequence', 0) + 1
+        # Establish explicit ordering even when the OS clock returns equal timestamps.
+        observed = timezone.now() + timedelta(seconds=self._row_sequence)
+        row = EventOutbox.objects.create(
             event_uuid=event_uuid, event_type="session_started", topic="raw.account",
-            message_key=key or uuid.uuid4(), occurred_at=timezone.now(), raw_data={},
+            message_key=key or uuid.uuid4(), occurred_at=observed, raw_data={},
             payload_json={"event_uuid": str(event_uuid)} if payload else None,
         )
+        EventOutbox.objects.filter(pk=row.pk).update(created_at=observed)
+        row.created_at = observed
+        return row
 
     def run_publisher(self, producer):
         with patch.object(publisher.time, "monotonic", side_effect=lambda: producer.clock.now), \

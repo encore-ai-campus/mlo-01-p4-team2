@@ -2,7 +2,7 @@
 (() => {
  'use strict';
  const objects=[], add=(id,type,x,y,w,h,extra={})=>objects.push({id,type,x,y,w,h,classroomAsset:true,...extra});
- add('python-board','board',210,28,220,12,{});
+ add('python-board','board',210,28,220,12,{text:'11.11 PYTHON CLASS'});
  add('teacher-desk','desk',270,83,100,42);
  add('teacher-laptop','laptop',305,94,30,20);
  for(const [column,baseX] of [[0,80],[1,400]])for(const [row,y] of [[0,170],[1,300]])for(const [seat,offset] of [[0,0],[1,100]]){
@@ -35,7 +35,7 @@
   if(subject==='python')return {data};
   const sqlData={...data,id:'sql-classroom',subject:'sql',name:'SQL 학습교실',rooms:data.rooms.map(r=>({...r,name:'SQL 학습교실'})),objects:objects.map(o=>({...o,interactionPoint:o.interactionPoint?.slice()})),residents:residents.map(a=>({...a}))};
   for(const o of sqlData.objects){
-   if(o.type==='board')o.text='SQL Learning Room';
+   if(o.type==='board')o.text='11.11 SQL CLASS';
    if(o.action==='learning'){o.id=o.id.startsWith('python_')?o.id.replace('python_','sql_'):'sql_'+o.id;o.name=o.contentType==='multiple_choice'?'SQL 객관식':'SQL 코드 빈칸 채우기';}
   }
   sqlData.paintFloor=api=>window.CampusClassroomAssets.paintFloor({...api,subject:'sql'});

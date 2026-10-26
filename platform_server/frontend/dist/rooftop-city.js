@@ -1,7 +1,7 @@
 /* Decorative city below the rooftop. Shares its projection, never simulation coordinates. */
 (() => {
   'use strict';
-  const GROUND_Z=-940,GRID=700,ROAD=100,FOG='#ecf0eb';
+  const GROUND_Z=-940,GRID=700,ROAD=100,FOG=window.CAMPUS_SEASON==='pepero'?'#e8d3d1':'#ecf0eb';
   const overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
   function random(x,y,seed=0){const n=Math.sin(x*127.1+y*311.7+seed*74.7)*43758.5453;return n-Math.floor(n);}
   function model(data){

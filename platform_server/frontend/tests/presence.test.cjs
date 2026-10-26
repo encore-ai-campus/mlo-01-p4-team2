@@ -72,7 +72,7 @@ const floors={campus:{width:2448,height:1230,objects:[]},rooftop:{width:2448,hei
 const plain=value=>JSON.parse(JSON.stringify(value));
 test('standalone creates no socket; authenticated connections negotiate server control and WSS',()=>{
  const offline=app({authenticated:false});offline.tick(200);assert.equal(offline.sockets.length,0);
- for(const secure of [false,true]){const f=app({secure});assert.equal(f.sockets[0].url,`${secure?'wss':'ws'}://127.0.0.1:8000/ws/movement/?control=server&moves=compact`);assert.equal(f.sockets.length,1);f.welcome();assert.equal(f.chat().url,`${secure?'wss':'ws'}://127.0.0.1:8000/ws/chat/`);f.presence.close();}
+ for(const secure of [false,true]){const f=app({secure});assert.equal(f.sockets[0].url,`${secure?'wss':'ws'}://127.0.0.1:8000/ws/movement/?control=server&moves=compact&view=nearby`);assert.equal(f.sockets.length,1);f.welcome();assert.equal(f.chat().url,`${secure?'wss':'ws'}://127.0.0.1:8000/ws/chat/`);f.presence.close();}
 });
 test('only allowed keyboard inputs are sent; client coordinates never become movement commands',()=>{
  const f=app({floors});f.welcome();f.presence.setInput(['w','d','d','teleport']);
@@ -313,4 +313,29 @@ test('chat 4401 checks the session once and cannot close a newer chat connection
  f.listeners.get('window:online')();const fresh=f.chat();
  resolveVerification(false);await flush();assert.equal(f.expired,0);assert.notEqual(fresh,old);
  fresh.receive({type:'chat_ready'});assert.equal(f.presence.sendChat('fresh'),true);f.presence.close();
+});
+
+
+test('nearby visibility preserves the global roster and restores full pose without sliding or stale effects',()=>{
+ const f=app({floors});f.welcome();const socket=f.movement(),peer=f.presence.peers.get('peer');
+ socket.receive({type:'moves',players:[f.peer({inView:true,guarding:true,running:false,peperoRemaining:4})]});
+ peer._campusPokeLoop={id:'old'};peer._peperoBreak={started:0};
+ f.tick(1000);assert.equal(peer.guarding,true); // No repeated broadcast needed for held guard.
+ socket.receive({type:'moves',players:[],hidden:['peer']});
+ assert.equal(peer.inView,false);assert.equal(peer.guarding,false);
+ assert.equal(peer._campusPokeLoop,undefined);assert.equal(peer._peperoBreak,undefined);
+ assert.equal(f.presence.peers.size,1);assert.equal(f.element('presenceStatus').children[2].textContent,'2');
+ socket.receive({type:'moves',players:[f.peer({x:1250,y:450,inView:true,guarding:true,peperoRemaining:2})]});
+ assert.equal(peer.inView,true);assert.equal(peer.x,1250);assert.equal(peer.y,450);
+ assert.equal(peer.guarding,true);assert.equal(peer.peperoRemaining,2);
+ socket.receive({type:'moves',players:[{id:'peer',floor:'campus',inClassroom:false,x:1250,y:450,dir:'down',moving:false,guarding:false,inView:true}]});
+ assert.equal(peer.guarding,false);f.presence.close();
+});
+
+test('a distant identity change updates the roster without revealing position or showing the actor',()=>{
+ const f=app({floors});f.welcome();const peer=f.presence.peers.get('peer');
+ f.movement().receive({type:'moves',players:[],hidden:['peer']});
+ f.movement().receive({type:'peer_identity',player:{id:'peer',nickname:'새 닉네임',avatar:'male-1',color:'#dfa34d',x:999,y:999}});
+ assert.equal(peer.nickname,'새 닉네임');assert.equal(peer.x,1200);assert.equal(peer.inView,false);
+ assert.equal(f.element('presencePeers').children[0].textContent,'새 닉네임');f.presence.close();
 });

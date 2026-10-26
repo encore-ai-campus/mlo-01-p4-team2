@@ -1,0 +1,17 @@
+{
+  "source": "Built-in image_gen",
+  "referenceImages": [
+    "codex-clipboard-40ef2f91-9330-466e-8be0-2862d8e344fd.png",
+    "codex-clipboard-541f3363-0a13-4d15-9cec-6454aa3f4f52.png"
+  ],
+  "assets": {
+    "stall": "exec-5a9905b6-2773-4e70-9dd0-e3041fbd8083.png",
+    "workbench": "exec-8414bc67-33a4-4139-b532-54794817a631.png",
+    "flowerbox": "exec-61303223-a46b-405a-af29-db51ce999a56.png",
+    "hero": "exec-b0555a98-6b36-4412-b4fd-a5518f37f9b7.png",
+    "gate": "exec-c908a062-aed8-427f-a178-a4b8f18dfe0e.png",
+    "pedestal": "exec-af0a163a-0ec4-4716-95e2-29a981417291.png",
+    "cafe": "exec-de63c8c3-0790-42cd-ae38-8d220ef0ec35.png"
+  },
+  "description": "Seven transparent isometric assets generated to match supplied Pepero references. Source requests: striped market stall, workshop table with stools, rose planter with lantern, ribbon Pepero bouquet monument, crossed Pepero gate, gift display pedestal, pink parasol cafe."
+}

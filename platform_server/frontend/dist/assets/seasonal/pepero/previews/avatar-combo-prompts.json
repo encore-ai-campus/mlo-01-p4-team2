@@ -1,0 +1,14 @@
+{
+  "male-2": {
+    "generator": "built-in image_gen",
+    "prompt": "Create a transparent RGBA game sprite sheet, exactly 1536x1024, FOUR columns and TWO rows, 8 equal cells. Image1 is the exact CHARACTER identity reference (male-2); Image2 is the exact POSE AND GRID reference. Replace only the mint boy in Image2 with the character in Image1, retaining their hairstyle, face, glasses if any, outfit and shoes. Same chibi sprite art style. All eight face right, full body, planted feet stable baseline in each row. Replicate the eight alternating forehand/backhand arm poses from Image2 exactly, same clenched RIGHT fist positions, same body scales and proportions. Unarmed clenched hand: no weapons, no sticks, no effects. No background, no colored glow or floor; genuinely transparent outside the characters. No labels, no text, no extra characters. Intended for matching an existing game animation and hand anchored weapon layer."
+  },
+  "female-1": {
+    "generator": "built-in image_gen",
+    "prompt": "Create a transparent RGBA game sprite sheet, exactly 1536x1024, FOUR columns and TWO rows, 8 equal cells. Image1 is the exact CHARACTER identity reference (female-1); Image2 is the exact POSE AND GRID reference. Replace only the mint boy in Image2 with the character in Image1, retaining their hairstyle, face, glasses if any, outfit and shoes. Same chibi sprite art style. All eight face right, full body, planted feet stable baseline in each row. Replicate the eight alternating forehand/backhand arm poses from Image2 exactly, same clenched RIGHT fist positions, same body scales and proportions. Unarmed clenched hand: no weapons, no sticks, no effects. No background, no colored glow or floor; genuinely transparent outside the characters. No labels, no text, no extra characters. Intended for matching an existing game animation and hand anchored weapon layer."
+  },
+  "female-2": {
+    "generator": "built-in image_gen",
+    "prompt": "Create a transparent RGBA game sprite sheet, exactly 1536x1024, FOUR columns and TWO rows, 8 equal cells. Image1 is the exact CHARACTER identity reference (female-2); Image2 is the exact POSE AND GRID reference. Replace only the mint boy in Image2 with the character in Image1, retaining their hairstyle, face, glasses if any, outfit and shoes. Same chibi sprite art style. All eight face right, full body, planted feet stable baseline in each row. Replicate the eight alternating forehand/backhand arm poses from Image2 exactly, same clenched RIGHT fist positions, same body scales and proportions. Unarmed clenched hand: no weapons, no sticks, no effects. No background, no colored glow or floor; genuinely transparent outside the characters. No labels, no text, no extra characters. Intended for matching an existing game animation and hand anchored weapon layer."
+  }
+}

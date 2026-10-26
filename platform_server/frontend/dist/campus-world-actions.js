@@ -42,7 +42,11 @@
   wheel.addEventListener('click',()=>window.dispatchEvent(new CustomEvent('campus:open-service',{detail:'lunch'})));
   const guideObject=window.CampusWorlds.campus.objects.find(item=>item.id==='campus-guide-kkuwang');
   const wheelObject=window.CampusWorlds.rooftop.objects.find(item=>item.id==='roof-lunch-wheel');
-  const sites=[{button:guide,floor:'campus',x:guideObject.x+guideObject.w/2,y:guideObject.y+guideObject.h/2},{button:wheel,floor:'rooftop',x:wheelObject.x+wheelObject.w/2,y:wheelObject.y+wheelObject.h/2}];
+  const sites=[];
+  if(guideObject)sites.push({button:guide,floor:'campus',x:guideObject.x+guideObject.w/2,y:guideObject.y+guideObject.h/2});
+  else guide.remove();
+  if(wheelObject)sites.push({button:wheel,floor:'rooftop',x:wheelObject.x+wheelObject.w/2,y:wheelObject.y+wheelObject.h/2});
+  else wheel.remove();
   window.CampusWorldActions={update({floor,project,width,height,blocked}){
     for(const item of sites){
       if(floor!==item.floor||blocked){item.button.hidden=true;continue;}

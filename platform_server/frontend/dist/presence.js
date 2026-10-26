@@ -13,8 +13,8 @@
       let chatToken = null, chatTokenFloor = null, connectionAvailable = null;
       let inputKeys = [], sequence = 0, poking = false, pokeContext = null;
       const pending = new Map();
-      const allowedKeys = new Set(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright']);
-      let retry = null, retryDelay = 1000, heartbeat = null, lastSent = -Infinity, lastInput = '', authChecked = false;
+      const allowedKeys = new Set(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','shift','control']);
+      let retry = null, retryDelay = 1000, heartbeat = null, guardKeepalive = null, lastSent = -Infinity, lastInput = '', authChecked = false;
       let chatRetry = null, chatRetryDelay = 1000, chatHeartbeat = null, chatAuthChecked = false;
       let lastReceived = 0, lastChatReceived = 0;
       const floorBounds = floors || {campus:{width,height}};
@@ -63,12 +63,14 @@
           && (p.floor===undefined||typeof p.floor==='string') && bounds
           && Number.isFinite(p.x) && Number.isFinite(p.y) && p.x >= 0 && p.x <= bounds.width && p.y >= 0 && p.y <= bounds.height
           && colors.has(p.color) && directions.has(p.dir) && typeof p.moving === 'boolean'
+          && (p.running === undefined || typeof p.running === 'boolean')
+          && (p.guarding === undefined || typeof p.guarding === 'boolean')
           && (p.inClassroom === undefined || typeof p.inClassroom === 'boolean')
           && (p.avatar === undefined || avatars.has(p.avatar));
       }
       function upsert(p) {
         if (!validPeer(p) || p.id === selfId) return false;
-        p = {...p,floor:p.floor||'campus',avatar:p.avatar||'male-1',inClassroom:p.inClassroom===true};
+        p = {...p,floor:p.floor||'campus',avatar:p.avatar||'male-1',inClassroom:p.inClassroom===true,running:p.running===true,guarding:p.guarding===true};
         const now = performance.now(), peer = peers.get(p.id);
         if (!peer) {
           peers.set(p.id, {...p, targetX: p.x, targetY: p.y, receivedAt: now});
@@ -76,9 +78,9 @@
         }
         const renamed = peer.nickname !== p.nickname || peer.floor !== p.floor;
         // Room navigation teleports instead of drawing a trip through walls.
-        if (peer.floor!==p.floor||Math.hypot(peer.x - p.x, peer.y - p.y) > 180) {peer.x = p.x; peer.y = p.y;}
+        if (peer.inView===false&&p.inView===true||peer.floor!==p.floor||Math.hypot(peer.x - p.x, peer.y - p.y) > 180) {peer.x = p.x; peer.y = p.y;}
         Object.assign(peer, {targetX: p.x, targetY: p.y, dir: p.dir, color: p.color,
-          moving: p.moving, nickname: p.nickname, avatar:p.avatar, floor:p.floor, inClassroom:p.inClassroom, receivedAt: now});
+          inView:p.inView??peer.inView, peperoRemaining:p.peperoRemaining??0, moving: p.moving, running:p.running, guarding:p.guarding, nickname: p.nickname, avatar:p.avatar, floor:p.floor, inClassroom:p.inClassroom, receivedAt: now});
         return renamed;
       }
       function updatePeer(p) {
@@ -119,14 +121,14 @@
       }
       function rejectPending() {
         for(const {reject,timer} of pending.values()){clearTimeout(timer);reject(new Error('연결이 끊겼어요. 다시 연결해 주세요.'));}
-        pending.clear();inputKeys=[];lastInput='';poking=false;pokeContext=null;player.moving=false;
+        pending.clear();inputKeys=[];lastInput='';poking=false;pokeContext=null;player.moving=false;player.running=false;player.guarding=false;
       }
       function acceptSelf(p) {
         if(!validPeer(p)||p.id!==selfId)return;
         const floor=p.floor||'campus';
         applyIdentity(p);
         if(player.floor!==floor||!Number.isFinite(player.targetX)||Math.hypot(player.x-p.x,player.y-p.y)>80){player.x=p.x;player.y=p.y;}
-        Object.assign(player,{floor,targetX:p.x,targetY:p.y,dir:p.dir,moving:p.moving,inClassroom:p.inClassroom===true,receivedAt:performance.now()});
+        Object.assign(player,{peperoRemaining:p.peperoRemaining??0,floor,targetX:p.x,targetY:p.y,dir:p.dir,moving:p.moving,running:p.running===true,guarding:p.guarding===true,inClassroom:p.inClassroom===true,receivedAt:performance.now()});
       }
       function backoff() {
         // 2배씩 늘리되(최대 10초) 사람마다 0.5~1.5배로 흩뜨린다: 여럿이 함께 끊겨도 한순간에 다시 몰리지 않게(계획 6d)
@@ -136,7 +138,7 @@
         if(closed)return;
         const previous=socket;socket=null;
         rejectPending();ready=false;chatToken=null;notifyConnection();peers.clear();roster.replaceChildren();
-        clearInterval(heartbeat);clearTimeout(retry);
+        clearInterval(heartbeat);clearInterval(guardKeepalive);clearTimeout(retry);
         previous?.close(4000,'Reconnecting');
         connect();
       }
@@ -149,6 +151,7 @@
         url.protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         url.searchParams.set('control','server');
         url.searchParams.set('moves','compact');
+        url.searchParams.set('view','nearby');
         socket = new WebSocket(url.href);
         const current = socket;
         current.onmessage = event => {
@@ -171,6 +174,13 @@
             updateRoster(); publish(performance.now());
             if (!chatSocket) connectChat();
             clearInterval(heartbeat);
+            clearInterval(guardKeepalive);
+            // Rendering may briefly stall while large dialogs/assets open. Keep
+            // Ctrl defense alive independently while the physical key is held.
+            guardKeepalive=setInterval(()=>{
+              const now=performance.now();
+              if(inputKeys.includes('control')&&now-lastSent>=140)publish(now,true);
+            },100);
             heartbeat = setInterval(() => {
               if(current!==socket||closed||current.readyState!==WebSocket.OPEN)return;
               if(!document.hidden&&performance.now()-lastReceived>10000){reconnectNow();return;}
@@ -183,7 +193,7 @@
             onControlEvent(message.event);
           } else if (ready && message.type === 'jump') {
             onJump(message);
-          } else if (ready && ['poke','poke_state','poke_hit'].includes(message.type)) {
+          } else if (ready && ['poke','poke_state','poke_hit','pepero_inventory','pepero_status'].includes(message.type)) {
             onPoke(message);
           } else if (ready && message.type === 'control_result') {
             const task=pending.get(message.requestId);
@@ -195,17 +205,27 @@
             window.CampusSession?.expire(message.reason);
           } else if (ready && message.type === 'identity') {
             applyIdentity(message.player);
+          } else if (ready && message.type === 'peer_identity') {
+            const p=message.player,peer=p&&peers.get(p.id);
+            if(peer&&typeof p.nickname==='string'&&avatars.has(p.avatar)&&colors.has(p.color)){
+              Object.assign(peer,{nickname:p.nickname,avatar:p.avatar,color:p.color});updateRoster();
+            }
           } else if (ready && message.type === 'join') {
             if (upsert(message.player)) updateRoster();
           } else if (ready && message.type === 'move' && message.player && peers.has(message.player.id)) {
             if (upsert(message.player)) updateRoster();
           } else if (ready && message.type === 'moves' && Array.isArray(message.players)) {
             // 0.1초마다 묶여 오는 위치. 이미 아는 사람만 갱신한다(떠난 사람이 늦게 온 묶음으로 되살아나지 않게, 새 사람은 join 으로 온다)
+            for(const id of message.hidden||[]){
+              const peer=peers.get(id);if(!peer)continue;
+              Object.assign(peer,{inView:false,moving:false,running:false,guarding:false});
+              for(const key of Object.keys(peer))if(key.startsWith('_campus')||key.startsWith('_pepero'))delete peer[key];
+            }
             let renamed=false;for(const p of message.players)renamed=updatePeer(p)||renamed;
             if(renamed)updateRoster();
             // 같은 묶음에 실려 오는 점프·찌르기(서버가 소켓마다 초당 10프레임으로 줄였다)
             if(Array.isArray(message.effects))for(const effect of message.effects){
-              if(effect?.type==='jump')onJump(effect);else if(['poke','poke_state','poke_hit'].includes(effect?.type))onPoke(effect);
+              if(effect?.type==='jump')onJump(effect);else if(['poke','poke_state','poke_hit','pepero_inventory'].includes(effect?.type))onPoke(effect);
             }
           } else if (ready && message.type === 'leave') {
             if (peers.delete(message.id)) updateRoster();
@@ -213,7 +233,7 @@
         };
         current.onclose = event => {
           if (current !== socket) return;
-          rejectPending();ready = false; chatToken = null; notifyConnection();peers.clear(); roster.replaceChildren(); clearInterval(heartbeat);
+          rejectPending();ready = false; chatToken = null; notifyConnection();peers.clear(); roster.replaceChildren(); clearInterval(heartbeat);clearInterval(guardKeepalive);
           if (closed) return;
           if(event.code===4409){
             close();setStatus('새 연결로 전환됨 · 이 창에서 계속하려면 새로고침하세요','disconnected');
@@ -320,7 +340,7 @@
         }
         rejectPending();closed = true; ready = false; chatReady = false;chatToken = null;peers.clear();
         notifyConnection();
-        clearTimeout(retry); clearInterval(heartbeat);clearTimeout(chatRetry);clearInterval(chatHeartbeat);
+        clearTimeout(retry); clearInterval(heartbeat);clearInterval(guardKeepalive);clearTimeout(chatRetry);clearInterval(chatHeartbeat);
         const previous = socket, previousChat = chatSocket;
         socket = chatSocket = null;selfId = null;
         previous?.close(1000);previousChat?.close(1000);
@@ -368,10 +388,17 @@
           if(inputKeys.length||poking)publish(t); // 누르고 있는 동안만 0.1초마다 갱신한다(서버의 키 유효 시간 0.35초). 놓은 순간은 setInput 이 바로 보낸다
           const blend = 1 - Math.exp(-dt * 18);
           for (const peer of [player,...peers.values()]) {
-            if(!Number.isFinite(peer.targetX))continue;
+            if(peer.inView===false||!Number.isFinite(peer.targetX))continue;
             peer.x += (peer.targetX - peer.x) * blend;
             peer.y += (peer.targetY - peer.y) * blend;
-            if (t - peer.receivedAt > 300) peer.moving = false;
+            // A quiet authoritative stream means remote animation is stale.
+            // The local player is driven by the keys currently held, so clearing
+            // its guard here made a held Ctrl pose disappear after 0.3 seconds.
+            if(peer!==player&&t-peer.receivedAt>300){
+              peer.moving=false;peer.running=false;
+              // Scoped guard state lasts until the server releases it or hides the actor.
+              if(peer.inView!==true)peer.guarding=false;
+            }
           }
         },
       };

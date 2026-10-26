@@ -22,3 +22,13 @@
 .campus-space-guide .nav-icon { width: 27px; height: 27px; flex: none; }
 @media(max-width:700px) { .map-guide-toggle { padding: 9px; gap: 5px; } .map-guide-chevron { width: 9px; height: 9px; } .campus-space-guide { top: 85px; left: 12px; bottom: calc(var(--map-footer-height) + 12px); width: 280px; max-width: calc(100% - 24px); padding: 16px 13px 10px; } .space-guide-heading h2 { font-size: 19px; } .space-guide-heading .eyebrow { margin-bottom: 9px; } }
 @media(prefers-reduced-motion:reduce) { .map-guide-chevron { transition: none; } }
+
+/* Four destination cards in the event quick-travel menu. */
+.campus-space-guide .quick-travel-button { align-items:center; min-height:66px; padding:11px 12px; border:1px solid #ead8c8; background:#fffaf2; }
+.campus-space-guide .quick-travel-button:hover,.campus-space-guide .quick-travel-button:focus-visible { background:#fff0e8; border-color:#dca8a6; }
+.campus-space-guide .quick-travel-button.on-floor { border-color:#d8b8a7; }
+.campus-space-guide .quick-travel-button .nav-icon { display:grid; place-items:center; width:32px; height:32px; border-radius:9px; background:#6c3f53; color:#fff5e8; font-size:11px; font-weight:800; }
+.campus-space-guide .quick-travel-copy { display:grid; gap:2px; }
+.campus-space-guide .quick-travel-copy strong { font-size:14px; color:#593944; }
+.campus-space-guide .quick-travel-copy small { font-size:11px; color:#8c6e72; }
+.campus-snb .campus-space-guide #roomNav { max-height:420px; }

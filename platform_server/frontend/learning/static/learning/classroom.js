@@ -17,7 +17,7 @@
       const opening=!dialog.open||subject!==state.subject;
       if(opening){
         suppressedKeys.clear();
-        for(const key of getControl().inputKeys||[])if(movementKeys.has(key))suppressedKeys.add(key);
+        for(const key of getControl().inputKeys||[])if(movementKeys.has(key)||key==='shift'||key==='control')suppressedKeys.add(key);
         subject=state.subject;map=window.CampusClassroomMap.forSubject(subject);
         guideUntil=guidedSubjects.has(subject)?0:performance.now()+4500;guidedSubjects.add(subject);
         renderer=window.CampusIsometric.create({data:map.data});
@@ -25,11 +25,11 @@
         delete actor._campusJump;delete actor._campusPoke;delete actor._campusPokeReaction;delete actor._campusPokeLoop;delete actor._campusPokeFacing;
         for(const resident of map.data.residents){delete resident._campusPoke;delete resident._campusPokeReaction;}
         const title=document.getElementById('classroom-title');if(title)title.textContent=map.data.name;
-        canvas.setAttribute?.('aria-label',`${subject==='sql'?'SQL':'Python'} 학습교실. WASD와 방향키로 이동하고 학습 영역 안에서 E키, 가까운 캐릭터 앞에서 Z키, 스페이스바로 점프할 수 있어요.`);
+        canvas.setAttribute?.('aria-label',`${subject==='sql'?'SQL':'Python'} 학습교실. 설정한 이동키로 이동하고 달리기 키를 함께 누르면 달립니다. 학습 영역 안에서 상호작용 키, 가까운 캐릭터 앞에서 찌르기 키, 점프 키를 사용할 수 있어요.`);
         onOpen();keys.clear();if(!dialog.open)dialog.showModal();focus();
       }
       actor.targetX=state.actor.x;actor.targetY=state.actor.y;actor.receivedAt=performance.now();
-      Object.assign(actor,{dir:state.actor.dir,moving:state.actor.moving,avatar:state.actor.avatar||getPlayer().avatar});
+      Object.assign(actor,{dir:state.actor.dir,moving:state.actor.moving,running:state.actor.running===true,guarding:state.actor.guarding===true,avatar:state.actor.avatar||getPlayer().avatar});
       const nearby=state.nearby,inside=Boolean(nearby);
       activeType=nearby?.contentType||null;
       if(activeType)guideUntil=0;
@@ -49,10 +49,10 @@
       if(!dialog.open||window.CampusSession?.ending||window.CampusLearning?.blocking||(event.isComposing&&!window.CampusKeyboard.isGameKey(event))||event.target.closest?.('input,textarea,select,[contenteditable="true"]'))return;
       const key=window.CampusKeyboard.key(event);
       if(suppressedKeys.has(key)){event.preventDefault();return;}
-      if(movementKeys.has(key)){event.preventDefault();keys.add(key);}
+      if(movementKeys.has(key)||key==='shift'||key==='control'){event.preventDefault();keys.add(key);}
       else if(key==='e'&&!event.repeat){event.preventDefault();event.stopImmediatePropagation?.();activate();}
-      else if(key===' '&&!event.repeat&&!event.ctrlKey&&!event.altKey&&!event.metaKey){event.preventDefault();event.stopImmediatePropagation?.();onJump();}
-      else if(key==='z'&&!event.repeat&&!event.ctrlKey&&!event.altKey&&!event.metaKey){event.preventDefault();event.stopImmediatePropagation?.();onPoke();}
+      else if(key===' '&&!event.repeat&&(!event.ctrlKey||event.code.startsWith('Control'))&&!event.altKey&&!event.metaKey){event.preventDefault();event.stopImmediatePropagation?.();onJump();}
+      else if(key==='z'&&!event.repeat&&(!event.ctrlKey||event.code.startsWith('Control'))&&!event.altKey&&!event.metaKey){event.preventDefault();event.stopImmediatePropagation?.();onPoke();}
       else if(key==='enter')event.preventDefault();
     });
     document.addEventListener('keyup',event=>{const key=window.CampusKeyboard.key(event);keys.delete(key);suppressedKeys.delete(key);});
@@ -69,6 +69,7 @@
       if(!dialog.open||!actor)return;
       if(window.CampusLearning?.blocking||window.CampusSession?.ending)keys.clear();
       getControl().setInput([...keys]);
+      if(keys.has('control'))actor.guarding=true;
       const blend=1-Math.exp(-dt*18);
       actor.x+=(actor.targetX-actor.x)*blend;actor.y+=(actor.targetY-actor.y)*blend;
       actor.walkTime=actor.moving?(actor.walkTime||0)+dt:0;actor.avatar=getPlayer().avatar;
@@ -76,7 +77,7 @@
       if(!width||!height)return;
       if(canvas.width!==Math.round(width*dpr)||canvas.height!==Math.round(height*dpr)){canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);}
       const P=renderer.projection,view=map.data.viewBounds,zoom=Math.min(width/view.w,height/view.h),camera={zoom,x:(width-view.w*zoom)/2-view.x*zoom,y:(height-view.h*zoom)/2-view.y*zoom};
-      ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,height);ctx.fillStyle='#e3cda8';ctx.fillRect(0,0,width,height);
+      ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,height);ctx.fillStyle='#d8b8bd';ctx.fillRect(0,0,width,height);
       ctx.save();ctx.translate(camera.x,camera.y);ctx.scale(zoom,zoom);
       renderer.draw(ctx,{camera,actors:[actor,...map.data.residents],t,nearby:null,viewportWidth:width,viewportHeight:height,floorOverlay:paintAreaGuide});
       window.CampusClassroomAssets?.paintWallCorners(ctx,P);ctx.restore();

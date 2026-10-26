@@ -22,6 +22,7 @@ from accounts.models import get_identity, needs_profile_setup
 from accounts.session_policy import check_session
 from eventing.events import ensure_platform_session, record_floor_transfer, touch_platform_session
 from . import cluster, session_registry, poke, socket_db
+from .interest import InterestView, SpatialIndex
 from .motion import CLASSROOM_TRANSITION_DELAY, MotionController, ControlError, geometry, world
 from .positions import DIRECTIONS, FLOOR_BOUNDS, flush_movement_event, get_position, movement_event_due_at, save_position, validate_position
 from .chat_tokens import issue_actor_token
@@ -40,6 +41,7 @@ class CampusRoom:
         self.sockets = {}  # player_id → 소켓(묶음을 채널 계층 없이 바로 쓴다)
         self.pending_moves = {}  # 다음 묶음에 실을 최신 상태(사람마다 하나)
         self.move_identities = {}
+        self.interest_dirty = True
         self.pending_effects = {}  # player_id → 다음 묶음에 실을 꾸밈 효과(JSON 글)들(계획 §8)
         self.flusher = None
         self.cluster = cluster.Cluster()  # 다른 프로세스의 사람(Redis 를 쓸 때만, 계획 M3)
@@ -52,7 +54,7 @@ PLATFORM_TOUCH_SECONDS = 15  # touch_platform_session 이 last_seen_at 을 고�
 
 
 async def flush_moves(campus):
-    """0.1초마다 바뀐 사람들의 위치를 한 메시지(`moves`)로 모두에게 보낸다(계획 1d).
+    """0.1초마다 변경을 묶고, view=nearby 연결에는 같은 층·주변 상태만 보낸다.
 
     받는 쪽 메시지 수가 '걷는 사람 수'에서 1 로 준다. 직렬화는 한 번이고 채널 계층(복사·전체 훑기)을 거치지 않는다.
     그 사람에게 갈 꾸밈 효과(점프·찌르기)도 같은 메시지의 `effects` 에 싣는다(계획 §8): 소켓마다 초당 10프레임을 넘지 않는다.
@@ -72,8 +74,13 @@ async def flush_moves(campus):
             players = local + list(campus.cluster.remote_moves.values())
             campus.cluster.remote_moves.clear()
             effects, campus.pending_effects = campus.pending_effects, {}
-            if not players and not effects:
+            interest_dirty, campus.interest_dirty = campus.interest_dirty, False
+            if not players and not effects and not interest_dirty:
                 continue
+            scoped = any(getattr(socket, "nearby_moves", False) is True for socket in campus.sockets.values())
+            index = SpatialIndex([*campus.players.values(),
+                                  *(row["state"] for row in campus.cluster.remote.values()), *players]) if scoped else None
+            changed = {player["id"] for player in players}
             compact_players = []
             for player in players:
                 identity = tuple(player.get(key) for key in ("nickname", "avatar", "color"))
@@ -86,6 +93,21 @@ async def flush_moves(campus):
             heads = {}
             for player_id, socket in list(campus.sockets.items()):
                 mine = effects.get(player_id)
+                if getattr(socket, "nearby_moves", False) is True:
+                    observer = campus.players.get(player_id)
+                    if observer is None:
+                        continue
+                    packet = socket.interest.packet(index, observer, changed,
+                        compact=socket.compact_moves, overview=getattr(socket, "view_overview", False) is True)
+                    if mine:
+                        packet["effects"] = [effect for text in mine if
+                            (effect := json.loads(text)).get("actorId", player_id) in socket.interest.visible | {player_id}]
+                    if packet["players"] or packet.get("hidden") or packet.get("effects"):
+                        try:
+                            await socket.send(text_data=json.dumps(packet, ensure_ascii=False, allow_nan=False, separators=(",", ":")))
+                        except Exception:
+                            logging.getLogger(__name__).debug("Could not send nearby presence", exc_info=True)
+                    continue
                 if not players and not mine:
                     continue
                 try:
@@ -104,10 +126,14 @@ SLOW_DB_SECONDS = 1.0
 async def send_to_sockets(campus, payloads):
     """다른 프로세스에서 온 입장·퇴장을 이 프로세스의 모든 소켓에, 효과는 받을 사람에게 보낸다(계획 M3·M8)."""
     for payload in payloads:
+        campus.interest_dirty = True
         text = json.dumps(payload, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
         for socket in list(campus.sockets.values()):
             try:
-                await socket.send(text_data=text)
+                outgoing = text
+                if getattr(socket, "nearby_moves", False) is True and payload["type"] == "join":
+                    outgoing = json.dumps({**payload, "player": {**payload["player"], "inView": False}}, ensure_ascii=False, separators=(",", ":"))
+                await socket.send(text_data=outgoing)
             except Exception:  # noqa: BLE001 — 끊기는 중인 소켓 하나가 다른 사람의 소식을 막지 않는다
                 logging.getLogger(__name__).debug("Could not send a cluster presence change", exc_info=True)
     effects, campus.cluster.effects_in = campus.cluster.effects_in, []
@@ -124,7 +150,7 @@ def nearby(state, floor, x, y, reach):
             and math.hypot(state["x"] - x, state["y"] - y) <= reach)
 
 
-BATCHED_EFFECTS = {"jump", "poke", "poke_state", "poke_hit"}  # 다음 0.1초 묶음에 싣는다. 채팅은 바로(묶음을 모르는 옛 탭도 받게)
+BATCHED_EFFECTS = {"jump", "poke", "poke_state", "poke_hit", "pepero_inventory"}  # 다음 0.1초 묶음에 싣는다. 채팅은 바로(묶음을 모르는 옛 탭도 받게)
 
 
 async def deliver_effect(campus, payload, to=None, near=None):
@@ -205,6 +231,9 @@ class CampusConsumer(AsyncWebsocketConsumer):
         self.control_lock = asyncio.Lock()
         self.server_control = not getattr(settings, "CAMPUS_TEST_LEGACY_MOVEMENT", False) or b"control=server" in self.scope.get("query_string", b"")
         self.compact_moves = b"moves=compact" in self.scope.get("query_string", b"").split(b"&")
+        self.nearby_moves = b"view=nearby" in self.scope.get("query_string", b"").split(b"&")
+        self.interest = InterestView()
+        self.view_overview = bool(self.scope["user"].is_staff or self.scope["user"].is_superuser)
         self.session_group = None
         self.policy_status = None
         self.last_activity_write = -math.inf
@@ -236,6 +265,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
         self.last_seen = time.monotonic()
         self.last_move = 0
         self.last_poke = -math.inf
+        self.pepero_remaining = 0
         self.last_jump = -math.inf
         self.poke_requested = False
         self.poke_input_scope = None
@@ -254,7 +284,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
             # 같은 세션이 다른 프로세스에서 막 끊겼다(그 프로세스가 죽은 경우 등): DB 체크포인트(5초)보다 새 위치로 이어 붙는다(계획 M3)
             position = validate_position(live[0])
         self.state = {
-            "id": self.player_id, **identity, **position, "color": "#dfa34d", "moving": False,
+            "id": self.player_id, "peperoRemaining": 0, **identity, **position, "color": "#dfa34d", "moving": False, "running": False, "guarding": False,
         }
         if self.server_control:
             self.controller = MotionController(position)
@@ -289,12 +319,12 @@ class CampusConsumer(AsyncWebsocketConsumer):
                     self.controller.exit_return = previous_controller.exit_return.copy()
                     self.controller.keys = set();self.controller.route = []
                     self.controller.last_input = -math.inf;self.controller.pending_transfer = None
-                    self.controller.pose["moving"] = False
-                    if self.controller.interior:self.controller.interior["actor"]["moving"] = False
+                    self.controller.pose["moving"] = False;self.controller.pose["running"] = False;self.controller.pose["guarding"] = False
+                    if self.controller.interior:self.controller.interior["actor"].update(moving=False, running=False, guarding=False)
                     self.state.update(self.controller.pose)
                 else:
                     self.state.update({key:previous[key] for key in ("floor","x","y","dir")})
-                self.state["moving"] = False
+                self.state["moving"] = False;self.state["running"] = False;self.state["guarding"] = False
                 live_position = session_registry.latest(self.session_key, self.user.pk)
                 if live_position:
                     self.position_changed_at = live_position[1]
@@ -330,6 +360,9 @@ class CampusConsumer(AsyncWebsocketConsumer):
                 if self.controller.interior:room.interiors.add(self.player_id)
             await self.accept()
             players = [*room.players.values(), *(row["state"] for row in room.cluster.remote.values())]
+            if self.nearby_moves:
+                self.interest.packet(SpatialIndex(players), self.state, set(), compact=self.compact_moves, overview=self.view_overview)
+                players = [{**player, "inView": player["id"] in self.interest.visible or player["id"] == self.player_id} for player in players]
             self.chat_token_floor = self.state["floor"]
             self.chat_token = issue_actor_token(self.user.pk, self.session_key, self.player_id, self.chat_token_floor)
             await self.send_packet({"type": "welcome", "selfId": self.player_id, "players": players,
@@ -339,6 +372,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
             self.seen_by_peers = self.state.copy()
             await self.tell_local({"type": "join", "player": self.state.copy()})
             await room.cluster.joined(self)
+        await self.send_packet({"type": "pepero_status", "remaining": self.pepero_remaining})
         self.guard_task = asyncio.create_task(self.check_session_loop())
         if self.server_control:
             await self.send_control_state()
@@ -433,7 +467,9 @@ class CampusConsumer(AsyncWebsocketConsumer):
         floor = data.get("floor", self.state["floor"])
         position = validate_position({**data, "floor": floor})
         if (position is None or type(data.get("color")) is not str
-                or data["color"] not in self.colors or type(data.get("moving")) is not bool):
+                or data["color"] not in self.colors or type(data.get("moving")) is not bool
+                or ("running" in data and type(data["running"]) is not bool)
+                or ("guarding" in data and type(data["guarding"]) is not bool)):
             return
         now = time.monotonic()
         if not authoritative:
@@ -452,7 +488,8 @@ class CampusConsumer(AsyncWebsocketConsumer):
         if floor_changed:
             self.pending_floor_transfer = (previous_floor, floor)
         # Identity is always taken from the session, never from the message.
-        self.state.update(**position, color=data["color"], moving=False if final else data["moving"], inClassroom=in_classroom)
+        self.state.update(**position, color=data["color"], moving=False if final else data["moving"],
+                          running=False if final else data.get("running", False), guarding=False if final else data.get("guarding", False), inClassroom=in_classroom)
         if authoritative and not (final or floor_changed or visibility_changed):
             publish = self.peers_should_see(now)
         if publish:
@@ -487,7 +524,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
     def pose_changed(self):
         """이번 틱에 상태를 갱신할 일이 있는가: 서버 판정 위치가 바뀌었거나 다른 사람이 아직 못 본 변경(이름 등)이 있다."""
         pose = self.controller.pose
-        return (any(self.state[key] != pose[key] for key in ("floor", "x", "y", "dir", "moving"))
+        return (any(self.state.get(key) != pose.get(key) for key in ("floor", "x", "y", "dir", "moving", "running", "guarding"))
                 or self.state.get("inClassroom", False) != bool(self.controller.interior) or self.state != getattr(self, "seen_by_peers", None))
 
     async def send_control_state(self, only_changes=False):
@@ -587,6 +624,10 @@ class CampusConsumer(AsyncWebsocketConsumer):
                     await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
                     await self.touch_activity(wait=False)
                     return
+                if action == "pepero_refill":
+                    result = await self.refill_pepero(arguments)
+                    await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
+                    return
                 if action == "poke":
                     result = await self.receive_poke(arguments)
                     await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
@@ -660,7 +701,47 @@ class CampusConsumer(AsyncWebsocketConsumer):
             await share_effect(room, packet, near=(pose["floor"], pose["x"], pose["y"], VIEW_RANGE))
         return {"type": "jump", "id": packet["id"]}
 
+    async def refill_pepero(self, arguments):
+        obj_id = arguments.get("objectId")
+        obj = self.controller.world.objects.get(obj_id) if isinstance(obj_id, str) else None
+        point = obj.get("interactionPoint") if obj else None
+        if (not obj or obj.get("action") != "pepero_refill" or self.controller.interior
+                or self.controller.pending_transfer or self.controller.world.distance(obj, self.controller.pose) >= obj.get('interactionRadius', 35)
+                or not point or not self.controller.world.clear(self.controller.pose, {"x": point[0], "y": point[1]})):
+            raise ControlError("빼빼로 상자 앞에서 E를 눌러 주세요.")
+        self.pepero_remaining = 10
+        self.publish_pepero_inventory()
+        await self.send_packet({"type": "pepero_status", "remaining": 10})
+        await self.send_poke_to(self.poke_audience(self.current_poke_scope()), {
+            "type": "pepero_inventory", "actorId": self.player_id,
+            "remaining": 10, **self.current_poke_scope(),
+        })
+        await self.send_control_state()
+        return {"type": "pepero_refill", "remaining": 10}
+
+    def publish_pepero_inventory(self):
+        # Keep connection snapshots current without scheduling a global movement update.
+        # Hits already carry remaining to nearby viewers; refills use a targeted effect.
+        self.state["peperoRemaining"] = self.pepero_remaining
+        seen = getattr(self, "seen_by_peers", None)
+        if seen is not None:
+            seen["peperoRemaining"] = self.pepero_remaining
+        if self.player_id in room.players:
+            room.players[self.player_id] = self.state.copy()
+
+    async def spend_pepero(self, target_id, blocked):
+        before = self.pepero_remaining
+        broken = before > 0 and target_id is not None and blocked
+        if before > 0 and target_id is not None:
+            self.pepero_remaining = 0 if blocked else max(0, before - 1)
+            self.publish_pepero_inventory()
+            await self.send_packet({"type": "pepero_status", "remaining": self.pepero_remaining})
+        return {"peperoBefore": before, "peperoBroken": broken}
+
     async def receive_poke(self, arguments):
+        actor = self.controller.interior["actor"] if self.controller.interior else self.controller.pose
+        if actor.get("guarding") or self.controller.pending_transfer:
+            raise ControlError("막기나 이동이 끝난 뒤 찔러 주세요.")
         interior = self.controller.interior
         expected = {"context": "classroom", "subject": interior["subject"]} if interior else {"context": "world", "floor": self.controller.pose["floor"]}
         if arguments != expected:
@@ -681,13 +762,15 @@ class CampusConsumer(AsyncWebsocketConsumer):
                 pose = self.controller.pose
                 direction = self.controller.poke_direction
                 active_world = self.controller.world
-                targets = [player for player_id, player in self.everyone() if player_id != self.player_id and player["floor"] == pose["floor"]]
+                targets = [player for player_id, player in self.everyone() if player_id != self.player_id and player["floor"] == pose["floor"]] + poke.world_targets(active_world)
             target_id = poke.find_target(pose, targets, active_world, direction)
-            packet = {"type": "poke", "id": uuid4().hex, "actorId": self.player_id,
+            blocked = bool(target_id and next((target for target in targets if target.get("id") == target_id), {}).get("guarding"))
+            pepero_effect = await self.spend_pepero(target_id, blocked)
+            packet = {**pepero_effect, "remaining": self.pepero_remaining, "type": "poke", "id": uuid4().hex, "actorId": self.player_id,
                       "targetId": target_id, "dir": direction, "floor": self.controller.pose["floor"],
-                      **expected}
+                      "blocked": blocked, **expected}
             await self.send_poke_to(self.poke_audience(expected), packet)
-        return {"type": "poke", "hit": target_id is not None}
+        return {"type": "poke", "hit": target_id is not None and not blocked, "blocked": blocked}
 
     def current_poke_scope(self):
         interior = self.controller.interior
@@ -714,9 +797,10 @@ class CampusConsumer(AsyncWebsocketConsumer):
         await share_effect(room, payload, to=recipients)
 
     def poke_state(self, active, now):
-        return {"type": "poke_state", "id": self.poke_stream_id, "actorId": self.player_id,
+        return {"remaining": self.pepero_remaining, "type": "poke_state", "id": self.poke_stream_id, "actorId": self.player_id,
                 "active": active, "dir": self.poke_direction, "floor": self.state["floor"],
-                "phaseMs": int(max(0, now - self.poke_started) * 1000) % 250, **self.poke_scope}
+                "phaseMs": int(max(0, now - self.poke_started) * 1000) % 250,
+                "stroke": int(max(0, now - self.poke_started) * 1000) // 250 % 2, **self.poke_scope}
 
     async def stop_poke(self):
         if getattr(self, "poke_started", None) is None:
@@ -728,7 +812,8 @@ class CampusConsumer(AsyncWebsocketConsumer):
 
     async def tick_poke(self):
         now = time.monotonic()
-        if (not self.poke_requested or now - self.controller.last_input > poke.INPUT_LEASE
+        actor=self.controller.interior["actor"] if self.controller.interior else self.controller.pose
+        if (self.controller.pending_transfer or actor.get("guarding") or not self.poke_requested or now - self.controller.last_input > poke.INPUT_LEASE
                 or time.time() * 1000 >= self.policy_status.get("expiresAt", 0)):
             await self.stop_poke()
             return
@@ -759,18 +844,22 @@ class CampusConsumer(AsyncWebsocketConsumer):
             departed = self.poke_watchers - audience
             if departed:
                 await self.send_poke_to(departed, self.poke_state(False, now))
-            updated = audience if starting or changed_direction else audience - self.poke_watchers
+            refresh = now - getattr(self, "last_poke_sync", -math.inf) >= .5
+            updated = audience if starting or changed_direction or refresh else audience - self.poke_watchers
+            if starting or changed_direction or refresh:self.last_poke_sync = now
             if updated:
                 await self.send_poke_to(updated, self.poke_state(True, now))
             self.poke_watchers = audience
             active_world = world(interior["subject"]) if interior else self.controller.world
             targets = poke.classroom_targets(interior["subject"]) if interior else [
-                player for player_id, player in self.everyone() if player_id != self.player_id and player["floor"] == pose["floor"]]
+                player for player_id, player in self.everyone() if player_id != self.player_id and player["floor"] == pose["floor"]] + poke.world_targets(active_world)
             target_id = poke.find_target(pose, targets, active_world, direction)
             if target_id is not None:
+                blocked=bool(next((target for target in targets if target.get("id")==target_id),{}).get("guarding"))
+                pepero_effect = await self.spend_pepero(target_id, blocked)
                 await self.send_poke_to(audience, {
-                    "type": "poke_hit", "id": uuid4().hex, "actorId": self.player_id,
-                    "targetId": target_id, "dir": direction, "floor": self.state["floor"], **scope,
+                    **pepero_effect, "remaining": self.pepero_remaining, "type": "poke_hit", "id": uuid4().hex, "actorId": self.player_id,
+                    "targetId": target_id, "dir": direction, "floor": self.state["floor"], "blocked":blocked, **scope,
                 })
 
     async def touch_activity(self, wait=True):
@@ -801,11 +890,15 @@ class CampusConsumer(AsyncWebsocketConsumer):
         채널 계층(Redis)을 거치면 늦게 도착해, 막 붙은 소켓이 welcome 과 join 을 모두 놓칠 수 있다.
         다른 프로세스는 묶음 흐름(cluster)으로 알게 되어 자기 소켓에 알린다.
         """
+        room.interest_dirty = True
         text = json.dumps(payload, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
         for player_id, socket in list(room.sockets.items()):
             if player_id != self.player_id:
                 try:
-                    await socket.send(text_data=text)
+                    outgoing = text
+                    if getattr(socket, "nearby_moves", False) is True and payload["type"] == "join":
+                        outgoing = json.dumps({**payload, "player": {**payload["player"], "inView": False}}, ensure_ascii=False, separators=(",", ":"))
+                    await socket.send(text_data=outgoing)
                 except Exception:  # noqa: BLE001 — 끊기는 중인 소켓 하나가 다른 사람의 소식을 막지 않는다
                     logging.getLogger(__name__).debug("Could not send a presence change", exc_info=True)
 
@@ -817,7 +910,19 @@ class CampusConsumer(AsyncWebsocketConsumer):
     async def presence_packet(self, event):
         # 채널 계층으로 오는 방송은 이동뿐이다. 찌르기·점프는 share_effect로 보낸다.
         if self.player_id in room.players and event["sender"] != self.player_id:
-            await self.send_packet(event["payload"])
+            payload = event["payload"]
+            if self.nearby_moves and payload.get("type") == "move":
+                state = payload["player"]
+                if payload.get("identityOnly"):
+                    await self.send_packet({"type": "peer_identity", "player": {
+                        key: state[key] for key in ("id", "nickname", "avatar", "color")}})
+                if state["id"] in room.players:
+                    room.pending_moves[state["id"]] = state
+                elif state["id"] in room.cluster.remote:
+                    room.cluster.remote[state["id"]]["state"] = state
+                    room.cluster.remote_moves[state["id"]] = state
+            else:
+                await self.send_packet(payload)
 
     async def current_identity(self):
         return await socket_db.run(self.identity_now)
@@ -939,7 +1044,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
             async with room.lock:
                 room.players[self.player_id] = self.state.copy()
                 self.seen_by_peers = self.state.copy()
-                await self.broadcast({"type": "move", "player": self.state.copy()})
+                await self.broadcast({"type": "move", "player": self.state.copy(), "identityOnly": True})
             await self.send_packet({"type": "identity", "player": self.state.copy()})
 
     async def leave(self):

@@ -60,6 +60,7 @@ class LauncherTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Missing environment variables'):
                 launcher.load_environment(env_file)
 
+    @unittest.skipUnless(hasattr(os, "killpg") and hasattr(signal, "SIGKILL"), "POSIX process groups require Ubuntu/WSL")
     def test_child_failure_and_shutdown_escalation(self):
         exited = Mock(returncode=2)
         exited.poll.return_value = 2

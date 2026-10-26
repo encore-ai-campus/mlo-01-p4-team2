@@ -21,7 +21,7 @@ def main():
     sources = {}
     for finder in finders.get_finders():
         for path, storage in finder.list(['CVS', '.*', '*~']):
-            name = posixpath.join(getattr(storage, 'prefix', '') or '', path)
+            name = posixpath.join(getattr(storage, 'prefix', '') or '', path.replace('\\', '/'))
             sources.setdefault(name, Path(storage.path(path)))
     if not sources:
         raise SystemExit('No source static files found')

@@ -48,6 +48,13 @@ def direction_vector(active_world, direction):
     return dx / length, dy / length
 
 
+def world_targets(active_world):
+    return [{"id": o["id"], "objectId": o["id"], "guarding": True,
+             "x": o["footprint"]["x"] + o["footprint"]["w"] / 2,
+             "y": o["footprint"]["y"] + o["footprint"]["h"] / 2}
+            for o in active_world.objects.values() if o.get("action") == "guard_sandbag"]
+
+
 def find_target(pose, targets, active_world, direction=None):
     dx, dy = direction_vector(active_world, direction or pose["dir"])
     candidates = []
@@ -58,6 +65,8 @@ def find_target(pose, targets, active_world, direction=None):
         if not 0 < front <= REACH or side > SIDE_REACH or distance > REACH:
             continue
         collision_world = resident_world(target["subject"], target["chair"]) if target.get("chair") else active_world
+        if target.get("objectId"):
+            collision_world = World({**active_world.data, "colliders": [c for c in active_world.data["colliders"] if c.get("objectId") != target["objectId"]]})
         if collision_world.clear(pose, target):
             candidates.append((distance, target["id"]))
     return min(candidates)[1] if candidates else None

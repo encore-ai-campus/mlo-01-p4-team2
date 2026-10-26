@@ -82,3 +82,10 @@
 @media(prefers-reduced-motion:reduce) {
   .chat-panel { transition:none; }
 }
+
+#settingsDialog{max-height:calc(100dvh - 24px);overflow:auto}
+.keybind-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.keybind-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 9px;border:1px solid var(--line);border-radius:8px;font-size:12px}
+.keybind-row button,.keybind-actions button{padding:7px 10px;border:1px solid #d8e2db;border-radius:7px;background:#fff;color:var(--teal-dark);font-size:12px;font-weight:600;cursor:pointer}
+.keybind-row button{min-width:57px;white-space:nowrap}.keybind-row button:hover,.keybind-actions button:hover{background:#edf7f3}
+.keybind-actions{display:flex;align-items:center;gap:10px;margin:12px 0 18px}.keybind-actions span{font-size:11px;color:var(--muted)}

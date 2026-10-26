@@ -1,33 +1,34 @@
-/* Collapsible space list, separate from the first-visit instruction guide. */
+/* Four server-authorized event destinations; opening the menu does not send traffic. */
 (()=>{
  'use strict';
+ const destinations=[
+  {id:'campus-gallery',floor:'campus',label:'스위트 갤러리',detail:'18층 · 5·6·7 통합 아틀리에 앞'},
+  {id:'campus-market',floor:'campus',label:'기프트 마켓',detail:'18층 · 라운지 1'},
+  {id:'roof-workshop',floor:'rooftop',label:'초콜릿 워크숍',detail:'옥상 · 왼쪽 부스 구역'},
+  {id:'roof-plaza',floor:'rooftop',label:'초콜릿 광장',detail:'옥상 · 중앙 조형물 앞'},
+ ];
  window.CampusSpaceGuide={create({onSelect=()=>{},onOpen=()=>{},isBlocked=()=>false,focusMap=()=>{}}={}){
-  const toggle=document.getElementById('campusNavToggle'),panel=document.getElementById('campusSpaceGuide'),nav=document.getElementById('roomNav'),title=document.getElementById('spaceGuideTitle');
-  let floor=null;
-  function close({focus=false}={}){panel.hidden=true;toggle.setAttribute('aria-expanded','false');toggle.title='캠퍼스 공간 안내 펼치기';if(focus)toggle.focus({preventScroll:true});}
-  function setRoom(id){for(const button of nav.querySelectorAll('[data-room]')){const active=button.dataset.room===id;button.classList.toggle('active',active);if(active)button.setAttribute('aria-current','location');else button.removeAttribute('aria-current');}}
-  function setWorld(data,roomId){
-   if(floor!==data.id){
-    floor=data.id;title.textContent=floor==='rooftop'?'옥상 광장 둘러보기':'공간 둘러보기';nav.replaceChildren();
-    const groups=floor==='rooftop'?[['전시 부스',['festival-youtube','festival-instagram','festival-booth3']]]:[['라운지',['lounge1','lounge2']],['강의 공간',['class1','class2','class3-4','left-bottom','left-middle','left-top']],['회의 · 상담',['meeting','meeting-l2-a','meeting-l2-b','consult-a','consult-b']],['기타 공간',['office','storage','stairs']]];
-    for(const [label,ids] of groups){
-     const rooms=ids.map(id=>data.rooms.find(r=>r.id===id&&r.info!==false)).filter(Boolean);if(!rooms.length)continue;
-     const group=document.createElement('div');group.className='nav-group-label';group.textContent=label;nav.append(group);
-     for(const room of rooms){
-      const button=document.createElement('button');button.type='button';button.className='room-nav-button';button.dataset.room=room.id;
-      const icon=document.createElement('span');icon.className='nav-icon';icon.setAttribute('aria-hidden','true');icon.textContent=room.id.startsWith('lounge')?'L'+room.id.slice(-1):'▤';
-      const name=document.createElement('span');name.textContent=room.name;button.append(icon,name);
-      button.addEventListener('click',()=>{if(isBlocked())return;close();onSelect(room);});nav.append(button);
-     }
-    }
-    nav.scrollTop=0;
+  const toggle=document.getElementById('campusNavToggle'),panel=document.getElementById('campusSpaceGuide'),nav=document.getElementById('roomNav');
+  let floor='campus';
+  function close({focus=false}={}){panel.hidden=true;toggle.setAttribute('aria-expanded','false');toggle.title='빠른 이동 열기';if(focus)toggle.focus({preventScroll:true});}
+  function open(){if(isBlocked())return;onOpen();panel.hidden=false;toggle.setAttribute('aria-expanded','true');toggle.title='빠른 이동 닫기';nav.querySelector('button')?.focus({preventScroll:true});}
+  function flip(){if(panel.hidden)open();else close({focus:true});}
+  function setRoom(){for(const button of nav.querySelectorAll('[data-destination]'))button.classList.toggle('on-floor',button.dataset.floor===floor);}
+  function setWorld(data){floor=data.id;setRoom();}
+  for(const [name,groupFloor] of [['18층','campus'],['옥상','rooftop']]){
+   const group=document.createElement('div');group.className='nav-group-label';group.textContent=name;nav.append(group);
+   for(const destination of destinations.filter(item=>item.floor===groupFloor)){
+    const button=document.createElement('button');button.type='button';button.className='room-nav-button quick-travel-button';button.dataset.destination=destination.id;button.dataset.floor=destination.floor;
+    const icon=document.createElement('span');icon.className='nav-icon';icon.setAttribute('aria-hidden','true');icon.textContent=groupFloor==='campus'?'18':'RF';
+    const text=document.createElement('span');text.className='quick-travel-copy';const label=document.createElement('strong');label.textContent=destination.label;const detail=document.createElement('small');detail.textContent=destination.detail;text.append(label,detail);
+    button.append(icon,text);button.addEventListener('click',()=>{if(isBlocked())return;close();onSelect(destination);});nav.append(button);
    }
-   setRoom(roomId);
   }
-  toggle.addEventListener('click',()=>{if(isBlocked())return;if(!panel.hidden)close();else{onOpen();panel.hidden=false;toggle.setAttribute('aria-expanded','true');toggle.title='캠퍼스 공간 안내 접기';}});
+  toggle.addEventListener('click',flip);
   document.addEventListener('pointerdown',event=>{if(!panel.hidden&&!panel.contains(event.target)&&!toggle.contains(event.target))close();});
-  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden&&!isBlocked()){event.preventDefault();event.stopImmediatePropagation();close();focusMap();}},true);
+  document.addEventListener('keydown',event=>{if(panel.hidden||isBlocked())return;if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();close();focusMap();}else if(['ArrowDown','ArrowUp'].includes(event.key)&&nav.contains(document.activeElement)){event.preventDefault();event.stopImmediatePropagation();const buttons=[...nav.querySelectorAll('button')],index=buttons.indexOf(document.activeElement);buttons[(index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length]?.focus({preventScroll:true});}},true);
   window.addEventListener('campus:guide-open',()=>close());
-  return {setWorld,setRoom,close,get open(){return !panel.hidden;}};
+  setRoom();
+  return {setWorld,setRoom,close,toggle:flip,get open(){return !panel.hidden;}};
  }};
 })();

@@ -62,11 +62,12 @@
 | P1-8 마이그레이션 재생성 | 앱마다 PostgreSQL용 `0001_initial`(P1-6·P1-7 반영, D4). 임시 `0002`·`0003`을 지운다. 개발 DB는 다시 만든다 | `*/migrations/0001_initial.py` | 빈 DB에서 `migrate` 뒤 `makemigrations --check` 변화 없음, 두 부분 유일 색인(`billing_one_signup_grant_per_wallet`·`campaigns_one_open_review_per_campaign`)이 있음, 표·색인·제약 목록이 P1-7 상태와 같음 |
 | P1-9 명칭·계약 값·정렬 버전 | manifest `scope` 값 변경(D5). "MySQL" 문구·주석 정리. 정렬 버전 관리: 이미지 태그 고정(§4.3 V-1), 점검에 모든 DB의 정렬 버전 검사(V-2) | `records/management/commands/export_integrity.py:12`, `export_hop_manifests.py:15`, `console/management/commands/ops_check.py:6,116,123`, `foundation/http.py:24-26`(주석만), `records/backfill.py:3` | `test_event_hops:299`·`test_event_ndjson:393` 갱신 뒤 통과 |
 | P1-10 재측정 | 150 동시 부하(`tests/tools/load_test.py`)·장애 시험(`tests/tools/failure_test.py`) | `tests/tools/` | 유실 0 · 이중 과금 0 · 잔액 = 원장 · `RECEIVED` 잔류 0. 503 건수를 기록하고 D6·D9를 확정 |
-| P1-11 데이터 이관 (운영 데이터가 있을 때만) | MySQL → PostgreSQL 데이터 이관 | — | 표마다 건수·ID 집합 일치, `check_ledger` 0건 |
+| P1-11 데이터 이관 (운영 데이터가 있을 때만) | MySQL → PostgreSQL 데이터 이관. **새 DB에 `0001`을 적용(migrate)한 뒤 앱 표의 데이터만 옮긴다** — `django_migrations`·`django_content_type`·`auth_permission`은 옮기지 않는다(새 DB가 post_migrate로 만든 것을 쓴다) | — | 표마다 건수·ID 집합 일치, `check_ledger` 0건 |
 | P1-12 의존성 취약점 (실행: 전환 묶음 커밋 직후) | pip-audit 실패 해소(사용자 결정 2026-10-31). 기준선(MySQL, 체크포인트)에도 있던 실패: `Pillow` 12.3.0(고침 13.0.0), `certifi` 2026.7.22(고침 2026.10.18, 전이 의존성) | `requirements.txt`의 `Pillow`, 설치 환경의 `certifi` | `check.sh`의 pip-audit 통과, 소재 이미지 검증 시험(`tests.ops.test_assets_validation` 등) 통과. **`check.sh` 전체 통과** |
 
 ### 4.2 데이터 이관 시 주의 (P1-11)
 
+- **마이그레이션 이력:** P1-8에서 `0001_initial`을 같은 이름으로 다시 만들었으므로 Django는 옛 `0001`과 새 `0001`을 구별하지 못한다. 옛 `0001`만 적용된 DB는 '적용됨'으로 보고 새 `0001`을 돌리지 않아 스키마가 **조용히 어긋난다**(생성 열·FK 색인이 남고 부분 유일 색인이 없음). 그래서 이관은 새 DB에 `0001`을 적용한 뒤 데이터만 옮기고, P1-8 이전 마이그레이션으로 만든 PostgreSQL DB는 재사용하지 않고 다시 만든다(로컬은 `docker compose … down -v`).
 - Django는 MySQL에 `UUIDField`를 하이픈 없는 `char(32)`로 저장하고, PostgreSQL에는 `uuid`로 저장한다. 이관할 때 변환한다.
 - `DATETIME(6)`(UTC)은 `timestamptz`로, `BIGINT UNSIGNED`는 `bigint`로 옮긴다. 금액은 모두 `MAX_AMOUNT`(2^53 − 1) 이하인지 확인한다.
 - 생성 열(`signup_grant_wallet`, `open_campaign`)은 P1-6에서 없어지므로 복사하지 않는다.

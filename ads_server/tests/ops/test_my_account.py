@@ -108,7 +108,7 @@ class PasswordChangeRaceTests(Cases, TransactionTestCase):
         paused, release = threading.Event(), threading.Event()
 
         def hook(execute, sql, params, many, context):
-            if "FOR UPDATE" in sql and "`foundation_user`" in sql and not paused.is_set():
+            if "FOR UPDATE" in sql and '"foundation_user"' in sql and not paused.is_set():
                 paused.set()
                 assert release.wait(WAIT)
             return execute(sql, params, many, context)

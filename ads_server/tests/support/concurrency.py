@@ -1,4 +1,4 @@
-"""경쟁 시험의 공용 도우미. 실제 MySQL 연결을 스레드마다 하나씩 쓰고(`TransactionTestCase`), SQL 직전의 훅으로 실행 순서를 고정한다.
+"""경쟁 시험의 공용 도우미. 실제 DB(PostgreSQL) 연결을 스레드마다 하나씩 쓰고(`TransactionTestCase`), SQL 직전의 훅으로 실행 순서를 고정한다.
 
 - `Worker`: 별도 연결에서 일을 실행하고 예외를 모은다(끝나면 연결을 닫는다).
 - `pausing_before`: 첫 해당 SQL 직전에 멈춘다(`paused` 를 알리고 `release` 를 기다린다). 시험이 중간에 실패해도 스레드가 `WAIT` 동안 매달리지
@@ -33,7 +33,7 @@ class Worker(threading.Thread):
 
 
 def _matches(sql, verb, table):
-    return sql.lstrip().upper().startswith(verb) and f"`{table}`" in sql
+    return sql.lstrip().upper().startswith(verb) and connection.ops.quote_name(table) in sql
 
 
 def pausing_before(verb, table, work, paused, release):
@@ -53,7 +53,7 @@ def pausing_before(verb, table, work, paused, release):
 def arriving_before(fragment, table, work, arrived):
     """`work()` 를 실행하되 `table` 을 다루고 `fragment`(예: "FOR UPDATE")가 든 첫 SQL 직전에 `arrived` 를 알린다(멈추지 않는다)."""
     def hook(execute, sql, params, many, context):
-        if fragment in sql and f"`{table}`" in sql:
+        if fragment in sql and connection.ops.quote_name(table) in sql:
             arrived.set()
         return execute(sql, params, many, context)
 

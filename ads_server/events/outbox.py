@@ -18,6 +18,8 @@ def enqueue(event_name, source_id, aggregate_id, payload, produced_at=None):
         event_id=schemas.event_id_of(event_name, source_id), event_name=event_name, schema_version=schemas.SCHEMA_VERSIONS[event_name],
         aggregate_id=aggregate_id, payload=payload, created_at=produced_at or timezone.now(),
     )
-    # 이미 있으면 아무것도 바꾸지 않는다(ON DUPLICATE KEY UPDATE 로 같은 값을 다시 쓴다). INSERT IGNORE 는 쓰지 않는다: STRICT 모드의 다른 오류(길이·형식)까지 경고로 삼킨다
-    EventOutbox.objects.bulk_create([row], update_conflicts=True, update_fields=["event_name"])
+    # 이미 있으면 아무것도 바꾸지 않는다(ON CONFLICT DO NOTHING). PostgreSQL 은 유일 충돌만 건너뛰고 다른 오류(길이·형식·CHECK)는 그대로 올린다.
+    # 충돌 대상을 정할 수 없으므로(Django) 이 표에 PK 말고 다른 유일 제약을 더하면 그 충돌도 조용히 건너뛴다 — 그때 이 줄을 다시 본다.
+    # 쓰는 쪽(enqueue)은 INSERT 만 한다(CDC 의 전제 — 공통 레이크하우스 설계안 §3.5). 중계의 sent_at UPDATE·purge DELETE 는 Kafka 전환 때 바꾼다(계획서 §11)
+    EventOutbox.objects.bulk_create([row], ignore_conflicts=True)
     return row.event_id

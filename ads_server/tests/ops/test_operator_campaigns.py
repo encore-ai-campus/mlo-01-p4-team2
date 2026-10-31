@@ -51,7 +51,7 @@ class MonitoringServiceTests(Cases, TestCase):
 
     def creatives_read_for(self, queries):
         """소재 연결을 읽은 질의(하나)가 실은 캠페인들 — 다른 캠페인의 소재까지 읽으면 그 ID 도 실린다."""
-        (sql,) = [q["sql"] for q in queries.captured_queries if q["sql"].startswith("SELECT `campaigns_ad_group_creative`.")]
+        (sql,) = [q["sql"] for q in queries.captured_queries if q["sql"].startswith('SELECT "campaigns_ad_group_creative".')]
         return {c for c in Campaign.objects.values_list("campaign_id", flat=True) if c.hex in sql}
 
     def case_a_page_reads_only_its_own_campaigns(self):
@@ -65,8 +65,8 @@ class MonitoringServiceTests(Cases, TestCase):
         with CaptureQueriesContext(connection) as queries:
             items = list(Paginator(rows, 2).get_page(1))
         self.assertEqual(len(queries), 4)
-        (reviews,) = [q["sql"] for q in queries.captured_queries if "FROM `campaigns_review_request`" in q["sql"]]
-        self.assertIn("`campaign_id` IN (", reviews)  # 열린 요청도 이 쪽 캠페인의 것만
+        (reviews,) = [q["sql"] for q in queries.captured_queries if 'FROM "campaigns_review_request"' in q["sql"]]
+        self.assertIn('"campaign_id" IN (', reviews)  # 열린 요청도 이 쪽 캠페인의 것만
         self.assertEqual([i.campaign.campaign_id for i in items], [self.w.campaign.campaign_id, self.later.campaign_id])  # 중단으로 바뀐 캠페인이 맨 위
         self.assertEqual(items[0].campaign.suspension.open_review_request_id, review.review_request_id)
         self.assertEqual(self.creatives_read_for(queries), {i.campaign.campaign_id for i in items})  # 이 쪽 캠페인의 소재만(다른 캠페인 넷의 소재는 읽지 않는다)

@@ -321,12 +321,13 @@ class ConsistentReadUnavailable(RuntimeError):
 @contextmanager
 def consistent_read(quiescent=False):
     """이 안의 모든 읽기가 **하나의 스냅샷**을 본다. 기본 격리 수준(`READ COMMITTED`)은 SELECT 마다 새 스냅샷이라, 점검이 여러 조회를 비교하는 동안
-    정상 과금이 커밋되면 서로 다른 시점의 값을 비교해 거짓 불일치를 보고한다. 이 점검에만 `REPEATABLE READ` 를 쓴다(읽기만 하므로 잠금이 없고, 전역 설정은 그대로다).
+    정상 과금이 커밋되면 서로 다른 시점의 값을 비교해 거짓 불일치를 보고한다. 이 점검에만 `REPEATABLE READ, READ ONLY` 를 쓴다(읽기만 하므로 잠금이 없고, 전역 설정은 그대로다).
 
-    - **트랜잭션 밖**에서 부르면(운영 호출: 관리 명령, 부하 검사기) 다음 트랜잭션 하나만 `REPEATABLE READ` 로 열어 그 안에서 읽는다.
-    - **이미 시작한 트랜잭션 안**에서는 격리 수준을 바꿀 수 없고(MySQL), 그 트랜잭션이 어떤 격리 수준으로 시작했는지도 **확인할 수 없다**
-      (세션 기본값 `@@transaction_isolation` 은 `SET TRANSACTION` 으로 그 트랜잭션만 바꾼 경우를 알려 주지 않는다). `atomic()` 이라고 다른 연결의 커밋이 막히는 것도 아니다.
-      그래서 **스냅샷을 보장할 수 없다고 거절한다**(`ConsistentReadUnavailable`) — 조용히 건너뛰지도, 추정해서 허용하지도 않는다.
+    - **트랜잭션 밖**에서 부르면(운영 호출: 관리 명령, 부하 검사기) 트랜잭션을 하나 열고 **첫 문장으로** 격리 수준을 정한 뒤 그 안에서 읽는다.
+      PostgreSQL 의 `SET TRANSACTION` 은 트랜잭션 안에서만 듣고(밖에서는 경고만 내고 아무것도 바꾸지 않는다), 첫 조회 전에만 바꿀 수 있다.
+    - **이미 시작한 트랜잭션 안**에서는 격리 수준을 바꿀 수 없다(첫 조회 전에만 정할 수 있다). Django 트랜잭션은 접속 설정대로 READ COMMITTED 로 시작하므로
+      그 안에서는 스냅샷이 하나가 아니고, `atomic()` 이라고 다른 연결의 커밋이 막히는 것도 아니다. 그래서 **거절한다**(`ConsistentReadUnavailable`) — 조용히 건너뛰지도, 추정해서 허용하지도 않는다.
+      (PostgreSQL 은 `current_setting('transaction_isolation')` 으로 지금 트랜잭션의 수준을 알 수 있지만, 허용 규칙을 넓히지 않는다 — 동작은 MySQL 때와 같다.)
     - `quiescent=True` 는 호출한 쪽이 **동시에 쓰는 연결이 없음을 보장**할 때(단일 연결 시험)만 쓴다. 보장은 호출한 쪽의 책임이고, 틀리면 거짓 불일치가 날 수 있다.
     """
     if connection.in_atomic_block:
@@ -334,12 +335,12 @@ def consistent_read(quiescent=False):
             yield
             return
         raise ConsistentReadUnavailable(
-            "정합성 점검은 일관된 읽기 스냅샷이 필요한데, 이미 시작한 트랜잭션 안에서는 그 트랜잭션의 격리 수준을 확인할 수 없어 보장할 수 없습니다. "
+            "정합성 점검은 일관된 읽기 스냅샷이 필요한데, 이미 시작한 트랜잭션 안에서는 격리 수준을 바꿀 수 없어(첫 조회 전에만 정할 수 있다) 보장할 수 없습니다. "
             "트랜잭션 밖에서 부르거나, 동시에 쓰는 연결이 없다면 quiescent=True 로 부르세요."
         )
-    with connection.cursor() as cursor:
-        cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")  # 다음 트랜잭션 하나에만 적용된다
     with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")  # 이 트랜잭션의 첫 문장이어야 한다
         yield
 
 

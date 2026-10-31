@@ -192,7 +192,7 @@ class WindowedSummaryTests(Cases, TestCase):
 
         def count_rows(execute, sql, params, many, context):
             result = execute(sql, params, many, context)
-            if "FROM `records_reaction`" in sql:
+            if 'FROM "records_reaction"' in sql:
                 fetched.append(context["cursor"].rowcount)
             return result
         with connection.execute_wrapper(count_rows):

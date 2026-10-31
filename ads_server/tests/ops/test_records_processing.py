@@ -290,7 +290,7 @@ class QueueTests(Cases, ProcessingBase):
         def flaky(*args, **kwargs):
             calls.append(1)
             if len(calls) <= 2:
-                raise OperationalError(2003, "Can't connect to MySQL server")
+                raise OperationalError("connection failed: Connection refused")
             return real(*args, **kwargs)
 
         def fake_sleep(seconds):

@@ -193,7 +193,7 @@ class ForeignReportsDoNotJoinTheOwnersOrderingTests(Cases, FunnelMixin, Transact
         with Uncommitted(lambda: self.foreign_receive(11)):
             def judge():
                 with connection.cursor() as cur:
-                    cur.execute("SET SESSION innodb_lock_wait_timeout = 1")
+                    cur.execute("SET lock_timeout = '1s'")
                 return records.process_reaction(mine.inbox_id, now=at(12))
 
             outcome = self.finishes(judge, "소유 매체의 판정")

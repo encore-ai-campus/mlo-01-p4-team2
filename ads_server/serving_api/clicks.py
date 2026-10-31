@@ -15,7 +15,7 @@ from django.db import OperationalError
 from django.http import HttpResponseRedirect
 from django.views.decorators.http import require_GET
 
-from foundation.api import errors
+from foundation.api import db_cause_text, errors
 from masters import api as masters
 from records import api as records
 
@@ -62,7 +62,7 @@ def follow_click(request, token):
         url = records.observe_click(decision_id, _viewer(request))
     except OperationalError as error:  # 이동할 곳을 읽지 못했다. 복구되면 같은 주소를 다시 열면 된다
         # 원인을 한 줄로 남긴다(트레이스백 없음 — 장애 중에 클릭마다 트레이스백이 쌓이지 않게, 6-3b)
-        logger.warning("클릭 처리 중 DB 오류로 503 decision=%s %s %s", decision_id, type(error).__name__, error.args[0] if error.args else "-")
+        logger.warning("클릭 처리 중 DB 오류로 503 decision=%s %s %s", decision_id, type(error).__name__, db_cause_text(error))
         raise errors.Unavailable("일시적으로 처리할 수 없습니다. 잠시 뒤에 다시 시도하세요.")
     response = HttpResponseRedirect(url)  # 302
     response["Cache-Control"] = "no-store"

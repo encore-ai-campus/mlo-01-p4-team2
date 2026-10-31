@@ -1,6 +1,6 @@
-"""DB 오류 분류(`foundation/dberrors.py`): 유일 제약 위반은 다른 무결성 오류(NOT NULL·CHECK)와 구분한다. DB-1c(S6): 교착(1213)·잠금 대기 초과(1205)는 **실패가 아니라 일시 오류**다.
+"""DB 오류 분류(`foundation/dberrors.py`): 유일 제약 위반은 다른 무결성 오류(NOT NULL·CHECK)와 구분한다. DB-1c(S6): 교착(40P01)·잠금 대기 초과(55P03)는 **실패가 아니라 일시 오류**다.
 
-MySQL 에서는 정상 동작의 일부다(서버가 트랜잭션 하나를 되돌린다). 반응 처리가 이것을 실패로 세면 정상 반응의 `attempts` 가 올라 상한(5)에서 자동 재처리에서 빠진다.
+정상 동작의 일부다(서버가 트랜잭션 하나를 되돌린다). 반응 처리가 이것을 실패로 세면 정상 반응의 `attempts` 가 올라 상한(5)에서 자동 재처리에서 빠진다.
 그래서 횟수를 올리지 않고 다음 주기에 다시 한다. API 는 `OperationalError` 를 503 + `Retry-After` 로 바꾼다(`serving_api/auth.py`).
 """
 import threading
@@ -8,6 +8,7 @@ import uuid
 from random import Random
 from unittest import mock
 
+import psycopg
 from django.db import IntegrityError, OperationalError, connection, transaction
 from django.test import TestCase, TransactionTestCase, override_settings, tag
 
@@ -18,10 +19,12 @@ from records import api as records
 from records.models import Reaction
 from tests.support.concurrency import WAIT, Worker
 from tests.support.factories import NOW, SUBJECT, World
+from tests.support.helpers import db_error
 from tests.support.cases import Cases
 
-DEADLOCK = OperationalError(1213, "Deadlock found when trying to get lock; try restarting transaction")
-LOCK_TIMEOUT = OperationalError(1205, "Lock wait timeout exceeded; try restarting transaction")
+DEADLOCK = db_error(OperationalError, psycopg.errors.DeadlockDetected("deadlock detected"))
+LOCK_TIMEOUT = db_error(OperationalError, psycopg.errors.LockNotAvailable("canceling statement due to lock timeout"))
+LOST_CONNECTION = db_error(OperationalError, psycopg.OperationalError("server closed the connection unexpectedly"))  # SQLSTATE 없음(서버가 답하지 않았다)
 
 
 @tag("security")
@@ -29,16 +32,16 @@ class ClassificationTests(Cases, TestCase):
     def case_only_deadlock_and_lock_wait_timeout_are_transient(self):
         self.assertTrue(is_transient_lock_error(DEADLOCK))
         self.assertTrue(is_transient_lock_error(LOCK_TIMEOUT))
-        for other in (OperationalError(2013, "Lost connection"), OperationalError(1146, "no table"), OperationalError("disk I/O error"), RuntimeError("x"), ValueError(1213)):
+        others = (LOST_CONNECTION, db_error(OperationalError, psycopg.errors.AdminShutdown("terminating connection due to administrator command")),
+                  OperationalError("disk I/O error"), RuntimeError("x"), ValueError("40P01"), psycopg.errors.DeadlockDetected("not wrapped by Django"))
+        for other in others:
             self.assertFalse(is_transient_lock_error(other), other)
 
     def case_a_wrapped_driver_error_is_recognised_through_its_cause(self):
-        import MySQLdb
-
         try:
             try:
-                raise MySQLdb.OperationalError(1213, "Deadlock")
-            except MySQLdb.OperationalError as driver:
+                raise psycopg.errors.DeadlockDetected("deadlock detected")
+            except psycopg.Error as driver:
                 raise OperationalError("wrapped") from driver
         except OperationalError as wrapped:
             self.assertTrue(is_transient_lock_error(wrapped))
@@ -68,7 +71,7 @@ class ProcessingRetriesTests(Cases, TestCase):
         self.assertEqual(records.process_reaction(self.inbox_id, now=NOW), "ACCEPTED")  # 다시 하면 된다
 
     def case_a_real_failure_still_counts(self):
-        with mock.patch("records.processing.billing.charge_for_reaction", side_effect=OperationalError(2013, "Lost connection")), self.assertRaises(OperationalError):
+        with mock.patch("records.processing.billing.charge_for_reaction", side_effect=LOST_CONNECTION), self.assertRaises(OperationalError):
             records.process_reaction(self.inbox_id, now=NOW)
         self.assertEqual(self.row().attempts, 1)
 
@@ -100,7 +103,7 @@ class ProcessingRetriesTests(Cases, TestCase):
 @override_settings(REACTION_PROCESS_ON_RECEIPT=False)
 @tag("security")
 class RealLockWaitTimeoutTests(TransactionTestCase):
-    """실제 MySQL 의 잠금 대기 초과(1205): 다른 연결이 반응 행을 쥐고 있어 기다리다 시간이 넘으면 횟수를 올리지 않는다."""
+    """실제 PostgreSQL 의 잠금 대기 초과(55P03, lock_timeout): 다른 연결이 반응 행을 쥐고 있어 기다리다 시간이 넘으면 횟수를 올리지 않는다."""
 
     def test_waiting_for_a_held_row_until_the_timeout_is_not_a_failure(self):
         w = World()
@@ -119,7 +122,7 @@ class RealLockWaitTimeoutTests(TransactionTestCase):
         self.assertTrue(holding.wait(WAIT))
         try:
             with connection.cursor() as cur:
-                cur.execute("SET SESSION innodb_lock_wait_timeout = 1")
+                cur.execute("SET lock_timeout = '1s'")
             with self.assertRaises(OperationalError) as caught:
                 records.process_reaction(view.inbox_id, now=NOW)
             self.assertTrue(is_transient_lock_error(caught.exception), caught.exception)
@@ -144,7 +147,7 @@ class TransientErrorResponseTests(TestCase):
             for error in (DEADLOCK, LOCK_TIMEOUT):
                 response = middleware.process_exception(request, error)
                 self.assertEqual((response.status_code, response["Retry-After"]), (503, "1"), (path, error))
-            self.assertIsNone(middleware.process_exception(request, OperationalError(2013, "Lost connection")))
+            self.assertIsNone(middleware.process_exception(request, LOST_CONNECTION))
         self.assertEqual(middleware.process_exception(RequestFactory().post("/api/media/v1/decisions"), DEADLOCK)["Content-Type"], "application/problem+json")
 
 
@@ -161,7 +164,7 @@ class UniqueViolationTests(Cases, TestCase):
         self.assertTrue(is_unique_violation(self.raised()))
         self.assertFalse(is_unique_violation(self.raised(username=None)))  # NOT NULL 위반
         with connection.cursor() as cur, self.assertRaises(IntegrityError) as caught, transaction.atomic():
-            cur.execute("INSERT INTO billing_wallet (wallet_id, owner_id, balance, created_at) VALUES ('x', 'nobody', 9007199254740993, '2026-01-01')")
+            cur.execute("INSERT INTO billing_wallet (wallet_id, owner_id, balance, created_at) VALUES (gen_random_uuid(), gen_random_uuid(), 9007199254740993, '2026-01-01')")
         self.assertFalse(is_unique_violation(caught.exception))  # CHECK 위반
 
     def case_an_unknown_backend_error_is_never_called_a_duplicate(self):

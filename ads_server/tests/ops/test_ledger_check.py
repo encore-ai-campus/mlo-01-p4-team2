@@ -1,6 +1,6 @@
 """정합성 점검(`check_ledger`)은 **한 읽기 스냅샷**에서 지갑과 원장을 비교한다(검토 DB-1c `7aac929`·`6fc9664` 보완 — 설계 §10).
 
-MySQL 의 기본 격리 수준(`READ COMMITTED`)은 SELECT 마다 새 스냅샷이라, 점검이 여러 조회를 비교하는 동안 정상 과금이 커밋되면 서로 다른 시점의 값을 비교해
+기본 격리 수준(`READ COMMITTED`)은 SELECT 마다 새 스냅샷이라, 점검이 여러 조회를 비교하는 동안 정상 과금이 커밋되면 서로 다른 시점의 값을 비교해
 거짓 불일치를 보고한다. 실제 연결을 스레드마다 하나씩 쓰고, 점검이 지갑을 읽은 직후(연결 훅)에 다른 연결이 과금을 커밋하게 해 순서를 고정한다.
 (6-16f 전에는 이 파일이 캠페인 일 소진액 표와 재계산의 경쟁도 다뤘다 — 소진액은 이제 원장에서 세므로 그 시험들은 없어졌다.)
 """
@@ -39,7 +39,7 @@ class ConsistentLedgerCheckTests(Cases, TransactionTestCase):
 
         def hook(execute, sql, params, many, context):
             result = execute(sql, params, many, context)
-            if "FROM `billing_wallet`" in sql and not fired:  # 지갑을 읽은 직후 — 원장은 아직 읽지 않았다
+            if 'FROM "billing_wallet"' in sql and not fired:  # 지갑을 읽은 직후 — 원장은 아직 읽지 않았다
                 fired.append(1)
                 worker = Worker(lambda: self.charge(20, "m:r2"))  # 정상 과금이 커밋된다(잔액·원장이 함께 30 줄어듦)
                 worker.start()
@@ -59,36 +59,28 @@ class ConsistentLedgerCheckTests(Cases, TransactionTestCase):
         self.charge(10, "m:r1")
         with transaction.atomic(), self.assertRaises(api.ConsistentReadUnavailable) as caught:
             api.check_ledger()
-        self.assertIn("확인할 수 없", str(caught.exception))
+        self.assertIn("바꿀 수 없", str(caught.exception))
         self.assertIn("quiescent=True", str(caught.exception))
 
-    def case_a_session_default_of_repeatable_read_does_not_vouch_for_the_current_transaction(self):
-        """검토 f2e930b: 세션 기본값이 `REPEATABLE READ` 여도 `SET TRANSACTION` 으로 **다음 트랜잭션 하나만** `READ COMMITTED` 로 시작할 수 있고,
-        `@@transaction_isolation`(세션 값)은 그것을 알려 주지 않는다. 현재 트랜잭션의 읽기 보장을 확인할 수 없으므로 기존 트랜잭션 안의 호출은 거절한다."""
-        self.charge(10, "m:r1")
-        with connection.cursor() as cursor:
-            cursor.execute("SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ")
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED")  # 다음 트랜잭션만
-            with transaction.atomic(), self.assertRaises(api.ConsistentReadUnavailable):
-                api.check_ledger()  # 허용했다면 검사 도중 커밋된 정상 과금을 불일치로 오인했을 것이다(검토에서 재현)
-        finally:
-            with connection.cursor() as cursor:
-                cursor.execute("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
-
     def case_no_session_isolation_level_lets_an_existing_transaction_through(self):
-        """세션 격리 수준과 무관하게, 이미 시작한 트랜잭션 안에서는 `quiescent=True` 가 아니면 거절한다."""
+        """세션 기본 격리 수준(`default_transaction_isolation`)과 무관하게, 이미 시작한 트랜잭션 안에서는 `quiescent=True` 가 아니면 거절한다.
+        (MySQL 때의 '다음 트랜잭션 하나만 바꾸는 SET TRANSACTION' 경우는 PostgreSQL 에 없다 — 그 시험은 이것으로 합쳤다.)"""
         self.charge(10, "m:r1")
-        for level in ("READ COMMITTED", "REPEATABLE READ", "SERIALIZABLE"):
+        for level in ("read committed", "repeatable read", "serializable"):
             with connection.cursor() as cursor:
-                cursor.execute(f"SET SESSION TRANSACTION ISOLATION LEVEL {level}")
+                cursor.execute(f"SET default_transaction_isolation = '{level}'")
             try:
                 with transaction.atomic(), self.assertRaises(api.ConsistentReadUnavailable, msg=level):
                     api.check_ledger()
             finally:
                 with connection.cursor() as cursor:
-                    cursor.execute("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
+                    cursor.execute("RESET default_transaction_isolation")
+
+    def case_the_check_reads_in_one_repeatable_read_read_only_transaction(self):
+        """`SET TRANSACTION` 을 트랜잭션 밖에서 하면 PostgreSQL 은 경고만 내고 무시한다 — 실제로 그 트랜잭션이 RR·읽기 전용인지 본다."""
+        with api.consistent_read(), connection.cursor() as cursor:
+            cursor.execute("SELECT current_setting('transaction_isolation'), current_setting('transaction_read_only')")
+            self.assertEqual(cursor.fetchone(), ("repeatable read", "on"))
 
     def case_quiescent_is_the_explicit_way_to_check_inside_a_transaction_without_concurrent_writers(self):
         self.charge(10, "m:r1")

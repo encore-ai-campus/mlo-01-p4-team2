@@ -8,7 +8,7 @@ from .base import *  # noqa: F401,F403
 from config.access_map import build_access_map
 
 from ._env import env_int, env_list, env_str
-from .base import mongo_config, mysql_config
+from .base import mongo_config, postgres_config
 
 SECRET_KEY = "test-only-secret-key-" + "x" * 40
 
@@ -31,13 +31,13 @@ atexit.register(shutil.rmtree, STATIC_ROOT, ignore_errors=True)
 # 접근 통제 테스트용 더미 모델 앱(소유자가 있는 모델)
 INSTALLED_APPS = [*INSTALLED_APPS, "tests.support.support_app"]
 
-# 시험용 MySQL 8.4 (계획 S3: 개발 PC의 컨테이너, 공유 인프라 서버에서는 돌리지 않는다). Django 가 `test_<DB_NAME>` 을 만들고 끝나면 지운다.
-DATABASES = {"default": mysql_config(
+# 시험용 PostgreSQL (개발 PC 의 로컬 서버·컨테이너, 공유 인프라 서버에서는 돌리지 않는다). Django 가 `test_<DB_NAME>` 을 만들고 끝나면 지운다.
+DATABASES = {"default": postgres_config(
     env_str("DB_NAME", default="ads_server"),
     env_str("DB_USER", required=True),
     env_str("DB_PASSWORD", required=True),
     env_str("DB_HOST", default="127.0.0.1"),
-    env_int("DB_PORT", 3306),
+    env_int("DB_PORT", 5432),
 )}
 
 # 시험용 MongoDB (DB-2). 접속 값(MONGO_*)만 읽고, 데이터베이스 이름은 프로세스마다 무작위로 정한다(남의 데이터와 겹치지 않게).

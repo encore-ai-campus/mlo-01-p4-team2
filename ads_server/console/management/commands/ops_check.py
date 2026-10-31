@@ -79,7 +79,7 @@ def _dependencies():
     for line in (raw.split("#")[0].strip() for raw in text.splitlines()):
         if not line:
             continue
-        m = re.fullmatch(r"([A-Za-z0-9_.-]+)\s*~=\s*(\d+(?:\.\d+)+)", line)
+        m = re.fullmatch(r"([A-Za-z0-9_.-]+)(?:\[[A-Za-z0-9_,.-]+\])?\s*~=\s*(\d+(?:\.\d+)+)", line)  # `psycopg[binary]` 같은 extras 는 이름만 대조한다
         if not m:
             wrong.append(f"읽을 수 없는 줄 '{line}'")
             continue

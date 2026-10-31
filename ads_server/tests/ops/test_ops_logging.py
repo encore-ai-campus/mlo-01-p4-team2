@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest import mock
 
+import psycopg
 from django.core import signing
 from django.core.management import call_command
 from django.db import OperationalError
@@ -25,9 +26,10 @@ from foundation.logging import RequestIdFilter, UtcFormatter
 from foundation.middleware import ApiErrorMiddleware
 from serving_api import clicks
 from tests.support.cases import Cases
+from tests.support.helpers import db_error
 
 STAMP = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z")  # 로그 시각과 명령 줄의 시각이 같은 모양이다
-LOCK_TIMEOUT = OperationalError(1205, "Lock wait timeout exceeded; try restarting transaction")
+LOCK_TIMEOUT = db_error(OperationalError, psycopg.errors.LockNotAvailable("canceling statement due to lock timeout\nCONTEXT:  while locking tuple (0,1) in relation \"records_reaction\""))
 
 
 def stamped_lines(text):
@@ -80,18 +82,21 @@ class OneLine503Tests(Cases, SimpleTestCase):
             response = ApiErrorMiddleware(lambda request: None).process_exception(RequestFactory().get("/advertiser/campaigns/"), LOCK_TIMEOUT)
         (record,) = logs.records
         self.assertEqual(response.status_code, 503)
-        self.assertIn("OperationalError 1205", record.getMessage())
+        self.assertIn("OperationalError 55P03", record.getMessage())
+        self.assertNotIn("\n", record.getMessage())  # PostgreSQL 메시지의 여러 줄(CONTEXT)을 싣지 않는다
         self.assertIn("/advertiser/campaigns/", record.getMessage())
         self.assertIsNone(record.exc_info)  # 트레이스백 없음(장애 중 요청마다 쌓이지 않게)
 
     def case_a_click_503_logs_its_cause_in_one_line(self):
         decision_id = str(uuid.uuid4())
         token = signing.dumps({"d": decision_id}, salt=clicks.SALT, compress=False)
-        with mock.patch("serving_api.clicks.records.observe_click", side_effect=OperationalError(2003, "Can't connect to MySQL server")), \
+        refused = db_error(OperationalError, psycopg.OperationalError('connection failed: connection to server at "127.0.0.1", port 5432 failed: Connection refused\n\tIs the server running on that host?'))
+        with mock.patch("serving_api.clicks.records.observe_click", side_effect=refused), \
                 self.assertLogs("serving_api.clicks", "WARNING") as logs, self.assertRaises(errors.Unavailable):
             clicks.follow_click(RequestFactory().get(f"/c/{token}"), token)
         (record,) = logs.records
-        self.assertIn(f"decision={decision_id} OperationalError 2003", record.getMessage())
+        self.assertIn(f"decision={decision_id} OperationalError connection failed:", record.getMessage())  # SQLSTATE 가 없으면 메시지 첫 줄
+        self.assertNotIn("Is the server running", record.getMessage())
         self.assertIsNone(record.exc_info)
 
     def test_one_line503(self):

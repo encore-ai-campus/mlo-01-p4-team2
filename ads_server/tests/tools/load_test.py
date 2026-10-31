@@ -5,7 +5,7 @@
     python tests/tools/load_test.py --small    # 20 동시(몇 초)
     python tests/tools/load_test.py --json out.json
 
-환경: **MySQL 8.4**(실행마다 새 `ads_load_*` 데이터베이스를 만들고 끝나면 지운다), 실제 미들웨어를 거치는 스레드형 WSGI 서버
+환경: **PostgreSQL 18**(실행마다 새 `ads_load_*` 데이터베이스를 만들고 끝나면 지운다), 실제 미들웨어를 거치는 스레드형 WSGI 서버
 (파이썬 표준 `wsgiref` — 운영용 서버가 아니다), 별도 프로세스로 뜨는 `process_reactions`. 클라이언트는 계약의 재시도 규칙을 따른다
 (429·503·연결 실패는 `Retry-After` 를 지켜 같은 요청을 다시 보낸다). 개발 DB 는 건드리지 않는다.
 
@@ -887,13 +887,13 @@ def main(argv=None):
     sys.path.insert(0, str(BASE_DIR))
     sys.path.insert(0, str(BASE_DIR / "tests" / "tools"))
     os.chdir(BASE_DIR)
-    import mysql_admin
+    import pg_admin
 
     # 자원은 만드는 즉시 기록하고, 어느 단계에서 실패해도(준비·시험·결과 저장) 만든 것만 바깥 finally 가 정리한다.
     res = {"tmp": None, "db": None, "server": None, "serving": False, "mongo_db": None, "relays": []}
     try:
         res["tmp"] = tmp = Path(tempfile.mkdtemp(prefix="ads-load-"))
-        res["db"] = db_name = mysql_admin.create_database("ads_load")  # 접속 값이 없거나 연결이 안 되면 여기서 이유를 말하고 멈춘다
+        res["db"] = db_name = pg_admin.create_database("ads_load")  # 접속 값이 없거나 연결이 안 되면 여기서 이유를 말하고 멈춘다
         res["mongo_db"] = f"ads_events_load_{uuid.uuid4().hex}"  # 이 실행만 쓰는 무작위 이름. 끝나면 이 이름만 지운다
         return run(args, count, tmp, db_name, res)
     finally:
@@ -904,7 +904,7 @@ def cleanup(res, keep):
     if keep:
         print(f"남겨 둠: 폴더 {res['tmp']}, 데이터베이스 {res['db']}")
         return
-    import mysql_admin
+    import pg_admin
 
     def stop_server():
         if res["serving"]:  # serve_forever 가 돈 적이 없으면 shutdown() 은 영원히 기다린다
@@ -929,7 +929,7 @@ def cleanup(res, keep):
         ("서버 종료", stop_server),
         ("연결 닫기", close_connections),
         ("MongoDB 데이터베이스 삭제", drop_mongo),
-        ("데이터베이스 삭제", lambda: res["db"] and mysql_admin.drop_database(res["db"])),
+        ("데이터베이스 삭제", lambda: res["db"] and pg_admin.drop_database(res["db"])),
         ("임시 폴더 삭제", lambda: res["tmp"] and shutil.rmtree(res["tmp"], ignore_errors=True)),
     ]
     for label, step in steps:  # 한 단계가 실패해도 나머지는 계속한다
@@ -953,7 +953,7 @@ def run(args, count, tmp, db_name, res):
     from events import store
 
     log = print
-    log(f"임시 폴더 {tmp}, 데이터베이스 {db_name} (MySQL 8.4), 동시 {count}")
+    log(f"임시 폴더 {tmp}, 데이터베이스 {db_name} (PostgreSQL), 동시 {count}")
     call_command("migrate", verbosity=0)
     store.ensure()  # 운영과 같은 봉투 검증이 걸린 이 실행 전용 컬렉션
     ctx = seed()

@@ -4,7 +4,7 @@
     python tests/tools/mongo_temp_rs.py start      컨테이너를 띄우고 접속 값을 셸 `export` 문으로 출력한다 → eval "$(python tests/tools/mongo_temp_rs.py start)"
     python tests/tools/mongo_temp_rs.py stop NAME  지운다(이름은 start 가 출력하는 MONGO_TEMP_CONTAINER)
 
-이미지는 `intake/db-standalone` 이 만든 `db-standalone/mongodb:8.0-ubuntu24.04`(Standalone·인증 켜짐)이고, 여기서는 진입점만 바꿔 `--replSet` 으로 띄운다.
+이미지는 공식 `mongo:8.0` 이고, 여기서는 진입점만 바꿔 `--replSet` 과 키 파일 인증으로 띄운다.
 포트·비밀번호는 무작위, 공유 컨테이너는 건드리지 않는다. 구성원 주소를 `127.0.0.1:<포트>` 로 정해 호스트에서 레플리카셋으로 접속할 수 있다.
 """
 import secrets
@@ -15,7 +15,7 @@ from functools import partial
 
 import docker_cli
 
-IMAGE = "db-standalone/mongodb:8.0-ubuntu24.04"
+IMAGE = "mongo:8.0"
 REPLICA_SET = "rs0"
 
 
@@ -23,12 +23,10 @@ docker = partial(docker_cli.docker, timeout=120)  # 이 스크립트의 시간 �
 
 
 def start():
-    if docker("image", "inspect", IMAGE, check=False).returncode != 0:
-        raise SystemExit(f"이미지 {IMAGE} 가 없다. intake/db-standalone 에서 `docker compose build mongodb` 로 만든다.")
     port = docker_cli.free_port()
     name, password = f"ads-mongo-rs-{uuid.uuid4().hex[:10]}", secrets.token_urlsafe(24)
     # 컨테이너 안 포트도 같은 값으로 맞춘다 — 레플리카셋 구성원 주소가 호스트에서도 그대로 닿아야 한다.
-    script = (f"rm -f /tmp/keyfile && openssl rand -base64 48 > /tmp/keyfile && chmod 400 /tmp/keyfile && "  # 재시작 때 읽기 전용 키 파일 위에 다시 쓰지 못해 죽지 않게 먼저 지운다
+    script = (f"rm -f /tmp/keyfile && head -c 48 /dev/urandom | base64 > /tmp/keyfile && chmod 400 /tmp/keyfile && "  # 재시작 때 읽기 전용 키 파일 위에 다시 쓰지 못해 죽지 않게 먼저 지운다
               f"exec mongod --dbpath /data/db --bind_ip_all --port {port} --replSet {REPLICA_SET} --keyFile /tmp/keyfile")
     docker("run", "-d", "--name", name, "-p", f"127.0.0.1:{port}:{port}", "--entrypoint", "sh", IMAGE, "-c", script)
     try:
@@ -43,7 +41,7 @@ def start():
         docker(*mongosh, "admin", "--eval",
                'db.createUser({user: "root", pwd: "%s", roles: ["root"]})' % password)  # keyfile 인증 하의 localhost 예외로 첫 계정을 만든다
     except BaseException:
-        docker("rm", "-f", name, check=False)
+        docker("rm", "-f", "-v", name, check=False)  # 공식 이미지는 VOLUME 을 선언한다 — 익명 볼륨도 함께 지운다
         raise
     return name, port, password
 
@@ -66,7 +64,7 @@ def restart(name, port):
 
 
 def stop(name):
-    docker("rm", "-f", name, check=False)
+    docker("rm", "-f", "-v", name, check=False)
 
 
 if __name__ == "__main__":

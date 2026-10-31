@@ -14,8 +14,9 @@ class NotConfigured(Exception):
 
 
 def error_text(error):
-    """MongoDB(또는 그 설정) 오류를 알리는 한 조각 `<오류 종류>: <메시지 앞 200자>`. 명령의 오류 문구와 상태 확인 결과가 같이 쓴다."""
-    return f"{type(error).__name__}: {str(error)[:200]}"
+    """MongoDB(또는 그 설정·DB) 오류를 알리는 한 조각 `<오류 종류>: <메시지 앞 200자>`. 명령의 오류 문구와 상태 확인 결과가 같이 쓴다.
+    줄바꿈은 접는다 — PostgreSQL 오류 메시지는 여러 줄이라 명령의 한 줄 로그(줄마다 시각)를 깨뜨린다."""
+    return f"{type(error).__name__}: {' '.join(str(error).split())[:200]}"
 
 
 def config():

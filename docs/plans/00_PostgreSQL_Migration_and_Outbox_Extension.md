@@ -1,6 +1,6 @@
 # 00. 광고 서버 PostgreSQL 전환 및 Outbox 확장 계획
 
-> **상태:** 초안 — 결정 D1~D13 반영(2026-10-31)
+> **상태:** P1 완료(2026-10-31) · P2 대기 — 결정 D1~D13 반영
 > **작성:** 2026-10-31
 > **대상:** `ads_server/` — 이 문서의 코드 경로는 모두 `ads_server/` 기준이고, 줄 번호는 체크포인트 커밋 `54f731a` 기준이다
 > **근거:** 공통 레이크하우스 설계안 `temp/shared-multidomain-lakehouse-architecture.md`(저장소 밖) §3·§5·§6·§8, 광고 서버 설계 `docs/legacy/ads-server/ads-server-design.md` §6.2·§10, DRD `docs/legacy/ads-server/ads-server-drd.md` §4·§5.6
@@ -63,7 +63,7 @@
 | P1-8 마이그레이션 재생성 | 앱마다 PostgreSQL용 `0001_initial`(P1-6·P1-7 반영, D4). 임시 `0002`·`0003`을 지운다. 개발 DB는 다시 만든다 | `*/migrations/0001_initial.py` | 빈 DB에서 `migrate` 뒤 `makemigrations --check` 변화 없음, 두 부분 유일 색인(`billing_one_signup_grant_per_wallet`·`campaigns_one_open_review_per_campaign`)이 있음, 표·색인·제약 목록이 P1-7 상태와 같음 |
 | P1-9 명칭·계약 값·정렬 버전 | manifest `scope` 값 변경(D5). "MySQL" 문구·주석 정리. 정렬 버전 관리: 이미지 태그 고정(§4.3 V-1), 점검에 모든 DB의 정렬 버전 검사(V-2) | `records/management/commands/export_integrity.py:12`, `export_hop_manifests.py:15`, `console/management/commands/ops_check.py:6,116,123`, `foundation/http.py:24-26`(주석만), `records/backfill.py:3` | `test_event_hops:299`·`test_event_ndjson:393` 갱신 뒤 통과 |
 | P1-10 재측정 | 150 동시 부하(`tests/tools/load_test.py`)·장애 시험(`tests/tools/failure_test.py`). 다른 세션이 DB 서버를 쓰지 않을 때 돌리고 그 사실을 기록한다. `REJECTED`이면서 `attempts > 0`인 반응 수도 센다(판정의 두 조회 사이 창 → `accepted_key` 유일 제약이 막는 경쟁의 빈도, P1-9 검토) | `tests/tools/` | 유실 0 · 이중 과금 0 · 잔액 = 원장 · `RECEIVED` 잔류 0. 503 건수를 기록하고 D6·D9를 확정(P1-9 점검 첫 실행에서 400 동시 결정 중 503 13건 — `too many clients`). **충족(2026-10-31)**: 150 동시 불변식 52개, 장애 시험 5종 모두 통과 — 수치는 D6·D9·D13 |
-| P1-11 데이터 이관 (운영 데이터가 있을 때만) | MySQL → PostgreSQL 데이터 이관. **새 DB에 `0001`을 적용(migrate)한 뒤 앱 표의 데이터만 옮긴다** — `django_migrations`·`django_content_type`·`auth_permission`은 옮기지 않는다(새 DB가 post_migrate로 만든 것을 쓴다) | — | 표마다 건수·ID 집합 일치, `check_ledger` 0건 |
+| P1-11 데이터 이관 (운영 데이터가 있을 때만) | **해당 없음**(사용자 2026-10-31: 옮길 운영 데이터 없음). MySQL → PostgreSQL 데이터 이관. **새 DB에 `0001`을 적용(migrate)한 뒤 앱 표의 데이터만 옮긴다** — `django_migrations`·`django_content_type`·`auth_permission`은 옮기지 않는다(새 DB가 post_migrate로 만든 것을 쓴다) | — | 표마다 건수·ID 집합 일치, `check_ledger` 0건 |
 | P1-12 의존성 취약점 (실행: 전환 묶음 커밋 직후) | pip-audit 실패 해소(사용자 결정 2026-10-31). 기준선(MySQL, 체크포인트)에도 있던 실패: `Pillow` 12.3.0(고침 13.0.0), `certifi` 2026.7.22(고침 2026.10.18, 전이 의존성) | `requirements.txt`의 `Pillow`, 설치 환경의 `certifi` | `check.sh`의 pip-audit 통과, 소재 이미지 검증 시험(`tests.ops.test_assets_validation` 등) 통과. **`check.sh` 전체 통과** |
 
 ### 4.2 데이터 이관 시 주의 (P1-11)
@@ -276,6 +276,8 @@ PostgreSQL은 기본값 없는 NULL 열 추가가 표를 다시 쓰지 않는다
 
 ## 10. 문서 반영
 
+**P1 몫은 2026-10-31 반영했다**(P1 마무리): 설계 §6.5-6·7(DB 설정·연결 한도), §10 "PostgreSQL 전환 점검"(옛 "MySQL 전환 점검")·"그룹 복제(InnoDB Cluster) 전제 — MySQL 때 기록"·"운영 서버 실행 환경"(동기 워커)·"시험 구성"(ops_check ③)과 지금 구조를 MySQL로 적던 문장, DRD 0.55, README "DB 시험 환경"(지운 MySQL·클러스터 도구 안내 삭제), 위협 모델 T22·T25·T37·"DB 단일 노드·연결 한도". 역사 기록(Step DB·MySQL 때 측정·구현 계획·load-test.md)은 그대로 두었다. 아래 표에서 남은 것은 P2 몫(D1 층 정의, 변경 로그 표, 신규 이벤트 4종, 레이크하우스 설계안)과 결정 D1~D13의 설계 기록이고 P2-9에서 한다.
+
 | 문서 | 반영 |
 |---|---|
 | 광고 서버 설계(현재 `docs/legacy/ads-server/ads-server-design.md`) | §6.2 층 정의(D1), §10 "MySQL 전환 점검"(:834 — DB-1b 의 계산 열 구현)을 PostgreSQL 기준(조건부 유일 제약 = 부분 유일 색인)으로, 결정 D1~D12 기록 |
@@ -290,6 +292,7 @@ PostgreSQL은 기본값 없는 NULL 열 추가가 표를 다시 쓰지 않는다
 
 - **Kafka 전환 때 바꿀 곳:** `events/relay.py:84-96`(성공 뒤 `sent_at` UPDATE), `events/management/commands/purge_sent_events.py`(보낸 지 N일 뒤 DELETE), `events/relay.py:107-132`(MongoDB 대조). Debezium Outbox Router는 INSERT만 있는 outbox를 전제한다(설계안 §3.5).
 - PgBouncer 도입(D6): 요청이 늘어 앱 서버·워커를 늘릴 때. `lock_timeout` 전달 방식을 함께 정한다.
+- PostgreSQL 복제·HA 구성(MySQL InnoDB Cluster 대체)과 그 장애 시험(`failure_test.py`의 클러스터 시나리오): 인프라와 정한 뒤.
 - C4 Insight 저장·`ad.insight_recorded`, `ad.decision` v3: 가격 모델 단계(§8.3).
 
 ---

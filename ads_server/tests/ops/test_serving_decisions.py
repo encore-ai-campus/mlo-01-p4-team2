@@ -8,6 +8,7 @@ from django.test import Client, TestCase, TransactionTestCase, override_settings
 
 from masters import api as masters
 from records.models import Decision
+from serving_api.clicks import parse_token
 from tests.support.contract_support import Contract, ProviderContractMixin
 from tests.support.factories import NOW, World, media_api
 from tests.support.cases import Cases
@@ -283,11 +284,15 @@ class DecisionRequestValidationTests(Cases, DecisionApiBase):
 @tag("security")
 class GetDecisionTests(Cases, DecisionApiBase):
     def case_owner_reads_the_same_decision_and_it_matches_the_contract(self):
+        """`click_url` 은 응답마다 다시 서명돼 토큰의 시각(초)이 다를 수 있다(계약은 '서명된 decision_id' 까지만 약속한다) — 문자열 대신 같은 결정으로 풀리는지 본다."""
         created = self.post().json()
         response = self.get(f"/decisions/{created['decision_id']}")
         self.assertEqual(response.status_code, 200)
         self.assertContract(self.contract, "/decisions/{decision_id}", "get", response)
-        self.assertEqual(response.json(), created)
+        read = response.json()
+        decision_of = lambda body: parse_token(body["ad"].pop("click_url").split("/c/", 1)[1].split("?", 1)[0])
+        self.assertEqual((decision_of(read), decision_of(created)), (created["decision_id"],) * 2)
+        self.assertEqual(read, created)  # 나머지는 그대로 같다
         self.assertEqual(self.get(f"/decisions/{created['decision_id'].upper()}").status_code, 200)
 
     def case_other_media_missing_and_malformed_ids_are_404_and_look_identical(self):

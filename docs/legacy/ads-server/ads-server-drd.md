@@ -2,7 +2,7 @@
 
 > Status: **정식 문서**. 광고 서버만 다룬다. **지금 구조만 적는다** — 언제·왜 바뀌었는지는 §11 문서 이력과 [구현 계획](implementation-plan.md)에 있다.
 > 관련 문서: [ads-server-design.md](ads-server-design.md) (설계), [implementation-plan.md](implementation-plan.md) (구현 계획), [threat-model.md](threat-model.md) (위협 모델), [contracts/](contracts/) (OpenAPI 계약)
-> 기준: 2026-10-14 · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
+> 기준: 2026-10-14(저장소는 2026-10-31 PostgreSQL 전환, 0.55) · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
 > 근거: 설계서 `docs/legacy/ads-server/ads-server-design.md`, 계약 `contracts/serving.openapi.yaml`(C1·C3), `contracts/console.openapi.yaml`(C6), 실제 모델 코드(`*/models.py`)
 > 표기: **[예약]** 계약에 자리만 있고 아직 코드 없음 · **[제안]** 이 문서가 처음 제안함(동의 필요) · **[열림]** 정하지 못함. 표기가 없으면 코드에 있다
 
@@ -15,7 +15,7 @@
 | 목적 | 광고 서버가 **어떤 데이터를 어떤 모양으로 갖고, 바깥과 어떤 데이터를 주고받는지**를 한 문서로 고정한다. 구현·계약·파이프라인이 같은 기준을 쓰게 한다 |
 | 범위 | 광고 서버의 저장 데이터(DB·파일), 서버 간 계약(C1~C6)의 데이터 모양, 내부 처리 흐름, 수명주기, 보안 분류, 팀 DRD와의 대응 |
 | 범위 밖 | 매체 서버(메타버스)·데이터 파이프라인의 내부 데이터, 화면 설계, 인프라 구성 |
-| 저장소 | **MySQL 8.4**(업무 데이터 + 이벤트 outbox, 한 트랜잭션) + **로컬 파일**(소재 이미지) + **MongoDB 8.0**(이벤트 로그 `ad_events` — 중계가 outbox에서 옮긴다). Kafka·Spark는 서버가 감당하지 못할 때의 확장(§2.1) |
+| 저장소 | **PostgreSQL 18**(업무 데이터 + 이벤트 outbox, 한 트랜잭션) + **로컬 파일**(소재 이미지) + **MongoDB 8.0**(이벤트 로그 `ad_events` — 중계가 outbox에서 옮긴다). Kafka·Spark는 서버가 감당하지 못할 때의 확장(§2.1) |
 | 엔터티 | 프로젝트 표 **20개**(계정·감사 2, 마스터 5, 운영 8, 지갑·원장 2, 결정·반응 2, 이벤트 outbox 1) + 프레임워크 표 11개(§4.2) |
 | 핵심 규칙 | **모든 PK는 UUIDv7, 자동 증가 없음**(예외: outbox의 이벤트 ID는 결정적 UUIDv5) · 자연 키는 업무 규칙용 유일 제약 · 시각은 UTC · 금액은 **정수 포인트** · 이력은 **추가 전용**(§3 R-5) · 삭제 없음 · 판정 규칙은 한 곳(`engine`) · 파생값은 저장하지 않는다(잔액만 예외, §4.7) |
 | 먼저 볼 것 | §1.2 **광고 도메인은 이 문서가 팀 DRD보다 우선**. §10 열린 이슈(D-7) |
@@ -58,9 +58,9 @@
 | C3 이미지 | 나감 | 학습자 브라우저 | `GET /assets/{sha256}.{ext}`(프론트 서버가 그대로 통과) |
 | 클릭 관측 | 들어옴 | 학습자 브라우저 | `GET /c/{token}` → 302(프론트 서버가 그대로 통과) |
 | 콘솔·운영 화면 | 들어옴 | 광고주·관리자 브라우저 | 프론트 서버가 받아 백 서버로 넘기고, 백 서버의 **화면 데이터**(JSON)를 그린다. 세션·CSRF 는 백 서버 |
-| C2 이벤트 내보내기 | 나감 | 파이프라인 쪽(읽기) | outbox(MySQL, 업무 데이터와 한 트랜잭션) → 중계 → MongoDB `ad_events`(멱등). 이 컬렉션과 이벤트 스키마(§5.6)가 계약 면이고 MySQL 테이블은 읽게 하지 않는다 |
+| C2 이벤트 내보내기 | 나감 | 파이프라인 쪽(읽기) | outbox(업무 DB, 업무 데이터와 한 트랜잭션) → 중계 → MongoDB `ad_events`(멱등). 이 컬렉션과 이벤트 스키마(§5.6)가 계약 면이고 업무 DB 테이블은 읽게 하지 않는다 |
 | 검증·백필 | 내부 | 운영자 | NDJSON + manifest(checksum): `export_integrity`·`verify_ndjson`·`backfill_events`·구간별 정합 manifest(§5.6·§5.9) |
-| 퍼널 집계·분석 | 내부 | 광고주 콘솔 | `records.api`가 조회할 때 계산(MySQL) |
+| 퍼널 집계·분석 | 내부 | 광고주 콘솔 | `records.api`가 조회할 때 계산(업무 DB) |
 
 **확장 (서버가 감당하지 못할 때 · 판단 지표: 조회 시간·부하, 수치는 나중에)**
 
@@ -100,7 +100,7 @@ flowchart LR
     end
 
     subgraph STORE[저장소]
-        DB[(MySQL 8.4<br/>InnoDB·READ COMMITTED)]
+        DB[(PostgreSQL 18<br/>READ COMMITTED)]
         FILES[(MEDIA_ROOT<br/>소재 이미지)]
         MONGO[(MongoDB<br/>ad_events)]
     end
@@ -127,12 +127,12 @@ flowchart LR
 |---|---|---|
 | 로컬 디렉터리(`MEDIA_ROOT`) | 소재 이미지(재인코딩된 바이트) | `<해시 앞 2자>/<sha256>.<jpg\|png>`, 임시 파일 → `os.replace`로 원자적 확정, 권한 0640 |
 | 정적 파일 | 화면 CSS·JS(데이터 아님) | 콘솔·운영 화면의 것은 프론트 서버가, Django admin 의 것은 프론트 서버(통과하는 관리 사이트용)와 백 서버가 WhiteNoise로 서빙한다(`collectstatic` 결과, 앞단 nginx는 통로만 — 설계서 §10 "정적 파일 서빙") |
-| MySQL 8.4 | §4의 모든 엔터티, 세션, 로그인 잠금 기록 + **outbox**(같은 트랜잭션, P3) | InnoDB, UUIDv7 PK(§3 R-2, Django `UUIDField` 는 `char(32)`), 격리 수준 `READ COMMITTED`, 커밋마다 로그를 디스크에(`innodb_flush_log_at_trx_commit=1`), `STRICT_ALL_TABLES`, 정렬 `utf8mb4_0900_as_cs` |
+| PostgreSQL 18 | §4의 모든 엔터티, 세션, 로그인 잠금 기록 + **outbox**(같은 트랜잭션, P3) | UUIDv7 PK(§3 R-2, Django `UUIDField` 는 `uuid` 형), 격리 수준 `READ COMMITTED`, 잠금 대기 제한 `lock_timeout` 5초, 커밋마다 WAL을 디스크에(`fsync`·`full_page_writes` 켬, `synchronous_commit` 끄지 않음), 정렬 builtin `C.UTF-8`(대소문자·악센트 구분, 순서는 코드값) |
 | MongoDB `ad_events` | C2 이벤트 로그(중계가 outbox에서 옮겨 씀, 추가만) | `_id = event_id`, 멱등 저장. 컬렉션은 공통 봉투(`_id`·`event_name`·`schema_version`·`produced_at`·`payload`)가 없는 문서를 거부하고, 색인은 (`event_name`, `produced_at`)·(`payload.decision_id`, `produced_at`). 쓰기는 과반 확인(`w=majority`) |
 | NDJSON 파일 | manifest·검증·백필 대상 목록 **전용**(이벤트 통로 아님) | 한 줄 = 레코드 하나. **게시 = 내용 해시가 이름에 들어간 불변 데이터 파일(`<이름>.<SHA-256 앞 16자>.ndjson`) + manifest(`<이름>.manifest.json`, 현재 게시본을 가리키는 포인터)의 원자적 교체**. manifest에 데이터 파일 이름·SHA-256·행 수·`schema_version`·`source_kind`·`checkpoint`(범위 서술: 스냅샷 종류·시작 시각·훑은 행 수, 재개 위치 아님)·만든 시각. manifest가 가리키는 파일은 언제나 완결. 파일 종류: `ledger_check`·`event_gaps`·`event_delivery`(점검 결과), `backfill_result`(백필 결과), `hop_source`·`hop_outbox`·`hop_mongo`(구간별 정합 manifest), `hop_report`(구간 대조 결과) |
 | Kafka 토픽 | C2 이벤트(확장) | `ad.decision.v2` 등, 키 `decision_id` — 확장(조건부) |
 
-**저장소를 고르는 기준 [확정]**: 업무 데이터와 outbox는 한 트랜잭션이어야 하므로 MySQL에, 이벤트 로그는 MongoDB에 둔다(두 DB는 한 트랜잭션으로 묶을 수 없다). 이 문서의 데이터 구조 결정(PK·순번·잠금)은 **MySQL(InnoDB)·MongoDB에서 성립하는지**로 판단한다(설계서 §10 "저장소 단계").
+**저장소를 고르는 기준 [확정]**: 업무 데이터와 outbox는 한 트랜잭션이어야 하므로 업무 DB(PostgreSQL)에, 이벤트 로그는 MongoDB에 둔다(두 DB는 한 트랜잭션으로 묶을 수 없다). 이 문서의 데이터 구조 결정(PK·순번·잠금)은 **PostgreSQL·MongoDB에서 성립하는지**로 판단한다(설계서 §10 "저장소 단계").
 
 ### 2.3 분석 계층 대응 [확정, 2026-10-08]
 
@@ -141,7 +141,7 @@ flowchart LR
 | 계층 | 광고 서버에서 해당하는 것 |
 |---|---|
 | Bronze(원문) | MongoDB `ad_events`, 반응 원문(`records_reaction.raw`) |
-| Silver(검증·판정 끝남) | MySQL의 결정, 판정된 반응(`ACCEPTED`/`REJECTED`), 원장 |
+| Silver(검증·판정 끝남) | 업무 DB의 결정, 판정된 반응(`ACCEPTED`/`REJECTED`), 원장 |
 | Gold(집계) | `records.api` 퍼널 집계(조회 시점 계산) |
 
 ---
@@ -151,7 +151,7 @@ flowchart LR
 | # | 규칙 | 근거·강제 수단 |
 |---|---|---|
 | R-1 | **식별자는 UUID**(소문자 하이픈 표기). 모든 행은 UUID로 식별되고, 계약·이벤트·다른 모듈은 UUID로만 가리킨다 | 설계서 §4 [확정]. 형식이 틀린 ID는 "없는 것"과 같게 404(`foundation.parse_uuid`, `owned_or_404`) |
-| R-2 | **PK 규칙** [확정]: ① **모든 테이블의 PK는 UUIDv7** ② **자동 증가 열은 두지 않는다** ③ 자연 키((광고그룹, `bid_version`), (슬롯, `policy_version`), (매체, 슬롯 이름) 등)는 식별자가 아니라 **업무 규칙을 지키는 유일 제약**으로 유지 ④ 확실한 순서가 필요한 곳은 **원장 하나**이고 `(지갑, seq)` 유일 제약으로 둔다(지갑 잠금 안에서 +1) ⑤ 그 밖의 정렬은 시각 열. **예외**: 이벤트 outbox의 PK `event_id`는 원천 행 ID와 이벤트 종류에서 결정적으로 만든 UUIDv5다(재처리·재전송에도 같은 값) | 정수 PK는 DB 이관·병합 때 번호 충돌과 키 이중화(정수·UUID)를 만든다. MongoDB는 자동 증가가 없고 `_id`에 UUID를 쓴다. MySQL(InnoDB)은 PK가 데이터 정렬 기준이라 무작위 v4 대신 **시각이 앞에 오는 v7**(Python 3.14 `uuid.uuid7`, 같은 밀리초 안에서도 단조 증가)이 새 행을 뒤에 붙인다. 상세는 설계서 §10 "PK 규칙" |
+| R-2 | **PK 규칙** [확정]: ① **모든 테이블의 PK는 UUIDv7** ② **자동 증가 열은 두지 않는다** ③ 자연 키((광고그룹, `bid_version`), (슬롯, `policy_version`), (매체, 슬롯 이름) 등)는 식별자가 아니라 **업무 규칙을 지키는 유일 제약**으로 유지 ④ 확실한 순서가 필요한 곳은 **원장 하나**이고 `(지갑, seq)` 유일 제약으로 둔다(지갑 잠금 안에서 +1) ⑤ 그 밖의 정렬은 시각 열. **예외**: 이벤트 outbox의 PK `event_id`는 원천 행 ID와 이벤트 종류에서 결정적으로 만든 UUIDv5다(재처리·재전송에도 같은 값) | 정수 PK는 DB 이관·병합 때 번호 충돌과 키 이중화(정수·UUID)를 만든다. MongoDB는 자동 증가가 없고 `_id`에 UUID를 쓴다. 무작위 v4는 PK 색인의 쓰기 위치가 흩어지므로 **시각이 앞에 오는 v7**(Python 3.14 `uuid.uuid7`, 같은 밀리초 안에서도 단조 증가)이 새 행을 뒤에 붙인다. 상세는 설계서 §10 "PK 규칙" |
 | R-3 | **시각은 UTC**로 저장·계산·전송한다. 계약은 RFC 3339 `…Z`만 허용. KST는 화면 표시에서만 | 설계서 §3 [확정]. 서비스는 시간대 없는 값(naive)을 거부, `engine`은 UTC가 아니면 생성 단계에서 거부 |
 | R-4 | **금액은 정수 포인트**, 0 이상, 최대 `2^53 − 1`(JSON 정수로 정확히 표현되는 한계) | 설계서 §10 [확정]. DB `CHECK` + 서비스 검증. 팀 DRD의 `DECIMAL(18,2)`와 다르다(§9) |
 | R-5 | **추가 전용(append-only)**: 감사 로그(A3), 입찰 정책(M3), 매체 비활성화 기록(M5), 소재 연결(O9), 입찰(O5), 소재 이미지 보유(O7), 원장(B2), 결정(R1). INSERT만 허용하고 수정·삭제·같은 PK로 덮어쓰기·upsert를 막는다 | `foundation.AppendOnlyModel`(저장은 항상 `force_insert`, `update`·`delete`·`bulk_create(update_conflicts)` 거부). 정정은 반대 부호의 새 행. 전수 시험이 추가 전용 모델 전부를 덮는지까지 본다(`case_every_append_only_model_is_covered_here`) |
@@ -392,7 +392,7 @@ erDiagram
 
 표기: **N** = NOT NULL, **Y** = NULL 허용. 타입은 Django 필드 기준(DB 저장 형태는 괄호). 모든 PK 열은 **UUIDv7**이다(R-2).
 
-> **키·제약 열은 실제 MySQL 구현(물리)을 적는다.** MySQL은 조건부 유일 제약(`… WHERE 조건`)을 만들지 않는다(Django 경고 W036). 그래서 "캠페인당 대기 요청 하나" 같은 **논리 규칙**은 둘 중 하나로 구현한다: ① 규칙에 해당하는 줄에만 값을 채우는 **NULL 허용 일반 `UNIQUE`**(NULL끼리는 서로 다른 값 — `reaction_ref`·`adjust_key`·`accepted_key`) ② DB가 계산해 저장하는 열(`GeneratedField`, `db_persist`)에 해당 줄만 값을 두고 그 위에 일반 `UNIQUE`(`open_campaign`·`signup_grant_wallet`). 논리 규칙은 설명 열과 §4.4 무결성 규칙 표에 적는다.
+> **키·제약 열은 실제 DB 구현(물리)을 적는다.** "캠페인당 대기 요청 하나" 같은 **논리 규칙**은 둘 중 하나로 구현한다: ① 규칙에 해당하는 줄에만 값을 채우는 **NULL 허용 일반 `UNIQUE`**(NULL끼리는 서로 다른 값 — `reaction_ref`·`adjust_key`·`accepted_key`) ② **조건부 유일 제약**(`UniqueConstraint(…, condition=…)` — PostgreSQL에서는 부분 유일 색인이라 `pg_constraint`에 없고, 지울 때는 `DROP INDEX`: `campaigns_one_open_review_per_campaign`·`billing_one_signup_grant_per_wallet`). 논리 규칙은 설명 열과 §4.4 무결성 규칙 표에 적는다.
 
 #### A1. 사용자 `foundation_user`
 
@@ -421,7 +421,7 @@ erDiagram
 | 컬럼 | 타입 | NULL | 키·제약 | 설명 |
 |---|---|:---:|---|---|
 | `log_id` | UUID | N | PK | 시각 순서(v7) |
-| `actor_id` | UUID | Y | 인덱스 | **FK 아님**(사용자가 바뀌어도 기록은 그대로). 시스템 작업은 NULL |
+| `actor_id` | UUID | Y | | **FK 아님**(사용자가 바뀌어도 기록은 그대로). 시스템 작업은 NULL |
 | `actor_username` | 문자 30 | N | | 그 시점의 아이디 |
 | `action` | 문자 64 | N | 인덱스 | 예: `account.signup`, `auth.login_failed`, `masters.policy_added`, `campaign.suspended`, `bid.added`, `billing.adjusted`, `campaign.expired` |
 | `target_type`, `target_id` | 문자 64 | N | | 대상(예 `campaigns.campaign` + UUID) |
@@ -554,7 +554,7 @@ erDiagram
 | `archived_at` | 시각 | Y | | 보관(화면의 "삭제"). 끝나지 않은 캠페인의 광고그룹에 연결돼 있으면 보관할 수 없다. 보관한 소재는 개수 상한에서 빠지고 이미지 보유량(O7)에는 남는다 |
 | `title` | 문자 200 | N | | **신뢰할 수 없는 값**(매체가 이스케이프) |
 | `redirect_url` | 문자 2048 | N | | `https`만, 사용자 정보(`user:pw@`)·공백 금지 |
-| `image_name` | 문자 80 | N | 인덱스 | **현재 이미지** `<sha256>.<jpg\|png>`. 파일은 §4.6 |
+| `image_name` | 문자 80 | N | | **현재 이미지** `<sha256>.<jpg\|png>`. 파일은 §4.6 |
 | `image_bytes` | 정수 | N | | 현재 이미지의 바이트 수(소재 보기에 실린다). 광고주 보유량 상한은 이것이 아니라 O7 로 센다(교체된 과거분까지) |
 | `created_at`, `updated_at` | 시각 | N | | |
 
@@ -589,13 +589,12 @@ erDiagram
 | 컬럼 | 타입 | NULL | 키·제약 | 설명 |
 |---|---|:---:|---|---|
 | `review_request_id` | UUID | N | PK | |
-| `campaign_id` | UUID | N | FK→O1 `PROTECT` | **캠페인당 대기(`OPEN`) 요청은 하나**(논리 규칙 — 아래 `open_campaign`의 `UNIQUE`가 지킨다) |
+| `campaign_id` | UUID | N | FK→O1 `PROTECT` | **캠페인당 대기(`OPEN`) 요청은 하나**(조건부 유일 제약 `campaigns_one_open_review_per_campaign` — `status = 'OPEN'`인 행의 `campaign_id`) |
 | `message` | 문자 500 | N | | 광고주 메모(선택, 빈 값 가능) |
 | `status` | 코드 | N | `OPEN`·`RELEASED`·`REJECTED`·`CLOSED_ENDED` | §4.5 |
 | `response_note` | 문자 500 | N | | 반려 사유 등 |
 | `created_at` | 시각 | N | | |
 | `closed_at` | 시각 | Y | | |
-| `open_campaign` | UUID | Y | **UNIQUE**, DB 계산 열(`GeneratedField`, `db_persist`) | `status = 'OPEN'`이면 `campaign_id`, 그 밖에는 NULL. 닫히면 DB가 비우므로 상태를 바꾸는 코드는 이 열을 다루지 않는다 |
 
 #### O7. 소재 이미지 보유 `campaigns_creative_image` [추가 전용]
 
@@ -636,10 +635,9 @@ erDiagram
 | `shortfall` | 정수 | N | ≥ 0 | 잔액이 모자라 못 받은 금액 |
 | `note` | 문자 200 | N | | 조정 사유 등 |
 | `adjust_key` | 문자 64 | Y | **UNIQUE**(NULL 제외), `ADMIN_ADJUST`만 허용(`CHECK`) | 관리자 조정의 멱등 키(화면 폼 하나 = 조정 하나). 같은 키는 한 번만 반영하고 다른 내용이면 거절 |
-| `signup_grant_wallet` | UUID | Y | **UNIQUE**, DB 계산 열(`GeneratedField`, `db_persist`) | `entry_type = 'SIGNUP_GRANT'`이면 `wallet_id`, 그 밖에는 NULL — **가입 지급은 지갑당 한 번**(논리 규칙) |
 | `created_at` | 시각 | N | 인덱스 | |
 
-유형별 부호 규칙(DB `CHECK`): `CHARGE`는 `-(2^53−1) ≤ amount ≤ 0`(잔액이 0이면 0으로 기록하고 부족분은 `shortfall`), `SIGNUP_GRANT`·`TOPUP`은 `0 < amount`, `ADMIN_ADJUST`는 0이 아님. 가입 지급은 **지갑당 한 번**(`signup_grant_wallet`의 `UNIQUE`).
+유형별 부호 규칙(DB `CHECK`): `CHARGE`는 `-(2^53−1) ≤ amount ≤ 0`(잔액이 0이면 0으로 기록하고 부족분은 `shortfall`), `SIGNUP_GRANT`·`TOPUP`은 `0 < amount`, `ADMIN_ADJUST`는 0이 아님. 가입 지급은 **지갑당 한 번**(조건부 유일 제약 `billing_one_signup_grant_per_wallet` — `entry_type = 'SIGNUP_GRANT'`인 줄의 `wallet_id`).
 
 #### R1. 결정 `records_decision` [추가 전용 스냅샷]
 
@@ -652,7 +650,7 @@ erDiagram
 | `slot_id` | UUID | N | | |
 | `subject_id` | 문자 200 | Y | `CHECK`: `audience`가 `individual`이면 NOT NULL, `shared`이면 NULL | 노출 대상 **가명 UUID**. 수집만 하고 해석하지 않는다. 일괄 슬롯의 결정에는 없다. **매체가 자기 비밀로 만든 광고 전용 가명**이어야 한다(다른 시스템의 식별자 금지, C1 v1.2) |
 | `audience` | 코드 | N | `individual`·`shared`(슬롯이 같은 값을 갖는다) | 슬롯 성격 **스냅샷**. 이벤트·집계가 슬롯을 다시 조회하지 않아도 되게 결정이 자기 사실을 들고 있다 |
-| `context` | JSON | N | 기본 `{}` | 매체 부가 정보. **저장만 하고 해석하지 않는다**(선택에 쓰지 않음). 경계에서 속성 50개·4 KiB·깊이 4·직접 식별자 키 금지를 검사한다. 숫자는 공통 JSON 파서가 ±(2^53−1)로 제한한다(R-12) — MySQL JSON에 정수가 정확히 남는 범위 안이다 |
+| `context` | JSON | N | 기본 `{}` | 매체 부가 정보. **저장만 하고 해석하지 않는다**(선택에 쓰지 않음). 경계에서 속성 50개·4 KiB·깊이 4·직접 식별자 키 금지를 검사한다. 숫자는 공통 JSON 파서가 ±(2^53−1)로 제한한다(R-12) — JavaScript가 정수를 정확히 다루는 범위다 |
 | `decided_at` | 시각 | N | 인덱스 | |
 | `owner_id` | UUID | Y | 아래 묶음 | 과금할 지갑 주인 |
 | `campaign_id`, `ad_group_id`, `creative_id` | UUID | Y | 〃 | 선택된 광고 |
@@ -733,8 +731,8 @@ erDiagram
 | 같은 광고 만들기 폼은 광고 하나 | UNIQUE(O2 `request_key`) | 만들기 전에 키를 먼저 보고 같은 키면 처음 결과(상한에서 다시 보내도), 남의 캠페인에 붙은 키면 409(화면은 오류 메시지와 함께 광고 만들기 화면으로 302) | `case_the_same_form_sent_twice_at_once_creates_once`, `case_a_resubmission_at_the_quota_still_finds_the_first_ad` |
 | 같은 캠페인 만들기 폼은 캠페인 하나 | UNIQUE(O1 `request_key`) | 만들기 전에 키를 먼저 보고 같은 키면 처음 캠페인, 동시 제출은 사용자 행 잠금 안에서 다시 봄, 남의 캠페인에 붙은 키면 409 | `case_the_same_campaign_form_twice_creates_once`, `case_an_overlapping_resubmission_of_the_same_campaign_form_creates_once` |
 | 같은 조정 폼은 한 번만 반영 | UNIQUE(`adjust_key`), 조정 줄에만(`CHECK`) | 같은 키면 처음 결과, 다른 내용이면 409 | `case_db_keeps_one_entry_per_key_and_keys_only_on_adjustments`, `case_same_key_applies_once_and_a_different_content_is_refused` |
-| 가입 지급은 한 번, 가입과 같은 트랜잭션 | UNIQUE(계산 열 `signup_grant_wallet`) | 가입 뷰의 트랜잭션 | `case_signup_and_grant_same_transaction` |
-| 캠페인당 대기 재검토 요청 하나 | UNIQUE(계산 열 `open_campaign`) | `review_pending` | `case_only_one_open_review_request_per_campaign` |
+| 가입 지급은 한 번, 가입과 같은 트랜잭션 | 조건부 UNIQUE(`billing_one_signup_grant_per_wallet`) | 가입 뷰의 트랜잭션 | `case_signup_and_grant_same_transaction` |
+| 캠페인당 대기 재검토 요청 하나 | 조건부 UNIQUE(`campaigns_one_open_review_per_campaign`) | `review_pending` | `case_only_one_open_review_request_per_campaign` |
 | `ENDED`는 끝(하위 포함 쓰기 금지) | — | 종료 가드(기간 기준) | `case_edit_rejected_when_expired_but_status_still_active` |
 | 결정의 선택 열은 전부 있거나 전부 없음 | `CHECK` | — | `case_chosen_columns_are_all_or_none_in_db` |
 | 결정의 입찰 행은 뽑힌 광고그룹의 것 | — | 후보 사실을 광고그룹으로 묶는다(한 소재를 여러 광고그룹이 고를 수 있다) | `case_two_ad_groups_with_the_same_creative_each_record_their_own_bid_row` |
@@ -881,7 +879,7 @@ sequenceDiagram
     participant C as campaigns
     participant B as billing
     participant E as engine
-    participant DB as MySQL
+    participant DB as PostgreSQL
 
     M->>S: POST /decisions (X-Media-Key)
     S->>S: 키 → media_id, 본문 검증
@@ -930,7 +928,7 @@ sequenceDiagram
 sequenceDiagram
     participant M as 매체 서버
     participant S as serving_api
-    participant DB as MySQL
+    participant DB as PostgreSQL
     participant P as 반응 처리(process_reactions)
     participant B as billing
 
@@ -1022,7 +1020,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 | `produced_at` | 시각(UTC) | 이벤트를 만든 시각: **결정 = 결정 시각, 접수 = 수신 시각, 판정 = 처리 시각, 과금 = 과금을 일으킨 반응의 처리 시각(판정과 같은 처리 트랜잭션의 같은 시각)**. 과금 이벤트의 `produced_at`은 페이로드의 원장 시각(`created_at` = 반응 수신 시각)과 다르다. MongoDB 날짜라 **밀리초까지** |
 | `payload` | 객체 | 아래. 안의 UUID는 문자열, 시각은 UTC ISO 8601 문자열(마이크로초까지) |
 
-**전달 방식**: outbox(MySQL, 같은 트랜잭션) → 광고 서버 중계가 MongoDB `ad_events`에 멱등 저장(`_id = event_id`), 확장 때는 Debezium outbox 라우터가 Kafka로 보낸다. 스키마 저장소는 확장 항목이다. **최소 한 번 전달**이므로 소비자는 `event_id`로 중복을 제거한다. **메시지 키는 `decision_id`**(outbox `aggregate_id`, 모든 이벤트. 팀 DRD 6.9는 `user_id`를 키로 쓰지만 광고 서버는 `user_id`를 모른다). **순서는 보장하지 않는다**: 중계는 오래된 것부터 보내지만 여러 중계가 동시에 돌고 재전송이 있으며, Kafka의 순서 보장도 같은 토픽·같은 파티션 안뿐이다. 소비자는 반응이 결정보다 먼저 보일 수 있다고 보고 `decision_id`로 다시 맞춘다. 토픽·파티션 단위의 순서 보장은 Kafka 확장 때 다시 정한다. **요청 경로는 MongoDB를 호출하지 않는다** — 요청은 outbox에만 쓰고, MongoDB가 끊기면 이벤트는 쌓였다가 복구 뒤 상시 중계가 옮긴다(짧은 재시작 시험에서 요청 503 0은 관찰값이고, 장기 장애는 확인하지 않았다 — 설계서 §10 "MongoDB 장애와 요청").
+**전달 방식**: outbox(업무 DB, 같은 트랜잭션) → 광고 서버 중계가 MongoDB `ad_events`에 멱등 저장(`_id = event_id`), 확장 때는 Debezium outbox 라우터가 Kafka로 보낸다. 스키마 저장소는 확장 항목이다. **최소 한 번 전달**이므로 소비자는 `event_id`로 중복을 제거한다. **메시지 키는 `decision_id`**(outbox `aggregate_id`, 모든 이벤트. 팀 DRD 6.9는 `user_id`를 키로 쓰지만 광고 서버는 `user_id`를 모른다). **순서는 보장하지 않는다**: 중계는 오래된 것부터 보내지만 여러 중계가 동시에 돌고 재전송이 있으며, Kafka의 순서 보장도 같은 토픽·같은 파티션 안뿐이다. 소비자는 반응이 결정보다 먼저 보일 수 있다고 보고 `decision_id`로 다시 맞춘다. 토픽·파티션 단위의 순서 보장은 Kafka 확장 때 다시 정한다. **요청 경로는 MongoDB를 호출하지 않는다** — 요청은 outbox에만 쓰고, MongoDB가 끊기면 이벤트는 쌓였다가 복구 뒤 상시 중계가 옮긴다(짧은 재시작 시험에서 요청 503 0은 관찰값이고, 장기 장애는 확인하지 않았다 — 설계서 §10 "MongoDB 장애와 요청").
 
 **`ad.decision.v2`** — 결정을 저장할 때 한 건(결정과 같은 트랜잭션, 광고 없음 결정 포함)
 
@@ -1081,7 +1079,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 | `ids_sha256` | 이벤트 ID 문자열을 오름차순 정렬해 `\n`으로 이은(끝 줄바꿈 없음) UTF-8 바이트의 SHA-256 |
 | `content_sha256` | 정규화 문서를 JCS로 만든 문자열을 이벤트 ID 순으로 `\n`으로 이은 UTF-8 바이트의 SHA-256 |
 | 파일과 세대 | 실행마다 구간 하나가 NDJSON 파일 하나(닫힌 창 전부)이고, 게시는 기존 규약(불변 데이터 파일 + manifest 포인터)이다. 세대는 파일 게시본 단위이고 manifest에 직전 manifest의 `previous_sha256`을 싣는다. 각 세대 manifest의 불변 사본(내용 해시 이름)으로 사슬을 거슬러 확인한다. 최신 manifest의 SHA-256은 감사 로그 `events.hop_manifests_exported`에도 남는다. **내보내기 한 번(세 manifest 게시부터 감사 고정점 커밋까지)이 폴더 단위 잠금(`flock`, 출력 폴더의 `.run.lock`)으로 직렬화된다** — 겹친 실행이 최신 감사 고정점과 최종 포인터를 서로 엇갈리게 하지 않는다. 그 안에서 manifest마다 직전 세대를 읽을 때부터 포인터를 교체할 때까지도 잠그므로, 성공한 모든 세대가 사슬에 이어진다. 원본·outbox·MongoDB를 읽는 단계는 이 잠금 밖이라, 겹친 실행은 각자 읽은 값으로 차례로 세대를 낸다. 감사 로그의 고정점은 포인터를 다시 읽은 값이 아니라 **이 실행이 게시한 manifest의 해시**다(다시 읽는 사이 다른 실행이 포인터를 바꿨을 수 있다). **한계**: 파일 잠금은 한 호스트의 로컬 파일시스템을 전제로 한다. 출력 폴더를 네트워크 파일시스템에 두거나 여러 호스트가 같은 폴더에 게시하면 직렬화가 보장되지 않는다 |
-| `checkpoint` | 범위 서술(재개 위치 아님): `scope`(원본·outbox는 한 MySQL 읽기 스냅샷, MongoDB는 스냅샷 밖), `hop`, `window`(`utc-day`·`utc-hour`), `grace_seconds`, `started_at`, `open_windows`(줄에 넣지 않은 열린 창), `scanned_events`(**범위 안** — `--since` 이후의 닫힌 창에서 읽은 이벤트 수), `not_comparable_windows`(outbox를 대조하지 않는 창), `retention_cutoff`(보존 기준 시각, outbox 구간), `unresolved_charges`(원본 구간: **창에 놓을 수 없는 과금 원장 줄 수**, 0 이상의 정수 — 판정한 반응을 멱등 키로 찾지 못한 `CHARGE` 항목, 생성 시각을 추정하지 않는다. 0보다 크면 내보내기는 게시한 뒤 실패하고 `verify_hops`도 실패)·`unresolved_charge_examples`(그 원장 ID, 최대 10개) |
+| `checkpoint` | 범위 서술(재개 위치 아님): `scope`(원본·outbox는 한 PostgreSQL 읽기 스냅샷 `postgresql-repeatable-read-snapshot`, MongoDB는 스냅샷 밖 `mongodb-read-outside-snapshot`), `hop`, `window`(`utc-day`·`utc-hour`), `grace_seconds`, `started_at`, `open_windows`(줄에 넣지 않은 열린 창), `scanned_events`(**범위 안** — `--since` 이후의 닫힌 창에서 읽은 이벤트 수), `not_comparable_windows`(outbox를 대조하지 않는 창), `retention_cutoff`(보존 기준 시각, outbox 구간), `unresolved_charges`(원본 구간: **창에 놓을 수 없는 과금 원장 줄 수**, 0 이상의 정수 — 판정한 반응을 멱등 키로 찾지 못한 `CHARGE` 항목, 생성 시각을 추정하지 않는다. 0보다 크면 내보내기는 게시한 뒤 실패하고 `verify_hops`도 실패)·`unresolved_charge_examples`(그 원장 ID, 최대 10개) |
 | outbox 대조 범위 | **시작이 보존 기준 시각(지금 − 보존 일수, `checkpoint.retention_cutoff`) 이후인 창**이다. 보존 정리는 보낸 지 보존 일수가 지난 행을 지우고 생성 시각 ≤ 전송 시각이므로, 그런 창의 행은 하나도 지워지지 않았다. 기준 시각이 창 한가운데에 걸리면 앞부분이 지워졌을 수 있으므로 창 전체를 뺀다(일·시간 창 모두). 판정은 "행이 남아 있는가"가 아니라 보존 범위와 창 경계로 하고, 어느 구간에든 있는 닫힌 창이 대상이다 — 오래된 창의 outbox 행이 모두 지워져도 "대조 제외" 정보가 사라지지 않는다 |
 | 입력 검증 | 대조 전에 각 manifest가 계약을 지키는지 확인하고, 하나라도 어기면 그 입력으로 판정하지 않고 비정상 종료한다: 구간 종류(`source_kind`가 `hop_source`·`hop_outbox`·`hop_mongo`·`hop_pipeline` 중 하나이고 기대한 자리와 같음), 계약 버전(`schema_version` = 1), 창 크기 선언(`checkpoint.window` = `utc-day`·`utc-hour`, `checkpoint.hop`이 있으면 `source_kind`와 같음), 줄마다 필수 필드·창 끝 − 시작 = 선언한 크기·시작이 UTC 경계(자정·정시)에 맞음·`event_name`은 빈 문자열이 아님·`count`는 0 이상의 정수(불리언 아님)·두 해시는 소문자 16진 64자, (창, 이벤트 이름) 중복은 거부(마지막 줄로 덮어쓰지 않음). 창 크기가 다른 manifest(일별과 시간별)는 대조하지 않는다. 파일 checksum이 맞는 것과 집계 범위가 같은 것은 별개라서다. `checkpoint.unresolved_charges`는 0 이상의 정수(불리언 아님)여야 한다 |
 | 대조 결과 분류 | `match`(세 값이 같음) / `mismatch`(확정 불일치, 다른 필드를 적음) / `relay_lag_candidate`(하류가 상류보다 적고 **그 부족분이 그 (창, 이벤트 이름)의 미전송 건수로 설명될 때(부족분 ≤ 미전송)**. 미전송이 하나 있다고 이미 보낸 이벤트의 유실을 가리면 안 되므로, 설명할 수 없는 부족분은 확정 불일치다 — 실패가 아니라 다시 낸 manifest로 확인) / `open_window` / `not_comparable`. 원본 → outbox는 같은 스냅샷이라 지연으로 보지 않는다. 결과 파일은 `hop_report` |
@@ -1121,10 +1119,10 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 | `relay_events` | P3 미전송(`sent_at` 없음) | MongoDB `ad_events`, P3 `sent_at` | 예(결정적 `_id`, 같은 내용은 통과·다른 내용은 멈춤) | 상시 |
 | `purge_sent_events` | P3 보낸 행 | P3 삭제(보낸 지 7일 지난 행만) | 예 | 주기 |
 | `clearsessions` | 세션 | 만료된 세션 삭제 | 예 | 매일 |
-| `export_integrity` | B1·B2, R1, P2, P3, MongoDB(한 MySQL 읽기 스냅샷) | NDJSON `ledger_check`·`event_gaps`·`event_delivery` + manifest | 읽기 전용(결과 게시만) | 수시, 문제가 있으면 비정상 종료 |
+| `export_integrity` | B1·B2, R1, P2, P3, MongoDB(한 PostgreSQL 읽기 스냅샷) | NDJSON `ledger_check`·`event_gaps`·`event_delivery` + manifest | 읽기 전용(결과 게시만) | 수시, 문제가 있으면 비정상 종료 |
 | `verify_ndjson` | manifest와 가리키는 데이터 파일 | 없음 | 읽기 전용 | |
 | `backfill_events` | 검증된 `event_gaps` manifest(어느 원본 행인지만), R1·P2·B2 원본 행 | P3(outbox, 원본 행에서 다시 만든 이벤트), NDJSON `backfill_result` + manifest, A3 감사 | 예(결정적 이벤트 ID, 있으면 바꾸지 않음) | 운영자가 필요할 때, 기본 `--dry-run`(`--apply`로 씀). 해석 불가가 있으면 비정상 종료 |
-| `export_hop_manifests` | 원본 행(재구성)·P3(한 MySQL 읽기 스냅샷), MongoDB(스냅샷 밖) | `hop_source`·`hop_outbox`·`hop_mongo` NDJSON + manifest(새 세대, `previous_sha256`), A3 감사(`events.hop_manifests_exported`, 고정점) | 같은 데이터면 같은 요약값 | 주기, 창이 닫힌 뒤 |
+| `export_hop_manifests` | 원본 행(재구성)·P3(한 PostgreSQL 읽기 스냅샷), MongoDB(스냅샷 밖) | `hop_source`·`hop_outbox`·`hop_mongo` NDJSON + manifest(새 세대, `previous_sha256`), A3 감사(`events.hop_manifests_exported`, 고정점) | 같은 데이터면 같은 요약값 | 주기, 창이 닫힌 뒤 |
 | `verify_hops` | 세 구간의 manifest(+ 파이프라인 쪽 manifest), 세대 사슬, A3 고정점 | `hop_report` NDJSON + manifest(`--out`을 줄 때) | 읽기 전용 | manifest를 낸 뒤. 확정 불일치·검증 실패·사슬 오류·고정점 불일치는 비정상 종료, 지연 후보만 있으면 정상 종료 |
 
 ---
@@ -1188,7 +1186,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 | 결정 한 건의 DB 작업 | 후보 조립의 읽기 4번(후보 수와 무관) + 결정·이벤트 쓰기. 서빙 질의 수 기준선은 결정 11 · 반응 36 · 클릭 36([load-test.md](load-test.md) §12) | `case_assemble_query_count_independent_of_candidates` |
 | 오늘 소진액 읽기 | 그 캠페인의 그날 과금 줄 수에 비례(덮는 색인, 줄당 약 3µs — 1천 줄 2.8ms · 1만 줄 30ms). 150명 수업 규모는 캠페인당 하루 수천 줄. **1만 줄을 넘으면 파생값으로 되돌린다** | [load-test.md](load-test.md) §12, 설계서 §10 "DRD 표 축소" ① |
 | 결정 행 크기(추정) | 수백 바이트 ~ 1 KB(`trace`는 후보 수와 무관한 요약) | 추정 |
-| 저장소 한계 | MySQL 단일 노드. 요청마다 연결을 닫아 연결 수 = 동시 요청 수 — 서버 `max_connections`(기본 151)에 닿으면 넘친 요청은 503 + 재시도(150 동시에서 발생, 처리는 올바름) | 설계서 §6.5-7, [load-test.md](load-test.md) §2·§4·§7. 영속 연결·풀은 배포 구성이 정해진 뒤 |
+| 저장소 한계 | PostgreSQL 단일 노드. 요청마다 연결을 닫아 연결 수 = 동시 요청 수 — 서버 `max_connections`(기본 100)에 닿으면 넘친 요청은 503 + 재시도(150 동시에서 발생, 처리는 올바름). 운영은 동기 워커라 연결 ≈ 워커 수 + 상시 프로세스 | 설계서 §6.5-7, 계획 `docs/plans/00` D6. 요청이 늘어 서버·워커를 늘릴 때는 PgBouncer |
 | PK 쓰기 위치 | UUIDv7은 시각이 앞이라 새 행이 인덱스 뒤에 붙는다. 저장 형식은 Django `UUIDField`의 `char(32)` — 16바이트 이진으로 바꿀지는 데이터량을 보고 정한다 | R-2 |
 
 ---
@@ -1233,7 +1231,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 | 과금 단위 하나(`charge_unit_code`) | 구성별 반응 비율 셋(노출·클릭·전환 %) |
 | 매체 마스터 없음 | 매체가 늘면 매체 마스터 신설(서버는 이미 `media_id`를 가진다) |
 | 6.9 Kafka 메시지 키 `user_id` | 광고 이벤트는 `decision_id`를 키로 제안(§5.6) |
-| 6.2 "모든 ID는 UUIDv4" | 광고 영역은 **UUIDv7**(시각 순서, MySQL 쓰기 효율). 형식(36자 소문자 하이픈)은 같아 저장·전송 규칙은 그대로 |
+| 6.2 "모든 ID는 UUIDv4" | 광고 영역은 **UUIDv7**(시각 순서, 색인 쓰기 효율). 형식(36자 소문자 하이픈)은 같아 저장·전송 규칙은 그대로 |
 
 ---
 
@@ -1266,6 +1264,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 
 | 버전 | 날짜 | 내용 |
 |---|---|---|
+| 0.55 | 2026-10-31 | PostgreSQL 전환 반영(계획 `docs/plans/00` P1): 저장소·구성도·순서도·저장소 기준·한계를 PostgreSQL 18로(정렬 builtin `C.UTF-8`, `lock_timeout` 5초, 연결 한도 100 — D6·D9·D11). §4.3 표기와 O6·B2·§4.4: DB 계산 열 `open_campaign`·`signup_grant_wallet`를 지우고 조건부 유일 제약(부분 유일 색인)으로(P1-6). 색인 정리(P1-7): A3 `actor_id`·O4 `image_name` 단일 색인 삭제. §5.6 `scope` 값(D5) |
 | 0.54 | 2026-10-14 | Step 6-16j(구현 계획 §8.4.17, 사용자 결정): **본문을 지금 구조만 적도록 정리** — `[구현 …]` 표시·단계 번호·"그 전에는" 같은 변경 이력·지운 A2 표 단면·§4.8 PK 규칙 적용 기록(0.5)·해결된 어긋남 D-1~D-6·D-8의 상세(0.2·0.6·0.19·0.32 등)를 본문에서 뺐다. **표 −4 반영**: B3 `billing_campaign_spend`(캠페인 일 소진액은 원장에서 계산 — 원장 색인 `(campaign, entry_type, created_at, amount)`, 상한 하루 1만 줄, 6-16f), O8 `campaigns_advertiser_quota`(광고주 상한은 사용자 행 잠금, 6-16g), Django 권한 M2M 둘 `foundation_user_groups`·`foundation_user_user_permissions`(권한은 활성 슈퍼유저 하나, 6-16h). **어긋남 고침**: ① §4.2 목록에 O9 ② ERD 에 `records_reaction`·`events_outbox` ③ P2 를 표 이름이 있는 열 표로 ④ 프레임워크 표 11개(쓰지 않는 5개 포함) ⑤ O3 "단위가 같을 때만"(과금 단위가 없어진 뒤의 남은 말) ⑥ O4 `image_bytes` 는 현재 이미지의 크기(보유량 상한은 O7) ⑦ R-5·§4.4 추가 전용 목록에 O7·O9·M5(전수 시험도 모든 추가 전용 모델을 덮도록) ⑧ 결정 순서도의 "(계획)"·"(P1)" ⑨ §6 수명주기에 매체 키·광고그룹-슬롯·소재 연결·이미지 보유·세션·로그인 잠금 기록. 그 밖에 §2 를 프론트·백 분리(6-15)에 맞춤, 반응 상태도, C3 공개 조건(O9 연결·광고주 활성), §5.5 소재 사건, 결정의 `bid_id` 는 뽑힌 광고그룹의 행(6-16d) |
 | 0.53 | 2026-10-14 | Step 6-16a(구현 계획 §8.4.17, 사용자 결정): 표 −4 예정 — B3 캠페인 일 소진액(원장에서 계산, 6-16f), O8 광고주 상한 잠금(사용자 행 잠금, 6-16g), Django 권한 M2M 둘(6-16h). 이 문서는 6-16j 에서 현재 구조만 적도록 정리한다(어긋남 ①~⑨ 포함) |
 | 0.52 | 2026-10-14 | Step 6-14a(구현 계획 §8.4.15, 사용자 결정): R1 결정의 `selection_policy` 값이 `weighted-by-bid/v1` 로, `trace` 는 후보 수와 무관한 요약으로(데이터 모양은 그대로 — 문자열·JSON) |

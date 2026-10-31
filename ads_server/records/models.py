@@ -13,7 +13,7 @@ from masters.api import Audience
 class Decision(AppendOnlyModel):
     decision_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
     # 요청 쪽 사실
-    media_id = models.UUIDField(db_index=True)
+    media_id = models.UUIDField()  # 색인은 Meta 의 (media_id, decided_at) 하나 — 단일 색인은 그 앞 열이라 겹친다(부록 B-2)
     slot_id = models.UUIDField()
     subject_id = models.CharField(max_length=200, null=True, blank=True)  # V1 은 수집만 한다(설계 §3). `shared` 슬롯의 결정에는 없다
     audience = models.CharField(max_length=20)  # 슬롯 성격의 스냅샷(`individual`·`shared`). 슬롯은 바뀌지 않지만 결정은 자기 사실을 들고 있다

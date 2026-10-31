@@ -66,7 +66,7 @@ class AdGroup(models.Model):
 
 class AdGroupSlot(models.Model):
     ad_group_slot_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
-    ad_group = models.ForeignKey(AdGroup, on_delete=models.CASCADE, related_name="slot_links")
+    ad_group = models.ForeignKey(AdGroup, on_delete=models.CASCADE, related_name="slot_links", db_index=False)  # db_index=False: campaigns_ad_group_slot_unique 가 이 열로 시작해 FK 색인이 겹친다(계획서 부록 B-1)
     slot = models.ForeignKey("masters.Slot", on_delete=models.PROTECT, related_name="+")
 
     class Meta:
@@ -83,7 +83,7 @@ class Creative(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="creatives")
     title = models.CharField(max_length=200)
     redirect_url = models.CharField(max_length=2048)
-    image_name = models.CharField(max_length=80, db_index=True)  # assets 의 `<sha256>.<ext>`
+    image_name = models.CharField(max_length=80)  # assets 의 `<sha256>.<ext>`. 이 열로 찾는 질의가 없다 — 서빙 판정은 CreativeImage.image_name 을 본다(부록 B-3)
     image_bytes = models.PositiveIntegerField()
     archived_at = models.DateTimeField(null=True, blank=True)  # 보관(화면의 "삭제"). 보관한 소재는 개수 상한에서 빠지고 이미지 보유량에는 남는다
     created_at = models.DateTimeField(default=timezone.now)
@@ -98,7 +98,7 @@ class AdGroupCreative(AppendOnlyModel):
     이미지 공개 판정(연결된 적 있는 광고그룹의 캠페인이 살아 있으면 공개)의 근거다. 선택을 바꿔도 이전 결정의 이미지가 깨지지 않는다."""
 
     link_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
-    ad_group = models.ForeignKey(AdGroup, on_delete=models.PROTECT, related_name="creative_links")
+    ad_group = models.ForeignKey(AdGroup, on_delete=models.PROTECT, related_name="creative_links", db_index=False)  # db_index=False: campaigns_ad_group_creative_unique 가 이 열로 시작해 FK 색인이 겹친다(계획서 부록 B-1)
     creative = models.ForeignKey(Creative, on_delete=models.PROTECT, related_name="ad_group_links")
     linked_at = models.DateTimeField(default=timezone.now)
 
@@ -115,21 +115,23 @@ class CreativeImage(AppendOnlyModel):
     """
 
     creative_image_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
-    creative = models.ForeignKey(Creative, on_delete=models.PROTECT, related_name="images")
-    image_name = models.CharField(max_length=80, db_index=True)
+    creative = models.ForeignKey(Creative, on_delete=models.PROTECT, related_name="images", db_index=False)  # db_index=False: campaigns_creative_image_unique 가 이 열로 시작해 FK 색인이 겹친다(계획서 부록 B-1)
+    image_name = models.CharField(max_length=80)
     image_bytes = models.PositiveIntegerField()
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = "campaigns_creative_image"
         constraints = [models.UniqueConstraint(fields=["creative", "image_name"], name="campaigns_creative_image_unique")]
+        # 서빙 판정(is_asset_servable)이 이름으로 찾는다. db_index 대신 여기 두면 PostgreSQL 의 LIKE 전용 `_like` 색인이 따로 생기지 않는다(부록 B-5)
+        indexes = [models.Index(fields=["image_name"], name="campaigns_cimage_name_idx")]
 
 
 class Bid(AppendOnlyModel):
     """입찰의 한 버전. 하한 미만·상한 초과도 그대로 저장한다(설계 §4.2). 현재 값 = 최대 버전."""
 
     bid_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)  # 버전 행 하나의 식별자이자 PK(결정·이벤트가 가리킨다)
-    ad_group = models.ForeignKey(AdGroup, on_delete=models.PROTECT, related_name="bids")
+    ad_group = models.ForeignKey(AdGroup, on_delete=models.PROTECT, related_name="bids", db_index=False)  # db_index=False: campaigns_bid_version_per_ad_group 가 이 열로 시작해 FK 색인이 겹친다(계획서 부록 B-1)
     bid_version = models.PositiveIntegerField()
     amount = models.PositiveBigIntegerField()
     created_by = models.UUIDField()
@@ -147,6 +149,7 @@ class ReviewRequest(models.Model):
     """재검토 요청. 만든 뒤에는 상태·답변만 닫히고(transitions.py) 지워지지 않는다."""
 
     review_request_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
+    # FK 색인을 끄지 않는다: 같은 열 하나짜리 부분 유일 색인(아래 제약)이 있어, db_index 를 끄는 마이그레이션이 그 색인까지 지운다(계획서 §9, P1-7)
     campaign = models.ForeignKey(Campaign, on_delete=models.PROTECT, related_name="review_requests")
     message = models.CharField(max_length=500, blank=True)
     status = models.CharField(max_length=20, choices=ReviewStatus.choices, default=ReviewStatus.OPEN)

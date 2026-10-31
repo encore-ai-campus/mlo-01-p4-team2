@@ -31,7 +31,7 @@ class LedgerEntry(AppendOnlyModel):
     """원장의 한 줄. 추가만 하고 정정은 반대 부호의 새 줄(ADMIN_ADJUST)로 한다(설계 §4.4-8)."""
 
     entry_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
-    wallet = models.ForeignKey(Wallet, on_delete=models.PROTECT, related_name="entries")
+    wallet = models.ForeignKey(Wallet, on_delete=models.PROTECT, related_name="entries", db_index=False)  # db_index=False: billing_entry_seq_per_wallet 가 이 열로 시작해 FK 색인이 겹친다(계획서 부록 B-1)
     seq = models.PositiveIntegerField()  # 지갑 안의 순서(1부터, 지갑 잠금 안에서 +1). 연속성 점검·목록 커서의 기준
     entry_type = models.CharField(max_length=20, choices=EntryType.choices)
     amount = models.BigIntegerField()  # 부호 있는 정수. 지급·충전은 +, 과금은 −(또는 잔액이 없으면 0)

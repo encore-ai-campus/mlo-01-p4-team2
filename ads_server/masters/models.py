@@ -40,7 +40,7 @@ class MediaDeactivation(AppendOnlyModel):
     반응 판정이 "결정 뒤·접수 전에 꺼진 적이 있나"를 이 기록으로 본다(`first_deactivation`). 다시 켜도 지우지 않는다."""
 
     deactivation_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
-    media = models.ForeignKey(Media, on_delete=models.PROTECT, related_name="deactivations")
+    media = models.ForeignKey(Media, on_delete=models.PROTECT, related_name="deactivations", db_index=False)  # db_index=False: masters_media_deact_at_idx 가 이 열로 시작해 FK 색인이 겹친다(계획서 부록 B-1)
     deactivated_at = models.DateTimeField()
 
     class Meta:
@@ -50,7 +50,7 @@ class MediaDeactivation(AppendOnlyModel):
 
 class Slot(models.Model):
     slot_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
-    media = models.ForeignKey(Media, on_delete=models.PROTECT, related_name="slots")
+    media = models.ForeignKey(Media, on_delete=models.PROTECT, related_name="slots", db_index=False)  # db_index=False: masters_slot_name_per_media 가 이 열로 시작해 FK 색인이 겹친다(계획서 부록 B-1)
     name = models.CharField(max_length=100)
     audience = models.CharField(max_length=20, choices=Audience.choices)  # 만든 뒤 바꿀 수 없다. 기본값을 두지 않는다: 만드는 쪽이 정한다
     is_active = models.BooleanField(default=True)
@@ -101,7 +101,7 @@ class BidPolicy(AppendOnlyModel):
     """슬롯별 입찰 정책의 한 버전. 수정이 아니라 새 버전 행 추가이고, 현재 값 = 최대 버전이다."""
 
     bid_policy_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)  # 버전 행 하나의 식별자이자 PK(결정·이벤트가 가리킨다)
-    slot = models.ForeignKey(Slot, on_delete=models.PROTECT, related_name="policies")
+    slot = models.ForeignKey(Slot, on_delete=models.PROTECT, related_name="policies", db_index=False)  # db_index=False: masters_policy_version_per_slot 가 이 열로 시작해 FK 색인이 겹친다(계획서 부록 B-1)
     policy_version = models.PositiveIntegerField()
     floor_amount = models.PositiveBigIntegerField()
     base_amount = models.PositiveBigIntegerField()

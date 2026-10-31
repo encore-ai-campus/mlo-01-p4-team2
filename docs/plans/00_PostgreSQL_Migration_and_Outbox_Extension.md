@@ -58,8 +58,8 @@
 | P1-4 outbox 쓰기 | `bulk_create([row], update_conflicts=True, update_fields=["event_name"])` → `bulk_create([row], ignore_conflicts=True)` | `events/outbox.py:21-22` | 같은 이벤트를 두 번 써도 한 줄이고 내용이 바뀌지 않는다(`test_event_outbox`) |
 | P1-5 스냅샷 읽기 | `SET TRANSACTION ISOLATION LEVEL REPEATABLE READ`를 트랜잭션 밖이 아니라 `atomic()` 안의 첫 문장으로(`REPEATABLE READ, READ ONLY`). 거절 규칙(`ConsistentReadUnavailable`)·`quiescent`는 유지 | `billing/services.py:322-343` | 점검 중 다른 연결이 커밋한 행이 결과에 섞이지 않는다(`test_ledger_check`). **여기까지가 전환 묶음 — `check.sh` 첫 전체 통과**(pip-audit 제외 — 기준선에도 있던 실패라 P1-12에서) |
 | P1-6 우회 구조 단순화 | 생성 열 2개 → 조건부 유일 제약, 2질의 잠금 경로 2곳 → 1질의(선택 1곳 추가). 격리 수준 손잡이(A-3)는 P1-1에서 처리 | 부록 A | 경쟁 시험(`test_campaign_races`, `test_receipt_ordering`, `test_media_lifecycle_ordering`, `test_billing_ledger`, `test_campaigns_review`) 통과. InnoDB 전용 시험 둘은 PostgreSQL 동작을 보는 시험으로 바꾼다: 기간 종료의 '잠금 조건은 기본 키뿐' → 두 기간 종료가 겹쳐도 교착 없이 한 번씩, 없는 결정 접수의 '`FOR UPDATE` SQL 없음' → 잠근 행 0개. 생성 열 삭제 마이그레이션은 임시 `0002`(P1-8에서 `0001`에 합친다) |
-| P1-7 색인 정리 | 겹치는 FK 색인 8개, `Decision.media_id`·`Creative.image_name` 단일 색인 삭제. 선택 3건 | 부록 B | 해당 질의가 남은 색인을 쓰는지 질의 계획(`EXPLAIN`)으로 확인 |
-| P1-8 마이그레이션 재생성 | 앱마다 PostgreSQL용 `0001_initial`(P1-6·P1-7 반영, D4) | `*/migrations/0001_initial.py` | 빈 DB에서 `migrate` 뒤 `makemigrations --check` 변화 없음 |
+| P1-7 색인 정리 | 겹치는 FK 색인 8개, `Decision.media_id`·`Creative.image_name` 단일 색인 삭제. 선택 B-4·B-5·B-6도 함께(`username`·`Media.name`의 `_like`는 Django 인증 규칙에 닿아 남김) | 부록 B | 해당 질의가 남은 색인을 쓰는지 질의 계획(`EXPLAIN`)으로 확인. **주의(실제로 겪음):** FK의 `db_index`를 끄는 `AlterField`는 그 열 하나로 된 색인을 모두 지운다 — 같은 열 하나짜리 부분 유일 색인(`billing_one_signup_grant_per_wallet`)도 지워졌다(`sqlmigrate`에는 안 보임, DB 제약 시험이 잡음). 임시 마이그레이션에서 FK 변경을 제약 추가보다 앞에 두었다 |
+| P1-8 마이그레이션 재생성 | 앱마다 PostgreSQL용 `0001_initial`(P1-6·P1-7 반영, D4). 임시 `0002`·`0003`을 지운다. 개발 DB는 다시 만든다 | `*/migrations/0001_initial.py` | 빈 DB에서 `migrate` 뒤 `makemigrations --check` 변화 없음, 두 부분 유일 색인(`billing_one_signup_grant_per_wallet`·`campaigns_one_open_review_per_campaign`)이 있음, 표·색인·제약 목록이 P1-7 상태와 같음 |
 | P1-9 명칭·계약 값·정렬 버전 | manifest `scope` 값 변경(D5). "MySQL" 문구·주석 정리. 정렬 버전 관리: 이미지 태그 고정(§4.3 V-1), 점검에 모든 DB의 정렬 버전 검사(V-2) | `records/management/commands/export_integrity.py:12`, `export_hop_manifests.py:15`, `console/management/commands/ops_check.py:6,116,123`, `foundation/http.py:24-26`(주석만), `records/backfill.py:3` | `test_event_hops:299`·`test_event_ndjson:393` 갱신 뒤 통과 |
 | P1-10 재측정 | 150 동시 부하(`tests/tools/load_test.py`)·장애 시험(`tests/tools/failure_test.py`) | `tests/tools/` | 유실 0 · 이중 과금 0 · 잔액 = 원장 · `RECEIVED` 잔류 0. 503 건수를 기록하고 D6·D9를 확정 |
 | P1-11 데이터 이관 (운영 데이터가 있을 때만) | MySQL → PostgreSQL 데이터 이관 | — | 표마다 건수·ID 집합 일치, `check_ledger` 0건 |
@@ -270,6 +270,7 @@ PostgreSQL은 기본값 없는 NULL 열 추가가 표를 다시 쓰지 않는다
 | 정렬 라이브러리가 바뀌어 문자열 색인이 어긋난다(공식 문서: 인덱스 손상) | builtin `C.UTF-8`은 코드값 순서라 해당하지 않는다. 메이저 업그레이드·버전 불일치에 대비해 이미지 고정·버전 검사·복구 절차(§4.3) |
 | 신규 이벤트가 정합성 점검을 깨뜨린다 | 원천 스트림·누락 점검을 이벤트와 같은 단계에 넣는다(§5.3) |
 | 새 코드가 `IntegrityError`를 저장점 없이 잡는다 | §6 규칙, 리뷰에서 확인 |
+| 마이그레이션이 부분 유일 색인을 조용히 지운다(FK `db_index`를 끄는 `AlterField`가 같은 열 하나짜리 색인을 모두 지움) | P1-7에서 겪음. 마이그레이션 순서로 피하고, P1-8 재생성 뒤 색인 목록을 대조. 이후 스키마 변경 때도 DB 제약 시험(`test_billing_ledger` 등)으로 확인 |
 
 ## 10. 문서 반영
 

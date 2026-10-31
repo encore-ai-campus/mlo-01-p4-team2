@@ -445,12 +445,15 @@ ads_server/                     (승격 후 위치. 문서는 docs/legacy/ads-se
 **계층 (위 → 아래로만 의존)**
 
 ```
-L4  serving_api   console            (바깥과의 접점. 서로 모른다)
-L3  records                          (결정·반응 유스케이스. campaigns·billing·masters·engine·events를 api로 조합)
-L2  campaigns   billing              (서로 모른다. billing은 캠페인을 ID로만 안다)
-L1  masters   engine   assets   events     (서로 모른다)
+L5  serving_api   console            (바깥과의 접점. 서로 모른다)
+L4  records                          (결정·반응 유스케이스. campaigns·billing·masters·engine·events를 api로 조합)
+L3  campaigns   billing              (서로 모른다. billing은 캠페인을 ID로만 안다)
+L2  masters   engine   assets        (서로 모른다)
+L1  events                           (이벤트 기록·outbox·중계. foundation만 안다)
 L0  foundation
 ```
+
+- `events`는 `foundation`만 import한다. 그래서 위의 업무 모듈(`masters`·`campaigns`·`billing`·`records`)이 모두 자기 변경과 같은 트랜잭션에서 이벤트를 outbox에 기록할 수 있다 — 정책·입찰·캠페인 변경 이벤트처럼 `records`가 아닌 모듈이 원천인 이벤트 [사용자 2026-10-31, 계획 `docs/plans/00` D1. 그 전에는 `masters`와 같은 L1이라 `masters`가 이벤트를 기록할 수 없었다].
 
 - `engine`은 어떤 프로젝트 모듈도 import하지 않는다(순수 데이터만 받는다).
 - `billing`은 `campaigns`를 import하지 않고 캠페인을 ID 값으로만 다룬다. 예산 한도는 `records`가 두 모듈에서 읽어 `Candidate`에 숫자로 담는다.

@@ -1,6 +1,6 @@
 """시험·부하용 PostgreSQL 관리 도우미. 접속 값은 환경변수(DB_*)와 `.env` 에서 읽는다.
 
-    python tests/tools/pg_admin.py              접속 점검: 서버 18 에 닿는지, 정렬이 builtin C.UTF-8 인지, 시험 DB 를 만들 권한이 있는지(없으면 이유를 말하고 비정상 종료)
+    python tests/tools/pg_admin.py              접속 점검: 서버 18 에 닿는지, 정렬이 builtin C.UTF-8 이고 모든 DB 의 정렬 버전이 기록과 같은지, 시험 DB 를 만들 권한이 있는지(없으면 이유를 말하고 비정상 종료)
 
     python tests/tools/pg_admin.py --print-env  `.env` 를 읽어 DB_* 를 셸 `export` 문으로 출력한다(check.sh 가 eval)
 
@@ -70,11 +70,16 @@ def preflight():
         if not version.startswith("18."):  # 아래 datlocale 열은 17 부터 있다 — 먼저 묻는다
             raise SystemExit(f"PostgreSQL 18 이 필요합니다(지금 {version}).")
         locale = conn.execute("SELECT datlocprovider, datlocale, datcollate, datctype FROM pg_database WHERE datname = 'template1'").fetchone()
+        # 정렬 버전(docs/plans/00 §4.3 V-2): 기록이 없는 DB(template0)는 보지 않는다 — PostgreSQL 과 같다. 객체별 정렬 대조는 운영 DB 를 보는 ops_check 가 한다
+        stale = [r[0] for r in conn.execute("SELECT datname FROM pg_database WHERE datcollversion <> pg_database_collation_actual_version(oid)")]
     if tuple(locale) != LOCALE:
         raise SystemExit(f"template1 의 로케일이 builtin C.UTF-8 이 아닙니다(지금 provider·locale·collate·ctype = {tuple(locale)}). "
                          "tests/docker/compose.yaml 의 POSTGRES_INITDB_ARGS 로 볼륨을 다시 만드세요(`down -v`).")
+    if stale:  # template1 이면 CREATE DATABASE 부터 실패한다
+        raise SystemExit(f"정렬 버전이 기록과 다른 DB 가 있습니다: {', '.join(stale)}. 문자열 색인이 어긋났을 수 있습니다 — docs/plans/00 §4.3 V-5 순서로 고치세요"
+                         "(로컬 컨테이너는 데이터를 버려도 되면 `down -v` 로 다시 만든다).")
     drop_database(create_database("ads_preflight"))  # 생성·삭제 권한 확인: 무작위 이름이라 남의 DB 와 겹치지 않는다
-    print(f"PostgreSQL {version} 연결 확인, 정렬 builtin C.UTF-8, 데이터베이스 생성·삭제 권한 확인")
+    print(f"PostgreSQL {version} 연결 확인, 정렬 builtin C.UTF-8·버전 기록과 같음, 데이터베이스 생성·삭제 권한 확인")
 
 
 def print_env():

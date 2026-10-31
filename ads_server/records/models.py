@@ -148,8 +148,8 @@ class Reaction(models.Model):
             ),
             # 안전망: (결정, 사람)당 유형별로 인정된 반응은 하나뿐이다(규칙 `once-per-type` 이 먼저 거르고, 동시 처리가 새도 DB 가 막는다).
             # 개인 슬롯의 사람은 결정의 사람이라 결정당 하나, 일괄 슬롯은 보는 사람마다 하나다.
-            # **조건 없는 유일 제약**이다: 인정된 행만 `accepted_key` 를 갖고 나머지는 NULL(NULL 끼리는 서로 다른 값이다). 조건부 유일 제약을 지원하지 않는
-            # MySQL·MariaDB 에서도 그대로 성립한다(설계 §10 "MySQL 전환 점검").
+            # **조건 없는 유일 제약**이다: 인정된 행만 `accepted_key` 를 갖고 나머지는 NULL(NULL 끼리는 서로 다른 값이다). 조건부 유일 제약 없이
+            # 성립한다(PostgreSQL 의 부분 유일 색인으로 바꿀 수 있지만 그대로 둔다 — docs/plans/00 결정 D3).
             models.UniqueConstraint(fields=["accepted_key"], name="records_reaction_one_accepted_per_person_type"),
             # 판정(인정·거부)한 행에는 근거가 반드시 있고, 아직 판정하지 않은 행에는 없다
             models.CheckConstraint(

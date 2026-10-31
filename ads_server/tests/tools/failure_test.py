@@ -5,7 +5,7 @@
     python tests/tools/failure_test.py restart crash         # 골라서
     python tests/tools/failure_test.py --json out.json
 
-환경: **임시 PostgreSQL 18 컨테이너와 임시 MongoDB 8.0 레플리카셋 컨테이너**를 따로 띄운다(공식 이미지 `postgres:18`·`mongo:8.0`, 포트·비밀번호는 무작위).
+환경: **임시 PostgreSQL 18 컨테이너와 임시 MongoDB 8.0 레플리카셋 컨테이너**를 따로 띄운다(공식 이미지 `postgres:18.6-trixie`·`mongo:8.0`, 포트·비밀번호는 무작위).
 공유 시험 DB(`ads_server`)나 다른 사람이 쓰는 컨테이너는 건드리지 않는다. 끝나면 컨테이너를 지운다. Docker 가 없으면 **건너뛰지 않고 실패**한다.
 check.sh 에는 넣지 않는다(Docker 가 필요하고 수 분 걸린다).
 
@@ -49,7 +49,7 @@ sys.path.insert(0, str(BASE_DIR / "tests" / "tools"))
 import docker_cli  # noqa: E402 — tests/tools/ 가 경로에 있다
 import mongo_temp_rs  # noqa: E402
 
-IMAGE = "postgres:18"
+IMAGE = "postgres:18.6-trixie"  # tests/docker/compose.yaml 과 같게(docs/plans/00 §4.3 V-1)
 INITDB_ARGS = "--locale-provider=builtin --locale=C.UTF-8"  # 시험 DB 와 같은 정렬(결정 D11, tests/docker/compose.yaml)
 SCENARIOS = ("restart", "crash", "processor-kill", "mongo-restart", "relay-kill")
 

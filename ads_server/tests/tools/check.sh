@@ -23,7 +23,7 @@ run() {
 check_deploy() {
   local key; key="$("$PY" -c 'import secrets; print(secrets.token_urlsafe(60))')"
   eval "$("$PY" tests/tools/pg_admin.py --print-env)"  # .env 의 DB_* (실제 환경변수가 우선)
-  # 마이그레이션 검사가 DB 에 실제로 연결한다 → 시험 DB 접속 값(DB_*)을 그대로 넘긴다(DB_NAME 의 DB 가 실제로 있어야 한다).
+  # prod 설정이 DB_* 를 요구해 시험 DB 접속 값을 넘긴다. check --deploy 자체는 DB 에 연결하지 않는다(PostgreSQL — P1-9 에서 확인).
   env -i PATH="$PATH" DJANGO_SETTINGS_MODULE=config.settings.prod SECRET_KEY="$key" \
     ALLOWED_HOSTS=ads.example.com ADMIN_URL_PATH=ops-check/ \
     DB_NAME="${DB_NAME:-ads_server}" DB_USER="${DB_USER:-}" DB_PASSWORD="${DB_PASSWORD:-}" DB_HOST="${DB_HOST:-127.0.0.1}" DB_PORT="${DB_PORT:-5432}" \

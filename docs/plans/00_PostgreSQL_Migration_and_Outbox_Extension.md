@@ -61,7 +61,7 @@
 | P1-7 색인 정리 | 겹치는 FK 색인 8개, `Decision.media_id`·`Creative.image_name` 단일 색인 삭제. 선택 B-4·B-5·B-6도 함께(`username`·`Media.name`의 `_like`는 Django 인증 규칙에 닿아 남김) | 부록 B | 해당 질의가 남은 색인을 쓰는지 질의 계획(`EXPLAIN`)으로 확인. **주의(실제로 겪음):** FK의 `db_index`를 끄는 `AlterField`는 그 열 하나로 된 색인을 모두 지운다 — 같은 열 하나짜리 부분 유일 색인(`billing_one_signup_grant_per_wallet`)도 지워졌다(`sqlmigrate`에는 안 보임, DB 제약 시험이 잡음). 임시 마이그레이션에서 FK 변경을 제약 추가보다 앞에 두었다 |
 | P1-8 마이그레이션 재생성 | 앱마다 PostgreSQL용 `0001_initial`(P1-6·P1-7 반영, D4). 임시 `0002`·`0003`을 지운다. 개발 DB는 다시 만든다 | `*/migrations/0001_initial.py` | 빈 DB에서 `migrate` 뒤 `makemigrations --check` 변화 없음, 두 부분 유일 색인(`billing_one_signup_grant_per_wallet`·`campaigns_one_open_review_per_campaign`)이 있음, 표·색인·제약 목록이 P1-7 상태와 같음 |
 | P1-9 명칭·계약 값·정렬 버전 | manifest `scope` 값 변경(D5). "MySQL" 문구·주석 정리. 정렬 버전 관리: 이미지 태그 고정(§4.3 V-1), 점검에 모든 DB의 정렬 버전 검사(V-2) | `records/management/commands/export_integrity.py:12`, `export_hop_manifests.py:15`, `console/management/commands/ops_check.py:6,116,123`, `foundation/http.py:24-26`(주석만), `records/backfill.py:3` | `test_event_hops:299`·`test_event_ndjson:393` 갱신 뒤 통과 |
-| P1-10 재측정 | 150 동시 부하(`tests/tools/load_test.py`)·장애 시험(`tests/tools/failure_test.py`) | `tests/tools/` | 유실 0 · 이중 과금 0 · 잔액 = 원장 · `RECEIVED` 잔류 0. 503 건수를 기록하고 D6·D9를 확정 |
+| P1-10 재측정 | 150 동시 부하(`tests/tools/load_test.py`)·장애 시험(`tests/tools/failure_test.py`). 다른 세션이 DB 서버를 쓰지 않을 때 돌리고 그 사실을 기록한다. `REJECTED`이면서 `attempts > 0`인 반응 수도 센다(판정의 두 조회 사이 창 → `accepted_key` 유일 제약이 막는 경쟁의 빈도, P1-9 검토) | `tests/tools/` | 유실 0 · 이중 과금 0 · 잔액 = 원장 · `RECEIVED` 잔류 0. 503 건수를 기록하고 D6·D9를 확정(P1-9 점검 첫 실행에서 400 동시 결정 중 503 13건 — `too many clients`) |
 | P1-11 데이터 이관 (운영 데이터가 있을 때만) | MySQL → PostgreSQL 데이터 이관. **새 DB에 `0001`을 적용(migrate)한 뒤 앱 표의 데이터만 옮긴다** — `django_migrations`·`django_content_type`·`auth_permission`은 옮기지 않는다(새 DB가 post_migrate로 만든 것을 쓴다) | — | 표마다 건수·ID 집합 일치, `check_ledger` 0건 |
 | P1-12 의존성 취약점 (실행: 전환 묶음 커밋 직후) | pip-audit 실패 해소(사용자 결정 2026-10-31). 기준선(MySQL, 체크포인트)에도 있던 실패: `Pillow` 12.3.0(고침 13.0.0), `certifi` 2026.7.22(고침 2026.10.18, 전이 의존성) | `requirements.txt`의 `Pillow`, 설치 환경의 `certifi` | `check.sh`의 pip-audit 통과, 소재 이미지 검증 시험(`tests.ops.test_assets_validation` 등) 통과. **`check.sh` 전체 통과** |
 
@@ -102,7 +102,7 @@ DB 전체를 builtin `C.UTF-8`로 만든다. 그래서 ICU·glibc가 바뀌어�
 | # | 할 일 | 내용 | 단계 |
 |---|---|---|---|
 | V-1 | 이미지 태그 고정 | compose와 `failure_test.py`의 이미지를 같은 태그로 고정한다: `postgres:18.6-trixie`(태그 있음 확인). 정렬 위험이 아니라 재현성 때문이다. 운영·복제본·복원 서버도 같은 PostgreSQL 메이저로 맞춘다 | P1-9 |
-| V-2 | 감지 | `tests/tools/pg_admin.py` 점검과 운영 점검(`ops_check`의 PostgreSQL 항목)이 **모든 DB**(적어도 현재 DB와 `template1`)의 `datcollversion` = `pg_database_collation_actual_version(oid)`인지, 공식 문서의 `pg_collation` 대조 질의에 걸리는 정렬이 없는지 본다. 다르면 실패. `template1`이 builtin `C.UTF-8`인지는 `pg_admin` 점검이 이미 본다(P1-2) | P1-9 |
+| V-2 | 감지 | `tests/tools/pg_admin.py` 점검과 운영 점검(`ops_check`의 PostgreSQL 항목 — `check_collations` 명령, 따로 돌릴 수도 있다)이 **모든 DB**(적어도 현재 DB와 `template1`)의 `datcollversion` = `pg_database_collation_actual_version(oid)`인지 본다(기록이 없는 `template0`은 보지 않는다 — PostgreSQL과 같다). `check_collations`는 운영 DB에서 공식 문서의 `pg_collation` 대조 질의에 걸리는 정렬이 없는지도 본다(`pg_collation`은 DB마다 따로라 `postgres` DB에 붙는 `pg_admin`에서는 의미가 없다). 다르면 실패. `template1`이 builtin `C.UTF-8`인지는 `pg_admin` 점검이 이미 본다(P1-2). 운영 PostgreSQL을 다른 서비스와 같이 쓰게 되면 DB 검사를 `current_database()`·`template1`·`postgres`로 좁힌다 — 남의 DB 불일치(또는 이 서버에 없는 로케일)로 우리 점검이 실패하지 않게(배포 구성·D6 때) | P1-9 |
 | V-3 | 표현식 색인 규칙 | `lower()`·`upper()`·정규식을 쓰는 표현식 색인·CHECK를 새로 만들면 이 절에 적어 메이저 업그레이드 때 다시 만들 목록에 올린다. 지금은 0개 | 코드 규칙 |
 | V-4 | 검증 | 메이저 업그레이드 뒤와 정기 점검 때 문자열 색인에 amcheck `bt_index_check(index, heapallindexed => true, checkunique => true)`를 돌린다. **복제본에서도** 돌린다. `CREATE EXTENSION amcheck`는 DBA 권한이다 | 운영 절차 |
 | V-5 | 복구 절차 | 아래 순서. 로컬 Docker DB는 데이터를 버려도 되면 `docker compose … down -v` 후 다시 만드는 것이 가장 간단하다 | 운영 절차 |
@@ -281,6 +281,7 @@ PostgreSQL은 기본값 없는 NULL 열 추가가 표를 다시 쓰지 않는다
 | 광고 서버 DRD(현재 `docs/legacy/ads-server/ads-server-drd.md`) | 표 목록에 `campaigns_change_log`, C2 이벤트 표에 신규 4종. 생성 열을 물리 구현으로 적은 곳을 조건부 유일 제약(부분 유일 색인 — `pg_constraint`가 아니라 색인이라 지울 때는 `DROP INDEX`)으로: :395(물리 구현 ② GeneratedField 설명), :592·:598(O6 `open_campaign`), :639·:642(B2 `signup_grant_wallet`), :736·:737(§4.4 무결성 표) |
 | 공통 레이크하우스 설계안(`temp/`) | §3.2 광고그룹 이벤트를 권장 범위로·표는 공용 1개, §3.3 트랜잭션 불변식에 "광고그룹 변경 + 변경 로그 + `ad.ad_group_changed`" 추가, §3.6 Topic 표에 `ad.ad_group_changed`(Topic 계약을 정할 때) |
 | 위협 모델·계약 README | 인용한 시험 이름이 바뀌면 함께 고친다 |
+| 광고 서버 README·설계의 배포 후 점검 | `ops_check`의 ③ 항목 이름 "MySQL" → "PostgreSQL"(마이그레이션·원장 대조에 정렬 버전 추가, P1-9): `docs/legacy/ads-server/README.md:106`, 설계 §10 "시험 구성"(:901) |
 
 ## 11. 범위 밖·후속
 

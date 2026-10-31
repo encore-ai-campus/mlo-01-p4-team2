@@ -9,14 +9,14 @@ from events import api as events
 from records.api import event_gaps
 
 SCHEMA_VERSION = 1
-SCOPE = "mysql-repeatable-read-snapshot"
+SCOPE = "postgresql-repeatable-read-snapshot"  # 결정 D5 — 전환 전 manifest 에는 "mysql-…" 가 남아 있다
 
 
 class Command(BaseCommand):
     help = (
         "정합성 점검 결과를 NDJSON + manifest 로 낸다: ledger_check(잔액·원장·일 소진액 불일치), event_gaps(이벤트가 없는 원본 행 = 백필 대상), "
         "event_delivery(보냈다고 표시됐지만 MongoDB 에 없는 이벤트). 한 줄 = 문제 하나이고, 문제가 없으면 행 수 0 의 파일이 점검했다는 증거다. 문제가 하나라도 있으면 비정상 종료한다. "
-        "세 점검은 **하나의 MySQL 읽기 스냅샷**을 보고, manifest 의 checkpoint 에 그 범위(훑은 행 수)가 남는다."
+        "세 점검은 **하나의 PostgreSQL 읽기 스냅샷**을 보고, manifest 의 checkpoint 에 그 범위(훑은 행 수)가 남는다."
     )
 
     def add_arguments(self, parser):
@@ -27,7 +27,7 @@ class Command(BaseCommand):
         started = datetime.now(timezone.utc)
         scanned = {}
         try:
-            with consistent_read():  # 이 안의 모든 MySQL 읽기가 한 스냅샷을 본다 — 점검 도중 새로 쌓이는 행이 거짓 누락·불일치가 되지 않는다
+            with consistent_read():  # 이 안의 모든 DB 읽기가 한 스냅샷을 본다 — 점검 도중 새로 쌓이는 행이 거짓 누락·불일치가 되지 않는다
                 ledger = [{"kind": "ledger_problem", "message": m} for m in check_ledger(quiescent=True)]
                 gaps = list(event_gaps(scanned))  # 끝까지 읽은 뒤에 쓴다 — 중간에 끊긴 불완전한 목록이 파일이 되지 않게
                 undelivered = [{"kind": "sent_not_in_mongo", "event_id": str(i)} for i in events.sent_but_not_in_mongo(limit=None)]

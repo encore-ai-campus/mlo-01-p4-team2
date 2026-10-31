@@ -22,7 +22,7 @@ DEFAULT_MAX_BYTES = 16 * 1024  # 계약: 요청 본문 최대 16 KiB
 DEFAULT_MAX_DEPTH = 8
 _JSON_CT = re.compile(r"^application/json\s*(;.*)?$", re.IGNORECASE)
 # 요청 JSON 숫자의 크기 상한(정수·실수, 중첩 포함 — 설계 §10 "결정 API 세부", 6-2c). JavaScript 가 정수를 정확히 다루는 한계라 금액 상한과 같은 값이다.
-# 이것이 없으면 MySQL JSON 이 2^64 를 넘는 정수를 조용히 실수로 바꾸고, 실수 범위도 넘으면 저장 오류(3140)가 503 이 되어 매체가 같은 요청을 끝없이 재시도했다.
+# 계기는 MySQL JSON 의 저장 문제(2^64 를 넘는 정수가 조용히 실수로 바뀌고, 실수 범위도 넘으면 저장 오류가 503 이 되어 매체가 끝없이 재시도)였지만, 지금은 DB 와 상관없는 계약이다.
 MAX_JSON_NUMBER = MAX_AMOUNT
 
 

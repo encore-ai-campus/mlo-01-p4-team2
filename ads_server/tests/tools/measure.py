@@ -59,8 +59,8 @@ def _drop(name):
 
 
 def ensure_db(name):
-    """`DB_NAME` 의 실제 DB 가 있어야 한다(배포 점검 시험이 새 프로세스에서 그 DB 에 접속한다). 없으면 빈 DB 를 만들고 True — 끝나면 그것만 지운다.
-    정렬은 template1 의 것(ICU und, 결정 D11)을 물려받는다."""
+    """`DB_NAME` 의 DB 가 없으면 빈 DB 를 만들고 True — 끝나면 그것만 지운다. 정렬은 template1 의 것(builtin C.UTF-8, 결정 D11)을 물려받는다.
+    전에는 배포 점검이 그 DB 에 접속해서 필요했다. PostgreSQL 에서는 접속하지 않으므로 아직 필요한지는 다음 측정 때 본다."""
     if _pg(f"SELECT 1 FROM pg_database WHERE datname = '{name}'"):
         return False
     _pg(f'CREATE DATABASE "{name}"')

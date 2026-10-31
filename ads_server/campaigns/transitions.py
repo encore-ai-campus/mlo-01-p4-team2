@@ -80,18 +80,13 @@ def apply(campaign, action, by, now, reason=""):
 def expire_due(now):
     """기간이 지난 캠페인을 `ENDED` 로. 바뀐 캠페인 ID 목록을 돌려준다. **바깥 트랜잭션 안에서 부른다.**
 
-    후보를 잠금 없이 고른 뒤 **기본 키로** 행을 잠그고(`FOR UPDATE`), 잠근 뒤의 값으로 종료 여부를 다시 본다(`is_expired`): 연장·중단처럼 캠페인 행을 쓰는 동작은
-    같은 행 잠금을 쥐고 하므로(services 의 `_campaign(lock=True)`), 먼저 커밋된 쪽이 이기고 진 쪽은 그 결과를 보고 판단한다. 재검토 요청 정리와 감사 로그는 **실제로 바뀐 행에만** 한다.
-    잠금을 `ends_at`·`status` 보조 색인으로 잡지 않는다: 보조 색인 레코드를 먼저 잡은 쪽과 기본 키 행을 먼저 잡고 색인 열을 바꾸는 쪽이 서로를 기다려 교착이 난다(1213).
+    기간이 지난 행을 **기본 키 순서로** 잠그고(`FOR UPDATE`), 잠근 뒤의 값으로 종료 여부를 다시 본다(`is_expired` — 종료 판정은 engine 한 곳): 연장·중단처럼 캠페인 행을 쓰는 동작은
+    같은 행 잠금을 쥐고 하므로(services 의 `_campaign(lock=True)`), 먼저 커밋된 쪽이 이기고 진 쪽은 그 결과를 보고 판단한다. PostgreSQL 은 잠금을 기다린 뒤 새 행 버전으로
+    조건을 다시 보므로, 그 사이 연장된 캠페인은 결과에서 빠진다. 잠금은 행 단위라 색인 순서로 엇갈려 교착하지 않는다. 재검토 요청 정리와 감사 로그는 **실제로 바뀐 행에만** 한다.
     """
-    candidates = list(
-        Campaign.objects.filter(ends_at__lte=now).exclude(status=ENDED).values_list("campaign_id", flat=True)
-    )
-    if not candidates:
-        return []
     due = [
-        c.campaign_id for c in Campaign.objects.select_for_update().filter(pk__in=candidates).order_by("pk")
-        if c.status != ENDED and is_expired(c.ends_at, now)
+        c.campaign_id for c in Campaign.objects.select_for_update().filter(ends_at__lte=now).exclude(status=ENDED).order_by("pk")
+        if is_expired(c.ends_at, now)
     ]
     if not due:
         return []

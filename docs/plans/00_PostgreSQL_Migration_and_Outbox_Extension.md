@@ -57,7 +57,7 @@
 | P1-3 DB 오류 분류 | MySQL 오류 번호를 SQLSTATE로: 유일 위반 `1062` → `23505`, 일시 오류 `{1205, 1213}` → `{55P03, 40P01}`(psycopg 3의 `__cause__.sqlstate`) | `foundation/dberrors.py:8-25`, 주석 `foundation/http.py:188`·`foundation/middleware.py:77,91` | 동시에 들어온 같은 접수가 같은 행을 돌려준다. 잠금 초과는 503 + `Retry-After`. 일시 오류는 반응 실패 횟수를 올리지 않는다(`test_db_errors`) |
 | P1-4 outbox 쓰기 | `bulk_create([row], update_conflicts=True, update_fields=["event_name"])` → `bulk_create([row], ignore_conflicts=True)` | `events/outbox.py:21-22` | 같은 이벤트를 두 번 써도 한 줄이고 내용이 바뀌지 않는다(`test_event_outbox`) |
 | P1-5 스냅샷 읽기 | `SET TRANSACTION ISOLATION LEVEL REPEATABLE READ`를 트랜잭션 밖이 아니라 `atomic()` 안의 첫 문장으로(`REPEATABLE READ, READ ONLY`). 거절 규칙(`ConsistentReadUnavailable`)·`quiescent`는 유지 | `billing/services.py:322-343` | 점검 중 다른 연결이 커밋한 행이 결과에 섞이지 않는다(`test_ledger_check`). **여기까지가 전환 묶음 — `check.sh` 첫 전체 통과**(pip-audit 제외 — 기준선에도 있던 실패라 P1-12에서) |
-| P1-6 우회 구조 단순화 | 생성 열 2개 → 조건부 유일 제약, 2질의 잠금 경로 2곳 → 1질의(선택 1곳 추가). 격리 수준 손잡이(A-3)는 P1-1에서 처리 | 부록 A | 경쟁 시험(`test_campaign_races`, `test_receipt_ordering`, `test_media_lifecycle_ordering`, `test_billing_ledger`, `test_campaigns_review`) 통과 |
+| P1-6 우회 구조 단순화 | 생성 열 2개 → 조건부 유일 제약, 2질의 잠금 경로 2곳 → 1질의(선택 1곳 추가). 격리 수준 손잡이(A-3)는 P1-1에서 처리 | 부록 A | 경쟁 시험(`test_campaign_races`, `test_receipt_ordering`, `test_media_lifecycle_ordering`, `test_billing_ledger`, `test_campaigns_review`) 통과. InnoDB 전용 시험 둘은 PostgreSQL 동작을 보는 시험으로 바꾼다: 기간 종료의 '잠금 조건은 기본 키뿐' → 두 기간 종료가 겹쳐도 교착 없이 한 번씩, 없는 결정 접수의 '`FOR UPDATE` SQL 없음' → 잠근 행 0개. 생성 열 삭제 마이그레이션은 임시 `0002`(P1-8에서 `0001`에 합친다) |
 | P1-7 색인 정리 | 겹치는 FK 색인 8개, `Decision.media_id`·`Creative.image_name` 단일 색인 삭제. 선택 3건 | 부록 B | 해당 질의가 남은 색인을 쓰는지 질의 계획(`EXPLAIN`)으로 확인 |
 | P1-8 마이그레이션 재생성 | 앱마다 PostgreSQL용 `0001_initial`(P1-6·P1-7 반영, D4) | `*/migrations/0001_initial.py` | 빈 DB에서 `migrate` 뒤 `makemigrations --check` 변화 없음 |
 | P1-9 명칭·계약 값·정렬 버전 | manifest `scope` 값 변경(D5). "MySQL" 문구·주석 정리. 정렬 버전 관리: 이미지 태그 고정(§4.3 V-1), 점검에 모든 DB의 정렬 버전 검사(V-2) | `records/management/commands/export_integrity.py:12`, `export_hop_manifests.py:15`, `console/management/commands/ops_check.py:6,116,123`, `foundation/http.py:24-26`(주석만), `records/backfill.py:3` | `test_event_hops:299`·`test_event_ndjson:393` 갱신 뒤 통과 |
@@ -275,8 +275,8 @@ PostgreSQL은 기본값 없는 NULL 열 추가가 표를 다시 쓰지 않는다
 
 | 문서 | 반영 |
 |---|---|
-| 광고 서버 설계(현재 `docs/legacy/ads-server/ads-server-design.md`) | §6.2 층 정의(D1), §10 "MySQL 전환 점검"을 PostgreSQL 기준으로, 결정 D1~D10 기록 |
-| 광고 서버 DRD(현재 `docs/legacy/ads-server/ads-server-drd.md`) | 표 목록에 `campaigns_change_log`, 생성 열 삭제·조건부 유일 제약, C2 이벤트 표에 신규 4종 |
+| 광고 서버 설계(현재 `docs/legacy/ads-server/ads-server-design.md`) | §6.2 층 정의(D1), §10 "MySQL 전환 점검"(:834 — DB-1b 의 계산 열 구현)을 PostgreSQL 기준(조건부 유일 제약 = 부분 유일 색인)으로, 결정 D1~D12 기록 |
+| 광고 서버 DRD(현재 `docs/legacy/ads-server/ads-server-drd.md`) | 표 목록에 `campaigns_change_log`, C2 이벤트 표에 신규 4종. 생성 열을 물리 구현으로 적은 곳을 조건부 유일 제약(부분 유일 색인 — `pg_constraint`가 아니라 색인이라 지울 때는 `DROP INDEX`)으로: :395(물리 구현 ② GeneratedField 설명), :592·:598(O6 `open_campaign`), :639·:642(B2 `signup_grant_wallet`), :736·:737(§4.4 무결성 표) |
 | 공통 레이크하우스 설계안(`temp/`) | §3.2 광고그룹 이벤트를 권장 범위로·표는 공용 1개, §3.3 트랜잭션 불변식에 "광고그룹 변경 + 변경 로그 + `ad.ad_group_changed`" 추가, §3.6 Topic 표에 `ad.ad_group_changed`(Topic 계약을 정할 때) |
 | 위협 모델·계약 README | 인용한 시험 이름이 바뀌면 함께 고친다 |
 
@@ -297,7 +297,7 @@ PostgreSQL은 기본값 없는 NULL 열 추가가 표를 다시 쓰지 않는다
 | A-3 | `config/settings/base.py:211-236`, `dev.py:29`, `prod.py:45` | `DB_ISOLATION_LEVEL` 비교 손잡이 — MySQL `REPEATABLE READ`의 간격 잠금 교착을 측정하려고 둔 것 | READ COMMITTED 고정, 손잡이 삭제(PostgreSQL의 REPEATABLE READ는 동시 갱신 시 `40001`로 실패하므로 운영값으로 쓰지 않는다) | 권장 — **P1-1에서 처리** | `test_settings:104-122` |
 | A-4 | `records/ordering.py:31-45` `lock_for_receipt` | InnoDB가 `FOR UPDATE`의 조건을 평가하기 전에 행을 잠가서, 잠금 없는 소유 확인 후 PK로만 잠금(2질의) | `Decision.objects.select_for_update().filter(pk=decision_id, media_id=reporting_media_id)` 1질의 — PostgreSQL은 조건에 맞지 않는 행을 잠그지 않는다. 결정은 추가 전용이라 `media_id`가 바뀌지 않는다. 반응 접수 경로 질의 1회 감소 | 권장 | `test_receipt_ordering`, `test_media_lifecycle_ordering` |
 | A-5 | `campaigns/transitions.py:80-100` `expire_due` | InnoDB 보조 색인 잠금 교착을 피하려고 잠금 없는 후보 조회 → PK로 잠금 → 재확인(2질의) | `select_for_update().filter(ends_at__lte=now).exclude(status=ENDED).order_by("pk")` 1질의. `is_expired` 재확인은 유지(종료 판정은 engine 한 곳) | 권장 | `test_campaign_races:157-260`, `test_campaigns_ended` |
-| A-6 | `records/processing.py:146-163` `_wake_dependents` | 조건 UPDATE가 커밋 전 접수 행을 기다릴까 봐 후보 조회 후 PK로 UPDATE(2질의) | 조건 UPDATE 1질의 — PostgreSQL의 UPDATE는 커밋 전 INSERT를 보지 않는다 | 선택(낮음) | `test_funnel_rules`(보류·깨우기) |
+| A-6 | `records/processing.py:146-163` `_wake_dependents` | 조건 UPDATE가 커밋 전 접수 행을 기다릴까 봐 후보 조회 후 PK로 UPDATE(2질의) | 조건 UPDATE 1질의 — PostgreSQL의 UPDATE는 커밋 전 INSERT를 보지 않는다 | 선택(낮음) — **하지 않음**(P1-6): 이득은 질의 1회이고, 깨우기는 판정 결과에 영향이 없는 최적화라 바꿀 위험만 남는다 | `test_funnel_rules`(보류·깨우기) |
 
 ## 부록 B. 색인 정리 상세 (P1-7)
 

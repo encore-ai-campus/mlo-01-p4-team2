@@ -5,7 +5,6 @@
 
 실제 MySQL 연결을 스레드마다 하나씩 쓰고, 접수 트랜잭션을 열어 둔 채 커밋을 미루는 방식으로 순서를 고정한다(시각은 `now=` 로 주입).
 """
-import threading
 import uuid
 
 from django.db import connection
@@ -14,7 +13,7 @@ from django.utils import timezone
 
 from records import api as records
 from records.models import Reaction
-from tests.support.concurrency import BLOCKED, WAIT, Uncommitted, Worker, arriving_before
+from tests.support.concurrency import BLOCKED, WAIT, Uncommitted, Worker
 from tests.support.factories import NOW, SUBJECT, World, at
 from tests.ops.test_funnel_rules import FunnelMixin
 from tests.support.cases import Cases
@@ -201,12 +200,19 @@ class ForeignReportsDoNotJoinTheOwnersOrderingTests(Cases, FunnelMixin, Transact
         self.assertEqual(Reaction.objects.get(pk=mine.inbox_id).attempts, 0)
 
     def case_a_report_for_a_missing_decision_takes_no_lock_and_is_still_stored(self):
-        locked = threading.Event()
-        view, created = arriving_before("FOR UPDATE", "records_decision", lambda: records.receive_reaction(
-            self.media, uuid.uuid4(), uuid.uuid4(), "IMPRESSION", at(1), {}, now=at(1),
-        ), locked)()
+        """잠금 질의에 소유 조건(`media_id`)이 붙어 있어, 없는 결정에 대한 접수는 잠근 행이 0개다(PostgreSQL 은 조건에 맞는 행만 잠근다)."""
+        locked_rows = []
+
+        def hook(execute, sql, params, many, context):
+            result = execute(sql, params, many, context)
+            if "FOR UPDATE" in sql and connection.ops.quote_name("records_decision") in sql:
+                locked_rows.append(context["cursor"].rowcount)
+            return result
+
+        with connection.execute_wrapper(hook):
+            view, created = records.receive_reaction(self.media, uuid.uuid4(), uuid.uuid4(), "IMPRESSION", at(1), {}, now=at(1))
         self.assertTrue(created)  # 존재 여부를 이유로 접수를 거절하지 않는다(계약)
-        self.assertFalse(locked.is_set(), "없는 결정에 대한 접수가 결정 행을 잠갔다")
+        self.assertEqual(locked_rows, [0], "없는 결정에 대한 접수가 결정 행을 잠갔다")
 
     def test_foreign_reports_do_not_join_the_owners_ordering(self):
         self.run_cases()

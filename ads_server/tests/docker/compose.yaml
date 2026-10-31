@@ -18,6 +18,8 @@ services:
       # --locale 로 libc 쪽(LC_COLLATE·LC_CTYPE·메시지 등)도 C.UTF-8 로 맞춘다 — en_US.utf8 이 없는 OS 로 옮겨도 접속이 막히지 않게(C.UTF-8 은 glibc 에 들어 있다).
       # initdb 때만 적용된다: 바꾸면 `down -v` 로 볼륨을 다시 만든다
       POSTGRES_INITDB_ARGS: "--locale-provider=builtin --locale=C.UTF-8"
+    # 시험 전용(결정 D6): 부하 시험 서버는 요청마다 스레드·연결 하나라 400 동시 버스트에서 기본 100 에 닿는다. 운영은 기본 100 그대로다
+    command: ["postgres", "-c", "max_connections=200"]
     ports:
       - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:

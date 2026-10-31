@@ -995,7 +995,9 @@ def run(args, count, tmp, db_name, res):
         from billing.models import LedgerEntry
         from records.models import Decision, Reaction
 
-        totals = {"decisions": Decision.objects.count(), "reactions": Reaction.objects.count(), "charges": LedgerEntry.objects.filter(entry_type="CHARGE").count()}
+        totals = {"decisions": Decision.objects.count(), "reactions": Reaction.objects.count(), "charges": LedgerEntry.objects.filter(entry_type="CHARGE").count(),
+                  # 보고만: 한 번 이상 실패한 뒤 끝난 반응(상태별). 판정의 두 조회 사이 창에서 accepted_key 유일 제약이 막은 경쟁의 빈도를 본다(docs/plans/00 P1-10)
+                  "failed_once": dict(Counter(Reaction.objects.filter(attempts__gt=0).values_list("status", flat=True)))}
         log(f"\n저장된 행: {totals}")
         log("결과: " + ("모든 불변식 충족" if ok else "실패 항목 있음 — " + ", ".join(c["check"] for c in harness.checks if not c["ok"])))
         if args.json:

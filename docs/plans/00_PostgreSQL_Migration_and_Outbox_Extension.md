@@ -1,6 +1,6 @@
 # 00. 광고 서버 PostgreSQL 전환 및 Outbox 확장 계획
 
-> **상태:** 초안 — 결정 D1~D10 반영(2026-10-31), D6만 보류
+> **상태:** 초안 — 결정 D1~D13 반영(2026-10-31)
 > **작성:** 2026-10-31
 > **대상:** `ads_server/` — 이 문서의 코드 경로는 모두 `ads_server/` 기준이고, 줄 번호는 체크포인트 커밋 `54f731a` 기준이다
 > **근거:** 공통 레이크하우스 설계안 `temp/shared-multidomain-lakehouse-architecture.md`(저장소 밖) §3·§5·§6·§8, 광고 서버 설계 `docs/legacy/ads-server/ads-server-design.md` §6.2·§10, DRD `docs/legacy/ads-server/ads-server-drd.md` §4·§5.6
@@ -29,7 +29,7 @@
 
 ## 3. 결정 사항
 
-2026-10-31 사용자 결정. D1~D9는 권장안을 채택했고, D10은 (c)를 골랐다. D11·D12는 P1-1·P1-2 검토에서 나와 같은 날 정했다(D11은 ICU `und`로 정했다가 D12에서 builtin `C.UTF-8`로 다시 정했다).
+2026-10-31 사용자 결정. D1~D9는 권장안을 채택했고, D10은 (c)를 골랐다. D11·D12는 P1-1·P1-2 검토에서 나와 같은 날 정했다(D11은 ICU `und`로 정했다가 D12에서 builtin `C.UTF-8`로 다시 정했다). D6·D9·D13은 P1-10 측정 뒤 같은 날 정했다.
 
 | # | 항목 | 결정 |
 |---|---|---|
@@ -38,12 +38,13 @@
 | D3 | `accepted_key`(인정 1건 보장 키) 단순화 | 유지. 지금 방식도 PostgreSQL에서 그대로 성립한다 |
 | D4 | 마이그레이션 이력 | 앱마다 PostgreSQL용 `0001_initial`을 새로 만든다 |
 | D5 | 정합성 manifest의 `scope` 값 | `"mysql-repeatable-read-snapshot"` → `"postgresql-repeatable-read-snapshot"`. 과거 manifest는 원래 값 그대로 |
-| D6 | 연결 수(PostgreSQL 기본 `max_connections` 100, MySQL은 151) | **보류.** P1-10 부하 시험의 503 건수를 보고, 배포 구성(워커 × 스레드)과 함께 정한다(`max_connections` 상향 / PgBouncer / psycopg 풀). PgBouncer transaction 모드를 고르면 `lock_timeout`을 넘기는 접속 시작 매개변수(`options`)가 거부·무시될 수 있으니 함께 본다 |
+| D6 | 연결 수(PostgreSQL 기본 `max_connections` 100, MySQL은 151) | **운영은 기본 100 유지, 시험 compose만 200.** 운영 gunicorn은 동기 워커(`2×CPU+1`, 스레드 1)라 동시 연결 ≈ 워커 수 + 상시 프로세스 2(처리·중계) + 주기 작업으로 100보다 훨씬 적다. 시험 하네스(`load_test.py`)는 요청마다 스레드·연결 하나라 한도에 닿는다: 150 동시에서 첫 시도 503 180건(전부 `too many clients`, 재시도로 모두 성공), check.sh의 400 동시 버스트(재시도 없이 201·429만 허용)는 12회 중 1회 503 13건으로 실패했다. **요청이 늘 때의 확장 경로는 PgBouncer(transaction 모드)** — 앱 서버·워커를 늘려도 DB 연결은 풀 크기로 고정되고 요청마다 연결을 여는 비용도 없어진다. 그때 할 일은 인프라 추가·`DB_HOST` 변경과 `lock_timeout` 한 가지다: 접속 시작 매개변수(`options`)는 PgBouncer가 기본으로 거부하므로 ⓐ DB 역할 설정(`ALTER ROLE … SET lock_timeout = '5s'`)으로 옮기고 `options`를 지우거나 ⓑ PgBouncer에 `track_extra_parameters = lock_timeout`을 두고 앱의 `-c lock_timeout=5s`를 그대로 쓴다(값을 앱이 계속 쥔다. 서버가 보고하지 않는 매개변수라 시작 값만 복원되고 도중의 `SET`은 다른 클라이언트로 새지만, 앱 코드에는 `SET`이 없다) — 그때 고른다. 지금 옮기지 않는 이유: 역할 설정을 빠뜨린 DB에서는 경고 없이 무한 대기가 된다. 그 밖의 transaction 모드 조건은 지금 코드로 충족된다(P1-10 검토): 격리 수준·`SET TRANSACTION`은 트랜잭션 안, Django는 prepared statement를 쓰지 않는다(`prepare_threshold` None), `.iterator()`의 서버 쪽 커서는 모두 `consistent_read()`(atomic) 안이라 WITH HOLD가 아니다 — **atomic 밖에서 `.iterator()`를 써야 하면 그때 `DISABLE_SERVER_SIDE_CURSORS = True`**. (버린 안: `max_connections` 상향만 — 늘 때마다 다시 올려야 하고 수백 연결부터 PostgreSQL 성능이 떨어진다 / psycopg 풀 — 프로세스 안에서만 묶여 서버가 늘면 합계 문제가 남는다) |
 | D7 | 신규 이벤트 payload 범위 | 정책 변경 사유(관리자 자유문)는 싣지 않고 `change_source` 코드를 싣는다. 캠페인 종료 시각(`ends_at`) 변경은 `PERIOD_CHANGED`로 기록한다 |
 | D8 | 신규 이벤트 백필 | 백필 대상에서 제외하고 시작한다. 과거 이력은 설계안 §3.2.1의 별도 백필로 다룬다 |
-| D9 | `lock_timeout` 값 | 5s로 시작한다. 503 + `Retry-After`가 계약상 재시도 경로다. P1-10 부하 시험으로 확정한다 |
+| D9 | `lock_timeout` 값 | **5s로 확정**(P1-10): 150 동시 부하와 장애 시험 5종에서 잠금 대기 초과(55P03)·교착(40P01) 0건. 503 + `Retry-After`가 계약상 재시도 경로다 |
 | D10 | 변경 로그 표의 모양 | 캠페인·광고그룹 **공용 표 1개**로 하고, `ad.ad_group_changed`도 이번에 함께 구현한다. 설계안은 광고그룹 이벤트를 후속으로, 표를 2개로 제안했다(§10에서 설계안 수정) |
 | D11 | PostgreSQL 정렬(collation) | builtin `C.UTF-8`(`POSTGRES_INITDB_ARGS=--locale-provider=builtin --locale=C.UTF-8` — libc 쪽 LC_COLLATE·LC_CTYPE도 C.UTF-8이라 OS의 다른 로케일에 기대지 않는다). 정렬이 코드값만 써서 ICU·glibc 버전이 바뀌어도 문자열 색인의 순서가 바뀌지 않는다(§4.3). 같음 비교는 대소문자·악센트를 구분한다(MySQL `utf8mb4_0900_as_cs`와 같다). 감수하는 것: 화면의 이름순이 코드값 순서가 된다(대문자가 소문자보다 앞, 악센트 문자는 `z` 뒤. 한글끼리는 가나다순 그대로). 처음에는 ICU `und`로 정했으나 D12에서 바꿨다. (버린 안: ICU `und` — 이름순은 MySQL과 가장 가깝지만 ICU 버전이 바뀌면 색인을 다시 만들어야 함 / 기본값 en_US.utf8 — glibc 버전에 같은 위험) |
+| D13 | 판정의 질의 사이 창(`accepted_key` 경쟁) | **설계에 기록만 한다**(P1-9 검토에서 발견). `records/facts.py` `gather`의 두 조회(인정된 유형 / 먼저 접수된 같은 유형의 미처리)가 READ COMMITTED에서 서로 다른 스냅샷을 봐, 그 사이에 앞 반응의 판정이 커밋되면 둘 다 놓친다 → 뒤 반응을 인정하려다 `accepted_key` 유일 제약이 막고(과금도 함께 되돌림) 다음 재처리에서 `once-per-type`으로 거부된다. 영향은 `attempts` +1과 경고 한 줄(상한 5에 닿으려면 같은 반응이 다섯 번 연속 걸려야 한다). 빈도: check.sh 12회 중 1회, 150 동시 부하 0건(`load_test` 끝의 `failed_once`). MySQL(READ COMMITTED)에도 같은 창이 있었다. (버린 안: 이 위반을 실패로 세지 않기 — 진짜 결함이 반복되면 stuck으로 드러나지 않는다 / 같은 결정의 판정을 잠금으로 줄 세우거나 한 질의로 — 판정 경로가 바뀌고 경합이 는다) |
 | D12 | 식별자·코드·키 열의 정렬(ICU 버전 위험을 줄이는 방법) | DB 전체를 builtin `C.UTF-8`로 한다 → D11을 다시 정함. 열마다 정렬을 나누는 안(키·코드 열만 `C`)과 ICU `und` 유지 안은 버렸다. 이름순 정렬만 ICU로 하는 완화(`Collate(..., "und-x-icu")`)는 하지 않는다 |
 
 ## 4. P1 — PostgreSQL 전환
@@ -61,7 +62,7 @@
 | P1-7 색인 정리 | 겹치는 FK 색인 8개, `Decision.media_id`·`Creative.image_name` 단일 색인 삭제. 선택 B-4·B-5·B-6도 함께(`username`·`Media.name`의 `_like`는 Django 인증 규칙에 닿아 남김) | 부록 B | 해당 질의가 남은 색인을 쓰는지 질의 계획(`EXPLAIN`)으로 확인. **주의(실제로 겪음):** FK의 `db_index`를 끄는 `AlterField`는 그 열 하나로 된 색인을 모두 지운다 — 같은 열 하나짜리 부분 유일 색인(`billing_one_signup_grant_per_wallet`)도 지워졌다(`sqlmigrate`에는 안 보임, DB 제약 시험이 잡음). 임시 마이그레이션에서 FK 변경을 제약 추가보다 앞에 두었다 |
 | P1-8 마이그레이션 재생성 | 앱마다 PostgreSQL용 `0001_initial`(P1-6·P1-7 반영, D4). 임시 `0002`·`0003`을 지운다. 개발 DB는 다시 만든다 | `*/migrations/0001_initial.py` | 빈 DB에서 `migrate` 뒤 `makemigrations --check` 변화 없음, 두 부분 유일 색인(`billing_one_signup_grant_per_wallet`·`campaigns_one_open_review_per_campaign`)이 있음, 표·색인·제약 목록이 P1-7 상태와 같음 |
 | P1-9 명칭·계약 값·정렬 버전 | manifest `scope` 값 변경(D5). "MySQL" 문구·주석 정리. 정렬 버전 관리: 이미지 태그 고정(§4.3 V-1), 점검에 모든 DB의 정렬 버전 검사(V-2) | `records/management/commands/export_integrity.py:12`, `export_hop_manifests.py:15`, `console/management/commands/ops_check.py:6,116,123`, `foundation/http.py:24-26`(주석만), `records/backfill.py:3` | `test_event_hops:299`·`test_event_ndjson:393` 갱신 뒤 통과 |
-| P1-10 재측정 | 150 동시 부하(`tests/tools/load_test.py`)·장애 시험(`tests/tools/failure_test.py`). 다른 세션이 DB 서버를 쓰지 않을 때 돌리고 그 사실을 기록한다. `REJECTED`이면서 `attempts > 0`인 반응 수도 센다(판정의 두 조회 사이 창 → `accepted_key` 유일 제약이 막는 경쟁의 빈도, P1-9 검토) | `tests/tools/` | 유실 0 · 이중 과금 0 · 잔액 = 원장 · `RECEIVED` 잔류 0. 503 건수를 기록하고 D6·D9를 확정(P1-9 점검 첫 실행에서 400 동시 결정 중 503 13건 — `too many clients`) |
+| P1-10 재측정 | 150 동시 부하(`tests/tools/load_test.py`)·장애 시험(`tests/tools/failure_test.py`). 다른 세션이 DB 서버를 쓰지 않을 때 돌리고 그 사실을 기록한다. `REJECTED`이면서 `attempts > 0`인 반응 수도 센다(판정의 두 조회 사이 창 → `accepted_key` 유일 제약이 막는 경쟁의 빈도, P1-9 검토) | `tests/tools/` | 유실 0 · 이중 과금 0 · 잔액 = 원장 · `RECEIVED` 잔류 0. 503 건수를 기록하고 D6·D9를 확정(P1-9 점검 첫 실행에서 400 동시 결정 중 503 13건 — `too many clients`). **충족(2026-10-31)**: 150 동시 불변식 52개, 장애 시험 5종 모두 통과 — 수치는 D6·D9·D13 |
 | P1-11 데이터 이관 (운영 데이터가 있을 때만) | MySQL → PostgreSQL 데이터 이관. **새 DB에 `0001`을 적용(migrate)한 뒤 앱 표의 데이터만 옮긴다** — `django_migrations`·`django_content_type`·`auth_permission`은 옮기지 않는다(새 DB가 post_migrate로 만든 것을 쓴다) | — | 표마다 건수·ID 집합 일치, `check_ledger` 0건 |
 | P1-12 의존성 취약점 (실행: 전환 묶음 커밋 직후) | pip-audit 실패 해소(사용자 결정 2026-10-31). 기준선(MySQL, 체크포인트)에도 있던 실패: `Pillow` 12.3.0(고침 13.0.0), `certifi` 2026.7.22(고침 2026.10.18, 전이 의존성) | `requirements.txt`의 `Pillow`, 설치 환경의 `certifi` | `check.sh`의 pip-audit 통과, 소재 이미지 검증 시험(`tests.ops.test_assets_validation` 등) 통과. **`check.sh` 전체 통과** |
 
@@ -266,7 +267,7 @@ PostgreSQL은 기본값 없는 NULL 열 추가가 표를 다시 쓰지 않는다
 | 잠금·격리 의미 차이로 경쟁 결함이 생긴다 | 우회 로직은 시험 통과 뒤 제거(P1-6). 경쟁 시험 전체와 150 동시 부하·장애 시험 재측정(P1-10) |
 | `lock_timeout`을 주지 않으면 잠금 대기가 끝나지 않는다(PostgreSQL 기본 0 = 무한) | P1-1에서 지정, P1-3 시험으로 503 + `Retry-After` 확인 |
 | `SET TRANSACTION` 위치를 그대로 두면 정합성 점검이 오류 없이 틀린다 | P1-5 |
-| 연결 수 한도(PostgreSQL 기본 100) | P1-10 측정 → D6 |
+| 연결 수 한도(PostgreSQL 기본 100) | P1-10 측정 → D6(운영 100 유지·시험 200, 확장은 PgBouncer) |
 | 이름순 목록의 순서가 바뀐다(collation) | D11(builtin `C.UTF-8`)로 감수한다 — 대문자 먼저·악센트 문자 뒤, 한글은 가나다순 그대로. 시험 DB부터 맞췄고 운영 DB도 같은 값으로 만든다(§4.2) |
 | 정렬 라이브러리가 바뀌어 문자열 색인이 어긋난다(공식 문서: 인덱스 손상) | builtin `C.UTF-8`은 코드값 순서라 해당하지 않는다. 메이저 업그레이드·버전 불일치에 대비해 이미지 고정·버전 검사·복구 절차(§4.3) |
 | 신규 이벤트가 정합성 점검을 깨뜨린다 | 원천 스트림·누락 점검을 이벤트와 같은 단계에 넣는다(§5.3) |
@@ -281,12 +282,14 @@ PostgreSQL은 기본값 없는 NULL 열 추가가 표를 다시 쓰지 않는다
 | 광고 서버 DRD(현재 `docs/legacy/ads-server/ads-server-drd.md`) | 표 목록에 `campaigns_change_log`, C2 이벤트 표에 신규 4종. 생성 열을 물리 구현으로 적은 곳을 조건부 유일 제약(부분 유일 색인 — `pg_constraint`가 아니라 색인이라 지울 때는 `DROP INDEX`)으로: :395(물리 구현 ② GeneratedField 설명), :592·:598(O6 `open_campaign`), :639·:642(B2 `signup_grant_wallet`), :736·:737(§4.4 무결성 표) |
 | 공통 레이크하우스 설계안(`temp/`) | §3.2 광고그룹 이벤트를 권장 범위로·표는 공용 1개, §3.3 트랜잭션 불변식에 "광고그룹 변경 + 변경 로그 + `ad.ad_group_changed`" 추가, §3.6 Topic 표에 `ad.ad_group_changed`(Topic 계약을 정할 때) |
 | 위협 모델·계약 README | 인용한 시험 이름이 바뀌면 함께 고친다 |
+| 광고 서버 DRD의 저장소 한계 | `docs/legacy/ads-server/ads-server-drd.md:1191` "MySQL 단일 노드 … `max_connections`(기본 151)" → PostgreSQL 100·확장 경로(D6) |
+| 설계 §10 "운영 서버 실행 환경" | gunicorn 워커 종류는 동기(스레드 1), 연결 합계(워커 + 상시 처리·중계 + 주기 작업)는 `max_connections`(100)에서 여유를 둔 값 이하 — 스레드·워커·서버를 늘리면 D6을 다시 본다(P1-10 검토: `--threads N`을 켜면 연결이 워커 × N이 되어 계산이 조용히 깨진다) |
 | 광고 서버 README·설계의 배포 후 점검 | `ops_check`의 ③ 항목 이름 "MySQL" → "PostgreSQL"(마이그레이션·원장 대조에 정렬 버전 추가, P1-9): `docs/legacy/ads-server/README.md:106`, 설계 §10 "시험 구성"(:901) |
 
 ## 11. 범위 밖·후속
 
 - **Kafka 전환 때 바꿀 곳:** `events/relay.py:84-96`(성공 뒤 `sent_at` UPDATE), `events/management/commands/purge_sent_events.py`(보낸 지 N일 뒤 DELETE), `events/relay.py:107-132`(MongoDB 대조). Debezium Outbox Router는 INSERT만 있는 outbox를 전제한다(설계안 §3.5).
-- D6(연결 수): P1-10 뒤.
+- PgBouncer 도입(D6): 요청이 늘어 앱 서버·워커를 늘릴 때. `lock_timeout` 전달 방식을 함께 정한다.
 - C4 Insight 저장·`ad.insight_recorded`, `ad.decision` v3: 가격 모델 단계(§8.3).
 
 ---

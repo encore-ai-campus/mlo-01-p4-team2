@@ -1,5 +1,6 @@
 import io
 import uuid
+from unittest import mock
 
 from django.db import connection
 from django.http import Http404
@@ -9,6 +10,8 @@ from django.test.utils import CaptureQueriesContext
 from assets.api import ImageRejected, asset_exists
 from campaigns import api
 from campaigns.models import AdGroup, Bid, Creative
+from events.api import event_id_for
+from events.models import EventOutbox
 from foundation.errors import Forbidden, InvalidRequest, StaleVersion
 from foundation.models import AuditLog
 from masters import api as masters
@@ -126,6 +129,30 @@ class CampaignServiceTests(Cases, TestCase):
         self.assertEqual((low.bid_version, low.amount, high.bid_version, high.amount), (2, 50, 3, 5000))
         self.assertEqual([b.amount for b in api.list_bids(self.w.adv, self.w.group.ad_group_id)], [5000, 50, 300])
         self.assertEqual(api.get_ad_group(self.w.adv, self.w.group.ad_group_id).current_bid.amount, 5000)
+
+    def case_every_bid_version_records_its_event_in_the_same_transaction(self):
+        """입찰 버전마다 `ad.bid_added` 하나(계획 docs/plans/00 P2-4): 광고그룹을 만들 때(입찰액이 있을 때만 v1)·입찰 추가 모두, 입찰 행과 함께 커밋되거나 함께 되돌려진다."""
+        def bid_events(ad_group_id):
+            return list(EventOutbox.objects.filter(event_name="ad.bid_added", aggregate_id=ad_group_id).order_by("created_at").values_list("event_id", "payload"))
+        gid = self.w.group.ad_group_id
+        v2 = api.add_bid(self.w.adv, gid, 400, expected_version=1, now=NOW + SEC)
+        bids = api.list_bids(self.w.adv, gid)[::-1]  # 오래된 것부터
+        rows = bid_events(gid)
+        self.assertEqual([e for e, _ in rows], [event_id_for("ad.bid_added", b.bid_id) for b in bids])  # 버전마다 다른 이벤트, 원천에서 다시 계산한 ID
+        self.assertEqual([(p["bid_version"], p["amount"], p["created_at"]) for _, p in rows], [(1, 300, NOW.isoformat()), (2, 400, (NOW + SEC).isoformat())])
+        self.assertEqual(v2.bid_id, bids[-1].bid_id)
+        empty = api.create_ad_group(self.w.adv, self.w.campaign.campaign_id, "빈 그룹", [self.w.slot.slot_id], now=NOW)
+        self.assertEqual(bid_events(empty.ad_group_id), [])  # 입찰액 없이 만들면 입찰도 이벤트도 없다
+        with mock.patch("campaigns.services.events.record_bid_added", side_effect=RuntimeError("outbox down")):  # 이벤트 쓰기가 실패하면 입찰 행도 남지 않는다
+            with self.assertRaises(RuntimeError):
+                api.create_ad_group(self.w.adv, self.w.campaign.campaign_id, "실패 그룹", [self.w.slot.slot_id], bid_amount=500, now=NOW)
+            with self.assertRaises(RuntimeError):
+                api.add_bid(self.w.adv, gid, 450, expected_version=2, now=NOW)
+        self.assertFalse(AdGroup.objects.filter(name="실패 그룹").exists())
+        self.assertEqual([b.bid_version for b in api.list_bids(self.w.adv, gid)], [2, 1])
+        with self.assertRaises(StaleVersion):  # 입찰 저장이 실패하면 이벤트도 없다
+            api.add_bid(self.w.adv, gid, 450, expected_version=1, now=NOW)
+        self.assertEqual(len(bid_events(gid)), 2)
 
     def case_bid_validation(self):
         for bad in (0, -1, 1.5, True, "30", None, 2**53):

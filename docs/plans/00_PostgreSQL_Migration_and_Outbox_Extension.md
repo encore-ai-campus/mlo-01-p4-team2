@@ -256,7 +256,7 @@ PostgreSQL은 기본값 없는 NULL 열 추가가 표를 다시 쓰지 않는다
 | 시점 | 추가 | 형태 |
 |---|---|---|
 | 가격 모델 C4 | Insight 저장(설계안 §5.4: `insight_id`, `kind`, `model_version`, `valid_from`/`valid_until`, `payload`, 승인 상태) | 새 표 |
-| 추천 적용 | `BidPolicy.insight_id`(NULL 허용). `change_source` 계산에 `insight_id IS NOT NULL → RECOMMENDATION`을 더한다 | NULL 열 |
+| 추천 적용 | `BidPolicy.insight_id`(NULL 허용). `change_source` 계산에 `insight_id IS NOT NULL → RECOMMENDATION`을 더한다. 추천이 정책·입찰 버전을 자동으로 쓰기 시작하므로 구간 대조의 원천 스트림 색인 `masters_bid_policy(changed_at)`·`campaigns_bid(created_at)`도 이때 둔다(P2-3·P2-4는 작은 표라 색인 없이 훑는다) | NULL 열, 색인 2개 |
 | 가격 실험 | `Decision` 실험군 열(설계안 §3.2.1 `pricing_experiment_id`·`experiment_variant`) + `ad.decision` v3 | NULL 열, 이벤트는 설계안대로 v3 |
 | 기본 입찰 제안의 효과 측정(설계안 §5.2 (a)) | `Bid`에 입찰 때 보여 준 기본값 | NULL 열 |
 

@@ -61,7 +61,7 @@ def policy_versions():
 
 def policy_stream(to_documents):
     """정책 버전을 변경 시각(`changed_at`) 창으로 읽는 흐름(구간 manifest 의 원본 구간). `to_documents(views)` 가 창 하나의 `PolicyView` 를 문서로 바꾼다.
-    ponytail: changed_at 색인이 없어 창마다 표를 다 훑는다 — 관리자가 손으로 늘리는 작은 표라 그대로 둔다(커지면 (changed_at) 색인)."""
+    ponytail: changed_at 색인이 없어 창마다 표를 다 훑는다 — 관리자가 손으로 늘리는 작은 표라 그대로 둔다. 추천 적용(계획 docs/plans/00 §8.3)으로 정책 버전을 자동으로 쓰기 시작할 때 (changed_at) 색인."""
     return events.table_stream(BidPolicy.objects.all(), "changed_at", lambda rows: to_documents([_policy_view(p) for p in rows]))
 
 

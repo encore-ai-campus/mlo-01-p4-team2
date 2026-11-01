@@ -79,7 +79,7 @@ class EventGapsChunkTests(MongoDatabaseMixin, TestCase):
         Decision.objects.bulk_create(decisions)
         stats = {}
         gaps = list(records.event_gaps(stats))
-        self.assertEqual(stats, {"decision": 2003, "reaction": 0, "ledger_charge": 0, "bid_policy": 0})
+        self.assertEqual(stats, {"decision": 2003, "reaction": 0, "ledger_charge": 0, "bid_policy": 0, "bid": 0})
         self.assertEqual(len(gaps), 2003)
         self.assertEqual({g["source_id"] for g in gaps}, {str(d.decision_id) for d in decisions})
         self.assertEqual({g["event_id"] for g in gaps}, {str(events.event_id_for("ad.decision", d.decision_id)) for d in decisions})

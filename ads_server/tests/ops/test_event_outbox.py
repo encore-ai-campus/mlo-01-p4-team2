@@ -49,7 +49,10 @@ class EnqueueTests(Cases, TestCase):
         event_id = events.record_decision(now=NOW, **decision_fields())
         row = EventOutbox.objects.get()
         self.assertEqual((row.event_id, row.event_name, row.schema_version, row.aggregate_id, row.sent_at), (event_id, "ad.decision", 2, DECISION, None))
-        self.assertEqual(schemas.SCHEMA_VERSIONS, {"ad.decision": 2, "ad.reaction_received": 1, "ad.reaction": 1, "ad.charge": 1})  # 종류별(6-10c): 결정만 2(단위 → `charge_shares`)
+        self.assertEqual(schemas.SCHEMA_VERSIONS, {  # 종류별(6-10c): 결정만 2(단위 → `charge_shares`)
+            "ad.decision": 2, "ad.reaction_received": 1, "ad.reaction": 1, "ad.charge": 1,
+            "ad.bid_policy_changed": 1, "ad.bid_added": 1, "ad.campaign_changed": 1, "ad.ad_group_changed": 1,
+        })
         self.assertEqual(row.created_at, NOW)  # produced_at = outbox 에 쓴 시각
         self.assertEqual(row.payload["decision_id"], str(DECISION))
         json.dumps(row.payload)  # JSON 으로 직렬화된다
@@ -97,6 +100,35 @@ class EnqueueTests(Cases, TestCase):
         self.assertNotIn("person_id", p)
         self.assertNotIn("audience", p)
         self.assertEqual(p["raw"], {"type": "IMPRESSION"})
+
+    def case_change_events_carry_the_planned_fields_under_their_own_message_key(self):
+        """정책·입찰·캠페인·광고그룹 이벤트(계획 docs/plans/00 §5.1): 필드는 표 그대로(사유·바꾼 사람·이름 없음), 메시지 키는 종류별 대상."""
+        slot, policy, ad_group, bid, campaign, change = (uuid.uuid4() for _ in range(6))
+        policy_fields = dict(slot_id=slot, bid_policy_id=policy, policy_version=1, floor_amount=100, base_amount=200, cap_amount=300,
+                             impression_share=98, click_share=1, conversion_share=1, changed_at=NOW)
+        change_fields = dict(change_id=change, change_type="STATUS_CHANGED", previous_value={"status": "ACTIVE"}, new_value={"status": "PAUSED"}, changed_at=NOW)
+        cases = [  # (기록 함수, 값, 이벤트 이름, 원천 ID, 메시지 키, payload 필드)
+            (events.record_bid_policy_changed, policy_fields, "ad.bid_policy_changed", policy, slot,
+             {"slot_id", "bid_policy_id", "policy_version", "floor_amount", "base_amount", "cap_amount", "impression_share", "click_share",
+              "conversion_share", "changed_at", "change_source", "insight_id"}),
+            (events.record_bid_added, dict(bid_id=bid, ad_group_id=ad_group, bid_version=2, amount=150, created_at=NOW), "ad.bid_added", bid, ad_group,
+             {"bid_id", "ad_group_id", "bid_version", "amount", "created_at"}),
+            (events.record_campaign_changed, dict(campaign_id=campaign, **change_fields), "ad.campaign_changed", change, campaign,
+             {"campaign_id", "change_id", "change_type", "previous_value", "new_value", "changed_at"}),
+            (events.record_ad_group_changed, dict(ad_group_id=ad_group, campaign_id=campaign, **change_fields), "ad.ad_group_changed", change, ad_group,
+             {"ad_group_id", "campaign_id", "change_id", "change_type", "previous_value", "new_value", "changed_at"}),
+        ]
+        for record, fields, name, source, key, names in cases:
+            with self.subTest(name):
+                event_id = record(now=NOW, **fields)
+                row = EventOutbox.objects.get(pk=event_id)
+                self.assertEqual((event_id, row.event_name, row.schema_version, row.aggregate_id), (schemas.event_id_of(name, source), name, 1, key))
+                self.assertEqual(set(row.payload), names)
+                json.dumps(row.payload)
+        p = EventOutbox.objects.get(event_name="ad.bid_policy_changed").payload
+        self.assertEqual((p["slot_id"], p["changed_at"], p["change_source"], p["insight_id"]), (str(slot), "2026-10-10T03:00:00.123456+00:00", "INITIAL", None))
+        self.assertEqual(schemas.bid_policy_changed_payload(**{**policy_fields, "policy_version": 2})["change_source"], "MANUAL")  # 첫 버전만 INITIAL
+        self.assertEqual(EventOutbox.objects.get(event_name="ad.ad_group_changed").payload["new_value"], {"status": "PAUSED"})  # 변경 로그 JSON 그대로
 
     def test_enqueue(self):
         self.run_cases()

@@ -7,6 +7,8 @@ from django.db.models import Model
 from django.test import TestCase, TransactionTestCase, tag
 from django.utils import timezone
 
+from events.api import event_id_for
+from events.models import EventOutbox
 from foundation.errors import Conflict, Forbidden, InvalidRequest, NotFound, StaleVersion
 from foundation.logging import request_id_var
 from foundation.models import AuditLog
@@ -40,6 +42,28 @@ class PolicyServiceTests(Cases, TestCase):
             with self.assertRaises(Conflict):
                 api.create_slot(self.admin, media.media_id, "배너", 100, 200, 300, "사유", audience="individual", **SHARES)
         self.assertFalse(Slot.objects.filter(media_id=media.media_id).exists())
+
+    def case_every_policy_version_records_its_event_in_the_same_transaction(self):
+        """정책 버전마다 `ad.bid_policy_changed` 하나(계획 docs/plans/00 P2-3): 만들기(v1 = INITIAL)·정책 변경·일괄 변경 모두, 정책 행과 함께 커밋되거나 함께 되돌려진다."""
+        def policy_events(slot_id):
+            return list(EventOutbox.objects.filter(event_name="ad.bid_policy_changed", aggregate_id=slot_id).order_by("created_at").values_list("event_id", "payload"))
+        slot = new_slot(self.admin)
+        v2 = api.add_policy_version(self.admin, slot.slot_id, 110, 200, 500, "사유", expected_version=1, **SHARES)
+        v3 = api.add_policy_version_bulk(self.admin, {slot.slot_id: 2}, 120, 200, 500, "사유", **SHARES)[0]
+        rows = policy_events(slot.slot_id)
+        self.assertEqual([e for e, _ in rows], [event_id_for("ad.bid_policy_changed", p.bid_policy_id) for p in (slot.policy, v2, v3)])  # 버전마다 다른 이벤트, 원천에서 다시 계산한 ID
+        self.assertEqual([(p["policy_version"], p["floor_amount"], p["change_source"]) for _, p in rows], [(1, 100, "INITIAL"), (2, 110, "MANUAL"), (3, 120, "MANUAL")])
+        with mock.patch("masters.services.events.record_bid_policy_changed", side_effect=RuntimeError("outbox down")):  # 이벤트 쓰기가 실패하면 정책 행도 남지 않는다
+            media = api.create_media(self.admin, "이벤트 실패 매체")
+            with self.assertRaises(RuntimeError):
+                api.create_slot(self.admin, media.media_id, "배너", 100, 200, 300, "사유", audience="individual", **SHARES)
+            with self.assertRaises(RuntimeError):
+                api.add_policy_version(self.admin, slot.slot_id, 130, 200, 500, "사유", expected_version=3, **SHARES)
+        self.assertFalse(Slot.objects.filter(media_id=media.media_id).exists())
+        self.assertEqual(versions(slot.slot_id), [1, 2, 3])
+        with self.assertRaises(StaleVersion):  # 정책 저장이 실패하면 이벤트도 없다
+            api.add_policy_version(self.admin, slot.slot_id, 130, 200, 500, "사유", expected_version=1, **SHARES)
+        self.assertEqual(len(policy_events(slot.slot_id)), 3)
 
     def case_policy_service_rejects_zero_negative_and_order_violation(self):
         media = api.create_media(self.admin, "검증 매체")

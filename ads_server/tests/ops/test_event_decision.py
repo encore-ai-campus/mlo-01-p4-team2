@@ -16,6 +16,11 @@ from tests.ops.test_serving_decisions import DecisionApiBase
 from tests.support.cases import Cases
 
 
+def decision_events():
+    """결정 이벤트만(세계를 만들 때 구성의 정책 이벤트도 생긴다 — 계획 docs/plans/00 P2-3)."""
+    return EventOutbox.objects.filter(event_name=schemas.DECISION)
+
+
 def decide(w, **kw):
     return records.decide(w.slot.media_id, w.slot.slot_id, subject_id=kw.pop("subject_id", SUBJECT), now=NOW, **kw)
 
@@ -27,7 +32,7 @@ class DecisionEventTests(Cases, TestCase):
         w = World()
         w.api.add_bid(w.adv, w.group.ad_group_id, 800, expected_version=1, now=NOW)
         view = decide(w)
-        row = EventOutbox.objects.get()
+        row = decision_events().get()
         d = Decision.objects.get(pk=view.decision_id)
         self.assertEqual((row.event_name, row.aggregate_id, row.event_id), ("ad.decision", d.decision_id, schemas.event_id_of(schemas.DECISION, d.decision_id)))
         p = row.payload
@@ -45,7 +50,7 @@ class DecisionEventTests(Cases, TestCase):
     def case_a_decision_without_an_ad_is_still_an_event(self):
         w = World(with_creative=False)
         decide(w)
-        row = EventOutbox.objects.get()
+        row = decision_events().get()
         self.assertIsNone(row.payload["selected"])
         self.assertEqual(row.payload["candidate_count"], 0)
 
@@ -53,14 +58,14 @@ class DecisionEventTests(Cases, TestCase):
         w = World()
         shared = masters.create_slot(w.admin, w.slot.media_id, "일괄", 100, 200, 500, "초기", audience="shared", **SHARES)
         records.decide(shared.media_id, shared.slot_id, now=NOW)
-        row = EventOutbox.objects.get()
+        row = decision_events().get()
         self.assertEqual((row.payload["audience"], row.payload["subject_id"]), ("shared", None))
 
     def case_failed_lookups_leave_no_event(self):
         w = World()
         with self.assertRaises(Exception):
             records.decide(uuid.uuid4(), w.slot.slot_id, subject_id=SUBJECT, now=NOW)  # 다른 매체의 슬롯 = 없는 것
-        self.assertEqual(EventOutbox.objects.count(), 0)
+        self.assertEqual(decision_events().count(), 0)
 
     def case_outbox_adds_exactly_one_query_to_a_decision(self):
         w = World()
@@ -82,14 +87,14 @@ class DecisionEventAtomicityTests(Cases, TransactionTestCase):
             with self.assertRaises(RuntimeError):
                 decide(w)
         self.assertEqual(Decision.objects.count(), 0)
-        self.assertEqual(EventOutbox.objects.count(), 0)
+        self.assertEqual(decision_events().count(), 0)
 
     def case_if_the_decision_cannot_be_stored_there_is_no_event(self):
         w = World()
         with mock.patch("records.services.Decision.objects.create", side_effect=RuntimeError("저장 실패")):
             with self.assertRaises(RuntimeError):
                 decide(w)
-        self.assertEqual(EventOutbox.objects.count(), 0)
+        self.assertEqual(decision_events().count(), 0)
 
     def test_decision_event_atomicity(self):
         self.run_cases()
@@ -100,14 +105,14 @@ class DecisionEventHttpTests(Cases, DecisionApiBase):
     def case_the_event_of_a_201_names_the_decision_in_the_response(self):
         response = self.post()
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(str(EventOutbox.objects.get().aggregate_id), response.json()["decision_id"])
+        self.assertEqual(str(decision_events().get().aggregate_id), response.json()["decision_id"])
 
     def case_if_the_outbox_cannot_be_written_the_answer_is_503_and_nothing_is_saved(self):
         with mock.patch("records.services.events.record_decision", side_effect=OperationalError("disk full")):
             response = self.post()
         self.assertEqual(response.status_code, 503)  # 커밋 전의 실패: 결정과 이벤트를 함께 되돌린다
         self.assertNotIn("decision_id", response.json())
-        self.assertEqual((Decision.objects.count(), EventOutbox.objects.count()), (0, 0))
+        self.assertEqual((Decision.objects.count(), decision_events().count()), (0, 0))
         self.assertEqual(self.post().status_code, 201)
 
     def test_decision_event_http(self):

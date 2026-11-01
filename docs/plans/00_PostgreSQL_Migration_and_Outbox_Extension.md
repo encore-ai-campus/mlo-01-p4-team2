@@ -40,7 +40,7 @@
 | D5 | 정합성 manifest의 `scope` 값 | `"mysql-repeatable-read-snapshot"` → `"postgresql-repeatable-read-snapshot"`. 과거 manifest는 원래 값 그대로 |
 | D6 | 연결 수(PostgreSQL 기본 `max_connections` 100, MySQL은 151) | **운영은 기본 100 유지, 시험 compose만 200.** 운영 gunicorn은 동기 워커(`2×CPU+1`, 스레드 1)라 동시 연결 ≈ 워커 수 + 상시 프로세스 2(처리·중계) + 주기 작업으로 100보다 훨씬 적다. 시험 하네스(`load_test.py`)는 요청마다 스레드·연결 하나라 한도에 닿는다: 150 동시에서 첫 시도 503 180건(전부 `too many clients`, 재시도로 모두 성공), check.sh의 400 동시 버스트(재시도 없이 201·429만 허용)는 12회 중 1회 503 13건으로 실패했다. **요청이 늘 때의 확장 경로는 PgBouncer(transaction 모드)** — 앱 서버·워커를 늘려도 DB 연결은 풀 크기로 고정되고 요청마다 연결을 여는 비용도 없어진다. 그때 할 일은 인프라 추가·`DB_HOST` 변경과 `lock_timeout` 한 가지다: 접속 시작 매개변수(`options`)는 PgBouncer가 기본으로 거부하므로 ⓐ DB 역할 설정(`ALTER ROLE … SET lock_timeout = '5s'`)으로 옮기고 `options`를 지우거나 ⓑ PgBouncer에 `track_extra_parameters = lock_timeout`을 두고 앱의 `-c lock_timeout=5s`를 그대로 쓴다(값을 앱이 계속 쥔다. 서버가 보고하지 않는 매개변수라 시작 값만 복원되고 도중의 `SET`은 다른 클라이언트로 새지만, 앱 코드에는 `SET`이 없다) — 그때 고른다. 지금 옮기지 않는 이유: 역할 설정을 빠뜨린 DB에서는 경고 없이 무한 대기가 된다. 그 밖의 transaction 모드 조건은 지금 코드로 충족된다(P1-10 검토): 격리 수준·`SET TRANSACTION`은 트랜잭션 안, Django는 prepared statement를 쓰지 않는다(`prepare_threshold` None), `.iterator()`의 서버 쪽 커서는 모두 `consistent_read()`(atomic) 안이라 WITH HOLD가 아니다 — **atomic 밖에서 `.iterator()`를 써야 하면 그때 `DISABLE_SERVER_SIDE_CURSORS = True`**. (버린 안: `max_connections` 상향만 — 늘 때마다 다시 올려야 하고 수백 연결부터 PostgreSQL 성능이 떨어진다 / psycopg 풀 — 프로세스 안에서만 묶여 서버가 늘면 합계 문제가 남는다) |
 | D7 | 신규 이벤트 payload 범위 | 정책 변경 사유(관리자 자유문)는 싣지 않고 `change_source` 코드를 싣는다. 캠페인 종료 시각(`ends_at`) 변경은 `PERIOD_CHANGED`로 기록한다 |
-| D8 | 신규 이벤트 백필 | 백필 대상에서 제외하고 시작한다. 과거 이력은 설계안 §3.2.1의 별도 백필로 다룬다 |
+| D8 | 신규 이벤트 백필 | 백필 대상에서 제외하고 시작한다. 과거 이력은 설계안 §3.2.1의 별도 백필로 다룬다. **전제(P2-3 검토)**: 신규 종류의 누락 점검(`event_gaps`)·구간 대조(`hop_source`)는 원천 행 **전부**를 보므로, 기록이 시작되기 전에 만든 행(정책 버전·입찰·캠페인·광고그룹)은 이벤트가 없는 채 영구 누락으로 남는다(`export_integrity` 실패, 옛 창 대조 불일치). 지금은 운영 데이터가 없고(P1-11 해당 없음) 개발 DB도 비어 있어 성립한다 — **기존 데이터가 있는 DB에 올릴 때는 종류별 시작 시각(cutoff)을 두어 그 뒤의 행만 점검하거나, 별도 백필을 먼저 한다**(§4.2의 "이관 시점의 캠페인·광고그룹에는 `CREATED` 행이 없다"와 같은 뿌리) |
 | D9 | `lock_timeout` 값 | **5s로 확정**(P1-10): 150 동시 부하와 장애 시험 5종에서 잠금 대기 초과(55P03)·교착(40P01) 0건. 503 + `Retry-After`가 계약상 재시도 경로다 |
 | D10 | 변경 로그 표의 모양 | 캠페인·광고그룹 **공용 표 1개**로 하고, `ad.ad_group_changed`도 이번에 함께 구현한다. 설계안은 광고그룹 이벤트를 후속으로, 표를 2개로 제안했다(§10에서 설계안 수정) |
 | D11 | PostgreSQL 정렬(collation) | builtin `C.UTF-8`(`POSTGRES_INITDB_ARGS=--locale-provider=builtin --locale=C.UTF-8` — libc 쪽 LC_COLLATE·LC_CTYPE도 C.UTF-8이라 OS의 다른 로케일에 기대지 않는다). 정렬이 코드값만 써서 ICU·glibc 버전이 바뀌어도 문자열 색인의 순서가 바뀌지 않는다(§4.3). 같음 비교는 대소문자·악센트를 구분한다(MySQL `utf8mb4_0900_as_cs`와 같다). 감수하는 것: 화면의 이름순이 코드값 순서가 된다(대문자가 소문자보다 앞, 악센트 문자는 `z` 뒤. 한글끼리는 가나다순 그대로). 처음에는 ICU `und`로 정했으나 D12에서 바꿨다. (버린 안: ICU `und` — 이름순은 MySQL과 가장 가깝지만 ICU 버전이 바뀌면 색인을 다시 만들어야 함 / 기본값 en_US.utf8 — glibc 버전에 같은 위험) |
@@ -154,19 +154,19 @@ DB 전체를 builtin `C.UTF-8`로 만든다. 그래서 ICU·glibc가 바뀌어�
 | 단계 | 작업 | 위치 | 완료 기준 |
 |---|---|---|---|
 | P2-1 층 규칙 | events를 foundation 바로 위 독립 층으로 옮기고, masters 이상 층 번호를 한 칸씩 올린다(D1) | `tests/dev/boundaries/test_layers.py:10-16` | 층 시험 통과 |
-| P2-2 events 공통 | 이름 4개 + `SCHEMA_VERSIONS` 각 v1 + payload 함수 4개. `record_*` 4개와 `NAMES`·`__all__`. `aggregate_id` 주석을 "종류별 키"로 고친다(열 추가 없음 — `aggregate_type`은 Debezium 라우팅을 정할 때) | `events/schemas.py:9-13`, `events/api.py:11-31`, `events/models.py:15` | payload 모양 시험 |
-| P2-3 `ad.bid_policy_changed` | 슬롯 생성 시 v1, 정책 버전 추가 시(단건·일괄 공통) 기록 | `masters/services.py:140-168` `create_slot`, `masters/services.py:171-191` `_add_version` | 아래 공통 완료 기준 |
+| P2-2 events 공통 | 이름 4개 + `SCHEMA_VERSIONS` 각 v1 + payload 함수 4개. `record_*` 4개와 `NAMES`·`__all__`. `aggregate_id` 주석을 "종류별 키"로 고친다(열 추가 없음 — `aggregate_type`은 Debezium 라우팅을 정할 때). **지킬 점(P2-1 검토)**: ① `record_*`·payload 함수는 **값만 받는다**(키워드 인자 — UUID·정수·문자열·시각, §5.1 payload 필드 그대로). ORM 객체를 넘기면 import 없이도 events가 위 모듈의 모델 모양에 묶이고 층 시험이 잡지 못한다 ② `change_source`(`policy_version = 1` → `INITIAL`, 나중에 `insight_id`가 있으면 추천)는 **`events.schemas`의 payload 함수가 값으로 계산**한다 — C2 스키마 변환은 events에서만(설계 §6.1), 규칙을 한 곳에 | `events/schemas.py:9-13`, `events/api.py:11-31`, `events/models.py:15` | payload 모양 시험 |
+| P2-3 `ad.bid_policy_changed` | 슬롯 생성 시 v1, 정책 버전 추가 시(단건·일괄 공통) 기록. 정책의 `changed_at`이 이벤트 생성 시각이 되므로 `create_slot`·`add_policy_version`·`add_policy_version_bulk`에 `now=None`을 둔다(캠페인 서비스와 같은 방식 — 기본값이면 동작은 그대로, 시험 세계는 고정 시각) | `masters/services.py:140-168` `create_slot`, `masters/services.py:171-191` `_add_version` | 아래 공통 완료 기준 |
 | P2-4 `ad.bid_added` | 광고그룹 생성 시(입찰액이 있을 때 v1), 입찰 추가 시 기록. `add_bid`는 안쪽 저장점 뒤, 바깥 트랜잭션 안에서 쓴다 | `campaigns/services.py:514` `create_ad_group`, `campaigns/services.py:578-583` `add_bid` | 공통 완료 기준 |
-| P2-5 변경 로그 | §5.2의 모델과 `record_change` | `campaigns/models.py`, campaigns 새 함수 | 추가 전용 시험(`test_append_only_all_models`), 모델 규약 시험 통과 |
+| P2-5 변경 로그 | §5.2의 모델과 `record_change`. **값 형식은 events가 정한다(P2-2 검토)**: `events.schemas`에 변경 값 형식기(예: `change_value(**fields)` — UUID → 문자열, 시각 → `_iso`(UTC ISO, 마이크로초), UUID 목록은 정렬한 문자열 목록, 정수·불리언·문자열은 그대로)를 두고 api로 내보낸다. `record_change`는 그 결과를 변경 로그에 저장하고 **같은 값**을 `record_*`에 넘긴다 — 로그 = 이벤트(정합성 원천과 같음)이고 C2 형식은 events 한 곳(설계 §6.1). JSONField에 시각 객체를 그대로 넣으면 `DjangoJSONEncoder`가 밀리초·`Z` 형식으로 바꿔 같은 이벤트 안에서 형식이 갈린다 | `campaigns/models.py`, campaigns 새 함수 | 추가 전용 시험(`test_append_only_all_models`), 모델 규약 시험 통과 |
 | P2-6 `ad.campaign_changed` | §5.4 기록 지점 | `campaigns/services.py`, `campaigns/transitions.py` | 공통 완료 기준. `tr.apply`를 트랜잭션 밖에서 부르던 시험(`test_campaigns_transitions.py:39-59`)은 트랜잭션 안으로 고친다 |
 | P2-7 `ad.ad_group_changed` | §5.5 기록 지점 | `campaigns/services.py` | 공통 완료 기준 |
-| P2-8 백필 제외 | 신규 4종은 백필 분기를 만들지 않고 제외를 명시한다(D8) | `records/backfill.py:101-110` | `test_event_backfill` 통과 |
+| P2-8 백필 제외 | 신규 4종은 백필 분기를 만들지 않고 제외를 명시한다(D8). **실행은 종류마다 그 이벤트 단계에서**(P2-2 검토): `records/backfill.py`는 `SOURCE_KINDS`에 없는 종류가 한 줄이라도 있으면 manifest 전체를 거부하므로(`InvalidInput`), `records/integrity.py` `_sources`에 신규 원천을 더하는 단계(P2-3·P2-4·P2-6·P2-7)에서 `SOURCE_KINDS`와 제외("백필 대상 아님"으로 세고 건너뜀)를 같은 커밋에 넣는다 — 그러지 않으면 신규 종류 누락이 섞인 `event_gaps`로는 기존 4종의 백필도 돌릴 수 없다. P2-8은 남은 확인(시험·문구)만 | `records/backfill.py:25, 90-91, 101-110` | `test_event_backfill` 통과 |
 | P2-9 문서 | §10 | — | — |
 
 **정합성 점검은 이벤트와 같은 단계에서 넣는다.** outbox 쪽은 이벤트 종류를 동적으로 읽는다(`events/hops.py:179-184`). 그래서 원천 쪽 스트림이 없으면 새 종류의 첫 이벤트부터 `verify_hops`가 불일치(`line_missing_in_a`, `events/hopcheck.py:140`)를 보고한다. 이벤트를 추가하는 단계(P2-3·P2-4·P2-6·P2-7)마다 다음을 함께 넣는다.
 
 - `records/hops.py:35-41` `source_streams`에 원천 스트림 추가: `masters_bid_policy.changed_at`, `campaigns_bid.created_at`, 변경 로그 `changed_at`(`target_type`별). masters·campaigns `api.py`에 읽기 함수를 둔다.
-- `records/integrity.py:16-28` `_sources`에 누락 점검 원천을 추가한다.
+- `records/integrity.py:16-28` `_sources`에 누락 점검 원천을 추가한다. **같은 단계에서** `records/backfill.py`의 `SOURCE_KINDS`에 그 종류를 더하고 백필 제외(D8)로 센다(P2-8 행 참고 — 순서가 바뀌면 백필 전체가 막힌다).
 - MongoDB 검증기(`events/store.py:27-33`)는 `event_name`이 자유 문자열이라 바꿀 것이 없다. 중계도 새 종류를 그대로 옮긴다.
 
 **이벤트 단계의 공통 완료 기준**
@@ -281,6 +281,8 @@ PostgreSQL은 기본값 없는 NULL 열 추가가 표를 다시 쓰지 않는다
 | 문서 | 반영 |
 |---|---|
 | 광고 서버 설계(현재 `docs/legacy/ads-server/ads-server-design.md`) | §6.2 층 정의(D1), §10 "MySQL 전환 점검"(:834 — DB-1b 의 계산 열 구현)을 PostgreSQL 기준(조건부 유일 제약 = 부분 유일 색인)으로, 결정 D1~D12 기록 |
+| 설계 §6.3a 백필 6번·DRD `backfill_events` 행(P2-3) | 결과 종류에 `excluded`(백필하지 않는 종류 — 정책·입찰·캠페인·광고그룹 변경, D8)를 더한다. 누락 목록에 섞여 있어도 목록 전체를 거부하지 않는다 |
+| 설계 §6.3 이벤트와 outbox(P2-1 검토) | "결정·반응·과금이 저장되는 같은 트랜잭션에서 outbox 행을 쓴다" → 정책·입찰·캠페인·광고그룹 변경도, "`aggregate_id`(= `decision_id`)"·"Kafka 토픽(메시지 키 `decision_id`)" → 종류별 키(§5.1) |
 | 광고 서버 DRD(현재 `docs/legacy/ads-server/ads-server-drd.md`) | 표 목록에 `campaigns_change_log`, C2 이벤트 표에 신규 4종. 생성 열을 물리 구현으로 적은 곳을 조건부 유일 제약(부분 유일 색인 — `pg_constraint`가 아니라 색인이라 지울 때는 `DROP INDEX`)으로: :395(물리 구현 ② GeneratedField 설명), :592·:598(O6 `open_campaign`), :639·:642(B2 `signup_grant_wallet`), :736·:737(§4.4 무결성 표) |
 | 공통 레이크하우스 설계안(`temp/`) | §3.2 광고그룹 이벤트를 권장 범위로·표는 공용 1개, §3.3 트랜잭션 불변식에 "광고그룹 변경 + 변경 로그 + `ad.ad_group_changed`" 추가, §3.6 Topic 표에 `ad.ad_group_changed`(Topic 계약을 정할 때) |
 | 위협 모델·계약 README | 인용한 시험 이름이 바뀌면 함께 고친다 |
@@ -293,6 +295,7 @@ PostgreSQL은 기본값 없는 NULL 열 추가가 표를 다시 쓰지 않는다
 - **Kafka 전환 때 바꿀 곳:** `events/relay.py:84-96`(성공 뒤 `sent_at` UPDATE), `events/management/commands/purge_sent_events.py`(보낸 지 N일 뒤 DELETE), `events/relay.py:107-132`(MongoDB 대조). Debezium Outbox Router는 INSERT만 있는 outbox를 전제한다(설계안 §3.5).
 - PgBouncer 도입(D6): 요청이 늘어 앱 서버·워커를 늘릴 때. `lock_timeout` 전달 방식을 함께 정한다.
 - PostgreSQL 복제·HA 구성(MySQL InnoDB Cluster 대체)과 그 장애 시험(`failure_test.py`의 클러스터 시나리오): 인프라와 정한 뒤.
+- `masters.create_slot`의 `except IntegrityError`(P2-3 검토, 선택): 블록 안의 모든 무결성 오류를 "같은 이름의 구성" 409로 바꾼다 — 같은 블록의 감사·outbox 쓰기 결함(CHECK·NOT NULL)도 이름 충돌로 보인다. `is_unique_violation`이 아니면 다시 올리도록 고친다. 실패 방식이 바뀌므로 따로 한다.
 - C4 Insight 저장·`ad.insight_recorded`, `ad.decision` v3: 가격 모델 단계(§8.3).
 
 ---

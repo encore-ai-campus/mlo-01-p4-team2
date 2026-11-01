@@ -10,6 +10,7 @@ from django.db import IntegrityError, connection, transaction
 from django.db.models import OuterRef, Q, Subquery
 from django.utils import timezone
 
+from events import api as events
 from foundation.api import MAX_AMOUNT, clean_request_key, clean_text, errors, is_int, parse_uuid, parse_uuids, record_audit, require_admin
 
 from .models import MAX_SHARE, MIN_FLOOR, MIN_SHARE, SHARE_FIELDS, Audience, BidPolicy, Media, MediaDeactivation, MediaKey, Slot
@@ -42,6 +43,26 @@ def _policy_view(row):
         bid_policy_id=row.bid_policy_id, slot_id=row.slot_id, policy_version=row.policy_version, floor=row.floor_amount, base=row.base_amount,
         cap=row.cap_amount, **{name: getattr(row, name) for name in SHARE_FIELDS}, changed_by=row.changed_by, changed_at=row.changed_at, reason=row.reason,
     )
+
+
+def _record_policy_event(policy):
+    """정책 버전 하나의 이벤트(`ad.bid_policy_changed`) — 정책 행과 **같은 트랜잭션**에서. 값만 넘긴다(events 는 모델을 모른다, 계획 docs/plans/00 D1)."""
+    events.record_bid_policy_changed(
+        now=policy.changed_at, slot_id=policy.slot_id, bid_policy_id=policy.bid_policy_id, policy_version=policy.policy_version,
+        floor_amount=policy.floor_amount, base_amount=policy.base_amount, cap_amount=policy.cap_amount,
+        impression_share=policy.impression_share, click_share=policy.click_share, conversion_share=policy.conversion_share, changed_at=policy.changed_at,
+    )
+
+
+def policy_versions():
+    """모든 정책 버전(`PolicyView`)을 훑는다 — 이벤트 누락 점검·기대 이벤트용 읽기."""
+    return (_policy_view(p) for p in BidPolicy.objects.iterator(chunk_size=2000))
+
+
+def policy_stream(to_documents):
+    """정책 버전을 변경 시각(`changed_at`) 창으로 읽는 흐름(구간 manifest 의 원본 구간). `to_documents(views)` 가 창 하나의 `PolicyView` 를 문서로 바꾼다.
+    ponytail: changed_at 색인이 없어 창마다 표를 다 훑는다 — 관리자가 손으로 늘리는 작은 표라 그대로 둔다(커지면 (changed_at) 색인)."""
+    return events.table_stream(BidPolicy.objects.all(), "changed_at", lambda rows: to_documents([_policy_view(p) for p in rows]))
 
 
 def _slot_view(slot, policy):
@@ -137,7 +158,7 @@ def media_active_for_share(media_id):
     return None if row is None else bool(row[0])
 
 
-def create_slot(actor, media_id, name, floor, base, cap, reason, *, audience, impression_share, click_share, conversion_share):
+def create_slot(actor, media_id, name, floor, base, cap, reason, *, audience, impression_share, click_share, conversion_share, now=None):
     """슬롯과 최초 정책(버전 1)을 한 트랜잭션에 만든다. 따라서 모든 슬롯은 항상 현재 정책을 가진다.
     정책에는 반응 유형별 과금 비율(노출·클릭·전환 %)이 들어간다(6-10b).
 
@@ -159,8 +180,9 @@ def create_slot(actor, media_id, name, floor, base, cap, reason, *, audience, im
             slot = Slot.objects.create(media=media, name=name, audience=audience)
             policy = BidPolicy.objects.create(
                 slot=slot, policy_version=1, floor_amount=floor, base_amount=base, cap_amount=cap, **shares,
-                changed_by=actor.pk, reason=reason,
+                changed_by=actor.pk, changed_at=now or timezone.now(), reason=reason,
             )
+            _record_policy_event(policy)
             _audit(actor, "masters.slot_created", ("masters.slot", slot.slot_id),
                    {"name": name, "audience": audience, "floor": floor, "base": base, "cap": cap, **shares, "reason": reason})
     except IntegrityError:
@@ -168,7 +190,7 @@ def create_slot(actor, media_id, name, floor, base, cap, reason, *, audience, im
     return _slot_view(slot, policy)
 
 
-def _add_version(actor, slot_id, floor, base, cap, shares, reason, expected_version):
+def _add_version(actor, slot_id, floor, base, cap, shares, reason, expected_version, now):
     """`expected_version` 이 현재와 다르면 StaleVersion. 호출한 쪽이 바깥 트랜잭션을 연다."""
     slot = _get_slot(slot_id)
     current = BidPolicy.objects.filter(slot=slot).order_by("-policy_version").first()
@@ -178,10 +200,11 @@ def _add_version(actor, slot_id, floor, base, cap, shares, reason, expected_vers
         with transaction.atomic():
             policy = BidPolicy.objects.create(
                 slot=slot, policy_version=current.policy_version + 1, floor_amount=floor, base_amount=base,
-                cap_amount=cap, **shares, changed_by=actor.pk, reason=reason,
+                cap_amount=cap, **shares, changed_by=actor.pk, changed_at=now or timezone.now(), reason=reason,
             )
     except IntegrityError:  # 같은 버전을 동시에 만든 쪽의 충돌은 유일 제약이 막는다(뒤쪽이 유일 색인에서 앞쪽 커밋을 기다렸다가 충돌한다 — DB-1c 에서 동시 시험)
         raise errors.StaleVersion()
+    _record_policy_event(policy)  # 저장점 뒤, 호출한 쪽의 바깥 트랜잭션 안
     _audit(actor, "masters.policy_added", ("masters.slot", slot.slot_id),
            {"version": policy.policy_version, "floor": floor, "base": base, "cap": cap, **shares, "reason": reason,
             "previous": {"floor": current.floor_amount, "base": current.base_amount, "cap": current.cap_amount,
@@ -189,16 +212,16 @@ def _add_version(actor, slot_id, floor, base, cap, shares, reason, expected_vers
     return _policy_view(policy)
 
 
-def add_policy_version(actor, slot_id, floor, base, cap, reason, expected_version, *, impression_share, click_share, conversion_share):
+def add_policy_version(actor, slot_id, floor, base, cap, reason, expected_version, *, impression_share, click_share, conversion_share, now=None):
     require_admin(actor)
     reason = clean_text(reason, "사유", "/reason", 200)
     shares = _shares(impression_share, click_share, conversion_share)
     _validate_policy(floor, base, cap, shares)
     with transaction.atomic():
-        return _add_version(actor, slot_id, floor, base, cap, shares, reason, expected_version)
+        return _add_version(actor, slot_id, floor, base, cap, shares, reason, expected_version, now)
 
 
-def add_policy_version_bulk(actor, expected_versions, floor, base, cap, reason, *, impression_share, click_share, conversion_share):
+def add_policy_version_bulk(actor, expected_versions, floor, base, cap, reason, *, impression_share, click_share, conversion_share, now=None):
     """같은 값(비율 포함)을 여러 슬롯에 새 버전으로. `expected_versions` = {slot_id: 본 버전}. 하나라도 어긋나면 전부 취소."""
     require_admin(actor)
     reason = clean_text(reason, "사유", "/reason", 200)
@@ -208,7 +231,7 @@ def add_policy_version_bulk(actor, expected_versions, floor, base, cap, reason, 
         raise errors.InvalidRequest(errors=[{"pointer": "/slots", "message": "슬롯을 하나 이상 고르세요."}])
     with transaction.atomic():
         return [
-            _add_version(actor, slot_id, floor, base, cap, shares, reason, version)
+            _add_version(actor, slot_id, floor, base, cap, shares, reason, version, now)
             for slot_id, version in expected_versions.items()
         ]
 

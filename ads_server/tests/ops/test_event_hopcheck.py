@@ -250,10 +250,10 @@ class VerifyHopsCommandTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.export()
         ok, text = self.verify("--out", str(self.dir / "report"))
         self.assertTrue(ok, text)
-        self.assertIn("'match': 12", text)  # 세 쌍 × 4줄
-        self.assertEqual([l["unsent"] for l in self.lines("hop_outbox")], [0, 0, 0, 0])  # 중계 뒤에는 미전송이 없다(일치 판정은 unsent 를 보지 않는다)
+        self.assertIn("'match': 15", text)  # 세 쌍 × 5줄(결정·접수·판정·과금·구성의 첫 정책)
+        self.assertEqual([l["unsent"] for l in self.lines("hop_outbox")], [0, 0, 0, 0, 0])  # 중계 뒤에는 미전송이 없다(일치 판정은 unsent 를 보지 않는다)
         manifest = ndjson.read_manifest(ndjson.manifest_path(self.dir / "report", "hop_report"))
-        self.assertEqual((ndjson.verify(ndjson.manifest_path(self.dir / "report", "hop_report")), manifest["checkpoint"]["counts"], manifest["checkpoint"]["errors"]), ([], {"match": 12}, []))
+        self.assertEqual((ndjson.verify(ndjson.manifest_path(self.dir / "report", "hop_report")), manifest["checkpoint"]["counts"], manifest["checkpoint"]["errors"]), ([], {"match": 15}, []))
 
     def case_before_the_relay_it_is_a_lag_candidate_and_the_command_still_succeeds(self):
         self.export()
@@ -343,7 +343,7 @@ class VerifyHopsCommandTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         ndjson.write(pipeline_dir, "pipeline", mongo_lines, "hop_pipeline", 1, checkpoint={"open_windows": [], "window": "utc-day"})
         ok, text = self.verify("--pipeline", str(ndjson.manifest_path(pipeline_dir, "pipeline")))
         self.assertTrue(ok, text)
-        self.assertIn("'match': 16", text)
+        self.assertIn("'match': 20", text)  # 네 쌍 × 5줄
         bad = [dict(l, content_sha256="0" * 64) if l["event_name"] == "ad.charge" else l for l in mongo_lines]
         ndjson.write(pipeline_dir, "pipeline", bad, "hop_pipeline", 1, checkpoint={"open_windows": [], "window": "utc-day"})
         ok, text = self.verify("--pipeline", str(ndjson.manifest_path(pipeline_dir, "pipeline")))

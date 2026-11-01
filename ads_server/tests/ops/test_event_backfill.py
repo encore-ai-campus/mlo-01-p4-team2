@@ -17,12 +17,18 @@ from events.models import EventOutbox
 from events.relay import relay_batch
 from foundation.models import AuditLog
 from records import api as records
+from records import backfill
 from records.processing import parse_reaction_ref, reaction_ref
 from records.models import Reaction
 from tests.support.factories import NOW, SUBJECT, World
 from tests.support.mongo_support import MongoDatabaseMixin, unreachable_store
 from tests.dev.test_event_invariants import load_test
 from tests.support.cases import Cases
+
+
+def outbox():
+    """백필 대상 종류의 outbox 행. 백필하지 않는 종류(정책 변경 등, 계획 docs/plans/00 D8)는 그대로 두고 `case_kinds_that_are_not_backfilled_…` 가 따로 본다."""
+    return EventOutbox.objects.exclude(event_name__in=backfill.NOT_BACKFILLED)
 
 
 def snapshot(rows):
@@ -41,7 +47,7 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         view, _ = records.receive_reaction(w.slot.media_id, self.decision.decision_id, uuid.uuid4(), "IMPRESSION", NOW, {"type": "IMPRESSION"}, now=NOW)
         records.process_reaction(view.inbox_id, now=NOW + timedelta(seconds=7))  # 처리 시각 ≠ 수신 시각
         self.inbox_id = view.inbox_id
-        self.live = snapshot(EventOutbox.objects.all())  # 라이브 경로가 만든 이벤트 4건 = 백필이 재현해야 할 기준
+        self.live = snapshot(outbox())  # 라이브 경로가 만든 이벤트 4건 = 백필이 재현해야 할 기준(구성의 첫 정책 이벤트는 백필 대상이 아니라 그대로 둔다)
         self.assertEqual(len(self.live), 4)
 
     # ------------------------------------------------------------------ 도우미
@@ -66,24 +72,35 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         return [json.loads(line) for line in (self.dir / out / manifest["file"]).read_text().splitlines()], manifest
 
     def wipe(self):
-        EventOutbox.objects.all().delete()  # Step 4 이전에 쌓인 행처럼 이벤트가 없다
+        outbox().delete()  # Step 4 이전에 쌓인 행처럼 이벤트가 없다
 
     # ------------------------------------------------------------------ 본체
     def case_dry_run_is_the_default_and_writes_nothing(self):
         self.wipe()
         ok, text = self.run_backfill(self.gaps_manifest())
         self.assertTrue(ok, text)
-        self.assertEqual(EventOutbox.objects.count(), 0)
+        self.assertEqual(outbox().count(), 0)
         rows, manifest = self.result_rows()
         self.assertEqual({r["outcome"] for r in rows}, {"would_write"})
         self.assertEqual((len(rows), manifest["checkpoint"]["mode"], manifest["checkpoint"]["counts"]["would_write"]), (4, "dry-run", 4))
         self.assertEqual(AuditLog.objects.filter(action="events.backfilled").count(), 0)  # 읽기만 했다
 
+    def case_kinds_that_are_not_backfilled_are_counted_as_excluded_and_the_rest_is_written(self):
+        """정책 변경 이벤트는 백필하지 않는다(계획 docs/plans/00 D8). 누락 목록에 섞여 있어도 목록 전체를 거부하지 않고 `excluded` 로 센 뒤 나머지를 쓴다 — 실패로 끝나지 않는다."""
+        EventOutbox.objects.all().delete()
+        ok, text = self.run_backfill(self.gaps_manifest(), "--apply")
+        self.assertTrue(ok, text)
+        rows, manifest = self.result_rows()
+        self.assertEqual(sorted((r["event_name"], r["outcome"]) for r in rows if r["outcome"] == "excluded"), [("ad.bid_policy_changed", "excluded")])
+        self.assertEqual((manifest["checkpoint"]["counts"]["excluded"], manifest["checkpoint"]["counts"]["written"], manifest["checkpoint"]["counts"]["unresolved"]), (1, 4, 0))
+        self.assertFalse(EventOutbox.objects.filter(event_name="ad.bid_policy_changed").exists())  # 만들지 않았다
+        self.assertEqual(snapshot(outbox()), self.live)  # 나머지 넷은 라이브와 같다
+
     def case_apply_recreates_exactly_the_events_the_live_path_made(self):
         self.wipe()
         ok, text = self.run_backfill(self.gaps_manifest(), "--apply")
         self.assertTrue(ok, text)
-        self.assertEqual(snapshot(EventOutbox.objects.all()), self.live)  # 이름·버전·메시지 키·생성 시각·페이로드가 라이브와 같다
+        self.assertEqual(snapshot(outbox()), self.live)  # 이름·버전·메시지 키·생성 시각·페이로드가 라이브와 같다
         rows, manifest = self.result_rows()
         self.assertEqual({r["outcome"] for r in rows}, {"written"})
         self.assertEqual(manifest["checkpoint"]["counts"]["written"], 4)
@@ -102,10 +119,10 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.wipe()
         manifest = self.gaps_manifest()
         self.run_backfill(manifest, "--apply", out="r1")
-        before = snapshot(EventOutbox.objects.all())
+        before = snapshot(outbox())
         ok, text = self.run_backfill(manifest, "--apply", out="r2")
         self.assertTrue(ok, text)
-        self.assertEqual(snapshot(EventOutbox.objects.all()), before)
+        self.assertEqual(snapshot(outbox()), before)
         rows, _ = self.result_rows("r2")
         self.assertEqual({r["outcome"] for r in rows}, {"already_present"})
 
@@ -119,7 +136,7 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.run_backfill(manifest, "--apply")
         rows, _ = self.result_rows()
         self.assertEqual(sorted(r["outcome"] for r in rows), ["already_present", "written", "written", "written"])
-        self.assertEqual(snapshot(EventOutbox.objects.all()), self.live)
+        self.assertEqual(snapshot(outbox()), self.live)
 
     def case_events_that_exist_only_in_mongodb_after_purge_are_not_rewritten(self):
         relay_batch()
@@ -134,7 +151,7 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.assertTrue(ok)
         rows, _ = self.result_rows()
         self.assertEqual([r["outcome"] for r in rows], ["already_present"])
-        self.assertEqual(EventOutbox.objects.count(), 0)
+        self.assertEqual(outbox().count(), 0)
         self.assertEqual(forged["rows"], 1)
 
     def kind_of(self, event_name):
@@ -164,7 +181,7 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         ok, text = self.run_backfill(manifest, "--apply")
         self.assertFalse(ok)
         self.assertIn("검증 실패", text)
-        self.assertEqual(EventOutbox.objects.count(), 0)
+        self.assertEqual(outbox().count(), 0)
 
     def case_an_input_that_is_not_an_event_gaps_manifest_is_refused(self):
         out = self.dir / "other"
@@ -180,7 +197,7 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         ok, text = self.run_backfill(self.forged_manifest([self.line(any_id, event_id=str(uuid.uuid4()))]), "--apply")
         self.assertFalse(ok)
         self.assertIn("다시 계산한 값과 다르다", text)
-        self.assertEqual(EventOutbox.objects.count(), 0)
+        self.assertEqual(outbox().count(), 0)
 
     def case_a_mismatched_event_name_and_source_kind_is_refused(self):
         self.wipe()
@@ -200,7 +217,7 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.assertFalse(ok)  # 해석 불가는 비정상 종료
         rows, _ = self.result_rows()
         self.assertEqual((rows[0]["outcome"], rows[0]["reason"]), ("unresolved", "원본 결정이 없다"))
-        self.assertEqual(EventOutbox.objects.count(), 0)  # 없는 사실의 이벤트를 만들지 않는다
+        self.assertEqual(outbox().count(), 0)  # 없는 사실의 이벤트를 만들지 않는다
 
     def case_a_charge_whose_reaction_cannot_be_found_is_unresolved_and_the_rest_is_still_written(self):
         """과금의 결정은 추측하지 않는다 — 반응을 못 찾으면 해석 불가. 나머지 항목은 계속 쓴다."""
@@ -225,12 +242,12 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
 
         record = {"kind": "missing_event", "event_name": "ad.reaction", "source_kind": "reaction", "source_id": str(pending.inbox_id),
                   "event_id": str(schemas.event_id_of("ad.reaction", pending.inbox_id))}
-        before = EventOutbox.objects.count()
+        before = outbox().count()
         ok, _ = self.run_backfill(self.forged_manifest([record]), "--apply")
         self.assertTrue(ok)  # 해석 불가가 아니다: 판정이 라이브로 만든다
         rows, _ = self.result_rows()
         self.assertEqual(rows[0]["outcome"], "skipped_not_judged")
-        self.assertEqual(EventOutbox.objects.count(), before)
+        self.assertEqual(outbox().count(), before)
 
     def case_a_legacy_basis_is_written_but_counted_separately(self):
         self.wipe()
@@ -259,12 +276,12 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         with mock.patch.object(EventOutbox.objects, "bulk_create", fail_on_third):
             with self.assertRaises(RuntimeError):
                 records.backfill_events(manifest, apply=True, chunk=2)
-        self.assertEqual(EventOutbox.objects.count(), 2)  # 첫 청크(2건)는 커밋됐고 실패한 청크는 통째로 되돌려졌다
+        self.assertEqual(outbox().count(), 2)  # 첫 청크(2건)는 커밋됐고 실패한 청크는 통째로 되돌려졌다
         audits = AuditLog.objects.filter(action="events.backfilled")
         self.assertEqual(sum(a.detail["written"] for a in audits), 2)  # 감사 로그도 커밋된 청크만큼
         result = records.backfill_events(manifest, apply=True, chunk=2)  # 다시 돌리면 나머지만 쓴다
         self.assertEqual(result.counts()["written"], 2)
-        self.assertEqual(snapshot(EventOutbox.objects.all()), self.live)
+        self.assertEqual(snapshot(outbox()), self.live)
 
     def case_each_chunk_has_its_own_audit_entry_numbered_from_zero(self):
         self.wipe()
@@ -295,7 +312,7 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
             ok, text = self.run_backfill(manifest, "--apply")
         self.assertFalse(ok)
         self.assertIn("MongoDB", text)
-        self.assertEqual(EventOutbox.objects.count(), 0)
+        self.assertEqual(outbox().count(), 0)
 
     def test_backfill(self):
         self.run_cases()

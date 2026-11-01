@@ -1,4 +1,5 @@
-"""C2 이벤트의 모양(DRD §5.6). **이벤트 필드 이름과 형식은 이 파일에서만 정한다** — 호출하는 쪽(records·billing)은 값을 넘기기만 한다.
+"""C2 이벤트의 모양(DRD §5.6). **이벤트 필드 이름과 형식은 이 파일에서만 정한다** — 호출하는 쪽(records·billing·masters·campaigns)은 값을 넘기기만 한다(ORM 객체를 넘기지 않는다 —
+events 는 foundation 만 알고, 객체를 받으면 import 없이도 위 모듈의 모델 모양에 묶인다, 계획 docs/plans/00 D1).
 
 공통 봉투는 `event_id`·`event_name`·`schema_version`·`produced_at`·`payload` 이고, 여기서는 `payload` 를 만든다.
 JSON 이므로 UUID 는 문자열, 시각은 UTC ISO 8601(`records/basis.py` 와 같은 형식)이다. 모양이 바뀌면 **그 종류의** `schema_version` 을 올린다(종류별, 6-10c).
@@ -10,7 +11,14 @@ DECISION = "ad.decision"
 REACTION_RECEIVED = "ad.reaction_received"
 REACTION = "ad.reaction"
 CHARGE = "ad.charge"
-SCHEMA_VERSIONS = {DECISION: 2, REACTION_RECEIVED: 1, REACTION: 1, CHARGE: 1}  # ad.decision 2: selected.pricing_unit → charge_shares(6-10c)
+BID_POLICY_CHANGED = "ad.bid_policy_changed"
+BID_ADDED = "ad.bid_added"
+CAMPAIGN_CHANGED = "ad.campaign_changed"
+AD_GROUP_CHANGED = "ad.ad_group_changed"
+SCHEMA_VERSIONS = {  # ad.decision 2: selected.pricing_unit → charge_shares(6-10c)
+    DECISION: 2, REACTION_RECEIVED: 1, REACTION: 1, CHARGE: 1,
+    BID_POLICY_CHANGED: 1, BID_ADDED: 1, CAMPAIGN_CHANGED: 1, AD_GROUP_CHANGED: 1,
+}
 
 _NAMESPACE = uuid.uuid5(uuid.NAMESPACE_DNS, "events.ads-server")
 
@@ -67,4 +75,38 @@ def charge_payload(*, entry_id, campaign_id, charge_policy, created_at, reaction
         "entry_id": _id(entry_id), "campaign_id": _id(campaign_id), "charge_policy": charge_policy, "created_at": _iso(created_at),
         "reaction_ref": reaction_ref, "decision_id": _id(decision_id), "requested_amount": requested_amount, "charged_amount": charged_amount,
         "shortfall": shortfall, "budget_day": budget_day.isoformat(),
+    }
+
+
+def bid_policy_changed_payload(*, slot_id, bid_policy_id, policy_version, floor_amount, base_amount, cap_amount, impression_share, click_share, conversion_share, changed_at):
+    """입찰 정책 버전 하나(추가 전용 — 버전마다 이벤트 하나). 변경 사유·바꾼 관리자는 싣지 않는다(관리자 자유문·사람 연결).
+    `change_source` 는 여기서만 정한다: 첫 버전(슬롯 생성)은 `INITIAL`, 그 밖에는 `MANUAL`. `insight_id` 는 지금 항상 `null` 이다 —
+    가격 추천을 붙일 때 이 함수가 `insight_id` 를 받아 `RECOMMENDATION` 을 가른다(계획 docs/plans/00 §8.2, 그때도 v1 그대로)."""
+    return {
+        "slot_id": _id(slot_id), "bid_policy_id": _id(bid_policy_id), "policy_version": policy_version,
+        "floor_amount": floor_amount, "base_amount": base_amount, "cap_amount": cap_amount,
+        "impression_share": impression_share, "click_share": click_share, "conversion_share": conversion_share,
+        "changed_at": _iso(changed_at), "change_source": "INITIAL" if policy_version == 1 else "MANUAL", "insight_id": None,
+    }
+
+
+def bid_added_payload(*, bid_id, ad_group_id, bid_version, amount, created_at):
+    """광고그룹 입찰 버전 하나(추가 전용)."""
+    return {"bid_id": _id(bid_id), "ad_group_id": _id(ad_group_id), "bid_version": bid_version, "amount": amount, "created_at": _iso(created_at)}
+
+
+def campaign_changed_payload(*, campaign_id, change_id, change_type, previous_value, new_value, changed_at):
+    """캠페인 변경 로그 한 줄. `previous_value`·`new_value` 는 변경 로그에 저장한 JSON 그대로다(바뀐 업무 필드만 — 만드는 쪽이 이미 JSON 값으로 만든다).
+    중단 사유·캠페인 이름은 싣지 않는다."""
+    return {
+        "campaign_id": _id(campaign_id), "change_id": _id(change_id), "change_type": change_type,
+        "previous_value": previous_value, "new_value": new_value, "changed_at": _iso(changed_at),
+    }
+
+
+def ad_group_changed_payload(*, ad_group_id, campaign_id, change_id, change_type, previous_value, new_value, changed_at):
+    """광고그룹 변경 로그 한 줄(값은 `campaign_changed_payload` 와 같은 규칙). 광고그룹 이름은 싣지 않는다."""
+    return {
+        "ad_group_id": _id(ad_group_id), "campaign_id": _id(campaign_id), "change_id": _id(change_id), "change_type": change_type,
+        "previous_value": previous_value, "new_value": new_value, "changed_at": _iso(changed_at),
     }

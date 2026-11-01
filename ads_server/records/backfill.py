@@ -5,6 +5,7 @@
 - 라이브 경로와 **같은 코드**로 만든다(`services._record_*_event`, `processing.judged_event`·`charge_event`) · 생성 시각도 같은 원본 시각 → 백필한 이벤트는 라이브 이벤트와 같다.
 - 이벤트 ID 가 결정적이고 outbox 쓰기가 "이미 있으면 바꾸지 않음"이라 라이브 처리와 동시에 돌거나 두 번 돌아도 같은 이벤트가 둘 생기지 않는다.
 - 추측하지 않는다: 원본 행이 없거나 과금의 반응을 못 찾으면 `unresolved` 로 남기고 쓰지 않는다.
+- 정책·입찰·캠페인·광고그룹 변경 이벤트는 백필하지 않는다(계획 docs/plans/00 D8): 누락 목록에 있어도 `excluded` 로 세고 건너뛴다 — 목록 전체를 거부하지 않는다.
 """
 import json
 import uuid
@@ -22,9 +23,10 @@ from . import processing, services
 from .models import Decision, Reaction
 
 CHUNK = 500
-SOURCE_KINDS = {"ad.decision": "decision", "ad.reaction_received": "reaction", "ad.reaction": "reaction", "ad.charge": "ledger_charge"}
+SOURCE_KINDS = {"ad.decision": "decision", "ad.reaction_received": "reaction", "ad.reaction": "reaction", "ad.charge": "ledger_charge", "ad.bid_policy_changed": "bid_policy"}
+NOT_BACKFILLED = {"ad.bid_policy_changed"}  # D8 — 과거 이력은 별도 백필(공통 설계안 §3.2.1)로 다룬다
 # 결과의 한 줄이 가질 수 있는 판정
-WRITTEN, WOULD_WRITE, ALREADY, UNRESOLVED, NOT_JUDGED = "written", "would_write", "already_present", "unresolved", "skipped_not_judged"
+WRITTEN, WOULD_WRITE, ALREADY, UNRESOLVED, NOT_JUDGED, EXCLUDED = "written", "would_write", "already_present", "unresolved", "skipped_not_judged", "excluded"
 
 
 class InvalidInput(Exception):
@@ -60,7 +62,7 @@ class Result:
     applied: bool = False
 
     def counts(self):
-        counts = {WRITTEN: 0, WOULD_WRITE: 0, ALREADY: 0, UNRESOLVED: 0, NOT_JUDGED: 0, "legacy_basis": 0}
+        counts = {WRITTEN: 0, WOULD_WRITE: 0, ALREADY: 0, UNRESOLVED: 0, NOT_JUDGED: 0, EXCLUDED: 0, "legacy_basis": 0}
         for o in self.outcomes:
             counts[o.outcome] += 1
             counts["legacy_basis"] += o.legacy_basis
@@ -98,6 +100,8 @@ def read_items(manifest_path):
 def _writer(item, decisions, reactions, charges):
     """항목 하나에 대해 `(쓰는 함수 또는 None, 이유, 옛 형식 근거 여부)`. 쓸 수 없으면 쓰는 함수가 `None` 이고 이유가 사정이다."""
     name = item.event_name
+    if name in NOT_BACKFILLED:
+        return None, EXCLUDED, False
     if name == events.NAMES["decision"]:
         d = decisions.get(item.source_id)
         return ((lambda: services._record_decision_event(d, d.decided_at)) if d else None), "원본 결정이 없다", False
@@ -144,7 +148,8 @@ def backfill(manifest_path, apply=False, chunk=CHUNK):
                     continue
                 write, reason, legacy = _writer(item, decisions, reactions, charges)
                 if write is None:
-                    result.outcomes.append(Outcome(item, NOT_JUDGED if reason == NOT_JUDGED else UNRESOLVED, "" if reason == NOT_JUDGED else reason))
+                    skipped = reason in (NOT_JUDGED, EXCLUDED)  # 사정이 아니라 판정 — 결과의 종류로만 남긴다
+                    result.outcomes.append(Outcome(item, reason if skipped else UNRESOLVED, "" if skipped else reason))
                     continue
                 if apply:
                     write()

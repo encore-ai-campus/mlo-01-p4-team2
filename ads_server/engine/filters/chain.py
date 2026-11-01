@@ -1,10 +1,10 @@
 """필터 체인. 후보는 **처음 걸린 필터**의 사유로 한 번만 거절된다. 거절은 사유별 개수만 남긴다(trace 가 커지지 않게)."""
-from ..registry import get_filter
+from ..registry import MANDATORY_FILTERS, get_filter
 
 
-def run_filters(priced, request, names):
-    """priced = [(Candidate, Effect)]. 반환: (통과한 [(Candidate, Effect)], {사유: 개수})."""
-    checks = [get_filter(name) for name in names]
+def run_filters(priced, request, extra_names=()):
+    """priced = [(Candidate, Effect)]. 필수 필터 다음에 추가 필터(`extra_names`). 반환: (통과한 [(Candidate, Effect)], {사유: 개수})."""
+    checks = [*MANDATORY_FILTERS, *(get_filter(name) for name in extra_names)]
     survivors, rejected = [], {}
     for candidate, effect in priced:
         for check in checks:

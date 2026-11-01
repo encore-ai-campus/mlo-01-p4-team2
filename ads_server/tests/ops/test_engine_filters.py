@@ -1,15 +1,16 @@
 import unittest
 from datetime import timedelta
+from unittest import mock
 
-from engine.api import DEFAULT_FILTERS, UnknownName, decide
+from engine.api import UnknownName, decide
 from random import Random
 
 from tests.support.engine_factory import NOW, cand, request
 from tests.support.cases import Cases
 
 
-def run(*candidates, filters=DEFAULT_FILTERS):
-    return decide(candidates, request(), Random(1), filters=filters)
+def run(*candidates, extra=()):
+    return decide(candidates, request(), Random(1), extra_filters=extra)
 
 
 class FilterTests(Cases, unittest.TestCase):
@@ -51,15 +52,15 @@ class FilterTests(Cases, unittest.TestCase):
         self.assertEqual(result.considered, 5)
         self.assertEqual(result.selection.trace["candidates"], 1)
 
-    def case_filter_names_are_configurable_and_unknown_names_fail_fast(self):
-        paused = cand(campaign_status="PAUSED")
-        self.assertIsNotNone(run(paused, filters=("period", "floor", "budget", "balance")).selection.chosen)  # status 를 뺌
-        with self.assertRaises(UnknownName):
-            run(paused, filters=("status", "no-such-filter"))
-
-    def case_floor_filter_is_required_when_budget_filters_are_used(self):
-        with self.assertRaises(ValueError):  # 하한 미만 후보가 적용 금액 없이 남는 설정 오류
-            run(cand(bid_amount=1), filters=("status", "period", "budget", "balance"))
+    def case_extra_filters_run_after_the_mandatory_ones_and_unknown_names_fail_fast(self):
+        odd = lambda candidate, effect, req: "odd_bid" if candidate.bid_amount % 2 else None  # noqa: E731
+        with mock.patch.dict("engine.registry._FILTERS", {"no-odd": odd}):
+            result = run(cand(campaign_status="PAUSED", bid_amount=31), cand(bid_amount=31), cand(bid_amount=30), extra=("no-odd",))
+            self.assertEqual(result.rejected, {"campaign_not_active": 1, "odd_bid": 1})  # 필수 필터가 먼저 — 둘 다 걸리면 필수 사유로 센다
+            self.assertEqual(result.selection.chosen.bid_amount, 30)
+        for bad in ("no-such-filter", "status"):  # 필수 필터 이름도 설정에 적을 수 없다(뺄 수도 겹쳐 돌릴 수도 없다)
+            with self.assertRaises(UnknownName):
+                run(extra=(bad,))  # 후보가 없어도 바로 드러난다
 
     def case_candidate_for_another_slot_is_an_error(self):
         import uuid

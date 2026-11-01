@@ -240,13 +240,15 @@ class PolicySwapTests(Cases, TestCase):
                 decide(w)
         self.assertEqual(Decision.objects.count(), 2)  # 설정 오류는 결정을 남기지 않는다
 
-    def case_filters_are_chosen_by_setting(self):
+    def case_extra_filters_are_chosen_by_setting(self):
         w = World()
-        campaigns.update_campaign(w.adv, w.campaign.campaign_id, {"status": "ACTIVE"}, now=NOW)
-        campaigns.update_ad_group(w.adv, w.group.ad_group_id, {"enabled": True}, now=NOW)
-        with override_settings(ADS_ENGINE_FILTERS=("period", "floor", "budget", "balance")):  # status 필터를 뺀 구성
-            self.assertIsNotNone(decide(w).chosen)
-        with override_settings(ADS_ENGINE_FILTERS=("status", "period", "floor", "budget", "no-such-filter")):
+        self.assertIsNotNone(decide(w).chosen)
+        with mock.patch.dict("engine.registry._FILTERS", {"nobody": lambda c, e, r: "not_targeted"}):
+            with override_settings(ADS_ENGINE_EXTRA_FILTERS=("nobody",)):
+                d = decide(w)
+        self.assertIsNone(d.chosen)
+        self.assertEqual(d.rejected_counts, {"not_targeted": 1})  # 설정한 추가 필터가 돌았다
+        with override_settings(ADS_ENGINE_EXTRA_FILTERS=("no-such-filter",)):
             with self.assertRaises(engine.UnknownName):
                 decide(w)  # 알 수 없는 필터 이름은 즉시 오류
 

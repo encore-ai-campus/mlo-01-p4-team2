@@ -88,7 +88,7 @@ def decide(media_id, slot_id, subject_id=None, context=None, now=None, rng=None)
     policy = settings.ADS_SELECTION_POLICY
     result = engine_decide(
         candidates, AdRequest(slot_id=slot_id, now=now, subject_id=subject_id), rng or random.Random(),  # nosec B311 — 노출 광고의 가중 추첨이다(설계 §4.3). 보안 값(키·토큰)을 만들지 않는다
-        policy=policy, filters=tuple(settings.ADS_ENGINE_FILTERS),
+        policy=policy, extra_filters=tuple(settings.ADS_ENGINE_EXTRA_FILTERS),
     )
     chosen = result.selection.chosen
     trace = result.selection.trace if slot.is_active else {**result.selection.trace, "slot_inactive": True}

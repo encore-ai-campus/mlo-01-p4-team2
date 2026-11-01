@@ -534,10 +534,6 @@ class ReactionSubjectApiTests(Cases, ProviderContractMixin, TestCase):
     contract = Contract("serving")
 
     def setUp(self):
-        from serving_api.throttle import buckets
-
-        buckets.reset()
-        self.addCleanup(buckets.reset)
         self.w = World()
         self.key = masters.issue_media_key(self.w.admin, self.w.slot.media_id).key
         self.decision = records.decide(self.w.slot.media_id, self.w.slot.slot_id, subject_id=SUBJECT, now=NOW, rng=Random(1))
@@ -594,10 +590,6 @@ class EndToEndFunnelTests(Cases, TestCase):
     def setUp(self):
         from unittest import mock
 
-        from serving_api.throttle import buckets
-
-        buckets.reset()
-        self.addCleanup(buckets.reset)
         for target in ("records.services._now", "records.processing._now"):
             patcher = mock.patch(target, lambda now=None: now or NOW)
             patcher.start()

@@ -181,6 +181,6 @@ python manage.py media_key rotate <매체 ID> --admin <관리자 아이디> --gr
 python manage.py media_key revoke <키 ID>   --admin <관리자 아이디>                  # 유출 시 즉시 폐기
 ```
 
-요청 제한(`MEDIA_RATE_LIMITS`)은 프로세스 메모리 기반이라 워커가 여러 개면 한도가 그만큼 느슨해진다(설계 §10).
+요청 제한(`MEDIA_RATE_LIMITS`)의 버킷은 PostgreSQL 행(DRD M6)이라 워커·서버를 늘려도 한도가 그대로다(설계 §10 "요청 제한 구현").
 
 키 발급·교체(`issue`·`rotate`)와 매체 켜기·끄기는 매체 행을 잠근다. 그동안 그 매체의 결정 요청과 반응 판정이 잠시 기다린다(매체 생명주기 잠금, 설계 §10 "매체 비활성화와 판정·결정의 순서"). 키 폐기(`revoke`)는 매체 행을 잠그지 않는다.

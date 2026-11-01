@@ -1,11 +1,13 @@
 """masters 의 규칙. 관리자 전용이며 모든 변경은 감사 로그에 남는다(위협 T23)."""
 import hashlib
 import hmac
+import math
 import re
 import secrets
 import uuid
 from datetime import timedelta
 
+from django.core.exceptions import ImproperlyConfigured
 from django.db import IntegrityError, connection, transaction
 from django.db.models import OuterRef, Q, Subquery
 from django.utils import timezone
@@ -156,6 +158,36 @@ def media_active_for_share(media_id):
         cursor.execute(f"{sql} FOR SHARE", params)
         row = cursor.fetchone()
     return None if row is None else bool(row[0])
+
+
+# 토큰 하나를 쓴다. 같은 (매체, 경로군)의 동시 요청은 충돌 행의 잠금으로 줄을 서고, 늦은 쪽은 앞 갱신이 끝난 행으로 다시 계산한다(버스트를 넘겨 통과시키지 않는다).
+# SET 의 식은 모두 갱신 전 행(b)을 본다 — tokens·granted 가 같은 충전값(refill.r)으로 계산된다. 시각은 GREATEST 로 뒤로 가지 않는다.
+_BUCKET_UPSERT = """
+INSERT INTO masters_media_rate_bucket AS b (bucket_id, media_id, route_group, tokens, refilled_at, granted)
+VALUES (%(id)s, %(media)s, %(group)s, %(burst)s - 1, %(now)s, true)
+ON CONFLICT (media_id, route_group) DO UPDATE SET
+    (tokens, granted) = (
+        SELECT CASE WHEN refill.r >= 1 THEN refill.r - 1 ELSE refill.r END, refill.r >= 1
+        FROM (SELECT LEAST(%(burst)s, b.tokens + GREATEST(0, EXTRACT(EPOCH FROM EXCLUDED.refilled_at - b.refilled_at)::float8) * %(rate)s) AS r) AS refill
+    ),
+    refilled_at = GREATEST(b.refilled_at, EXCLUDED.refilled_at)
+RETURNING granted, tokens
+"""
+
+
+def take_rate_token(media_id, group, rate, burst, now=None):
+    """매체 API 요청 제한(설계 §10 "요청 제한 구현"): (매체, 경로군) 버킷에서 토큰 하나를 쓴다. 통과면 `None`, 막히면 다시 보낼 때까지의 **정수 초(1 이상)**.
+
+    **트랜잭션 밖에서 부른다**(C1 데코레이터가 인증 뒤·뷰 전에): autocommit 문장 하나라 버킷 행 잠금은 그 문장 동안만이다.
+    트랜잭션 안에서 부르면 그 트랜잭션이 끝날 때까지 행 잠금을 쥐어 같은 매체의 요청이 줄을 선다. 뷰가 실패해도 쓴 토큰은 돌려주지 않는다.
+    시각은 앱의 벽시계다. 시계가 뒤로 가면 잠깐 더 엄격해지고 앞으로 뛰면 충전이 많아져도 버스트에서 막힌다 — 피해는 버스트 하나로 묶인다.
+    """
+    if not (is_int(burst) and burst >= 1) or isinstance(rate, bool) or not isinstance(rate, (int, float)) or not rate > 0:
+        raise ImproperlyConfigured(f"요청 제한은 초당 토큰 > 0, 버스트는 1 이상의 정수여야 합니다: rate={rate!r}, burst={burst!r}")
+    with connection.cursor() as cursor:
+        cursor.execute(_BUCKET_UPSERT, {"id": uuid.uuid7(), "media": media_id, "group": group, "burst": burst, "rate": float(rate), "now": _now(now)})
+        granted, tokens = cursor.fetchone()
+    return None if granted else max(1, math.ceil((1.0 - tokens) / rate))
 
 
 def create_slot(actor, media_id, name, floor, base, cap, reason, *, audience, impression_share, click_share, conversion_share, now=None):

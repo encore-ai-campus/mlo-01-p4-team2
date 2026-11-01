@@ -822,7 +822,7 @@ class Harness:
         from django.test import Client
         from django.test.utils import CaptureQueriesContext, override_settings
 
-        from serving_api.throttle import buckets
+        from masters.models import MediaRateBucket
 
         body = json.dumps({"slot_id": str(self.ctx["slot_id"]), "subject_id": str(uuid.uuid4())})
         client = Client()
@@ -831,7 +831,7 @@ class Harness:
             return client.post("/api/media/v1/decisions", data=body, content_type="application/json", HTTP_X_MEDIA_KEY=self.key)
 
         with override_settings(ALLOWED_HOSTS=["*"], MEDIA_RATE_LIMITS={"decisions": (10**6, 10**6), "reactions": (10**6, 10**6), "reads": (10**6, 10**6)}):
-            buckets.reset()
+            MediaRateBucket.objects.all().delete()  # 앞 단계가 쓴 토큰과 무관하게(한도는 위에서 넉넉히)
             with CaptureQueriesContext(connection) as queries:
                 assert post().status_code == 201
             kinds = dict(Counter(q["sql"].split(None, 1)[0].upper() for q in queries.captured_queries))
@@ -848,7 +848,7 @@ class Harness:
                     times.append((time.perf_counter() - t0) * 1000)
                     assert response.status_code == 201
                 samples_ms[label] = round(statistics.median(times), 2)
-            buckets.reset()
+            MediaRateBucket.objects.all().delete()
         from records.models import Decision
 
         self.acked_decisions.update(str(i) for i in Decision.objects.order_by("-decided_at").values_list("decision_id", flat=True)[: samples * 2 + 1])

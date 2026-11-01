@@ -2,7 +2,7 @@
 
 > Status: **정식 문서**. 광고 서버만 다룬다. **지금 구조만 적는다** — 언제·왜 바뀌었는지는 §11 문서 이력과 [구현 계획](implementation-plan.md)에 있다.
 > 관련 문서: [ads-server-design.md](ads-server-design.md) (설계), [implementation-plan.md](implementation-plan.md) (구현 계획), [threat-model.md](threat-model.md) (위협 모델), [contracts/](contracts/) (OpenAPI 계약)
-> 기준: 2026-10-14(저장소는 2026-10-31 PostgreSQL 전환 0.55, 이벤트는 2026-11-01 Outbox 확장 0.56) · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
+> 기준: 2026-10-14(저장소는 2026-10-31 PostgreSQL 전환 0.55, 이벤트는 2026-11-01 Outbox 확장 0.56, 요청 제한 버킷은 2026-11-01 0.57) · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
 > 근거: 설계서 `docs/legacy/ads-server/ads-server-design.md`, 계약 `contracts/serving.openapi.yaml`(C1·C3), `contracts/console.openapi.yaml`(C6), 실제 모델 코드(`*/models.py`)
 > 표기: **[예약]** 계약에 자리만 있고 아직 코드 없음 · **[제안]** 이 문서가 처음 제안함(동의 필요) · **[열림]** 정하지 못함. 표기가 없으면 코드에 있다
 
@@ -16,7 +16,7 @@
 | 범위 | 광고 서버의 저장 데이터(DB·파일), 서버 간 계약(C1~C6)의 데이터 모양, 내부 처리 흐름, 수명주기, 보안 분류, 팀 DRD와의 대응 |
 | 범위 밖 | 매체 서버(메타버스)·데이터 파이프라인의 내부 데이터, 화면 설계, 인프라 구성 |
 | 저장소 | **PostgreSQL 18**(업무 데이터 + 이벤트 outbox, 한 트랜잭션) + **로컬 파일**(소재 이미지) + **MongoDB 8.0**(이벤트 로그 `ad_events` — 중계가 outbox에서 옮긴다). Kafka·Spark는 서버가 감당하지 못할 때의 확장(§2.1) |
-| 엔터티 | 프로젝트 표 **20개**(계정·감사 2, 마스터 5, 운영 8, 지갑·원장 2, 결정·반응 2, 이벤트 outbox 1) + 프레임워크 표 11개(§4.2) |
+| 엔터티 | 프로젝트 표 **21개**(계정·감사 2, 마스터 6, 운영 8, 지갑·원장 2, 결정·반응 2, 이벤트 outbox 1) + 프레임워크 표 11개(§4.2) |
 | 핵심 규칙 | **모든 PK는 UUIDv7, 자동 증가 없음**(예외: outbox의 이벤트 ID는 결정적 UUIDv5) · 자연 키는 업무 규칙용 유일 제약 · 시각은 UTC · 금액은 **정수 포인트** · 이력은 **추가 전용**(§3 R-5) · 삭제 없음 · 판정 규칙은 한 곳(`engine`) · 파생값은 저장하지 않는다(잔액만 예외, §4.7) |
 | 먼저 볼 것 | §1.2 **광고 도메인은 이 문서가 팀 DRD보다 우선**. §10 열린 이슈(D-7) |
 
@@ -177,6 +177,7 @@ erDiagram
     masters_media ||--o{ masters_slot : "media"
     masters_media ||--o{ masters_media_key : "media"
     masters_media ||--o{ masters_media_deactivation : "media (끈 기록)"
+    masters_media ||--o{ masters_media_rate_bucket : "media (요청 제한)"
     masters_slot ||--o{ masters_bid_policy : "slot (버전)"
     masters_slot ||--o{ campaigns_ad_group_slot : "slot"
     campaigns_campaign ||--o{ campaigns_ad_group : "campaign"
@@ -244,6 +245,14 @@ erDiagram
         uuid deactivation_id PK
         uuid media_id FK
         datetime deactivated_at "추가만"
+    }
+    masters_media_rate_bucket {
+        uuid bucket_id PK
+        uuid media_id FK
+        string route_group "UK(media, route_group)"
+        float tokens
+        datetime refilled_at
+        bool granted
     }
     campaigns_campaign {
         uuid campaign_id PK
@@ -369,6 +378,7 @@ erDiagram
 | M3 | 입찰 정책 `masters_bid_policy` | masters | 마스터(추가 전용 버전) | 관리자 | 정책 변경마다 |
 | M4 | 매체 키 `masters_media_key` | masters | 보안 | 관리자 | 키 발급·교체 |
 | M5 | 매체 비활성화 기록 `masters_media_deactivation` | masters | 기록(추가 전용) | 관리자(매체 끄기) | 켜져 있던 매체를 끌 때마다 |
+| M6 | 요청 제한 버킷 `masters_media_rate_bucket` | masters | 운영 상태(가변) | 매체 API 요청(C1, 인증 뒤) | 매체·경로군의 첫 요청(이후는 같은 행을 갱신) |
 | O1 | 캠페인 `campaigns_campaign` | campaigns | 운영 | 광고주(상태는 관리자·시스템도) | 캠페인 생성 |
 | O2 | 광고그룹(화면의 "광고") `campaigns_ad_group` | campaigns | 운영 | 광고주 | 광고 만들기 |
 | O3 | 광고그룹-슬롯 `campaigns_ad_group_slot` | campaigns | 운영(연결) | 광고주 | 구성 선택·교체 |
@@ -511,6 +521,24 @@ erDiagram
 
 - **쓰는 곳은 하나**: `set_media_active(False)`가 **켜져 있던 매체를 실제로 끌 때만** 같은 트랜잭션에서 한 줄 더한다. 조건부 UPDATE(`is_active=True`인 행만)라 두 관리자가 동시에 꺼도 한 줄이고, 이미 꺼진 매체를 다시 끄거나 켜면 기록하지 않는다.
 - **읽는 곳은 하나**: `masters.api.first_deactivation(매체, after, until)` = (after, until] 안의 가장 이른 비활성화 시각(없으면 `None`). 판정은 (결정 시각, 접수 시각]으로 부른다 — 결정과 같은 시각에 끈 것은 결정 전, 접수와 같은 시각에 끈 것은 접수 전으로 본다. 마지막 시각 하나만으로는 구간 안의 가장 이른 기록을 잃어 표로 둔다.
+
+#### M6. 요청 제한 버킷 `masters_media_rate_bucket`
+
+매체 API(C1)의 요청 제한 토큰 버킷. **(매체, 경로군) 하나 = 행 하나**이고 모든 웹 프로세스·호스트가 같은 행을 쓴다. 한도 값은 설정 `MEDIA_RATE_LIMITS`(경로군마다 초당 토큰·버스트), 초과 응답은 계약 C1 의 429 + `Retry-After`.
+
+| 컬럼 | 타입 | NULL | 키·제약 | 설명 |
+|---|---|:---:|---|---|
+| `bucket_id` | UUID | N | PK | |
+| `media_id` | UUID | N | FK→M1 `PROTECT`, **UNIQUE** `(media, route_group)` | |
+| `route_group` | 문자 16 | N | 위 UNIQUE | `decisions`·`reactions`·`reads`(C1 경로군) |
+| `tokens` | 실수 | N | | 마지막 계산 뒤 남은 토큰(0 이상, 버스트 이하) |
+| `refilled_at` | 시각 | N | | 마지막으로 충전을 계산한 시각(서버 벽시계). **뒤로 가지 않는다** — 늦게 도착한 이른 시각의 요청은 경과 0 으로 본다 |
+| `granted` | 불리언 | N | | 마지막 요청의 통과 여부(문장 하나로 결과를 돌려받으려고 둔다) |
+
+- **쓰는 곳은 하나**: `masters.api.take_rate_token(매체, 경로군, 초당 토큰, 버스트)` — `INSERT … ON CONFLICT (media, route_group) DO UPDATE … RETURNING` 문장 하나를 **트랜잭션 밖**(C1 데코레이터, 인증 뒤·뷰 전)에서 실행한다. 같은 행의 동시 요청은 행 잠금으로 줄을 서고 늦은 쪽은 앞 갱신이 끝난 행으로 다시 계산해 버스트를 넘겨 통과시키지 않는다. 행 잠금은 그 문장 동안만이다. 인증에 실패한 요청(401·403)은 토큰을 쓰지 않는다.
+- **읽는 곳은 없다**(통과 여부는 쓰는 문장이 돌려준다). 거절된 요청도 행을 한 번 갱신한다.
+- **갱신 열(`tokens`·`refilled_at`·`granted`)에는 색인을 두지 않는다** — 매 요청의 UPDATE 가 HOT 갱신으로 같은 페이지 안에서 정리되어 표·색인이 부풀지 않는다.
+- 첫 행을 만들 때만 FK 확인이 매체 행에 `FOR KEY SHARE` 를 잡는다(매체 비활성화가 매체 행을 쥔 동안 그 매체의 **첫** 버킷 생성만 잠깐 기다린다).
 
 #### O1. 캠페인 `campaigns_campaign`
 
@@ -1193,6 +1221,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 | 매체·슬롯 | 관리자 | 이름·활성 | 없음 | 영구 |
 | 매체 키(M4) | 관리자 발급·교체 | 만료 시각(교체 유예)·폐기 시각만 | 없음(폐기) | [열림] |
 | 매체 비활성화 기록(M5) | 켜져 있던 매체를 끌 때 | **없음**(추가만) | 없음 | 영구(그 전 결정의 반응 판정에 필요) |
+| 요청 제한 버킷(M6) | 매체·경로군의 첫 C1 요청 | C1 요청마다(토큰·시각·통과 여부) | 없음(매체를 지우지 않는다) | 매체와 같음. 행 수 ≤ 매체 수 × 3 |
 | 입찰 정책·입찰 | 새 버전 행 | **없음** | 없음 | 영구(결정 해석에 필요) |
 | 캠페인·광고그룹·소재 | 광고주 | 허용 필드만, **`ENDED` 이후 없음**. 소재는 보관(`archived_at`) | 없음 | [열림] |
 | 광고그룹-슬롯(O3) | 광고 만들기·구성 변경 | 없음 | 구성을 바꾸면 그 광고그룹의 행을 바꿔 넣는다(이력 없음 — 나간 슬롯은 결정이 기록) | 광고그룹과 같음 |
@@ -1323,6 +1352,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 
 | 버전 | 날짜 | 내용 |
 |---|---|---|
+| 0.57 | 2026-11-01 | 요청 제한 버킷 M6 `masters_media_rate_bucket`(설계 §10 "요청 제한 구현" — 프로세스 메모리 버킷을 모든 프로세스가 함께 쓰는 DB 행으로): §0 표 수, ERD, §4.2, 컬럼·쓰는 곳·HOT 갱신, §6 |
 | 0.56 | 2026-11-01 | Outbox 확장 반영(계획 `docs/plans/00` P2): O10 변경 로그 표(열·색인·CHECK 둘, R-5·§4.4·§6), P3 의 원천·메시지 키를 종류별로, §5.6 신규 이벤트 넷(`ad.bid_policy_changed`·`ad.bid_added`·`ad.campaign_changed`·`ad.ad_group_changed`)과 소비자 정렬 규칙 `(changed_at, change_id)`, §5.9 `backfill_events` 의 `excluded`·`export_integrity` 원천·`end_expired_campaigns` 의 변경 로그 |
 | 0.55 | 2026-10-31 | PostgreSQL 전환 반영(계획 `docs/plans/00` P1): 저장소·구성도·순서도·저장소 기준·한계를 PostgreSQL 18로(정렬 builtin `C.UTF-8`, `lock_timeout` 5초, 연결 한도 100 — D6·D9·D11). §4.3 표기와 O6·B2·§4.4: DB 계산 열 `open_campaign`·`signup_grant_wallet`를 지우고 조건부 유일 제약(부분 유일 색인)으로(P1-6). 색인 정리(P1-7): A3 `actor_id`·O4 `image_name` 단일 색인 삭제. §5.6 `scope` 값(D5) |
 | 0.54 | 2026-10-14 | Step 6-16j(구현 계획 §8.4.17, 사용자 결정): **본문을 지금 구조만 적도록 정리** — `[구현 …]` 표시·단계 번호·"그 전에는" 같은 변경 이력·지운 A2 표 단면·§4.8 PK 규칙 적용 기록(0.5)·해결된 어긋남 D-1~D-6·D-8의 상세(0.2·0.6·0.19·0.32 등)를 본문에서 뺐다. **표 −4 반영**: B3 `billing_campaign_spend`(캠페인 일 소진액은 원장에서 계산 — 원장 색인 `(campaign, entry_type, created_at, amount)`, 상한 하루 1만 줄, 6-16f), O8 `campaigns_advertiser_quota`(광고주 상한은 사용자 행 잠금, 6-16g), Django 권한 M2M 둘 `foundation_user_groups`·`foundation_user_user_permissions`(권한은 활성 슈퍼유저 하나, 6-16h). **어긋남 고침**: ① §4.2 목록에 O9 ② ERD 에 `records_reaction`·`events_outbox` ③ P2 를 표 이름이 있는 열 표로 ④ 프레임워크 표 11개(쓰지 않는 5개 포함) ⑤ O3 "단위가 같을 때만"(과금 단위가 없어진 뒤의 남은 말) ⑥ O4 `image_bytes` 는 현재 이미지의 크기(보유량 상한은 O7) ⑦ R-5·§4.4 추가 전용 목록에 O7·O9·M5(전수 시험도 모든 추가 전용 모델을 덮도록) ⑧ 결정 순서도의 "(계획)"·"(P1)" ⑨ §6 수명주기에 매체 키·광고그룹-슬롯·소재 연결·이미지 보유·세션·로그인 잠금 기록. 그 밖에 §2 를 프론트·백 분리(6-15)에 맞춤, 반응 상태도, C3 공개 조건(O9 연결·광고주 활성), §5.5 소재 사건, 결정의 `bid_id` 는 뽑힌 광고그룹의 행(6-16d) |

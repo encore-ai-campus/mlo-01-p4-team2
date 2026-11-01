@@ -85,14 +85,12 @@ class World:
 
 
 def media_api(test):
-    """매체 API 시험 준비: 요청 제한 버킷을 비우고(끝나면 다시), 세계 하나와 그 매체의 키를 만들고, 결정 시각을 `NOW` 로 고정한다. (세계, 키)를 돌려준다."""
+    """매체 API 시험 준비: 세계 하나와 그 매체의 키를 만들고, 결정 시각을 `NOW` 로 고정한다. (세계, 키)를 돌려준다.
+    요청 제한 버킷(masters M6)은 DB 행이라 시험마다 격리된다(TestCase 는 되돌림, TransactionTestCase 는 표 비우기).
+    TestCase 안에서는 버킷 갱신이 시험 트랜잭션 안이라 행 잠금이 시험 끝까지 간다 — 스레드로 C1 을 부르는 시험은 TransactionTestCase 로."""
     from unittest import mock
 
     from masters import api as masters
-    from serving_api.throttle import buckets
-
-    buckets.reset()
-    test.addCleanup(buckets.reset)
     w = World()
     key = masters.issue_media_key(w.admin, w.slot.media_id).key
     test.enterContext(mock.patch("records.services._now", lambda now=None: now or NOW))  # 후보 광고의 기간(NOW 기준)이 맞도록

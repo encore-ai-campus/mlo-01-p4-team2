@@ -22,8 +22,6 @@ from django.db import OperationalError
 from foundation.api import errors
 from masters import api as masters
 
-from .throttle import buckets
-
 logger = logging.getLogger(__name__)
 
 CHALLENGE = 'MediaKey realm="ads-media-api"'
@@ -54,7 +52,7 @@ def media_endpoint(group):
             try:
                 identity = authenticate(request)
                 rate, burst = settings.MEDIA_RATE_LIMITS[group]
-                wait = buckets.take((identity.media_id, group), rate, burst)
+                wait = masters.take_rate_token(identity.media_id, group, rate, burst)  # 모든 프로세스가 함께 쓰는 DB 버킷, 뷰의 트랜잭션 밖(문장 하나)
                 if wait is not None:
                     raise errors.RateLimited("요청이 너무 많습니다.", retry_after=wait)
                 request.media = identity

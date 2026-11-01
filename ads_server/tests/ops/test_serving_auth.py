@@ -1,13 +1,15 @@
 """C1 인증·요청 제한(2-2). 실제 데코레이터를 붙인 임시 뷰(tests/support/urls_media_api.py)에 계약 경로로 요청하고, 응답을 계약에 대조한다."""
 import uuid
+from datetime import timedelta
 from unittest import mock
 
 from django.db import OperationalError
 from django.test import Client, TestCase, override_settings, tag
+from django.utils import timezone
 
 from masters import api as masters
 from serving_api.auth import CHALLENGE
-from serving_api.throttle import buckets
+from masters.models import MediaRateBucket
 from tests.support.contract_support import Contract, ProviderContractMixin, cookie_problems
 from tests.support.factories import make_admin
 from tests.support.cases import Cases
@@ -24,11 +26,13 @@ OPERATIONS = [
 
 
 class FakeClock:
-    def __init__(self):
-        self.now = 5000.0
+    """요청 제한 버킷의 시각(`masters.services._now`)을 시험이 움직인다."""
 
-    def __call__(self):
-        return self.now
+    def __init__(self):
+        self.now = timezone.now()
+
+    def __call__(self, now=None):
+        return now if now is not None else self.now
 
 
 @override_settings(ROOT_URLCONF="tests.support.urls_media_api")
@@ -40,16 +44,7 @@ class MediaApiBase(ProviderContractMixin, TestCase):
         self.media = masters.create_media(self.admin, "메타버스")
         self.key = masters.issue_media_key(self.admin, self.media.media_id).key
         self.clock = FakeClock()
-        buckets.reset()
-        buckets.clock = self.clock
-        self.addCleanup(self.restore_clock)
-
-    @staticmethod
-    def restore_clock():
-        import time
-
-        buckets.clock = time.monotonic
-        buckets.reset()
+        self.enterContext(mock.patch("masters.services._now", self.clock))
 
     def call(self, method, url, key="USE", body=None, content_type="application/json", **extra):
         headers = dict(extra)
@@ -182,7 +177,7 @@ class StorageFailureTests(Cases, MediaApiBase):
         with mock.patch("serving_api.auth.masters.authenticate_media_key", side_effect=OperationalError("locked")):
             for _ in range(10):
                 self.call("get", f"{BASE}/decisions/{DID}")
-        self.assertEqual(buckets.take((self.media.media_id, "reads"), 1, 1), None)  # 한 번도 쓰지 않았다
+        self.assertFalse(MediaRateBucket.objects.filter(media_id=self.media.media_id).exists())  # 토큰을 한 번도 쓰지 않았다(버킷이 생기지도 않았다)
         with mock.patch("tests.support.urls_media_api.parse_json", side_effect=ValueError("bug")), \
                 self.assertRaises(ValueError):
             Client(raise_request_exception=True).post(
@@ -207,12 +202,12 @@ class RateLimitTests(Cases, MediaApiBase):
         self.assertEqual(blocked["Retry-After"], "1")
         self.assertContract(self.contract, "/decisions", "post", blocked)  # Problem(status=429) + Retry-After 정수
         self.assertEqual(blocked.json()["code"], "rate_limited")
-        self.clock.now += 1.0  # 초당 2개 충전
+        self.clock.now += timedelta(seconds=1)  # 초당 2개 충전
         self.assertEqual([self.hit("post", url).status_code for _ in range(3)], [200, 200, 429])
 
     def case_every_operation_returns_a_contract_conforming_429(self):
         for contract_path, method, url, group in OPERATIONS:
-            buckets.reset()
+            MediaRateBucket.objects.all().delete()  # 경로군마다 새 버킷
             burst = {"decisions": 3, "reactions": 5, "reads": 2}[group]
             for _ in range(burst):
                 self.assertEqual(self.hit(method, url).status_code, 200)

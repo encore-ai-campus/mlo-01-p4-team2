@@ -17,12 +17,12 @@ from django.utils import timezone
 
 from billing import api as billing
 from events import api as events
-from foundation.api import is_transient_lock_error
+from foundation.api import is_transient_lock_error, violated_constraint
 
 from . import basis as judgment_basis
 from . import ordering
 from . import facts as fact_gathering
-from .models import Decision, Reaction, ReactionStatus, charge_shares
+from .models import ACCEPTED_KEY_CONSTRAINT, Decision, Reaction, ReactionStatus, charge_shares
 from .rules import MANDATORY_RULES, Hold, run_rules
 
 logger = logging.getLogger(__name__)
@@ -206,7 +206,7 @@ def process_pending(limit=100, now=None, should_stop=None):
         Reaction.objects.filter(due, status=ReactionStatus.RECEIVED, attempts__lt=settings.REACTION_MAX_ATTEMPTS)
         .order_by(F("checked_at").asc(nulls_first=True), "received_at", "inbox_id").values_list("inbox_id", flat=True)[:limit]
     )
-    counts = {"accepted": 0, "rejected": 0, "pending": 0, "skipped": 0, "failed": 0, "transient": 0}
+    counts = {"accepted": 0, "rejected": 0, "pending": 0, "skipped": 0, "failed": 0, "transient": 0, "contended": 0}
     for inbox_id in ids:
         if should_stop is not None and should_stop():
             break
@@ -216,6 +216,9 @@ def process_pending(limit=100, now=None, should_stop=None):
             if is_transient_lock_error(error):  # 다음 주기에 다시 한다(실패 횟수는 그대로)
                 logger.warning("반응 처리가 교착·잠금 초과로 되돌려졌다(다음 주기에 다시) inbox=%s", inbox_id)
                 counts["transient"] += 1
+            elif violated_constraint(error) == ACCEPTED_KEY_CONSTRAINT:  # 두 조회 사이 창에서 같은 사람·유형의 인정이 겹쳤다(설계 D13) — 실패 횟수는 올렸다(설정 누락처럼 반복되면 stuck 으로 드러난다)
+                logger.warning("같은 사람·유형의 인정이 겹쳐 유일 제약이 막았다(다음 처리에서 거부된다) inbox=%s", inbox_id)
+                counts["contended"] += 1
             else:
                 logger.exception("반응 처리 실패 inbox=%s", inbox_id)
                 counts["failed"] += 1

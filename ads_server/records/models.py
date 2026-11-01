@@ -99,6 +99,9 @@ class ReactionSource(models.TextChoices):
     SERVER = "server", "광고 서버가 관측"  # 클릭: `GET /c/{token}` (설계 §10 "클릭 출처")
 
 
+ACCEPTED_KEY_CONSTRAINT = "records_reaction_one_accepted_per_person_type"  # 처리 프로세스가 이 위반을 동시 인정 경합으로 따로 센다(processing.process_pending)
+
+
 class Reaction(models.Model):
     """반응 수신함(inbox, 설계 §4.4, DRD P2). 매체가 보고한 노출·클릭·전환을 **받은 그대로** 저장한다.
 
@@ -150,7 +153,7 @@ class Reaction(models.Model):
             # 개인 슬롯의 사람은 결정의 사람이라 결정당 하나, 일괄 슬롯은 보는 사람마다 하나다.
             # **조건 없는 유일 제약**이다: 인정된 행만 `accepted_key` 를 갖고 나머지는 NULL(NULL 끼리는 서로 다른 값이다). 조건부 유일 제약 없이
             # 성립한다(PostgreSQL 의 부분 유일 색인으로 바꿀 수 있지만 그대로 둔다 — docs/plans/00 결정 D3).
-            models.UniqueConstraint(fields=["accepted_key"], name="records_reaction_one_accepted_per_person_type"),
+            models.UniqueConstraint(fields=["accepted_key"], name=ACCEPTED_KEY_CONSTRAINT),
             # 판정(인정·거부)한 행에는 근거가 반드시 있고, 아직 판정하지 않은 행에는 없다
             models.CheckConstraint(
                 condition=(Q(status="RECEIVED", basis__isnull=True) | (~Q(status="RECEIVED") & Q(basis__isnull=False))),

@@ -9,6 +9,7 @@ from datetime import timedelta
 from random import Random
 from unittest import mock
 
+from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import OperationalError
@@ -268,7 +269,7 @@ class QueueTests(Cases, ProcessingBase):
         # 실패한 반응은 횟수가 쌓이다가 한도에서 자동 처리 대상에서 빠진다(거부·삭제하지 않는다)
         with override_settings(REACTION_MAX_ATTEMPTS=3):
             Reaction.objects.filter(pk=bad.inbox_id).update(attempts=3)
-            self.assertEqual(records.process_pending(now=NOW), {"accepted": 0, "rejected": 0, "pending": 0, "skipped": 0, "failed": 0, "transient": 0})
+            self.assertEqual(records.process_pending(now=NOW), {"accepted": 0, "rejected": 0, "pending": 0, "skipped": 0, "failed": 0, "transient": 0, "contended": 0})
             self.assertEqual(records.stuck_count(), 1)
             self.assertEqual(self.row(bad).status, "RECEIVED")
             self.assertEqual(records.reset_stuck(), 1)
@@ -340,6 +341,37 @@ class QueueTests(Cases, ProcessingBase):
         self.assertIn("1건", str(raised.exception))
         self.assertIn("'failed': 1", out.getvalue())  # 요약은 먼저 찍힌다
         self.assertEqual(self.row(view).status, "RECEIVED")
+
+    def case_a_contended_acceptance_is_not_a_failure_but_still_counts_toward_stuck(self):
+        """같은 사람·유형의 인정이 겹쳐 accepted_key 유일 제약이 막으면(설계 D13) `--once` 는 실패로 끝나지 않고 요약에 contended 로 보인다.
+        실패 횟수는 그대로 오른다 — 규칙 설정 누락처럼 같은 반응이 계속 막히면 stuck 으로 드러난다(사용자 2026-11-02)."""
+        first, second = self.receive(at=NOW), self.receive(at=NOW + timedelta(seconds=1))
+        rules = tuple(rule for rule in settings.REACTION_RULES if rule != "once-per-type")  # 규칙이 빠지면 유일 제약만 남아 동시 처리의 창과 같은 위반이 매번 난다
+        out = io.StringIO()
+        with override_settings(REACTION_RULES=rules, REACTION_MAX_ATTEMPTS=2):
+            call_command("process_reactions", "--once", stdout=out)  # CommandError 가 아니다
+            for part in ("'accepted': 1", "'failed': 0", "'contended': 1"):
+                self.assertIn(part, out.getvalue())
+            self.assertEqual((self.row(first).status, self.row(second).status, self.row(second).attempts), ("ACCEPTED", "RECEIVED", 1))
+            self.assertEqual(self.charges(), 1)  # 막힌 쪽의 과금은 함께 되돌려졌다
+            self.assertEqual(records.process_pending(now=NOW)["contended"], 1)
+            self.assertEqual(records.stuck_count(), 1)
+
+    def case_other_constraint_violations_are_still_failures(self):
+        """제약 이름으로 accepted_key 만 골라낸다 — 다른 유일 제약 위반은 지금처럼 실패이고 `--once` 도 실패로 끝난다."""
+        done = self.receive(at=NOW)
+        self.process(done)
+        view = self.receive(decision_id=self.new_decision("0197a5c0-0000-7000-8000-000000000009").decision_id, at=NOW)
+
+        def clash(*args, **kwargs):  # 판정 트랜잭션 안에서 (매체, reaction_id) 유일 제약을 실제로 어긴다
+            Reaction.objects.filter(pk=view.inbox_id).update(reaction_id=done.reaction_id)
+
+        out = io.StringIO()
+        with mock.patch("records.processing.billing.charge_for_reaction", side_effect=clash), self.assertRaises(CommandError):
+            call_command("process_reactions", "--once", stdout=out)
+        self.assertIn("'failed': 1", out.getvalue())
+        self.assertIn("'contended': 0", out.getvalue())
+        self.assertEqual(self.row(view).attempts, 1)
 
     def case_once_still_fails_loudly_on_a_database_error(self):
         with mock.patch("records.management.commands.process_reactions.process_pending", side_effect=OperationalError(2003, "down")), self.assertRaises(OperationalError):
@@ -447,7 +479,7 @@ class ConcurrentProcessingTests(Cases, TransactionTestCase):  # records.receive_
         def worker():
             for _ in range(300):
                 counts = records.process_pending(limit=100, now=NOW)
-                if counts["failed"] or counts["transient"]:  # 정상 경쟁에서 실패·교착·잠금 초과가 나면 안 된다(행 잠금) — 드러낸다
+                if counts["failed"] or counts["transient"] or counts["contended"]:  # 정상 경쟁에서 실패·교착·잠금 초과·인정 경합이 나면 안 된다(결정이 모두 달라 행 잠금만 다툰다) — 드러낸다
                     errors.append(f"처리 중 실패/일시 오류: {counts}")
                 if not Reaction.objects.filter(status="RECEIVED").exists():
                     return

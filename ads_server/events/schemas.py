@@ -109,7 +109,9 @@ def change_value(**fields):
             out[name] = _iso(value)
         elif isinstance(value, (list, tuple, set, frozenset)) and all(isinstance(v, uuid.UUID) for v in value):
             out[name] = sorted(str(v) for v in value)
-        elif value is None or isinstance(value, (bool, int, str)):
+        elif isinstance(value, str):
+            out[name] = str(value)  # 선택지 값(TextChoices)도 그냥 문자열로
+        elif value is None or isinstance(value, (bool, int)):
             out[name] = value
         else:
             raise TypeError(f"변경 값 {name} 의 형({type(value).__name__})은 받지 않는다")

@@ -4,7 +4,7 @@
 (`tests/tools/load_test.py` 의 `verify_events` 도 같은 기대값을 쓴다). 형식은 `events` 의 빌더를 쓴다.
 
 생성 시각(`produced_at`)은 종류마다 생성 규약이 정한 원본 시각이다: 결정 = 결정 시각, 접수 = 수신 시각, 판정 = 처리 시각(`processed_at`),
-과금 = 그 과금을 일으킨 반응의 처리 시각(과금과 판정은 같은 처리 트랜잭션의 같은 `now` 를 쓴다), 입찰 정책 = 정책 버전의 변경 시각, 입찰 = 입찰 버전을 만든 시각.
+과금 = 그 과금을 일으킨 반응의 처리 시각(과금과 판정은 같은 처리 트랜잭션의 같은 `now` 를 쓴다), 입찰 정책 = 정책 버전의 변경 시각, 입찰 = 입찰 버전을 만든 시각, 캠페인 변경 = 변경 로그의 변경 시각.
 """
 from functools import reduce
 from operator import or_
@@ -33,18 +33,20 @@ def expected_events():
         expected.update([_charge_event(e, *reactions.get(e.reaction_ref, (None, None)))])  # 원장의 멱등 키(<매체>:<reaction_id>)로 반응을 거쳐 결정을 찾는다
     expected.update(_bid_policy_event(p) for p in masters.policy_versions())
     expected.update(_bid_event(b) for b in campaigns.bid_versions())
+    expected.update(_campaign_change_event(v) for v in campaigns.change_rows(campaigns.ChangeTarget.CAMPAIGN))
     return expected
 
 
 def source_streams():
     """① 구간을 창으로 읽는 흐름(`events.summarize_windows` 용, 외부 검토 00d3067 P3-3). `expected_events` 와 같은 매핑을 창 하나·종류 하나씩 적용한다:
-    결정(결정 시각) / 접수(수신 시각) / 판정과 그 과금(처리 시각) / 입찰 정책(변경 시각) / 입찰(만든 시각). 호출한 쪽의 읽기 스냅샷 안에서 쓴다."""
+    결정(결정 시각) / 접수(수신 시각) / 판정과 그 과금(처리 시각) / 입찰 정책(변경 시각) / 입찰(만든 시각) / 캠페인 변경(변경 시각). 호출한 쪽의 읽기 스냅샷 안에서 쓴다."""
     return [
         events.table_stream(Decision.objects.all(), "decided_at", lambda rows: [_document(_decision_event(d)) for d in rows]),
         events.table_stream(Reaction.objects.all(), "received_at", lambda rows: [_document(_received_event(r)) for r in rows]),
         events.table_stream(Reaction.objects.filter(processed_at__isnull=False), "processed_at", _judged_documents),  # 판정한 반응 = 처리 시각이 있는 반응(DB 제약)
         masters.policy_stream(lambda views: [_document(_bid_policy_event(p)) for p in views]),
         campaigns.bid_stream(lambda views: [_document(_bid_event(b)) for b in views]),
+        campaigns.change_stream(campaigns.ChangeTarget.CAMPAIGN, lambda views: [_document(_campaign_change_event(v)) for v in views]),
     ]
 
 
@@ -133,4 +135,11 @@ def _bid_event(b):
     name = events.NAMES["bid_added"]
     return events.event_id_for(name, b.bid_id), (name, b.ad_group_id, b.created_at, events.bid_added_payload(
         bid_id=b.bid_id, ad_group_id=b.ad_group_id, bid_version=b.bid_version, amount=b.amount, created_at=b.created_at,
+    ))
+
+
+def _campaign_change_event(v):
+    name = events.NAMES["campaign_changed"]
+    return events.event_id_for(name, v.change_id), (name, v.campaign_id, v.changed_at, events.campaign_changed_payload(
+        campaign_id=v.campaign_id, change_id=v.change_id, change_type=v.change_type, previous_value=v.previous_value, new_value=v.new_value, changed_at=v.changed_at,
     ))

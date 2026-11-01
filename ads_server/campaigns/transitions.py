@@ -10,13 +10,15 @@
 | expire | ACTIVE·PAUSED·SUSPENDED → ENDED | 시스템(`ends_at ≤ now`) |
 
 `ENDED` 에서 나가는 전이는 없다. 종료 판정(`is_expired`)은 engine 한 곳이고, 이 파일은 그 결과를 상태로 옮길 뿐이다.
+상태를 바꿀 때마다 변경 로그(`STATUS_CHANGED`)와 `ad.campaign_changed` 를 같은 트랜잭션에 쓴다(`changes.record_change`, 계획 docs/plans/00 §5.4).
 """
 from django.db.models import F
 
 from engine.api import is_expired
 
+from .changes import record_change
 from .errors import CampaignEnded, CampaignSuspended, InvalidTransition
-from .models import Campaign, CampaignStatus, ReviewRequest, ReviewStatus
+from .models import Campaign, CampaignStatus, ChangeTarget, ReviewRequest, ReviewStatus
 
 ADVERTISER, ADMIN, SYSTEM = "advertiser", "admin", "system"
 ACTIVE, PAUSED, SUSPENDED, ENDED = (CampaignStatus.ACTIVE, CampaignStatus.PAUSED, CampaignStatus.SUSPENDED, CampaignStatus.ENDED)
@@ -57,7 +59,7 @@ def apply(campaign, action, by, now, reason=""):
         raise CampaignSuspended()
     if campaign.status not in allowed_from:
         raise InvalidTransition(f"{campaign.status} 상태에서는 {action} 을(를) 할 수 없습니다.")
-    previous = campaign.status
+    previous, ends_before = campaign.status, campaign.ends_at
     campaign.status = to
     if to == ENDED:
         campaign.ended_from = previous
@@ -69,6 +71,10 @@ def apply(campaign, action, by, now, reason=""):
         campaign.suspended_reason, campaign.suspended_at = "", None
     campaign.updated_at = now
     campaign.save()
+    previous_value, new_value = {"status": previous}, {"status": to}
+    if action == "end":  # 조기 종료는 종료 시각도 바꾼다
+        previous_value["ends_at"], new_value["ends_at"] = ends_before, campaign.ends_at
+    _record_status(campaign.campaign_id, previous_value, new_value, now)
     # 열린 재검토 요청(캠페인당 최대 1건)은 UPDATE 한 번으로 닫는다 — `expire_due` 와 같은 방식, 캠페인 행 잠금 안이다
     if action == "release":
         ReviewRequest.objects.filter(campaign=campaign, status=ReviewStatus.OPEN).update(status=ReviewStatus.RELEASED, closed_at=now)
@@ -84,12 +90,18 @@ def expire_due(now):
     같은 행 잠금을 쥐고 하므로(services 의 `_campaign(lock=True)`), 먼저 커밋된 쪽이 이기고 진 쪽은 그 결과를 보고 판단한다. PostgreSQL 은 잠금을 기다린 뒤 새 행 버전으로
     조건을 다시 보므로, 그 사이 연장된 캠페인은 결과에서 빠진다. 잠금은 행 단위라 색인 순서로 엇갈려 교착하지 않는다. 재검토 요청 정리와 감사 로그는 **실제로 바뀐 행에만** 한다.
     """
-    due = [
-        c.campaign_id for c in Campaign.objects.select_for_update().filter(ends_at__lte=now).exclude(status=ENDED).order_by("pk")
+    due = {
+        c.campaign_id: c.status for c in Campaign.objects.select_for_update().filter(ends_at__lte=now).exclude(status=ENDED).order_by("pk")
         if is_expired(c.ends_at, now)
-    ]
+    }  # 잠근 행의 상태 = 변경 로그의 이전 값
     if not due:
         return []
     Campaign.objects.filter(pk__in=due).update(ended_from=F("status"), status=ENDED, updated_at=now)
     ReviewRequest.objects.filter(campaign_id__in=due, status=ReviewStatus.OPEN).update(status=ReviewStatus.CLOSED_ENDED, closed_at=now)
-    return due
+    for campaign_id, previous in due.items():
+        _record_status(campaign_id, {"status": previous}, {"status": ENDED}, now)
+    return list(due)
+
+
+def _record_status(campaign_id, previous, new, now):
+    record_change(target_type=ChangeTarget.CAMPAIGN, target_id=campaign_id, campaign_id=campaign_id, change_type="STATUS_CHANGED", previous=previous, new=new, now=now)

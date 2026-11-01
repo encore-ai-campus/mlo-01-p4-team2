@@ -1,4 +1,4 @@
-"""이벤트 누락 점검(계획 4-2): 원본 행(결정·접수·판정·원장 CHARGE·입찰 정책 버전·입찰 버전)마다 이벤트가 outbox 나 MongoDB 에 있는지 본다.
+"""이벤트 누락 점검(계획 4-2): 원본 행(결정·접수·판정·원장 CHARGE·입찰 정책 버전·입찰 버전·캠페인 변경 로그)마다 이벤트가 outbox 나 MongoDB 에 있는지 본다.
 
 **원본 행을 먼저 읽고 이벤트를 나중에 조회한다**: 이벤트는 원본 행과 같은 트랜잭션에 쓰이므로, 읽은 원본 행의 이벤트는 그 뒤 조회에서 반드시 보인다.
 순서를 거꾸로 하면 점검 도중 새로 생긴 행이 거짓 누락으로 보인다.
@@ -34,6 +34,9 @@ def _sources(stats):
     for b in campaigns.bid_versions():
         stats["bid"] = stats.get("bid", 0) + 1
         yield "bid", b.bid_id, events.NAMES["bid_added"]
+    for v in campaigns.change_rows(campaigns.ChangeTarget.CAMPAIGN):
+        stats["campaign_change"] = stats.get("campaign_change", 0) + 1
+        yield "campaign_change", v.change_id, events.NAMES["campaign_changed"]
 
 
 def event_gaps(stats=None):
@@ -42,7 +45,7 @@ def event_gaps(stats=None):
     범위는 **호출한 쪽의 읽기 스냅샷**이 정한다(`billing.api.consistent_read` 안에서 부르면 그 스냅샷에 보이는 행 전체). `stats` 에 훑은 행 수가 남는다.
     """
     stats = {} if stats is None else stats
-    for kind in ("decision", "reaction", "ledger_charge", "bid_policy", "bid"):
+    for kind in ("decision", "reaction", "ledger_charge", "bid_policy", "bid", "campaign_change"):
         stats.setdefault(kind, 0)
     for batch in batched(_sources(stats), CHUNK):
         ids = {events.event_id_for(name, source_id): (kind, source_id, name) for kind, source_id, name in batch}

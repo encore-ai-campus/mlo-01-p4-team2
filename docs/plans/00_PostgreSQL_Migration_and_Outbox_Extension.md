@@ -158,7 +158,7 @@ DB 전체를 builtin `C.UTF-8`로 만든다. 그래서 ICU·glibc가 바뀌어�
 | P2-3 `ad.bid_policy_changed` | 슬롯 생성 시 v1, 정책 버전 추가 시(단건·일괄 공통) 기록. 정책의 `changed_at`이 이벤트 생성 시각이 되므로 `create_slot`·`add_policy_version`·`add_policy_version_bulk`에 `now=None`을 둔다(캠페인 서비스와 같은 방식 — 기본값이면 동작은 그대로, 시험 세계는 고정 시각) | `masters/services.py:140-168` `create_slot`, `masters/services.py:171-191` `_add_version` | 아래 공통 완료 기준 |
 | P2-4 `ad.bid_added` | 광고그룹 생성 시(입찰액이 있을 때 v1), 입찰 추가 시 기록. `add_bid`는 안쪽 저장점 뒤, 바깥 트랜잭션 안에서 쓴다 | `campaigns/services.py:514` `create_ad_group`, `campaigns/services.py:578-583` `add_bid` | 공통 완료 기준 |
 | P2-5 변경 로그 | §5.2의 모델과 `record_change`(`campaigns/changes.py` — services가 transitions를 import하므로 순환을 피해 따로 둔다). 로그·이벤트 쓰기는 이 단계에서 넣고, 부르는 곳·정합성 원천·백필 제외는 P2-6·P2-7(이벤트가 실제로 생기는 단계). **값 형식은 events가 정한다(P2-2 검토)**: `events.schemas`에 변경 값 형식기(예: `change_value(**fields)` — UUID → 문자열, 시각 → `_iso`(UTC ISO, 마이크로초), UUID 목록은 정렬한 문자열 목록, 정수·불리언·문자열은 그대로)를 두고 api로 내보낸다. `record_change`는 그 결과를 변경 로그에 저장하고 **같은 값**을 `record_*`에 넘긴다 — 로그 = 이벤트(정합성 원천과 같음)이고 C2 형식은 events 한 곳(설계 §6.1). JSONField에 시각 객체를 그대로 넣으면 `DjangoJSONEncoder`가 밀리초·`Z` 형식으로 바꿔 같은 이벤트 안에서 형식이 갈린다 | `campaigns/models.py`, campaigns 새 함수 | 추가 전용 시험(`test_append_only_all_models`), 모델 규약 시험 통과 |
-| P2-6 `ad.campaign_changed` | §5.4 기록 지점 | `campaigns/services.py`, `campaigns/transitions.py` | 공통 완료 기준. `tr.apply`를 트랜잭션 밖에서 부르던 시험(`test_campaigns_transitions.py:39-59`)은 트랜잭션 안으로 고친다 |
+| P2-6 `ad.campaign_changed` | §5.4 기록 지점 | `campaigns/services.py`, `campaigns/transitions.py` | 공통 완료 기준. `tr.apply`를 트랜잭션 밖에서 부르던 시험(`test_campaigns_transitions.py:39-59`)은 트랜잭션 안으로 고친다 — **확인(P2-6)**: `TestCase`라 이미 트랜잭션 안이어서 고칠 것이 없었다 |
 | P2-7 `ad.ad_group_changed` | §5.5 기록 지점 | `campaigns/services.py` | 공통 완료 기준 |
 | P2-8 백필 제외 | 신규 4종은 백필 분기를 만들지 않고 제외를 명시한다(D8). **실행은 종류마다 그 이벤트 단계에서**(P2-2 검토): `records/backfill.py`는 `SOURCE_KINDS`에 없는 종류가 한 줄이라도 있으면 manifest 전체를 거부하므로(`InvalidInput`), `records/integrity.py` `_sources`에 신규 원천을 더하는 단계(P2-3·P2-4·P2-6·P2-7)에서 `SOURCE_KINDS`와 제외("백필 대상 아님"으로 세고 건너뜀)를 같은 커밋에 넣는다 — 그러지 않으면 신규 종류 누락이 섞인 `event_gaps`로는 기존 4종의 백필도 돌릴 수 없다. P2-8은 남은 확인(시험·문구)만 | `records/backfill.py:25, 90-91, 101-110` | `test_event_backfill` 통과 |
 | P2-9 문서 | §10 | — | — |
@@ -183,7 +183,7 @@ DB 전체를 builtin `C.UTF-8`로 만든다. 그래서 ICU·glibc가 바뀌어�
 |---|---|---|---|
 | 생성 → `CREATED` | `campaigns/services.py:191-193` `create_campaign` | `status`, `daily_budget`, `starts_at`, `ends_at` | |
 | 상태 → `STATUS_CHANGED` | `campaigns/transitions.py:47-78` `apply` 한 곳 | `status`(조기 종료는 `ends_at`도) | 상태를 쓰는 곳은 이 파일뿐이다. 일시 중지·재개(`services.py:263`), 조기 종료(`:279`), 중단(`:317`), 해제(`:339`)가 모두 여기를 지난다 |
-| 기간 종료 → `STATUS_CHANGED` | `campaigns/transitions.py:80-100` `expire_due` → `services.py:301-308` | `status` | 일괄 UPDATE라 지금은 이전 상태를 모른다. 잠근 행의 `status`를 함께 돌려주도록 반환값을 바꾼다(P1-6의 `expire_due` 단순화와 같은 함수) |
+| 기간 종료 → `STATUS_CHANGED` | `campaigns/transitions.py:80-100` `expire_due` → `services.py:301-308` | `status` | 일괄 UPDATE라 지금은 이전 상태를 모른다. **한 것(P2-6)**: 잠근 행의 `status`를 모아 `expire_due` 안에서 바로 기록한다 — 상태를 쓰는 파일(transitions)이 변경 로그도 쓰므로 반환값(바뀐 ID 목록)은 그대로 둔다 |
 | 일예산 → `BUDGET_CHANGED` | `campaigns/services.py:253-268` `update_campaign` | `daily_budget` | 같은 요청에서 상태도 바뀌면 행이 2개다(상태는 `apply`가 쓴다) |
 | 종료 시각 → `PERIOD_CHANGED` | 같은 곳 | `ends_at` | D7 |
 
@@ -283,7 +283,7 @@ PostgreSQL은 기본값 없는 NULL 열 추가가 표를 다시 쓰지 않는다
 | 광고 서버 설계(현재 `docs/legacy/ads-server/ads-server-design.md`) | §6.2 층 정의(D1), §10 "MySQL 전환 점검"(:834 — DB-1b 의 계산 열 구현)을 PostgreSQL 기준(조건부 유일 제약 = 부분 유일 색인)으로, 결정 D1~D12 기록 |
 | 설계 §6.3a 백필 6번·DRD `backfill_events` 행(P2-3) | 결과 종류에 `excluded`(백필하지 않는 종류 — 정책·입찰·캠페인·광고그룹 변경, D8)를 더한다. 누락 목록에 섞여 있어도 목록 전체를 거부하지 않는다 |
 | 설계 §6.3 이벤트와 outbox(P2-1 검토) | "결정·반응·과금이 저장되는 같은 트랜잭션에서 outbox 행을 쓴다" → 정책·입찰·캠페인·광고그룹 변경도, "`aggregate_id`(= `decision_id`)"·"Kafka 토픽(메시지 키 `decision_id`)" → 종류별 키(§5.1) |
-| 광고 서버 DRD(현재 `docs/legacy/ads-server/ads-server-drd.md`) | 표 목록에 `campaigns_change_log`(열·색인과 CHECK 두 개 `campaigns_change_log_kind`·`campaigns_change_log_previous_unless_created` — P2-5), C2 이벤트 표에 신규 4종. 생성 열을 물리 구현으로 적은 곳을 조건부 유일 제약(부분 유일 색인 — `pg_constraint`가 아니라 색인이라 지울 때는 `DROP INDEX`)으로: :395(물리 구현 ② GeneratedField 설명), :592·:598(O6 `open_campaign`), :639·:642(B2 `signup_grant_wallet`), :736·:737(§4.4 무결성 표) |
+| 광고 서버 DRD(현재 `docs/legacy/ads-server/ads-server-drd.md`) | 표 목록에 `campaigns_change_log`(열·색인과 CHECK 두 개 `campaigns_change_log_kind`·`campaigns_change_log_previous_unless_created` — P2-5), C2 이벤트 표에 신규 4종 — 변경 이벤트는 "소비자는 `(changed_at, change_id)`로 정렬한다, 전달 순서에 기대지 않는다"(같은 요청의 여러 줄은 `changed_at`이 같고 `event_id`(UUIDv5)는 시간 순서가 아니라 중계 순서가 임의다, P2-6 검토). 생성 열을 물리 구현으로 적은 곳을 조건부 유일 제약(부분 유일 색인 — `pg_constraint`가 아니라 색인이라 지울 때는 `DROP INDEX`)으로: :395(물리 구현 ② GeneratedField 설명), :592·:598(O6 `open_campaign`), :639·:642(B2 `signup_grant_wallet`), :736·:737(§4.4 무결성 표) |
 | 공통 레이크하우스 설계안(`temp/`) | §3.2 광고그룹 이벤트를 권장 범위로·표는 공용 1개, §3.3 트랜잭션 불변식에 "광고그룹 변경 + 변경 로그 + `ad.ad_group_changed`" 추가, §3.6 Topic 표에 `ad.ad_group_changed`(Topic 계약을 정할 때) |
 | 위협 모델·계약 README | 인용한 시험 이름이 바뀌면 함께 고친다 |
 | 광고 서버 DRD의 저장소 한계 | `docs/legacy/ads-server/ads-server-drd.md:1191` "MySQL 단일 노드 … `max_connections`(기본 151)" → PostgreSQL 100·확장 경로(D6) |

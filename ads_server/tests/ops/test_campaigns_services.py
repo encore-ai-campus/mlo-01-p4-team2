@@ -155,9 +155,53 @@ class CampaignServiceTests(Cases, TestCase):
             api.add_bid(self.w.adv, gid, 450, expected_version=1, now=NOW)
         self.assertEqual(len(bid_events(gid)), 2)
 
+    def case_campaign_changes_are_logged_with_their_event_at_each_documented_point(self):
+        """`ad.campaign_changed`(계획 docs/plans/00 §5.4): 생성·상태(일시 중지·재개·중단·해제·조기 종료·기간 종료)·일예산·종료 시각마다 로그 한 줄 + 이벤트 하나.
+        이름만 바꾸거나 같은 값으로 저장하면 쓰지 않는다. 이벤트가 실패하면 캠페인 변경도 남지 않는다."""
+        def changes(campaign_id):
+            rows = ChangeLog.objects.filter(target_type="campaign", target_id=campaign_id).order_by("changed_at", "change_id")
+            return [(r.change_type, r.previous_value, r.new_value) for r in rows]
+        adv, admin, cid, end = self.w.adv, self.w.admin, self.w.campaign.campaign_id, NOW + 10 * DAY
+        api.update_campaign(adv, cid, {"name": "새 이름"}, now=NOW + SEC)
+        api.update_campaign(adv, cid, {"daily_budget": 60_000, "ends_at": NOW + 20 * DAY, "status": "PAUSED"}, now=NOW + 2 * SEC)  # 한 요청에 세 줄(상태는 전이가 쓴다)
+        api.update_campaign(adv, cid, {"daily_budget": 60_000}, now=NOW + 3 * SEC)
+        api.update_campaign(adv, cid, {"status": "ACTIVE"}, now=NOW + 4 * SEC)
+        api.suspend_campaign(admin, cid, "사유", now=NOW + 5 * SEC)
+        api.release_campaign(admin, cid, now=NOW + 6 * SEC)
+        api.end_campaign(adv, cid, now=NOW + 7 * SEC)
+        iso = lambda t: t.isoformat()
+        self.assertEqual(changes(cid), [
+            ("CREATED", None, {"status": "ACTIVE", "daily_budget": 50_000, "starts_at": iso(NOW - DAY), "ends_at": iso(end)}),
+            ("STATUS_CHANGED", {"status": "ACTIVE"}, {"status": "PAUSED"}),
+            ("BUDGET_CHANGED", {"daily_budget": 50_000}, {"daily_budget": 60_000}),
+            ("PERIOD_CHANGED", {"ends_at": iso(end)}, {"ends_at": iso(NOW + 20 * DAY)}),
+            ("STATUS_CHANGED", {"status": "PAUSED"}, {"status": "ACTIVE"}),
+            ("STATUS_CHANGED", {"status": "ACTIVE"}, {"status": "SUSPENDED"}),
+            ("STATUS_CHANGED", {"status": "SUSPENDED"}, {"status": "ACTIVE"}),
+            ("STATUS_CHANGED", {"status": "ACTIVE", "ends_at": iso(NOW + 20 * DAY)}, {"status": "ENDED", "ends_at": iso(NOW + 7 * SEC)}),  # 조기 종료는 종료 시각도
+        ])
+        due = api.create_campaign(adv, "기간 종료", NOW - DAY, NOW + DAY, 1_000, now=NOW)
+        api.suspend_campaign(admin, due.campaign_id, "사유", now=NOW)
+        self.assertEqual(api.end_expired_campaigns(now=NOW + 2 * DAY), 1)
+        self.assertEqual(changes(due.campaign_id)[-1], ("STATUS_CHANGED", {"status": "SUSPENDED"}, {"status": "ENDED"}))  # 일괄 종료도 잠근 행의 이전 상태로
+        for r in ChangeLog.objects.filter(target_type="campaign"):
+            e = EventOutbox.objects.get(pk=event_id_for("ad.campaign_changed", r.change_id))
+            self.assertEqual((e.aggregate_id, e.created_at, e.payload["change_type"], e.payload["previous_value"], e.payload["new_value"]),
+                             (r.campaign_id, r.changed_at, r.change_type, r.previous_value, r.new_value))
+        live = api.create_campaign(adv, "이벤트 실패", NOW - DAY, None, 1_000, now=NOW)
+        campaigns_before = len(api.list_campaigns(adv, now=NOW))
+        with mock.patch("campaigns.changes.events.record_campaign_changed", side_effect=RuntimeError("outbox down")):
+            with self.assertRaises(RuntimeError):
+                api.update_campaign(adv, live.campaign_id, {"daily_budget": 5_000}, now=NOW + SEC)
+            with self.assertRaises(RuntimeError):
+                api.create_campaign(adv, "만들기 실패", NOW - DAY, None, 1_000, now=NOW)
+        self.assertEqual((api.get_campaign(adv, live.campaign_id, now=NOW).daily_budget, len(changes(live.campaign_id))), (1_000, 1))
+        self.assertEqual(len(api.list_campaigns(adv, now=NOW)), campaigns_before)
+
     def case_a_change_is_one_log_row_and_one_event_with_the_same_values(self):
         """변경 로그(계획 docs/plans/00 §5.2·P2-5): 변경 한 번 = 로그 한 줄 + 변경 이벤트 하나, 같은 값·같은 트랜잭션. 값이 그대로면 아무것도 쓰지 않는다."""
         c, g, slot = self.w.campaign, self.w.group, self.w.slot
+        before = ChangeLog.objects.count()  # 세계를 만들 때 캠페인 생성(CREATED)도 한 줄 생긴다
         args = dict(target_type="ad_group", target_id=g.ad_group_id, campaign_id=c.campaign_id, change_type="SLOTS_CHANGED")
         other = uuid.uuid4()
         change_id = record_change(**args, previous={"slot_ids": [slot.slot_id]}, new={"slot_ids": {other, slot.slot_id}}, now=NOW)
@@ -171,7 +215,7 @@ class CampaignServiceTests(Cases, TestCase):
                                 new={"status": "ACTIVE", "daily_budget": 50_000, "ends_at": NOW + DAY, "starts_at": NOW}, now=NOW)
         payload = EventOutbox.objects.get(pk=event_id_for("ad.campaign_changed", created)).payload
         self.assertEqual((payload["previous_value"], payload["new_value"]["ends_at"], payload["campaign_id"]), (None, (NOW + DAY).isoformat(), str(c.campaign_id)))
-        self.assertEqual(ChangeLog.objects.count(), 2)
+        self.assertEqual(ChangeLog.objects.count(), before + 2)
         for bad in (1.5, NOW.replace(tzinfo=None)):  # 형식을 모르는 값·시간대 없는 시각은 조용히 바꾸지 않는다
             with self.assertRaises(TypeError, msg=bad):
                 record_change(**args, previous={"x": 1}, new={"x": bad}, now=NOW)
@@ -181,7 +225,7 @@ class CampaignServiceTests(Cases, TestCase):
             with self.assertRaises(RuntimeError), transaction.atomic():
                 record_change(target_type="campaign", target_id=c.campaign_id, campaign_id=c.campaign_id, change_type="BUDGET_CHANGED",
                               previous={"daily_budget": 50_000}, new={"daily_budget": 70_000}, now=NOW)
-        self.assertEqual(ChangeLog.objects.count(), 2)
+        self.assertEqual(ChangeLog.objects.count(), before + 2)
         for kind, previous in (({"target_type": "campaign", "change_type": "SLOTS_CHANGED"}, {"a": 1}), ({"target_type": "ad_group", "change_type": "CREATED"}, {"a": 1})):
             with self.assertRaises(IntegrityError, msg=kind), transaction.atomic():  # DB 가 막는다: 대상에 없는 변경 종류, CREATED 의 이전 값
                 ChangeLog.objects.create(target_id=g.ad_group_id, campaign_id=c.campaign_id, previous_value=previous, new_value={"a": 2}, changed_at=NOW, **kind)

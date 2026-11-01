@@ -27,6 +27,19 @@ class CampaignView:
 
 
 @dataclass(frozen=True)
+class ChangeView:
+    """변경 로그 한 줄(계획 docs/plans/00 §5.2). 값은 저장된 JSON 그대로(형식은 events.change_value)."""
+    change_id: uuid.UUID
+    target_type: str
+    target_id: uuid.UUID
+    campaign_id: uuid.UUID
+    change_type: str
+    previous_value: dict | None
+    new_value: dict
+    changed_at: datetime
+
+
+@dataclass(frozen=True)
 class BidView:
     bid_id: uuid.UUID
     ad_group_id: uuid.UUID

@@ -4,6 +4,7 @@ from django.db import connection
 from events import api as events
 
 from .models import ChangeLog, ChangeTarget
+from .types import ChangeView
 
 
 def record_change(*, target_type, target_id, campaign_id, change_type, previous, new, now):
@@ -24,3 +25,18 @@ def record_change(*, target_type, target_id, campaign_id, change_type, previous,
     else:
         events.record_ad_group_changed(ad_group_id=target_id, **common)
     return row.change_id
+
+
+def _view(row):
+    return ChangeView(change_id=row.change_id, target_type=row.target_type, target_id=row.target_id, campaign_id=row.campaign_id, change_type=row.change_type,
+                      previous_value=row.previous_value, new_value=row.new_value, changed_at=row.changed_at)
+
+
+def change_rows(target_type):
+    """그 대상 종류의 변경 로그 전부(`ChangeView`) — 이벤트 누락 점검·기대 이벤트용 읽기."""
+    return (_view(r) for r in ChangeLog.objects.filter(target_type=target_type).iterator(chunk_size=2000))
+
+
+def change_stream(target_type, to_documents):
+    """그 대상 종류의 변경 로그를 변경 시각 창으로 읽는 흐름(구간 manifest 의 원본 구간, 색인 `campaigns_chg_type_at_idx`)."""
+    return events.table_stream(ChangeLog.objects.filter(target_type=target_type), "changed_at", lambda rows: to_documents([_view(r) for r in rows]))

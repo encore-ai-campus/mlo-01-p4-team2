@@ -19,8 +19,9 @@ from foundation.api import MAX_AMOUNT, clean_request_key, clean_text, errors, is
 from masters import api as masters
 
 from . import transitions as tr
+from .changes import record_change
 from .errors import CampaignSuspended, LimitExceeded, NotSuspended, ReviewPending
-from .models import AdGroup, AdGroupCreative, AdGroupSlot, Bid, Campaign, CampaignStatus, Creative, CreativeImage, ReviewRequest, ReviewStatus
+from .models import AdGroup, AdGroupCreative, AdGroupSlot, Bid, Campaign, CampaignStatus, ChangeTarget, Creative, CreativeImage, ReviewRequest, ReviewStatus
 from .types import (
     AdGroupEffects, AdGroupView, AdvertiserUsage, BidView, CampaignView, CandidateFacts, CreatedAd, CreativeUse, CreativeView, MonitoredCampaign, OwnedCreative,
     ReviewQueueItem, ReviewRequestView, SlotEffect, SuspensionView,
@@ -207,6 +208,7 @@ def create_campaign(user, name, starts_at, ends_at, daily_budget, now=None, requ
                 raise LimitExceeded("캠페인 개수 상한에 도달했습니다.")
             c = Campaign.objects.create(owner=user, name=name, starts_at=starts_at, ends_at=ends_at, daily_budget=daily_budget, created_at=now, updated_at=now,
                                         request_key=request_key)
+            _record_campaign_change(c, "CREATED", None, {"status": c.status, "daily_budget": c.daily_budget, "starts_at": c.starts_at, "ends_at": c.ends_at}, now)
             _audit(user, "campaign.created", ("campaigns.campaign", c.campaign_id), {"name": name, "daily_budget": daily_budget})
     except IntegrityError:
         done = _campaign_by_key(user, request_key, now)
@@ -214,6 +216,10 @@ def create_campaign(user, name, starts_at, ends_at, daily_budget, now=None, requ
             raise
         return done
     return _campaign_view(c, now)
+
+
+def _record_campaign_change(c, change_type, previous, new, now):
+    record_change(target_type=ChangeTarget.CAMPAIGN, target_id=c.campaign_id, campaign_id=c.campaign_id, change_type=change_type, previous=previous, new=new, now=now)
 
 
 def campaign_created_by_key(user, request_key, now=None):
@@ -278,11 +284,15 @@ def update_campaign(user, campaign_id, changes, now=None, expected_updated_at=No
                 raise CampaignSuspended()
             if changes["status"] != c.status:
                 tr.apply(c, "pause" if changes["status"] == CampaignStatus.PAUSED else "resume", tr.ADVERTISER, now)
+        before = {"daily_budget": c.daily_budget, "ends_at": c.ends_at}
         for field in ("name", "ends_at", "daily_budget"):
             if field in changes:
                 setattr(c, field, changes[field])
         c.updated_at = now
         c.save()
+        for field, change_type in (("daily_budget", "BUDGET_CHANGED"), ("ends_at", "PERIOD_CHANGED")):  # 이름은 싣지 않는다(표시용, 계획 §5.1). 상태는 apply 가 쓴다
+            if field in changes:
+                _record_campaign_change(c, change_type, {field: before[field]}, {field: getattr(c, field)}, now)  # 값이 그대로면 쓰지 않는다
         _audit(user, "campaign.updated", ("campaigns.campaign", c.campaign_id), {"changed": sorted(changes)})
     return _campaign_view(c, now, _open_review_id(c))
 

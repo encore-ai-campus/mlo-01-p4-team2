@@ -1,4 +1,5 @@
 """C1 인증·요청 제한(2-2). 실제 데코레이터를 붙인 임시 뷰(tests/support/urls_media_api.py)에 계약 경로로 요청하고, 응답을 계약에 대조한다."""
+import re
 import uuid
 from datetime import timedelta
 from unittest import mock
@@ -251,9 +252,10 @@ class RateLimitTests(Cases, MediaApiBase):
         text = Contract("serving").spec["info"]["description"]
         from config.settings import base
 
-        for group, (rate, burst) in base.MEDIA_RATE_LIMITS.items():
-            self.assertIn(str(rate), text, group)
-            self.assertIn(str(burst), text, group)
+        rows = re.findall(r"^\s*\|\s*(결정 생성|반응 접수|조회)\b[^|]*\|\s*(\d+)\s*\|\s*(\d+)\s*\|", text, re.M)  # 계약 표의 경로군 행(숫자만 찾으면 다른 행의 같은 숫자로 통과했다, 버그 탐색 B14)
+        groups = {"결정 생성": "decisions", "반응 접수": "reactions", "조회": "reads"}
+        self.assertEqual({groups[label]: (int(rate), int(burst)) for label, rate, burst in rows}, base.MEDIA_RATE_LIMITS)
+        self.assertEqual(len(rows), 3)
         self.assertEqual(base.MEDIA_RATE_LIMITS, {"decisions": (150, 300), "reactions": (450, 600), "reads": (150, 300)})
 
     def test_rate_limit(self):

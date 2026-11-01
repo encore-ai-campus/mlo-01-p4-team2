@@ -122,6 +122,30 @@ class RuleChainTests(Cases, ProcessingBase):
         self.assertEqual((self.row(second).reason_code, self.row(second).applied_rule), ("duplicate_type", "once-per-type"))
         self.assertEqual((self.charges(), self.balance()), (2, 50_000 - 294 - 3))  # 중복은 과금되지 않는다(노출 한 번 + 클릭)
 
+    def case_the_same_arrival_time_is_broken_by_inbox_id(self):
+        """같은 유형 둘이 같은 시각에 도착하면 대표는 inbox_id 가 작은 쪽이다(설계 §10 "중복 반응의 대표 선택") — 큰 쪽을 먼저 처리해도 대표가 되지 않고 기다린다(버그 탐색 T1)."""
+        first, second = sorted((self.receive("IMPRESSION"), self.receive("IMPRESSION")), key=lambda v: v.inbox_id)
+        self.assertEqual(self.row(first).received_at, self.row(second).received_at)
+        self.assertEqual([self.process(second), self.process(first), self.process(second)], ["PENDING", "ACCEPTED", "REJECTED"])
+        self.assertEqual(self.row(second).reason_code, "duplicate_type")
+
+    def case_mandatory_rules_run_even_when_a_configured_rule_holds(self):
+        """설정 규칙이 보류해도 필수 조건은 지금 거친다 — 매체가 보고한 클릭(노출 없음 → funnel-order 보류)은 기한을 기다리지 않고 바로 `click_not_reported`(버그 탐색 T2)."""
+        view = self.receive("CLICK")
+        with override_settings(REACTION_RULES=("funnel-order",)):
+            self.assertEqual(self.process(view), "REJECTED")
+        self.assertEqual((self.row(view).reason_code, self.row(view).applied_rule), ("click_not_reported", "guard"))
+
+    def case_a_later_decision_at_the_same_instant_is_still_a_later_decision(self):
+        """같은 표시 단위에서 결정 시각이 같으면 decision_id 가 큰 쪽이 뒤 결정이다 — 그 노출은 앞 결정 광고의 교체 신호다(버그 탐색 T3)."""
+        earlier, later = sorted((self.decision, self.new_decision(SUBJECT)), key=lambda d: d.decision_id)
+        self.assertEqual(earlier.decided_at, later.decided_at)
+        self.assertEqual(self.process(self.receive("IMPRESSION", decision_id=earlier.decision_id)), "ACCEPTED")
+        self.assertEqual(self.process(self.receive("IMPRESSION", decision_id=later.decision_id, at=NOW + timedelta(seconds=1))), "ACCEPTED")  # 화면이 뒤 결정의 광고로 바뀌었다
+        click = self.click(decision_id=earlier.decision_id, at=NOW + timedelta(seconds=10))  # 교체 신호 + 5초가 지난 뒤
+        self.assertEqual(records.process_reaction(click.inbox_id, now=NOW + timedelta(seconds=10)), "REJECTED")
+        self.assertEqual(Reaction.objects.get(pk=click.inbox_id).reason_code, "display_ended")
+
     def case_rules_come_from_settings_and_unknown_names_fail_loudly(self):
         view = self.receive(decision_id=uuid.uuid4())
         with override_settings(REACTION_RULES=("nonexistent",)), self.assertRaises(UnknownRule):
@@ -306,6 +330,16 @@ class QueueTests(Cases, ProcessingBase):
         self.assertEqual(Reaction.objects.get().status, "ACCEPTED")  # 복구 뒤 이어서 처리했다
         self.assertEqual(err.getvalue().count("DB 연결 문제"), 2)
         self.assertGreaterEqual(len(sleeps), 3)
+
+    def case_once_ends_with_an_error_when_a_reaction_failed(self):
+        """한 번 실행(`--once`)은 개별 실패가 있으면 0 이 아닌 종료 코드다(relay_events --once 와 같다, 버그 탐색 B15). 실패한 반응은 RECEIVED 로 남는다."""
+        view = self.receive()
+        out = io.StringIO()
+        with mock.patch("records.processing.billing.charge_for_reaction", side_effect=RuntimeError("down")), self.assertRaises(CommandError) as raised:
+            call_command("process_reactions", "--once", stdout=out)
+        self.assertIn("1건", str(raised.exception))
+        self.assertIn("'failed': 1", out.getvalue())  # 요약은 먼저 찍힌다
+        self.assertEqual(self.row(view).status, "RECEIVED")
 
     def case_once_still_fails_loudly_on_a_database_error(self):
         with mock.patch("records.management.commands.process_reactions.process_pending", side_effect=OperationalError(2003, "down")), self.assertRaises(OperationalError):

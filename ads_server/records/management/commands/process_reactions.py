@@ -67,6 +67,8 @@ class Command(BaseCommand):
                         reported_stuck = stuck_count()
                         self.stdout.write(stamped(f"{total} stuck={reported_stuck}"))
                         reported_at = time.monotonic()
+                        if options["once"] and total["failed"]:  # 한 번 실행은 실패를 종료 코드로 알린다(relay_events --once 와 같다). 실패한 반응은 RECEIVED 로 남아 다음에 다시 처리된다
+                            raise CommandError(f"반응 처리 실패 {total['failed']}건(로그의 '반응 처리 실패' 참고)")
                     else:  # 한가하다: 시작 직후·stuck 이 바뀌었을 때·HEARTBEAT_SECONDS 마다 현황을 찍는다(질의 한 번)
                         status = inbox_status()
                         if status["stuck"] != reported_stuck or time.monotonic() - reported_at >= HEARTBEAT_SECONDS:

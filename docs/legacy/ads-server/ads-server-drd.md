@@ -2,7 +2,7 @@
 
 > Status: **정식 문서**. 광고 서버만 다룬다. **지금 구조만 적는다** — 언제·왜 바뀌었는지는 §11 문서 이력과 [구현 계획](implementation-plan.md)에 있다.
 > 관련 문서: [ads-server-design.md](ads-server-design.md) (설계), [implementation-plan.md](implementation-plan.md) (구현 계획), [threat-model.md](threat-model.md) (위협 모델), [contracts/](contracts/) (OpenAPI 계약)
-> 기준: 2026-10-14(저장소는 2026-10-31 PostgreSQL 전환 0.55, 이벤트는 2026-11-01 Outbox 확장 0.56, 요청 제한 버킷은 2026-11-01 0.57, C1 1.5.0 은 2026-11-02 0.58, 구간 대조 보완은 2026-11-02 0.59, 소재 보관 문구는 2026-11-02 0.60) · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
+> 기준: 2026-10-14(저장소는 2026-10-31 PostgreSQL 전환 0.55, 이벤트는 2026-11-01 Outbox 확장 0.56, 요청 제한 버킷은 2026-11-01 0.57, C1 1.5.0 은 2026-11-02 0.58, 구간 대조 보완은 2026-11-02 0.59, 소재 보관 문구는 2026-11-02 0.60, 사용자 관리 감사는 2026-11-02 0.61) · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
 > 근거: 설계서 `docs/legacy/ads-server/ads-server-design.md`, 계약 `contracts/serving.openapi.yaml`(C1·C3), `contracts/console.openapi.yaml`(C6), 실제 모델 코드(`*/models.py`)
 > 표기: **[예약]** 계약에 자리만 있고 아직 코드 없음 · **[제안]** 이 문서가 처음 제안함(동의 필요) · **[열림]** 정하지 못함. 표기가 없으면 코드에 있다
 
@@ -1054,7 +1054,7 @@ sequenceDiagram
 | 관리자 중단·해제·반려 | O1 상태, O6 상태 | `campaign.suspended`·`released`·`review_rejected` |
 | 관리자 포인트 조정 | B2 `ADMIN_ADJUST`(`adjust_key` 포함) + B1 | `billing.adjusted` |
 | 관리자 광고주 비활성화·다시 활성화 | A1 `is_active`·`session_epoch`(비활성화 때 +1) | `account.deactivated`·`account.reactivated`(사유) |
-| 계정 수정(사용자 관리 화면: 프로필·비밀번호 초기화만) | A1 | `account.admin_updated`·`account.password_reset_by_admin`. 계정 추가·삭제와 역할·활성 여부·슈퍼유저 여부 변경은 이 화면에 없다 |
+| 계정 수정(사용자 관리 화면: 프로필·비밀번호 초기화만) | A1 | `account.admin_updated`(바뀐 칸과 이전·이후 값)·`account.password_reset_by_admin`. 아이디는 읽기 전용이고, 계정 추가·삭제와 역할·활성 여부·슈퍼유저 여부 변경은 이 화면에 없다 |
 | 이벤트 백필(`--apply`, 청크마다) | P3 | `events.backfilled`(입력 manifest SHA-256·건수) |
 | 구간별 정합 manifest 게시 | — | `events.hop_manifests_exported`(세 구간 최신 manifest의 SHA-256 — 고정점, 출력 폴더 `out`·창 크기 `window` — `verify_hops`는 폴더로 찾는다) |
 
@@ -1352,6 +1352,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 
 | 버전 | 날짜 | 내용 |
 |---|---|---|
+| 0.61 | 2026-11-02 | A1 감사 `account.admin_updated` 의 detail 에 이전·이후 값, 사용자 관리 화면의 아이디는 읽기 전용(버그 탐색 B12). 데이터 모양은 그대로 |
 | 0.60 | 2026-11-02 | O4 `archived_at`·O9 설명을 설계 6-24(보관 제한은 선택한 소재만)에 맞춤 — 버그 탐색 B10. 데이터 모양은 그대로 |
 | 0.59 | 2026-11-02 | 구간 대조 보완(버그 탐색 B4~B7): §5.6 `checkpoint.not_comparable_unsent`(outbox 구간, 추가형), 분류에 "MongoDB → 파이프라인은 지연 아님", A3 `events.hop_manifests_exported` 의 `out`·`window`(폴더마다 고정점), §5.9 `purge_sent_events --days` 하한 |
 | 0.58 | 2026-11-02 | §5.1 C1 계약 1.5.0(버그 탐색 B1 — `context` 문자열의 U+0000 은 400, PostgreSQL jsonb 가 받지 않는 문자). 데이터 모양은 그대로 |

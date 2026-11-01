@@ -290,6 +290,20 @@ class UserAdminActiveFlagTests(Cases, TestCase):
         self.assertNotIn("is_active", AuditLog.objects.get(action="account.admin_updated").detail["changed"])
         self.assertEqual(signed_in.get(reverse("admin:index")).status_code, 200)
 
+    def case_profile_edits_follow_the_signup_rules_and_the_username_is_read_only(self):
+        """버그 탐색 B12: 사용자 관리의 편집도 가입·내 정보 화면과 같은 검증을 받고, 아이디는 바꾸지 않는다. 감사에는 이전·이후 값이 남는다."""
+        adv = make_advertiser()
+        before = User.objects.filter(pk=adv.pk).values_list("username", "nickname", "class_label").get()
+        for over in ({"nickname": "가"}, {"nickname": "닉\u200b네임"}, {"class_label": "\x07반"}):  # 너무 짧음·보이지 않는 서식 문자·제어 문자
+            with self.subTest(over):
+                self.assertEqual(self.save(adv, **over).status_code, 200)  # 폼 오류로 다시 그린다
+        self.assertEqual(User.objects.filter(pk=adv.pk).values_list("username", "nickname", "class_label").get(), before)
+        self.assertFalse(AuditLog.objects.filter(action="account.admin_updated").exists())
+        self.assertEqual(self.save(adv, username="Bad Name!", nickname="  바꾼닉  ").status_code, 302)
+        self.assertEqual(User.objects.filter(pk=adv.pk).values_list("username", "nickname").get(), (before[0], "바꾼닉"))  # 아이디는 그대로, 닉네임은 다듬어 저장
+        detail = AuditLog.objects.get(action="account.admin_updated").detail
+        self.assertEqual((detail["changed"], detail["before"], detail["after"]), (["nickname"], {"nickname": before[1]}, {"nickname": "바꾼닉"}))
+
     def case_user_admin_cannot_add_accounts_or_change_roles(self):
         """관리자는 `createsuperuser` 로만, 광고주는 가입으로만 생긴다(추가 폼으로 만든 광고주는 지갑·가입 지급이 없었다 — 외부 검토 3-1d).
         역할과 슈퍼유저 여부는 어느 계정에서도 바뀌지 않는다(광고주 → 관리자, 관리자 → 광고주)."""

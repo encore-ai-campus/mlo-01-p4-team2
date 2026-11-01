@@ -1,6 +1,6 @@
 # 00. 광고 서버 PostgreSQL 전환 및 Outbox 확장 계획
 
-> **상태:** P1 완료(2026-10-31) · P2 대기 — 결정 D1~D13 반영
+> **상태:** P1 완료(2026-10-31) · P2 완료(2026-11-01) — 결정 D1~D13 반영
 > **작성:** 2026-10-31
 > **대상:** `ads_server/` — 이 문서의 코드 경로는 모두 `ads_server/` 기준이고, 줄 번호는 체크포인트 커밋 `54f731a` 기준이다
 > **근거:** 공통 레이크하우스 설계안 `temp/shared-multidomain-lakehouse-architecture.md`(저장소 밖) §3·§5·§6·§8, 광고 서버 설계 `docs/legacy/ads-server/ads-server-design.md` §6.2·§10, DRD `docs/legacy/ads-server/ads-server-drd.md` §4·§5.6
@@ -161,7 +161,7 @@ DB 전체를 builtin `C.UTF-8`로 만든다. 그래서 ICU·glibc가 바뀌어�
 | P2-6 `ad.campaign_changed` | §5.4 기록 지점 | `campaigns/services.py`, `campaigns/transitions.py` | 공통 완료 기준. `tr.apply`를 트랜잭션 밖에서 부르던 시험(`test_campaigns_transitions.py:39-59`)은 트랜잭션 안으로 고친다 — **확인(P2-6)**: `TestCase`라 이미 트랜잭션 안이어서 고칠 것이 없었다 |
 | P2-7 `ad.ad_group_changed` | §5.5 기록 지점 | `campaigns/services.py` | 공통 완료 기준 |
 | P2-8 백필 제외 | 신규 4종은 백필 분기를 만들지 않고 제외를 명시한다(D8). **실행은 종류마다 그 이벤트 단계에서**(P2-2 검토): `records/backfill.py`는 `SOURCE_KINDS`에 없는 종류가 한 줄이라도 있으면 manifest 전체를 거부하므로(`InvalidInput`), `records/integrity.py` `_sources`에 신규 원천을 더하는 단계(P2-3·P2-4·P2-6·P2-7)에서 `SOURCE_KINDS`와 제외("백필 대상 아님"으로 세고 건너뜀)를 같은 커밋에 넣는다 — 그러지 않으면 신규 종류 누락이 섞인 `event_gaps`로는 기존 4종의 백필도 돌릴 수 없다. P2-8은 남은 확인(시험·문구)만. **한 것(P2-8)**: 이벤트 종류 전체 = 백필 원천 종류표 = 누락 점검이 훑는 원천 종류, 백필하는 종류는 처음 넷뿐임을 시험이 지킨다(`case_every_event_kind_is_either_backfilled_or_explicitly_excluded` — 새 종류를 더하고 표를 잊으면 실패) | `records/backfill.py:25, 90-91, 101-110` | `test_event_backfill` 통과 |
-| P2-9 문서 | §10 | — | — |
+| P2-9 문서 | §10 | — | **완료(2026-11-01)** — §10 머리의 반영 목록 |
 
 **정합성 점검은 이벤트와 같은 단계에서 넣는다.** outbox 쪽은 이벤트 종류를 동적으로 읽는다(`events/hops.py:179-184`). 그래서 원천 쪽 스트림이 없으면 새 종류의 첫 이벤트부터 `verify_hops`가 불일치(`line_missing_in_a`, `events/hopcheck.py:140`)를 보고한다. 이벤트를 추가하는 단계(P2-3·P2-4·P2-6·P2-7)마다 다음을 함께 넣는다.
 
@@ -276,7 +276,7 @@ PostgreSQL은 기본값 없는 NULL 열 추가가 표를 다시 쓰지 않는다
 
 ## 10. 문서 반영
 
-**P1 몫은 2026-10-31 반영했다**(P1 마무리): 설계 §6.5-6·7(DB 설정·연결 한도), §10 "PostgreSQL 전환 점검"(옛 "MySQL 전환 점검")·"그룹 복제(InnoDB Cluster) 전제 — MySQL 때 기록"·"운영 서버 실행 환경"(동기 워커)·"시험 구성"(ops_check ③)과 지금 구조를 MySQL로 적던 문장, DRD 0.55, README "DB 시험 환경"(지운 MySQL·클러스터 도구 안내 삭제), 위협 모델 T22·T25·T37·"DB 단일 노드·연결 한도". 역사 기록(Step DB·MySQL 때 측정·구현 계획·load-test.md)은 그대로 두었다. 아래 표에서 남은 것은 P2 몫(변경 로그 표, 신규 이벤트 4종, 레이크하우스 설계안)과 결정 D1~D13의 설계 기록이고 P2-9에서 한다. 설계 §6.2 층 정의(D1)는 P2-1에서 층 시험과 함께 고쳤다.
+**P1 몫은 2026-10-31 반영했다**(P1 마무리): 설계 §6.5-6·7(DB 설정·연결 한도), §10 "PostgreSQL 전환 점검"(옛 "MySQL 전환 점검")·"그룹 복제(InnoDB Cluster) 전제 — MySQL 때 기록"·"운영 서버 실행 환경"(동기 워커)·"시험 구성"(ops_check ③)과 지금 구조를 MySQL로 적던 문장, DRD 0.55, README "DB 시험 환경"(지운 MySQL·클러스터 도구 안내 삭제), 위협 모델 T22·T25·T37·"DB 단일 노드·연결 한도". 역사 기록(Step DB·MySQL 때 측정·구현 계획·load-test.md)은 그대로 두었다. **P2 몫은 2026-11-01 반영했다**(P2-9): 설계 §6.2 층 정의(D1, P2-1), §6.3 outbox를 쓰는 변경·메시지 키 종류별·소비자 순서 `(changed_at, change_id)`·누락 점검 원천과 D8 기존 행 전제, §6.3a 백필 결과 `excluded`, §10 "C2 이벤트 모양"(여덟 종류·메시지 키·싣지 않는 것)과 새 행 "PostgreSQL 전환·Outbox 확장 결정"(D1~D13), DRD 0.56(O10 변경 로그 표·CHECK 둘·R-5·§4.4·§6, P3 원천·메시지 키, §5.6 신규 넷과 정렬 규칙·백필 범위, §5.9), 레이크하우스 설계안 §3.2·§3.3·§3.6(저장소 밖 `temp/`). 위협 모델·계약 README는 인용한 시험 이름이 바뀌지 않아 그대로다.
 
 | 문서 | 반영 |
 |---|---|

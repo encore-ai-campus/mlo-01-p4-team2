@@ -86,13 +86,14 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.assertEqual(AuditLog.objects.filter(action="events.backfilled").count(), 0)  # 읽기만 했다
 
     def case_kinds_that_are_not_backfilled_are_counted_as_excluded_and_the_rest_is_written(self):
-        """정책·입찰·캠페인 변경 이벤트는 백필하지 않는다(계획 docs/plans/00 D8). 누락 목록에 섞여 있어도 목록 전체를 거부하지 않고 `excluded` 로 센 뒤 나머지를 쓴다 — 실패로 끝나지 않는다."""
+        """정책·입찰·캠페인·광고그룹 변경 이벤트는 백필하지 않는다(계획 docs/plans/00 D8). 누락 목록에 섞여 있어도 목록 전체를 거부하지 않고 `excluded` 로 센 뒤 나머지를 쓴다 — 실패로 끝나지 않는다."""
         EventOutbox.objects.all().delete()
         ok, text = self.run_backfill(self.gaps_manifest(), "--apply")
         self.assertTrue(ok, text)
         rows, manifest = self.result_rows()
-        self.assertEqual(sorted(r["event_name"] for r in rows if r["outcome"] == "excluded"), ["ad.bid_added", "ad.bid_policy_changed", "ad.campaign_changed"])
-        self.assertEqual((manifest["checkpoint"]["counts"]["excluded"], manifest["checkpoint"]["counts"]["written"], manifest["checkpoint"]["counts"]["unresolved"]), (3, 4, 0))
+        self.assertEqual(sorted(r["event_name"] for r in rows if r["outcome"] == "excluded"),
+                         ["ad.ad_group_changed"] * 2 + ["ad.bid_added", "ad.bid_policy_changed", "ad.campaign_changed"])  # 광고그룹은 생성·소재 선택 둘
+        self.assertEqual((manifest["checkpoint"]["counts"]["excluded"], manifest["checkpoint"]["counts"]["written"], manifest["checkpoint"]["counts"]["unresolved"]), (5, 4, 0))
         self.assertFalse(EventOutbox.objects.filter(event_name__in=backfill.NOT_BACKFILLED).exists())  # 만들지 않았다
         self.assertEqual(snapshot(outbox()), self.live)  # 나머지 넷은 라이브와 같다
 

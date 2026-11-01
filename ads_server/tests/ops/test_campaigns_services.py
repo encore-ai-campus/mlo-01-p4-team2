@@ -198,6 +198,38 @@ class CampaignServiceTests(Cases, TestCase):
         self.assertEqual((api.get_campaign(adv, live.campaign_id, now=NOW).daily_budget, len(changes(live.campaign_id))), (1_000, 1))
         self.assertEqual(len(api.list_campaigns(adv, now=NOW)), campaigns_before)
 
+    def case_ad_group_changes_are_logged_with_their_event_at_each_documented_point(self):
+        """`ad.ad_group_changed`(계획 docs/plans/00 §5.5): 생성(소재 없음)·소재 선택(자동 선택 포함)·켜기/끄기·게재 위치마다 로그 한 줄 + 이벤트 하나.
+        이름만 바꾸거나 같은 값(순서만 다른 게재 위치 포함)이면 쓰지 않는다. 이벤트가 실패하면 광고그룹 변경도 남지 않는다."""
+        def changes(ad_group_id):
+            rows = ChangeLog.objects.filter(target_type="ad_group", target_id=ad_group_id).order_by("changed_at", "change_id")
+            return [(r.change_type, r.previous_value, r.new_value) for r in rows]
+        adv, gid, slot, first = self.w.adv, self.w.group.ad_group_id, self.w.slot, self.w.creative.creative_id
+        other = make_slot(self.w.admin)
+        api.update_ad_group(adv, gid, {"name": "새 이름"}, now=NOW + SEC)
+        api.update_ad_group(adv, gid, {"enabled": False, "slot_ids": [slot.slot_id, other.slot_id]}, now=NOW + 2 * SEC)
+        api.update_ad_group(adv, gid, {"enabled": False, "slot_ids": [other.slot_id, slot.slot_id]}, now=NOW + 3 * SEC)
+        second = api.create_creative(adv, gid, "둘째", "https://example.com/2", png_file((9, 9, 9)), now=NOW + 4 * SEC)  # 선택된 소재가 있어 연결만
+        api.link_creative(adv, gid, second.creative_id, now=NOW + 5 * SEC, select=True)
+        self.assertEqual(changes(gid), [
+            ("CREATED", None, {"enabled": True, "slot_ids": [str(slot.slot_id)], "creative_id": None}),
+            ("CREATIVE_SELECTED", {"creative_id": None}, {"creative_id": str(first)}),  # 소재가 없을 때의 자동 선택
+            ("ENABLED_CHANGED", {"enabled": True}, {"enabled": False}),
+            ("SLOTS_CHANGED", {"slot_ids": [str(slot.slot_id)]}, {"slot_ids": sorted([str(slot.slot_id), str(other.slot_id)])}),  # 지우기 전의 목록이 이전 값
+            ("CREATIVE_SELECTED", {"creative_id": str(first)}, {"creative_id": str(second.creative_id)}),
+        ])
+        for r in ChangeLog.objects.filter(target_type="ad_group"):
+            e = EventOutbox.objects.get(pk=event_id_for("ad.ad_group_changed", r.change_id))
+            self.assertEqual((e.aggregate_id, e.created_at, e.payload["campaign_id"], e.payload["previous_value"], e.payload["new_value"]),
+                             (r.target_id, r.changed_at, str(r.campaign_id), r.previous_value, r.new_value))
+        groups_before = AdGroup.objects.count()
+        with mock.patch("campaigns.changes.events.record_ad_group_changed", side_effect=RuntimeError("outbox down")):
+            with self.assertRaises(RuntimeError):
+                api.update_ad_group(adv, gid, {"enabled": True}, now=NOW + 6 * SEC)
+            with self.assertRaises(RuntimeError):
+                api.create_ad_group(adv, self.w.campaign.campaign_id, "실패 그룹", [slot.slot_id], now=NOW)
+        self.assertEqual((api.get_ad_group(adv, gid).enabled, len(changes(gid)), AdGroup.objects.count()), (False, 5, groups_before))
+
     def case_a_change_is_one_log_row_and_one_event_with_the_same_values(self):
         """변경 로그(계획 docs/plans/00 §5.2·P2-5): 변경 한 번 = 로그 한 줄 + 변경 이벤트 하나, 같은 값·같은 트랜잭션. 값이 그대로면 아무것도 쓰지 않는다."""
         c, g, slot = self.w.campaign, self.w.group, self.w.slot

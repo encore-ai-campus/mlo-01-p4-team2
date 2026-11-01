@@ -24,8 +24,8 @@ from .models import Decision, Reaction
 
 CHUNK = 500
 SOURCE_KINDS = {"ad.decision": "decision", "ad.reaction_received": "reaction", "ad.reaction": "reaction", "ad.charge": "ledger_charge", "ad.bid_policy_changed": "bid_policy",
-                "ad.bid_added": "bid", "ad.campaign_changed": "campaign_change"}
-NOT_BACKFILLED = {"ad.bid_policy_changed", "ad.bid_added", "ad.campaign_changed"}  # D8 — 과거 이력은 별도 백필(공통 설계안 §3.2.1)로 다룬다
+                "ad.bid_added": "bid", "ad.campaign_changed": "campaign_change", "ad.ad_group_changed": "ad_group_change"}
+NOT_BACKFILLED = {"ad.bid_policy_changed", "ad.bid_added", "ad.campaign_changed", "ad.ad_group_changed"}  # D8 — 과거 이력은 별도 백필(공통 설계안 §3.2.1)로 다룬다
 # 결과의 한 줄이 가질 수 있는 판정
 WRITTEN, WOULD_WRITE, ALREADY, UNRESOLVED, NOT_JUDGED, EXCLUDED = "written", "would_write", "already_present", "unresolved", "skipped_not_judged", "excluded"
 

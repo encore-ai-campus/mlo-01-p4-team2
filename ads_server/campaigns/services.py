@@ -222,6 +222,10 @@ def _record_campaign_change(c, change_type, previous, new, now):
     record_change(target_type=ChangeTarget.CAMPAIGN, target_id=c.campaign_id, campaign_id=c.campaign_id, change_type=change_type, previous=previous, new=new, now=now)
 
 
+def _record_ad_group_change(g, change_type, previous, new, now):
+    record_change(target_type=ChangeTarget.AD_GROUP, target_id=g.ad_group_id, campaign_id=g.campaign_id, change_type=change_type, previous=previous, new=new, now=now)
+
+
 def campaign_created_by_key(user, request_key, now=None):
     """이 요청 키로 이미 만든 캠페인, 없거나 키 형식이 틀리면 `None`. 화면이 **폼 검증보다 먼저** 부른다(이미 성공한 제출의 다시 보냄은 처음 결과로). 남의 키면 409."""
     require_advertiser(user)
@@ -541,6 +545,7 @@ def create_ad_group(user, campaign_id, name, slot_ids, bid_amount=None, now=None
         bid = Bid.objects.create(ad_group=group, bid_version=1, amount=bid_amount, created_by=user.pk, created_at=now) if bid_amount is not None else None
         if bid is not None:
             _record_bid_event(bid)
+        _record_ad_group_change(group, "CREATED", None, {"enabled": group.enabled, "slot_ids": ids, "creative_id": None}, now)  # 소재는 뒤이어 연결될 때 CREATIVE_SELECTED
         _audit(user, "ad_group.created", ("campaigns.ad_group", group.ad_group_id), {"name": name, "slots": len(ids)})
     return _ad_group_view(group, bid, ids)  # 방금 넣은 게재 위치(검증한 ID, 중복 없음)를 다시 읽지 않는다
 
@@ -576,6 +581,7 @@ def update_ad_group(user, ad_group_id, changes, now=None, expected_updated_at=No
     with transaction.atomic():
         g = _locked_group(user, ad_group_id, now)
         _assert_seen(expected_updated_at, g.updated_at)
+        enabled_before = g.enabled  # 바꾸기 전 값 — 변경 로그의 이전 값
         if "name" in changes:
             g.name = clean_text(changes["name"], "광고 이름", "/name")
         if "enabled" in changes:
@@ -584,11 +590,15 @@ def update_ad_group(user, ad_group_id, changes, now=None, expected_updated_at=No
             g.enabled = changes["enabled"]
         if "slot_ids" in changes:
             ids = _validated_slots(changes["slot_ids"])
+            slots_before = set(g.slot_links.values_list("slot_id", flat=True))  # 지우기 전에 읽는다 — 변경 로그의 이전 값
             g.slot_links.exclude(slot_id__in=ids).delete()
-            have = set(g.slot_links.values_list("slot_id", flat=True))
-            AdGroupSlot.objects.bulk_create([AdGroupSlot(ad_group=g, slot_id=s) for s in ids if s not in have])
+            AdGroupSlot.objects.bulk_create([AdGroupSlot(ad_group=g, slot_id=s) for s in ids if s not in slots_before])
         g.updated_at = now
         g.save()
+        if "enabled" in changes:  # 값이 그대로면 쓰지 않는다. 이름은 싣지 않는다(표시용, 계획 §5.1)
+            _record_ad_group_change(g, "ENABLED_CHANGED", {"enabled": enabled_before}, {"enabled": g.enabled}, now)
+        if "slot_ids" in changes:
+            _record_ad_group_change(g, "SLOTS_CHANGED", {"slot_ids": slots_before}, {"slot_ids": ids}, now)
         _audit(user, "ad_group.updated", ("campaigns.ad_group", g.ad_group_id), {"changed": sorted(changes)})
     return _ad_group_view(g, _current_bid(g))
 
@@ -710,8 +720,10 @@ def _link(group, creative, now, select=False):
     if not AdGroupCreative.objects.filter(ad_group=group, creative=creative).exists():
         AdGroupCreative.objects.create(ad_group=group, creative=creative, linked_at=now)
     if (select or group.creative_id is None) and group.creative_id != creative.creative_id:
+        before = group.creative_id
         AdGroup.objects.filter(pk=group.pk).update(creative=creative, updated_at=now)
         group.creative, group.updated_at = creative, now
+        _record_ad_group_change(group, "CREATIVE_SELECTED", {"creative_id": before}, {"creative_id": creative.creative_id}, now)  # 선택이 바뀌는 곳은 여기 하나(자동 선택 포함)
 
 
 def link_creative(user, ad_group_id, creative_id, now=None, select=False):

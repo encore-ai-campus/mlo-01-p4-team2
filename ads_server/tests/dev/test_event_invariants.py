@@ -31,15 +31,15 @@ class EventInvariantTests(Cases, MongoDatabaseMixin, TestCase):
         records.process_reaction(view.inbox_id, now=NOW)  # 결정 1 + 접수 1 + 판정 1 + 과금 1 = 이벤트 4건
 
     def case_one_to_one_passes_before_and_after_relaying(self):
-        self.assertEqual(EventOutbox.objects.count(), 7)  # 결정·접수·판정·과금 + 구성의 첫 정책·광고그룹의 첫 입찰·캠페인 생성
+        self.assertEqual(EventOutbox.objects.count(), 9)  # 결정·접수·판정·과금 + 구성의 첫 정책·광고그룹의 첫 입찰·캠페인 생성·광고그룹 생성과 소재 선택
         self.assertEqual(load_test.verify_events(), [])
-        self.assertIn("MongoDB 로 보내지 않은 이벤트 7건", " ".join(load_test.verify_events(relayed=True)))  # 아직 안 보냈다
+        self.assertIn("MongoDB 로 보내지 않은 이벤트 9건", " ".join(load_test.verify_events(relayed=True)))  # 아직 안 보냈다
         relay_batch()
         self.assertEqual(load_test.verify_events(relayed=True), [])
 
     def case_a_missing_event_is_caught_for_each_kind(self):
-        for name in (schemas.DECISION, schemas.REACTION_RECEIVED, schemas.REACTION, schemas.CHARGE, schemas.BID_POLICY_CHANGED, schemas.BID_ADDED, schemas.CAMPAIGN_CHANGED):
-            row = EventOutbox.objects.get(event_name=name)
+        for name in (schemas.DECISION, schemas.REACTION_RECEIVED, schemas.REACTION, schemas.CHARGE, schemas.BID_POLICY_CHANGED, schemas.BID_ADDED, schemas.CAMPAIGN_CHANGED, schemas.AD_GROUP_CHANGED):
+            row = EventOutbox.objects.filter(event_name=name).first()  # 광고그룹 변경은 둘(생성·소재 선택) — 하나만 지워 본다
             kept = dict(event_id=row.event_id, event_name=row.event_name, schema_version=row.schema_version, aggregate_id=row.aggregate_id, payload=row.payload, created_at=row.created_at)
             row.delete()  # (삭제하면 인스턴스의 pk 가 지워진다 — 복원용 값은 미리 챙겨 둔다)
             self.assertEqual(len(load_test.verify_events()), 1, name)

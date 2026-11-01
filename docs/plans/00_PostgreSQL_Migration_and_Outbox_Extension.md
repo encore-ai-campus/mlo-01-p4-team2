@@ -193,7 +193,7 @@ DB 전체를 builtin `C.UTF-8`로 만든다. 그래서 ICU·glibc가 바뀌어�
 |---|---|---|---|
 | 생성 → `CREATED` | `campaigns/services.py:498-516` `create_ad_group` | `enabled`, `slot_ids`(정렬), `creative_id`(NULL) | 광고 만들기(`create_ad`, `:749-780`)도 여기를 지난다. 같은 트랜잭션에서 소재가 붙으면 뒤이어 `CREATIVE_SELECTED`가 생긴다 |
 | 켜기·끄기 → `ENABLED_CHANGED` | `campaigns/services.py:552-555` `update_ad_group` | `enabled` | |
-| 게재 위치 → `SLOTS_CHANGED` | `campaigns/services.py:556-560` `update_ad_group` | `slot_ids`(정렬) | 지금은 기존 행을 지운 뒤에 남은 목록을 읽는다. 지우기 **전에** 현재 목록을 읽어 `previous_value`로 쓴다. `AdGroupSlot`은 지금처럼 현재 상태만 두고, 이력은 변경 로그가 갖는다 |
+| 게재 위치 → `SLOTS_CHANGED` | `campaigns/services.py:556-560` `update_ad_group` | `slot_ids`(정렬) | 지금은 기존 행을 지운 뒤에 남은 목록을 읽는다. 지우기 **전에** 현재 목록을 읽어 `previous_value`로 쓴다. `AdGroupSlot`은 지금처럼 현재 상태만 두고, 이력은 변경 로그가 갖는다. **한 것(P2-7)**: 지운 뒤 읽던 질의를 지우기 전으로 옮겨 새로 넣을 것도 그 목록으로 가린다 — 질의 수는 그대로 |
 | 소재 선택 → `CREATIVE_SELECTED` | `campaigns/services.py:682-684` `_link` | `creative_id` | 선택이 바뀌는 곳은 여기 하나다(`create_creative:671`·`link_creative:697`이 부른다). 소재가 없을 때의 자동 선택도 포함한다 |
 
 ## 6. 바꾸지 않는 장치 — PostgreSQL에서도 그대로 성립

@@ -88,9 +88,16 @@ def load_hop(manifest_path, name=None, expected_kind=None):
     if manifest.get("schema_version") != hops.HOP_SCHEMA_VERSION:
         raise HopInputError(f"{manifest_path.name}: 지원하지 않는 계약 버전 schema_version={manifest.get('schema_version')!r}")
     checkpoint = manifest.get("checkpoint") or {}
-    size = hops.WINDOW_SIZES.get(checkpoint.get("window"))
+    if not isinstance(checkpoint, dict):  # 형식이 틀린 manifest 가 날것의 예외로 대조 전체(다른 구간·보고서)를 멈추지 않게(리팩터 감사 D3)
+        raise HopInputError(f"{manifest_path.name}: checkpoint 가 객체가 아니다: {checkpoint!r}")
+    for field in ("open_windows", "not_comparable_windows", "unresolved_charge_examples"):
+        windows = checkpoint.get(field, [])
+        if not isinstance(windows, list) or not all(isinstance(w, str) for w in windows):
+            raise HopInputError(f"{manifest_path.name}: {field} 는 문자열 목록이어야 한다: {windows!r}")
+    window = checkpoint.get("window")
+    size = hops.WINDOW_SIZES.get(window) if isinstance(window, str) else None  # 목록·객체는 사전 키가 될 수 없다
     if size is None:
-        raise HopInputError(f"{manifest_path.name}: 창 크기 선언(checkpoint.window)이 없거나 알 수 없다: {checkpoint.get('window')!r}")
+        raise HopInputError(f"{manifest_path.name}: 창 크기 선언(checkpoint.window)이 없거나 알 수 없다: {window!r}")
     unresolved = checkpoint.get("unresolved_charges", 0)
     if isinstance(unresolved, bool) or not isinstance(unresolved, int) or unresolved < 0:
         raise HopInputError(f"{manifest_path.name}: unresolved_charges 는 0 이상의 정수여야 한다: {unresolved!r}")

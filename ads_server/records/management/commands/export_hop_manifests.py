@@ -26,7 +26,7 @@ class Command(BaseCommand):
         parser.add_argument("--out", required=True, help="결과를 쓸 폴더")
         parser.add_argument("--since", help="이 날짜(UTC, YYYY-MM-DD) 이후의 창만")
         parser.add_argument("--window", choices=sorted(events.WINDOWS), default="day", help="창의 크기: day(UTC 자정 고정 하루, 기본) 또는 hour(UTC 정시 고정 한 시간)")
-        parser.add_argument("--as-of", help="재현용: 이 시각(ISO 8601, UTC)을 '지금'으로 보고 창을 닫는다(기본은 실제 지금). 시험이 날짜가 바뀐 뒤의 점검을 재현할 때 쓴다")
+        parser.add_argument("--as-of", help="재현용: 시간대를 붙인 이 ISO 8601 시각(예: 2026-10-10T00:05:00Z)을 '지금'으로 보고 창을 닫는다(기본은 실제 지금). 시험이 날짜가 바뀐 뒤의 점검을 재현할 때 쓴다")
 
     def handle(self, *args, **options):
         since = None
@@ -37,9 +37,12 @@ class Command(BaseCommand):
                 raise CommandError("--since 는 YYYY-MM-DD 형식이어야 합니다.")
         size = events.WINDOWS[options["window"]]
         try:
-            now = datetime.fromisoformat(options["as_of"]).astimezone(timezone.utc) if options["as_of"] else datetime.now(timezone.utc)
+            now = datetime.fromisoformat(options["as_of"]) if options["as_of"] else datetime.now(timezone.utc)
         except ValueError:
             raise CommandError("--as-of 는 ISO 8601 시각이어야 합니다.")
+        if now.tzinfo is None:  # 시간대가 없으면 서버 지역 시각으로 읽혀 창 닫힘·보존 기준이 어긋났다(리팩터 감사 D4)
+            raise CommandError("--as-of 에는 시간대를 붙여야 합니다(예: 2026-10-10T00:05:00Z).")
+        now = now.astimezone(timezone.utc)
         grace = settings.EVENTS_HOP_GRACE_SECONDS
         try:
             # 구간마다 닫힌 창을 하나씩·종류별로 읽어 요약한다 — 전체 이력을 메모리에 두지 않고, 열린 창과 --since 앞은 읽지 않는다(외부 검토 00d3067 P3-3)

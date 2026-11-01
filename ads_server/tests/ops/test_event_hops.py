@@ -511,7 +511,13 @@ class ExportHopManifestsTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.export("--as-of", "2026-10-07T12:30:00Z", out="early")
         self.assertEqual(self.lines("hop_source", out="early")[0], [])
         self.assertEqual(len(self.lines("hop_source", out="early")[1]["checkpoint"]["open_windows"]), 1)
+        self.export("--as-of", "2026-10-07T21:30:00+09:00", out="kst")  # 같은 순간을 다른 시간대로 — UTC 로 바꿔 같은 결과(started_at·보존 기준 포함)
+        self.assertEqual(self.lines("hop_outbox", out="kst")[1]["checkpoint"], self.lines("hop_outbox", out="early")[1]["checkpoint"])
         self.assertFalse(self.export("--as-of", "내일", out="bad")[0])
+        ok, text = self.export("--as-of", "2026-10-10T00:05:00", out="naive")  # 시간대 없음 — 서버 지역 시각으로 읽혔다(리팩터 감사 D4)
+        self.assertFalse(ok)
+        self.assertIn("시간대", text)
+        self.assertFalse((self.dir / "naive").exists())
 
     def case_since_option(self):
         ok, _ = self.export("--since", "2026-10-08")

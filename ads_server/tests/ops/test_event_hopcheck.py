@@ -204,6 +204,16 @@ class InputValidationTests(Cases, SimpleTestCase):
             with self.subTest(hidden=hidden), self.assertRaises(hopcheck.HopInputError):
                 self.load(self.publish([], kind="hop_outbox", not_comparable=[W], hidden=hidden), "hop_outbox")
 
+    def case_malformed_checkpoints_are_refused_not_raised(self):
+        """리팩터 감사 D3: checkpoint 가 객체가 아니거나 창 크기가 문자열이 아니거나 창 목록·과금 예시가 문자열 목록이 아니면 날것의 예외(대조 전체가 멈춘다)가 아니라 `HopInputError` 다."""
+        for checkpoint in ([1], {"window": "utc-day", "open_windows": 5}, {"window": "utc-day", "open_windows": [[1]]}, {"window": "utc-day", "not_comparable_windows": "W"},
+                           {"window": []}, {"window": "utc-day", "unresolved_charges": 1, "unresolved_charge_examples": [1]}):
+            directory = Path(tempfile.mkdtemp())
+            self.addCleanup(shutil.rmtree, directory, True)
+            ndjson.write(directory, "h", [], "hop_mongo", 1, checkpoint=checkpoint)
+            with self.subTest(checkpoint=checkpoint), self.assertRaises(hopcheck.HopInputError):
+                self.load(ndjson.manifest_path(directory, "h"))
+
     def case_the_file_must_be_the_hop_it_is_loaded_as(self):
         outbox_file = self.publish([self.day(unsent=0)], kind="hop_outbox")
         with self.assertRaises(hopcheck.HopInputError):

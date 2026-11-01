@@ -407,8 +407,7 @@ def revoke_media_key(actor, key_id, now=None):
             k = MediaKey.objects.get(key_id=parse_uuid(key_id, "키"))
         except MediaKey.DoesNotExist:
             raise errors.NotFound("키를 찾을 수 없습니다.")
-        if k.revoked_at is None:
-            MediaKey.objects.filter(pk=k.pk).update(revoked_at=now)
+        if MediaKey.objects.filter(pk=k.pk, revoked_at__isnull=True).update(revoked_at=now):  # 조건은 DB 의 지금 값으로 — 동시에 두 번 폐기해도 한 번만 바꾸고 한 번만 감사한다(리팩터 감사 D6)
             _audit(actor, "masters.media_key_revoked", ("masters.media_key", k.key_id), {"media_id": str(k.media_id)})
 
 

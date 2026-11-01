@@ -33,7 +33,7 @@ def campaign_list(request):
     counts = {value: sum(1 for r in rows if not value or r.campaign.status == value) for value, _ in STATUS_CHIPS}
     shown = [r for r in rows if (not status or r.campaign.status == status) and query.casefold() in r.campaign.name.casefold()]
     return present(request, "console/campaign_list.html", {
-        "rows": shown, "chips": [(value, label, counts[value]) for value, label in STATUS_CHIPS], "status": status, "q": query, "total": len(rows),
+        "rows": shown, "chips": [(value, label, counts[value]) for value, label in STATUS_CHIPS], "status": status, "q": query,
     })
 
 

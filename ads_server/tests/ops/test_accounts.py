@@ -7,7 +7,7 @@ from django.urls import reverse
 from config.settings import base
 from foundation.accounts import create_advertiser
 from foundation.models import Role, User
-from tests.support.factories import PW
+from tests.support.factories import PW, make_admin
 from tests.support.cases import Cases
 
 
@@ -115,6 +115,8 @@ class SignupTests(Cases, TestCase):
         self.post()
         self.client.post(reverse("login"), {"username": "ad_user1", "password": PW})
         self.assertRedirects(self.client.get(self.url), reverse("advertiser_home"), fetch_redirect_response=False)
+        self.client.force_login(make_admin())  # 관리자는 관리자 첫 화면으로(광고주 화면으로 보내 403 이던 것 — 리팩터 감사 D5)
+        self.assertRedirects(self.client.get(self.url), reverse("admin:index"), fetch_redirect_response=False)
 
     def test_signup(self):
         self.run_cases()

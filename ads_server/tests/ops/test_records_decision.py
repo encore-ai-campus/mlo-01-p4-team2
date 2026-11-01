@@ -129,7 +129,7 @@ class DecisionSnapshotTests(Cases, TestCase):
     def case_decision_not_saved_when_storage_fails(self):
         w = World()
         with mock.patch.object(Decision._default_manager, "create", side_effect=IntegrityError("disk full")):
-            with self.assertRaises(IntegrityError):
+            with self.assertRaises(IntegrityError), transaction.atomic():  # C1 뷰의 트랜잭션 자리: 결정은 그 안에서 저장점 없이 돌고, 실패하면 바깥까지 되돌린다
                 decide(w)
         self.assertEqual(Decision.objects.count(), 0)  # 예외가 나가서 decision_id 가 응답으로 나가지 않는다
 
@@ -226,8 +226,7 @@ class PolicySwapTests(Cases, TestCase):
             def select(self, candidates, request, rng):
                 return engine.Selection(min(candidates, key=lambda c: c.applied_amount) if candidates else None, {"policy": self.name})
 
-        engine.register_policy(Lowest())
-        self.addCleanup(engine.unregister_policy, "lowest-bid/v1")
+        self.enterContext(mock.patch.dict("engine.registry._POLICIES", {"lowest-bid/v1": Lowest()}))
         w = World()
         default = decide(w)
         with override_settings(ADS_SELECTION_POLICY="lowest-bid/v1"):

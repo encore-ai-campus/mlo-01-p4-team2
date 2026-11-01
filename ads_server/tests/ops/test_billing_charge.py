@@ -1,4 +1,5 @@
 import uuid
+from unittest import mock
 
 from django.test import TestCase, TransactionTestCase, override_settings, tag
 
@@ -59,17 +60,13 @@ class ChargeTests(Cases, TestCase):
             def amount_for(self, reaction_type, shares, applied_amount):
                 return 1
 
-        api.register_charge_policy(FlatOne())
-        self.addCleanup(api.unregister_charge_policy, "flat-one/v1")
         adv, camp = funded(), uuid.uuid4()
-        with override_settings(BILLING_CHARGE_POLICY="flat-one/v1"):
+        with mock.patch.dict("billing.policies._POLICIES", {"flat-one/v1": FlatOne()}), override_settings(BILLING_CHARGE_POLICY="flat-one/v1"):
             result = charge(adv, 500, "flat-r1", camp, rtype=CLICK)  # 기본 정책이면 500
         self.assertEqual((result.charged, result.entry.charge_policy), (1, "flat-one/v1"))
         with override_settings(BILLING_CHARGE_POLICY="no-such/v9"):
             with self.assertRaises(api.UnknownChargePolicy):
                 charge(adv, 5, "x", camp)
-        with self.assertRaises(ValueError):
-            api.register_charge_policy(FlatOne())  # 이름 중복
 
     def case_campaign_spend_counts_what_was_charged_not_the_shortfall(self):
         adv, camp, other = funded(100), uuid.uuid4(), uuid.uuid4()
@@ -148,13 +145,9 @@ class ChargeInputValidationTests(Cases, TestCase):
         adv, camp = funded(), uuid.uuid4()
         before = self.snapshot(adv)
         for i, bad in enumerate((0.5, True, -3, 6, 2**53, "9", None)):  # 6: 적용 금액(5)을 넘는다
-            api.register_charge_policy(Broken(bad))
-            try:
-                with override_settings(BILLING_CHARGE_POLICY="broken/v1"):
-                    with self.assertRaises(ValueError, msg=bad):
-                        charge(adv, 5, f"policy-{i}", camp)
-            finally:
-                api.unregister_charge_policy("broken/v1")
+            with mock.patch.dict("billing.policies._POLICIES", {"broken/v1": Broken(bad)}), override_settings(BILLING_CHARGE_POLICY="broken/v1"):
+                with self.assertRaises(ValueError, msg=bad):
+                    charge(adv, 5, f"policy-{i}", camp)
         self.assertEqual(self.snapshot(adv), before)
         self.assertEqual(api.check_ledger(quiescent=True), [])
 

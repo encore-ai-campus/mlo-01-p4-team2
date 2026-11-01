@@ -3,7 +3,7 @@ from random import Random
 
 from .filters.chain import run_filters
 from .pricing import effect_of, is_expired
-from .registry import DEFAULT_FILTERS, DEFAULT_POLICY, UnknownName, get_policy, register_policy, unregister_policy
+from .registry import DEFAULT_FILTERS, DEFAULT_POLICY, UnknownName, get_policy
 from .types import AdRequest, Candidate, DecisionResult, Effect, Eligible, Selection
 
 
@@ -25,6 +25,6 @@ def decide(candidates, request: AdRequest, rng: Random, policy=DEFAULT_POLICY, f
 
 
 __all__ = [
-    "decide", "effect_of", "is_expired", "register_policy", "unregister_policy", "UnknownName",
+    "decide", "effect_of", "is_expired", "UnknownName",
     "DEFAULT_POLICY", "DEFAULT_FILTERS", "AdRequest", "Candidate", "Eligible", "Effect", "Selection", "DecisionResult",
 ]

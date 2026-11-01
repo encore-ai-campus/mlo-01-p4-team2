@@ -468,9 +468,9 @@ L0  foundation
 | `console`을 admin/advertiser로 분할 | `console/`과 `config/urls.py` | 아래 층 전부 |
 | **콘솔을 별도 프론트로 분리(§6.6)** | `console/`(템플릿 → JSON 직렬화) + `contracts/`(C6) + 프론트 새 앱 + 배포(리버스 프록시) + 콘솔 경계의 인증·CSRF·CSP 점검 | 아래 층 전부, Step 0의 서버 쪽 보안 규칙 |
 | API v2 추가 | `serving_api/v2/` + `contracts/` | v1, 도메인 |
-| 선택 알고리즘 교체(최고가 → 확률 노출 — 6-14) | `engine/policies/` 새 파일 + 설정값(`ADS_SELECTION_POLICY`) 한 줄 | Decision 구조, 저장소, 화면, API |
+| 선택 알고리즘 교체(최고가 → 확률 노출 — 6-14) | `engine/policies/` 새 파일 + 등록표 한 줄(`engine/registry.py`) + 설정값(`ADS_SELECTION_POLICY`) 한 줄 | Decision 구조, 저장소, 화면, API |
 | 반응 규칙 추가·변경(예: 보고 기간 규칙 켜기) | `records/rules/` 새 파일 + 설정의 규칙 목록 | 수신 단계, 과금, `serving_api` |
-| 과금 정책 변경(예: 노출을 천 회 단위로) | `billing/policies/` 새 파일 + 설정값 | 원장 구조, 반응 수신, `engine` |
+| 과금 정책 변경(예: 노출을 천 회 단위로) | `billing/policies/` 새 파일 + 등록표 한 줄(`billing/policies/__init__.py`) + 설정값 | 원장 구조, 반응 수신, `engine` |
 | 예산 일 경계 변경(UTC → KST 자정) | 설정값 `BUDGET_DAY_OFFSET_HOURS` 만(소진액은 원장에서 세므로 다시 계산할 것이 없다 — 6-16f, 전에는 재계산 명령도) | 코드 |
 | 이미지 캐시 정책 변경 | `assets/` 응답 헤더 설정 | 계약 C3의 URL 형식 |
 | 이미지 저장소 교체 | `assets/` 구현 + `config/` | 호출하는 쪽 |

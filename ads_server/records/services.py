@@ -1,11 +1,10 @@
 """결정 유스케이스(설계 §4.3~4.4). 후보 조립 → engine → **저장한 뒤에만** 돌려준다(§4.4-12)."""
-import contextlib
 import logging
 import random
 import uuid
 
 from django.conf import settings
-from django.db import IntegrityError, connection, transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
 
@@ -43,16 +42,6 @@ def _view(d):
         chosen=chosen, selection_policy=d.selection_policy, trace=d.trace, candidate_count=d.candidate_count,
         rejected_counts=d.rejected_counts,
     )
-
-
-@contextlib.contextmanager
-def _atomic_if_needed():
-    """이미 트랜잭션 안이면 그대로, 아니면 하나 연다(안쪽에 저장점을 또 만들지 않는다 — 결정 요청의 질의 수를 늘리지 않으려고)."""
-    if connection.in_atomic_block:
-        yield
-    else:
-        with transaction.atomic():
-            yield
 
 
 def _record_decision_event(d, now):
@@ -96,9 +85,10 @@ def decide(media_id, slot_id, subject_id=None, context=None, now=None, rng=None)
         raise errors.Forbidden("이 매체는 비활성입니다.")
     _check_subject(slot, subject_id)
     candidates, facts_by_group = assemble(slot, now) if slot.is_active else ([], {})  # 꺼진 슬롯: 후보 없이 '광고 없음'으로 기록
+    policy = settings.ADS_SELECTION_POLICY
     result = engine_decide(
         candidates, AdRequest(slot_id=slot_id, now=now, subject_id=subject_id), rng or random.Random(),  # nosec B311 — 노출 광고의 가중 추첨이다(설계 §4.3). 보안 값(키·토큰)을 만들지 않는다
-        policy=settings.ADS_SELECTION_POLICY, filters=tuple(settings.ADS_ENGINE_FILTERS),
+        policy=policy, filters=tuple(settings.ADS_ENGINE_FILTERS),
     )
     chosen = result.selection.chosen
     trace = result.selection.trace if slot.is_active else {**result.selection.trace, "slot_inactive": True}
@@ -113,14 +103,15 @@ def decide(media_id, slot_id, subject_id=None, context=None, now=None, rng=None)
             bid_id=fact.bid_id, bid_policy_id=slot.policy.bid_policy_id,  # 판정에 쓴 바로 그 버전 행
             snapshot={"title": fact.title, "redirect_url": fact.redirect_url, "image_name": fact.image_name},
         )
-    with _atomic_if_needed():  # 결정과 이벤트(outbox)는 한 트랜잭션이다. 응답까지 묶는 트랜잭션은 C1 뷰가 열고(그 안이면 그대로 쓴다), 직접 부르면 여기서 연다
+    # 결정과 이벤트(outbox)는 한 트랜잭션이다. 응답까지 묶는 트랜잭션은 C1 뷰가 열고(그 안이면 저장점 없이 그대로 쓴다 — 결정 요청의 질의 수를 늘리지 않는다), 직접 부르면 여기서 연다
+    with transaction.atomic(savepoint=False):
         # 매체 생명주기 잠금(설계 §10 "매체 비활성화와 판정·결정의 순서", 6-2): 위의 활성 확인은 커밋 전 비활성화를 못 본다. 공유 잠금으로 다시 읽어
         # 진행 중인 비활성화는 커밋까지 기다려 403 으로 막고, 잠금을 커밋까지 쥐어 뒤에 시작하는 비활성화가 이 결정보다 늦은 시각을 갖게 한다(결정끼리는 막지 않는다)
         if not masters.media_active_for_share(media_id):
             raise errors.Forbidden("이 매체는 비활성입니다.")
         decision = Decision.objects.create(
             media_id=media_id, slot_id=slot_id, subject_id=subject_id, audience=slot.audience, context=context or {}, decided_at=now,
-            selection_policy=result.selection.trace.get("policy", settings.ADS_SELECTION_POLICY),
+            selection_policy=policy,  # 판정에 쓴 이름(설계 R8)
             trace=trace, candidate_count=result.considered, rejected_counts=result.rejected, **values,
         )
         _record_decision_event(decision, now)

@@ -201,7 +201,7 @@ DB 전체를 builtin `C.UTF-8`로 만든다. 그래서 ICU·glibc가 바뀌어�
 | 장치 | 위치 | 근거 |
 |---|---|---|
 | 조건부 UPDATE(상태 비교 후 교체) | `records/processing.py` `_finish`·`_hold`, `masters/services.py` `set_media_active`·`rotate_media_key` | PostgreSQL READ COMMITTED는 잠금을 기다린 뒤 새 행 버전으로 WHERE를 다시 평가한다. 늦은 쪽은 0행을 바꾼다 — MySQL과 같다 |
-| 업무 + outbox 같은 트랜잭션 | `events/outbox.py:15-16`(트랜잭션 밖이면 예외), `records/services.py` `_atomic_if_needed` | DB와 무관 |
+| 업무 + outbox 같은 트랜잭션 | `events/outbox.py:15-16`(트랜잭션 밖이면 예외), `records/services.py` `decide` 의 `atomic(savepoint=False)`(2026-11-01 전에는 `_atomic_if_needed`) | DB와 무관 |
 | `IntegrityError` 처리 11곳 | `records/services.py:191,247`, `billing/services.py:104,174`, `masters/services.py:93,166,183,303`, `campaigns/services.py:194,360,581,774`, `foundation/accounts.py:50` | 모두 `try` 안에 자기 `atomic()`(저장점)이 있다. PostgreSQL은 실패한 문장 뒤 트랜잭션 전체를 중단하지만, 저장점까지만 되돌려지므로 안전하다. **새 코드도 이 형태를 지킨다** |
 | 공유 잠금 원문 SQL | `masters/services.py:126-137` `media_active_for_share`(`FOR SHARE`) | 같은 문법·같은 의미(`FOR SHARE`는 `UPDATE`와 충돌) |
 | `select_for_update(skip_locked=True)` | `events/relay.py:88` | 지원 |

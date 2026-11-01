@@ -74,6 +74,7 @@ class DecisionEventTests(Cases, TestCase):
         writes = [x["sql"] for x in q.captured_queries if x["sql"].lstrip().upper().startswith("INSERT")]
         self.assertEqual(sum("events_outbox" in s for s in writes), 1)
         self.assertEqual(sum("records_decision" in s for s in writes), 1)
+        self.assertFalse([x for x in q.captured_queries if "SAVEPOINT" in x["sql"].upper()])  # 바깥 트랜잭션(C1 뷰) 안에서는 저장점을 더 만들지 않는다
 
     def test_decision_event(self):
         self.run_cases()

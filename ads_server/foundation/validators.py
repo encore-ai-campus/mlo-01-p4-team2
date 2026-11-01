@@ -73,15 +73,19 @@ def clean_text(value, label, pointer, max_len=100):
     return value
 
 
+_REQUEST_KEY = re.compile(r"[A-Za-z0-9_-]{1,64}")  # 화면이 만드는 `secrets.token_urlsafe` 의 글자, 저장하는 열의 길이
+
+
 def is_request_key(value):
-    """두 번 하면 안 되는 동작의 요청 키(화면 폼 하나마다 새 값) 형식: 1~64자 문자열(저장하는 열의 길이)."""
-    return isinstance(value, str) and 1 <= len(value) <= 64
+    """두 번 하면 안 되는 동작의 요청 키(화면 폼 하나마다 새 값) 형식: 영문·숫자·`-`·`_` 1~64자.
+    화면은 폼 검증 전에 POST 원문 키로 조회하므로, 여기서 NUL 같은 글자가 걸러지지 않으면 DB 오류(500)가 된다."""
+    return isinstance(value, str) and _REQUEST_KEY.fullmatch(value) is not None
 
 
 def clean_request_key(value):
     """요청 키 검증. 없으면(`None`) 그대로, 형식이 틀리면 400 `InvalidRequest`(`/request_key`)."""
     if value is not None and not is_request_key(value):
-        raise InvalidRequest(errors=[{"pointer": "/request_key", "message": "1~64자 문자열이어야 합니다."}])
+        raise InvalidRequest(errors=[{"pointer": "/request_key", "message": "영문·숫자·-·_ 1~64자여야 합니다."}])
     return value
 
 

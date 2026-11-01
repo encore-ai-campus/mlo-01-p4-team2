@@ -13,8 +13,8 @@ from masters import api as masters
 from tests.support.factories import DAY, NOW, World, png_file
 from tests.support.cases import Cases
 
-BAD_KEYS = ("", "x" * 65, 123)
-KEY_ERROR = [{"pointer": "/request_key", "message": "1~64자 문자열이어야 합니다."}]
+BAD_KEYS = ("", "x" * 65, 123, "\x00", "a b", "키")  # 화면이 만드는 키(token_urlsafe)에 없는 글자 — NUL 은 DB 오류(500)였다
+KEY_ERROR = [{"pointer": "/request_key", "message": "영문·숫자·-·_ 1~64자여야 합니다."}]
 
 
 class RequestKeyContractTests(Cases, TestCase):

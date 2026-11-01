@@ -9,7 +9,7 @@ from django.db import IntegrityError, connection, transaction
 from django.db.models import F, Sum
 from django.utils import timezone
 
-from foundation.api import MAX_AMOUNT, Role, clean_request_key, clean_text, create_advertiser, errors, is_int, parse_uuid, record_audit, require_admin
+from foundation.api import MAX_AMOUNT, Role, clean_request_key, clean_text, create_advertiser, errors, is_int, is_unique_violation, parse_uuid, record_audit, require_admin
 
 from .budget_day import budget_day_expression, budget_day_of, day_start, next_reset
 from .models import EntryType, LedgerEntry, Wallet
@@ -171,7 +171,9 @@ def charge_for_reaction(owner_id, campaign_id, reaction_type, shares, applied_am
     try:
         with transaction.atomic():
             return _charge(owner_id, campaign_id, amount, reaction_ref, policy.name, now)
-    except IntegrityError:  # 동시에 같은 키가 들어온 경우의 안전망(유니크 제약): 먼저 들어간 결과를 돌려준다
+    except IntegrityError as error:  # 동시에 같은 키가 들어온 경우의 안전망(유니크 제약): 먼저 들어간 결과를 돌려준다
+        if not is_unique_violation(error):  # CHECK 등은 원인 그대로 올린다(같은 키의 행을 찾다 DoesNotExist 로 가리지 않는다 — receive_reaction 과 같은 규칙)
+            raise
         return _duplicate(LedgerEntry.objects.get(reaction_ref=reaction_ref))
 
 

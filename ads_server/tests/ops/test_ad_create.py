@@ -297,6 +297,14 @@ class CampaignCreatePageTests(Cases, TestCase):
         self.assertFalse(self.created().exists())
         self.assertEqual(self.client.post(NEW_CAMPAIGN, self.fields(starts_at="0001-01-01T09:00")).status_code, 302)  # 바로 위 경계(UTC 0001-01-01 00:00)는 정상 값
 
+    def case_a_forged_request_key_is_not_a_500_on_either_create_page(self):
+        """버그 탐색 B3: 두 화면은 폼 검증 전에 POST 원문 키로 조회한다 — NUL 이 든 키는 PostgreSQL 이 받지 않아 500 이었다."""
+        for page, data in ((NEW_CAMPAIGN, self.fields(request_key="\x00")), (URL, {"request_key": "a\x00", "action": "create"})):
+            with self.subTest(page):
+                self.assertEqual(self.client.post(page, data).status_code, 400)
+        self.assertFalse(self.created().exists())
+        self.assertFalse(AdGroup.objects.filter(campaign__owner=self.w.adv).exclude(pk=self.w.group.ad_group_id).exists())
+
     @override_settings(MAX_CAMPAIGNS_PER_ADVERTISER=1)
     def case_the_campaign_quota_is_explained(self):
         self.assertContains(self.client.post(NEW_CAMPAIGN, self.fields()), "캠페인 개수 상한에 도달했습니다", status_code=409)

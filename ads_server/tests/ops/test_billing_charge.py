@@ -1,6 +1,7 @@
 import uuid
 from unittest import mock
 
+from django.db import IntegrityError
 from django.test import TestCase, TransactionTestCase, override_settings, tag
 
 from billing import api
@@ -38,6 +39,13 @@ class ChargeTests(Cases, TestCase):
         self.assertEqual(api.spend_today([camp], now=NOW), {camp: 40})  # 소진액도 한 번만
         self.assertEqual(charge(adv, 999, "m1:r1", camp).charged, 40)  # 금액이 달라도 처음 결과(재전송은 같은 내용이어야 한다는 것은 Step 2 의 몫)
         self.assertEqual(api.check_ledger(quiescent=True), [])
+
+    def case_a_non_unique_integrity_error_keeps_its_cause(self):
+        """버그 탐색 B16: 유일 제약이 아닌 IntegrityError(CHECK 등)를 '같은 키가 먼저 들어갔다'로 읽으면 원장 줄 조회의 DoesNotExist 가 원래 원인을 가린다."""
+        adv, camp = funded(), uuid.uuid4()
+        with mock.patch("billing.services._charge", side_effect=IntegrityError("check violation")), self.assertRaises(IntegrityError):
+            charge(adv, 40, "m1:r2", camp)
+        self.assertFalse(LedgerEntry.objects.filter(entry_type="CHARGE").exists())
 
     def case_charge_policy_by_share(self):
         """`share/v1`: 반응 하나의 과금 = 내림(적용 금액 × 결정에 남긴 그 유형의 비율 ÷ 100)(설계 §10 "구성별 반응 비율 과금"). 정책 이름이 원장에 남는다."""

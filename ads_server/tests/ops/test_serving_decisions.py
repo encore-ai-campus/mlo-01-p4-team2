@@ -210,6 +210,18 @@ class DecisionContextTests(Cases, DecisionApiBase):
             self.assertContract(self.contract, "/decisions", "post", response)
         self.assertEqual(Decision.objects.count(), 0)
 
+    def case_nul_is_400_not_500_in_keys_values_and_nested_values(self):
+        """`\\u0000` 도 JSON 문법상 유효하지만 PostgreSQL jsonb 가 받지 않아 저장에서 500 이 됐다(PostgreSQL 전환 회귀) → 경계에서 400."""
+        for label, raw in {
+            "value": '{"k": "a\\u0000b"}', "key": '{"a\\u0000": 1}',
+            "nested value": '{"a": [{"b": "\\u0000"}]}', "nested key": '{"a": {"\\u0000": 1}}',
+        }.items():
+            body = '{"slot_id": "%s", "subject_id": "%s", "context": %s}' % (self.w.slot.slot_id, SUBJECT, raw)
+            response = self.post(raw=body)
+            self.assertEqual((response.status_code, response.json()["code"]), (400, "invalid_request"), label)
+            self.assertContract(self.contract, "/decisions", "post", response)
+        self.assertEqual(Decision.objects.count(), 0)
+
     def case_valid_surrogate_pairs_and_emoji_are_kept(self):
         body = '{"slot_id": "%s", "subject_id": "%s", "context": {"e": "\\ud83d\\ude00 😀", "😀": 1}}' % (self.w.slot.slot_id, SUBJECT)
         response = self.post(raw=body)

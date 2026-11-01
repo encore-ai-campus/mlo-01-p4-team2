@@ -2,7 +2,7 @@
 
 > Status: **정식 문서**. 광고 서버만 다룬다. **지금 구조만 적는다** — 언제·왜 바뀌었는지는 §11 문서 이력과 [구현 계획](implementation-plan.md)에 있다.
 > 관련 문서: [ads-server-design.md](ads-server-design.md) (설계), [implementation-plan.md](implementation-plan.md) (구현 계획), [threat-model.md](threat-model.md) (위협 모델), [contracts/](contracts/) (OpenAPI 계약)
-> 기준: 2026-10-14(저장소는 2026-10-31 PostgreSQL 전환 0.55, 이벤트는 2026-11-01 Outbox 확장 0.56, 요청 제한 버킷은 2026-11-01 0.57) · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
+> 기준: 2026-10-14(저장소는 2026-10-31 PostgreSQL 전환 0.55, 이벤트는 2026-11-01 Outbox 확장 0.56, 요청 제한 버킷은 2026-11-01 0.57, C1 1.5.0 은 2026-11-02 0.58) · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
 > 근거: 설계서 `docs/legacy/ads-server/ads-server-design.md`, 계약 `contracts/serving.openapi.yaml`(C1·C3), `contracts/console.openapi.yaml`(C6), 실제 모델 코드(`*/models.py`)
 > 표기: **[예약]** 계약에 자리만 있고 아직 코드 없음 · **[제안]** 이 문서가 처음 제안함(동의 필요) · **[열림]** 정하지 못함. 표기가 없으면 코드에 있다
 
@@ -874,7 +874,7 @@ stateDiagram-v2
 
 | # | 계약 | 방향 | 상대 | 전송·인증 | 데이터 형식 | 상태 |
 |---|---|---|---|---|---|---|
-| C1 | Serving API | 들어옴 | 매체 서버 | 백 서버 `/api/media/v1`(서버 간 내부 경로 — 프론트 서버는 공개하지 않음), 헤더 `X-Media-Key` | JSON(UTF-8), 오류는 `application/problem+json` | 계약 1.4.0 |
+| C1 | Serving API | 들어옴 | 매체 서버 | 백 서버 `/api/media/v1`(서버 간 내부 경로 — 프론트 서버는 공개하지 않음), 헤더 `X-Media-Key` | JSON(UTF-8), 오류는 `application/problem+json` | 계약 1.5.0 |
 | C2 | 이벤트 | 나감 | 데이터 파이프라인 | MongoDB `ad_events`(계약 면). 확장: Kafka | JSON 이벤트(§5.6) | MongoDB. Kafka 는 확장 |
 | C3 | 이미지 URL | 나감 | 매체·최종 사용자 브라우저 | HTTPS GET(앞단 nginx에서 종단, 프론트 서버가 통과), 인증 없음 | JPEG·PNG | |
 | C4 | Insight 입력 | 들어옴 | 데이터 파이프라인 | [열림] HTTP·Kafka·파일 | JSON 메시지(§5.7 [제안]) | [예약] 확장 |
@@ -1352,6 +1352,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 
 | 버전 | 날짜 | 내용 |
 |---|---|---|
+| 0.58 | 2026-11-02 | §5.1 C1 계약 1.5.0(버그 탐색 B1 — `context` 문자열의 U+0000 은 400, PostgreSQL jsonb 가 받지 않는 문자). 데이터 모양은 그대로 |
 | 0.57 | 2026-11-01 | 요청 제한 버킷 M6 `masters_media_rate_bucket`(설계 §10 "요청 제한 구현" — 프로세스 메모리 버킷을 모든 프로세스가 함께 쓰는 DB 행으로): §0 표 수, ERD, §4.2, 컬럼·쓰는 곳·HOT 갱신, §6 |
 | 0.56 | 2026-11-01 | Outbox 확장 반영(계획 `docs/plans/00` P2): O10 변경 로그 표(열·색인·CHECK 둘, R-5·§4.4·§6), P3 의 원천·메시지 키를 종류별로, §5.6 신규 이벤트 넷(`ad.bid_policy_changed`·`ad.bid_added`·`ad.campaign_changed`·`ad.ad_group_changed`)과 소비자 정렬 규칙 `(changed_at, change_id)`, §5.9 `backfill_events` 의 `excluded`·`export_integrity` 원천·`end_expired_campaigns` 의 변경 로그 |
 | 0.55 | 2026-10-31 | PostgreSQL 전환 반영(계획 `docs/plans/00` P1): 저장소·구성도·순서도·저장소 기준·한계를 PostgreSQL 18로(정렬 builtin `C.UTF-8`, `lock_timeout` 5초, 연결 한도 100 — D6·D9·D11). §4.3 표기와 O6·B2·§4.4: DB 계산 열 `open_campaign`·`signup_grant_wallet`를 지우고 조건부 유일 제약(부분 유일 색인)으로(P1-6). 색인 정리(P1-7): A3 `actor_id`·O4 `image_name` 단일 색인 삭제. §5.6 `scope` 값(D5) |

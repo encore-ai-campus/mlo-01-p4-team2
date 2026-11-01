@@ -12,6 +12,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import SimpleTestCase, TransactionTestCase, tag
 
+from events import api as events
 from events import ndjson, store
 from events.models import EventOutbox
 from events.relay import relay_batch
@@ -84,6 +85,15 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.assertEqual({r["outcome"] for r in rows}, {"would_write"})
         self.assertEqual((len(rows), manifest["checkpoint"]["mode"], manifest["checkpoint"]["counts"]["would_write"]), (4, "dry-run", 4))
         self.assertEqual(AuditLog.objects.filter(action="events.backfilled").count(), 0)  # 읽기만 했다
+
+    def case_every_event_kind_is_either_backfilled_or_explicitly_excluded(self):
+        """백필 입력의 원천 종류표가 모든 이벤트 종류를 덮고(빠진 종류가 누락 목록에 한 줄이라도 있으면 목록 전체가 거부된다), 누락 점검이 훑는 원천 종류와 같다.
+        백필하는 종류는 처음 넷뿐이고 나머지는 D8 로 명시해 제외한다(계획 docs/plans/00 P2-8). 새 종류를 더할 때 이 표들을 함께 늘리지 않으면 여기서 실패한다."""
+        self.assertEqual(set(backfill.SOURCE_KINDS), set(events.NAMES.values()))
+        self.assertEqual(set(backfill.SOURCE_KINDS) - backfill.NOT_BACKFILLED, {"ad.decision", "ad.reaction_received", "ad.reaction", "ad.charge"})
+        stats = {}
+        list(records.event_gaps(stats))
+        self.assertEqual({kind for kind, scanned in stats.items() if scanned}, set(backfill.SOURCE_KINDS.values()))  # 세계에 종류마다 한 줄 이상 — 실제로 훑었다(기본값 0 이 아니다)
 
     def case_kinds_that_are_not_backfilled_are_counted_as_excluded_and_the_rest_is_written(self):
         """정책·입찰·캠페인·광고그룹 변경 이벤트는 백필하지 않는다(계획 docs/plans/00 D8). 누락 목록에 섞여 있어도 목록 전체를 거부하지 않고 `excluded` 로 센 뒤 나머지를 쓴다 — 실패로 끝나지 않는다."""

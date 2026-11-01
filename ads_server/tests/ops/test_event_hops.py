@@ -330,7 +330,8 @@ class ExportHopManifestsTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         with override_settings(EVENTS_OUTBOX_RETENTION_DAYS=1):
             self.export(out="before")
             self.assertTrue(self.verify("before", "--no-anchor")[0])
-            call_command("purge_sent_events", "--days", "0", stdout=io.StringIO())  # 실제 보존 정리
+            with override_settings(EVENTS_OUTBOX_RETENTION_DAYS=0):  # 실제 보존 정리(방금 보낸 행까지 — --days 는 설정보다 짧을 수 없다)
+                call_command("purge_sent_events", stdout=io.StringIO())
             self.assertEqual(EventOutbox.objects.count(), 0)
             self.export(out="after")
         checkpoint = self.lines("hop_outbox", out="after")[1]["checkpoint"]
@@ -366,6 +367,12 @@ class ExportHopManifestsTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         checkpoint = self.lines("hop_outbox")[1]["checkpoint"]
         self.assertEqual(checkpoint["not_comparable_windows"], ["2026-10-07T00:00:00Z"])
         self.assertTrue(self.lines("hop_source")[0] and self.lines("hop_source")[0] != [])  # 원본 구간에는 그대로 있다
+        # 버그 탐색 B5: 중계 전(백필 직후와 같은 상태)이라 MongoDB 는 비었다 — 줄을 뺀 창의 미전송 건수가 checkpoint 에 남아 원본 → MongoDB 가 지연 후보로 나온다
+        self.assertEqual({u["event_name"] for u in checkpoint["not_comparable_unsent"]}, {l["event_name"] for l in self.lines("hop_source")[0]})
+        ok, text = self.verify("out", "--no-anchor")
+        self.assertTrue(ok, text)
+        self.assertIn("LAG", text)
+        self.assertNotIn("FAIL", text)
 
     def case_the_same_data_gives_the_same_lines(self):
         relay_batch()
@@ -446,6 +453,17 @@ class ExportHopManifestsTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         for hop in ("hop_source", "hop_outbox", "hop_mongo"):
             self.assertEqual(ndjson.verify_chain(ndjson.manifest_path(self.dir / "out", hop)), [])
         self.assertEqual(AuditLog.objects.filter(action="events.hop_manifests_exported").count(), 2)
+
+    def case_each_folder_is_checked_against_its_own_anchor(self):
+        """버그 탐색 B6: 고정점은 폴더마다다 — 다른 폴더(다른 창 크기)로 나중에 내보내도 앞 폴더의 대조가 '고정점과 다르다'로 실패하지 않는다."""
+        relay_batch()
+        self.export(out="daily")
+        self.export("--window", "hour", out="hourly")
+        for folder in ("daily", "hourly"):
+            ok, text = self.verify(folder)
+            self.assertTrue(ok, (folder, text))
+        latest = AuditLog.objects.filter(action="events.hop_manifests_exported").order_by("-created_at", "-log_id").first().detail
+        self.assertEqual((latest["out"], latest["window"]), (str((self.dir / "hourly").resolve()), "hour"))
 
     def case_a_missing_or_changed_previous_generation_breaks_the_chain(self):
         self.export()

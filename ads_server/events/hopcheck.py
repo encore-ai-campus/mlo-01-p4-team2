@@ -3,7 +3,8 @@
 판정 분류(설계 §6.3a, DRD §5.6):
 - `match`: 건수·`ids_sha256`·`content_sha256` 이 모두 같다.
 - `mismatch`: **확정 불일치**. 어느 필드가 다른지 `fields` 에 적는다.
-- `relay_lag_candidate`: 중계 지연 후보 — MongoDB(또는 파이프라인) 쪽이 outbox 보다 적고 outbox 에 미전송이 남아 있다. 다시 낸 manifest 로 다시 확인한다(실패가 아니다).
+- `relay_lag_candidate`: 중계 지연 후보 — MongoDB 쪽이 상류(원본·outbox)보다 적고 그 부족분이 outbox 의 미전송으로 설명된다. 다시 낸 manifest 로 다시 확인한다(실패가 아니다).
+  MongoDB → 파이프라인에는 쓰지 않는다 — 미전송은 MongoDB 에도 아직 없으므로 파이프라인이 적은 이유가 될 수 없다.
 - `open_window`: 한쪽에서 아직 열려 있는 창이라 비교하지 않는다.
 - `not_comparable`: outbox 가 보존 정리로 비교할 수 없는 창.
 """
@@ -34,6 +35,8 @@ class Hop:
         self.open_windows = set(checkpoint.get("open_windows", []))
         self.not_comparable = set(checkpoint.get("not_comparable_windows", []))
         self.unresolved_charges = checkpoint.get("unresolved_charges", 0)  # 원본 구간: 창에 놓을 수 없는 과금 원장 줄(대조할 줄이 없으므로 따로 실패)
+        # outbox 구간: 비교 불가 창은 줄을 빼므로 그 창의 미전송 건수는 checkpoint 에 따로 싣는다(원본 → MongoDB 의 지연 후보 근거)
+        self.not_comparable_unsent = {(u["window_start"], u["event_name"]): u["unsent"] for u in checkpoint.get("not_comparable_unsent", [])}
 
 
 def _time(text, what):
@@ -91,6 +94,16 @@ def load_hop(manifest_path, name=None, expected_kind=None):
     unresolved = checkpoint.get("unresolved_charges", 0)
     if isinstance(unresolved, bool) or not isinstance(unresolved, int) or unresolved < 0:
         raise HopInputError(f"{manifest_path.name}: unresolved_charges 는 0 이상의 정수여야 한다: {unresolved!r}")
+    hidden = checkpoint.get("not_comparable_unsent", [])
+    if not isinstance(hidden, list):
+        raise HopInputError(f"{manifest_path.name}: not_comparable_unsent 는 목록이어야 한다: {hidden!r}")
+    seen = set()
+    for item in hidden:  # 원본 → MongoDB 부족을 지연으로 설명하는 근거라, 비교하는 창의 항목·중복은 받지 않는다(줄의 중복 거부와 같은 규칙)
+        well_formed = isinstance(item, dict) and all(isinstance(item.get(f), str) for f in ("window_start", "event_name")) \
+            and not isinstance(item.get("unsent"), bool) and isinstance(item.get("unsent"), int) and item["unsent"] >= 0
+        if not well_formed or item["window_start"] not in checkpoint.get("not_comparable_windows", []) or (item["window_start"], item["event_name"]) in seen:
+            raise HopInputError(f"{manifest_path.name}: not_comparable_unsent 의 항목이 올바르지 않다(형식·비교 불가 창이 아님·중복): {item!r}")
+        seen.add((item["window_start"], item["event_name"]))
     if checkpoint.get("hop", kind) != kind:
         raise HopInputError(f"{manifest_path.name}: checkpoint 의 구간({checkpoint.get('hop')})이 source_kind({kind})와 다르다")
     lines = {}
@@ -107,7 +120,7 @@ def load_hop(manifest_path, name=None, expected_kind=None):
 
 
 def compare(a, b, unsent_from=None):
-    """두 구간을 대조한다. `a` 가 상류, `b` 가 하류다. `unsent_from`: 미전송 건수(`unsent`)를 가진 outbox 구간 — `b` 가 MongoDB·파이프라인일 때 지연 후보를 가리는 데 쓴다.
+    """두 구간을 대조한다. `a` 가 상류, `b` 가 하류다. `unsent_from`: 미전송 건수(`unsent`)를 가진 outbox 구간 — 원본 → MongoDB 의 지연 후보를 가리는 데 쓴다.
     반환: 줄(dict) 목록 — `{"pair", "window_start", "event_name", "status", "fields", "a", "b"}`."""
     if a.window != b.window:
         raise HopInputError(f"창 크기가 다른 manifest 는 대조하지 않는다: {a.name}={a.window}, {b.name}={b.window}")
@@ -153,4 +166,4 @@ def _is_lag(a, b, key, la, lb, unsent_from):
     if holder is None:
         return False
     line = holder.lines.get(key)
-    return bool(line) and shortfall <= line.get("unsent", 0)
+    return shortfall <= (line.get("unsent", 0) if line else holder.not_comparable_unsent.get(key, 0))

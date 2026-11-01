@@ -143,6 +143,8 @@ class InputValidationTests(Cases, SimpleTestCase):
             checkpoint["hop"] = hop_field
         if "unresolved" in extra:
             checkpoint["unresolved_charges"] = extra["unresolved"]
+        if "hidden" in extra:
+            checkpoint |= {"not_comparable_windows": extra["not_comparable"], "not_comparable_unsent": extra["hidden"]}
         ndjson.write(directory, "h", lines, kind, schema_version, checkpoint=checkpoint)
         return ndjson.manifest_path(directory, "h")
 
@@ -190,6 +192,17 @@ class InputValidationTests(Cases, SimpleTestCase):
         for bad in ("1", -1, True, 1.5, None):
             with self.subTest(bad=bad), self.assertRaises(hopcheck.HopInputError):
                 self.load(self.publish([self.day()], kind="hop_source", unresolved=bad), "hop_source")
+
+    def case_the_unsent_counts_of_not_comparable_windows_must_be_well_formed(self):
+        """outbox 구간의 `not_comparable_unsent` 는 원본 → MongoDB 부족을 지연으로 설명하는 근거다(버그 탐색 B5) — 형식이 틀리거나, 비교하는 창의 항목이거나, 중복이면 받지 않는다."""
+        good = {"window_start": W, "event_name": "ad.decision", "unsent": 2}
+        loaded = self.load(self.publish([], kind="hop_outbox", not_comparable=[W], hidden=[good]), "hop_outbox")
+        self.assertEqual(loaded.not_comparable_unsent, {KEY: 2})
+        broken = [5, ["x"], [{"event_name": "ad.decision", "unsent": 1}], [good, good], [dict(good, window_start="2026-10-08T00:00:00Z")]]
+        broken += [[dict(good, unsent=bad)] for bad in ("1", -1, True, 1.5, None)]
+        for hidden in broken:
+            with self.subTest(hidden=hidden), self.assertRaises(hopcheck.HopInputError):
+                self.load(self.publish([], kind="hop_outbox", not_comparable=[W], hidden=hidden), "hop_outbox")
 
     def case_the_file_must_be_the_hop_it_is_loaded_as(self):
         outbox_file = self.publish([self.day(unsent=0)], kind="hop_outbox")
@@ -350,6 +363,19 @@ class VerifyHopsCommandTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.assertFalse(ok)
         self.assertIn("hop_mongo->pipeline", text)
         self.assertIn("content_sha256", text)
+
+    def case_a_pipeline_shortfall_is_not_excused_by_unsent_outbox_rows(self):
+        """버그 탐색 B4: outbox 미전송은 MongoDB 에도 아직 없으므로 파이프라인이 MongoDB 보다 적은 이유가 될 수 없다 — 확정 불일치."""
+        relay_batch()
+        row = EventOutbox.objects.filter(event_name="ad.decision").first()
+        EventOutbox.objects.filter(pk=row.pk).update(sent_at=None)  # MongoDB 에는 이미 있지만 outbox 로는 미전송 1
+        self.export()
+        pipeline_dir = self.dir / "pipeline"
+        short = [dict(l, count=l["count"] - 1, ids_sha256="0" * 64) if l["event_name"] == "ad.decision" else l for l in self.lines("hop_mongo")]
+        ndjson.write(pipeline_dir, "pipeline", short, "hop_pipeline", 1, checkpoint={"open_windows": [], "window": "utc-day"})
+        ok, text = self.verify("--pipeline", str(ndjson.manifest_path(pipeline_dir, "pipeline")))
+        self.assertFalse(ok)
+        self.assertIn("FAIL hop_mongo->pipeline", text)
 
     def case_a_missing_hop_manifest_fails(self):
         self.export()

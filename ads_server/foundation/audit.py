@@ -62,8 +62,9 @@ def record_audit(request, action, target=None, detail=None, actor=None):
     )
 
 
-def latest_detail(action):
-    """그 종류의 가장 최근 감사 로그의 `detail`(없으면 `None`). 폴더 밖의 고정점을 읽을 때 쓴다(추가 전용이라 지울 수 없는 기록)."""
+def latest_detail(action, **detail):
+    """그 종류(와 `detail` 의 키 = 값)의 가장 최근 감사 로그의 `detail`(없으면 `None`). 폴더 밖의 고정점을 읽을 때 쓴다(추가 전용이라 지울 수 없는 기록)."""
     from .models import AuditLog
 
-    return AuditLog.objects.filter(action=action).order_by("-created_at", "-log_id").values_list("detail", flat=True).first()
+    match = {f"detail__{key}": value for key, value in detail.items()}
+    return AuditLog.objects.filter(action=action, **match).order_by("-created_at", "-log_id").values_list("detail", flat=True).first()

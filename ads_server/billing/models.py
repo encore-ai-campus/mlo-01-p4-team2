@@ -1,4 +1,4 @@
-"""포인트 지갑·원장·캠페인 일 소진액(설계 §4.7). billing 은 캠페인을 ID 값으로만 안다(campaigns 를 import 하지 않는다)."""
+"""포인트 지갑·원장(설계 §4.7 — 캠페인 일 소진액은 원장의 과금 줄에서 센다). billing 은 캠페인을 ID 값으로만 안다(campaigns 를 import 하지 않는다)."""
 import uuid
 
 from django.conf import settings

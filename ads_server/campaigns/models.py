@@ -76,7 +76,7 @@ class AdGroupSlot(models.Model):
 
 class Creative(models.Model):
     """광고주 소유의 소재 목록(6-9c, 설계 §10 "소재 목록"). 광고그룹에는 `AdGroupCreative` 로 연결하고, 광고그룹이 그중 하나를 선택한다.
-    화면의 "삭제"는 보관(`archived_at`)이다 — 행은 남는다(감사 기록·연결 기록이 참조). 끝나지 않은 캠페인의 광고그룹에 연결돼 있으면 보관하지 못한다.
+    화면의 "삭제"는 보관(`archived_at`)이다 — 행은 남는다(감사 기록·연결 기록이 참조). 끝나지 않은 캠페인의 광고그룹이 선택한 소재는 보관하지 못한다(6-24 — 연결만 남은 소재는 보관할 수 있다).
     소재 끄기는 없다 — 광고를 멈추는 것은 광고그룹 ON/OFF 하나다(6-9b)."""
 
     creative_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)

@@ -9,21 +9,15 @@ from django.views.decorators.http import condition, require_safe
 from .api import asset_exists, content_type, open_asset
 
 
-def _ensure_servable(name):
-    """서빙 가능 여부. ASSET_SERVABLE_CHECK(점 경로)가 있으면 그 함수가 거짓일 때 404 — 중단된 소재가 여기서 막힌다.
+def _etag(request, name):
+    """서빙 가능하면 ETag(이름이 내용 해시이므로 그대로), 아니면 404. ASSET_SERVABLE_CHECK(점 경로)가 있으면 그 함수가 거짓일 때 404 — 중단된 소재가 여기서 막힌다.
 
     assets 는 campaigns 를 import 하지 않는다. 연결은 settings 로 한다(설계 R1·R4).
     """
     check = settings.ASSET_SERVABLE_CHECK
-    if check and not import_string(check)(name):
+    if (check and not import_string(check)(name)) or not asset_exists(name):
         raise Http404
-    if not asset_exists(name):
-        raise Http404
-
-
-def _etag(request, name):
-    _ensure_servable(name)
-    return name.rsplit(".", 1)[0]  # 이름이 내용 해시이므로 그대로 ETag 다
+    return name.rsplit(".", 1)[0]
 
 
 def _asset_headers(view):

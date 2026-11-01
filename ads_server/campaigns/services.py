@@ -20,7 +20,7 @@ from masters import api as masters
 
 from . import transitions as tr
 from .changes import record_change
-from .errors import CampaignSuspended, LimitExceeded, NotSuspended, ReviewPending
+from .errors import LimitExceeded, NotSuspended, ReviewPending
 from .models import AdGroup, AdGroupCreative, AdGroupSlot, Bid, Campaign, CampaignStatus, ChangeTarget, Creative, CreativeImage, ReviewRequest, ReviewStatus
 from .types import (
     AdGroupEffects, AdGroupView, AdvertiserUsage, BidView, CampaignView, CandidateFacts, CreatedAd, CreativeUse, CreativeView, MonitoredCampaign, OwnedCreative,
@@ -84,7 +84,7 @@ def _admin_campaign(campaign_id):
 
 
 def _ad_group(user, ad_group_id):
-    return owned_or_404(AdGroup.objects.select_related("campaign"), user, owner_field="campaign__owner", ad_group_id=ad_group_id)
+    return owned_or_404(AdGroup.objects.all(), user, owner_field="campaign__owner", ad_group_id=ad_group_id)
 
 
 def _creative(user, creative_id, archived=False):
@@ -116,13 +116,10 @@ def _locked_creative(user, creative_id):
 
 
 def _campaign_view(c, now, open_review_id=None):
-    expired = is_expired(c.ends_at, now)
-    ended = c.status == CampaignStatus.ENDED or expired
+    ended = c.status == CampaignStatus.ENDED or is_expired(c.ends_at, now)
     status = CampaignStatus.ENDED if ended else c.status
     ended_from = (c.ended_from if c.status == CampaignStatus.ENDED else c.status) if ended else None
-    suspension = None
-    if status == CampaignStatus.SUSPENDED:
-        suspension = SuspensionView(c.suspended_reason, c.suspended_at, open_review_id)
+    suspension = SuspensionView(c.suspended_reason, c.suspended_at, open_review_id) if status == CampaignStatus.SUSPENDED else None
     return CampaignView(
         campaign_id=c.campaign_id, owner_id=c.owner_id, name=c.name, starts_at=c.starts_at, ends_at=c.ends_at,
         daily_budget=c.daily_budget, status=status, ended_from=ended_from, suspension=suspension,
@@ -264,17 +261,14 @@ def update_campaign(user, campaign_id, changes, now=None, expected_updated_at=No
     바뀐 값을 옛 폼이 덮어쓰지 않게(Step 3-2b). 켜기·끄기처럼 바꿀 값이 분명한 동작은 주지 않는다."""
     require_advertiser(user)
     now = _now(now)
-    unknown = set(changes) - CAMPAIGN_FIELDS
-    if unknown or not changes:
+    if set(changes) - CAMPAIGN_FIELDS or not changes:
         raise _problem("/", f"바꿀 수 있는 필드: {sorted(CAMPAIGN_FIELDS)}")
     with transaction.atomic():
         c = _campaign(user, campaign_id, lock=True)
         tr.assert_open(c, now)  # 종료된 캠페인(상태 갱신 전 포함)은 어떤 값도 못 바꾼다
         _assert_seen(expected_updated_at, c.updated_at)
-        if "status" in changes:
-            target = changes["status"]
-            if target not in (CampaignStatus.ACTIVE, CampaignStatus.PAUSED):
-                raise _problem("/status", "광고주는 ACTIVE 와 PAUSED 만 고를 수 있습니다.")
+        if "status" in changes and changes["status"] not in (CampaignStatus.ACTIVE, CampaignStatus.PAUSED):
+            raise _problem("/status", "광고주는 ACTIVE 와 PAUSED 만 고를 수 있습니다.")
         if "name" in changes:
             changes = {**changes, "name": clean_text(changes["name"], "캠페인 이름", "/name")}
         if "daily_budget" in changes:
@@ -283,11 +277,8 @@ def update_campaign(user, campaign_id, changes, now=None, expected_updated_at=No
             ends_at = _utc_time(changes["ends_at"], "/ends_at")
             _check_ends_at(ends_at, c.starts_at, now)
             changes = {**changes, "ends_at": ends_at}
-        if "status" in changes:
-            if c.status == CampaignStatus.SUSPENDED:
-                raise CampaignSuspended()
-            if changes["status"] != c.status:
-                tr.apply(c, "pause" if changes["status"] == CampaignStatus.PAUSED else "resume", tr.ADVERTISER, now)
+        if "status" in changes and changes["status"] != c.status:  # 중단된 캠페인은 apply 가 CampaignSuspended
+            tr.apply(c, "pause" if changes["status"] == CampaignStatus.PAUSED else "resume", tr.ADVERTISER, now)
         before = {"daily_budget": c.daily_budget, "ends_at": c.ends_at}
         for field in ("name", "ends_at", "daily_budget"):
             if field in changes:
@@ -401,10 +392,7 @@ def list_review_requests(user, campaign_id):
 def latest_review_requests(user):
     """캠페인마다 가장 최근의 재검토 요청 `{campaign_id: ReviewRequestView}`(알림용 — 반려 답변을 보인다). 질의 한 번."""
     require_advertiser(user)
-    latest = {}
-    for r in ReviewRequest.objects.filter(campaign__owner=user).order_by("created_at"):
-        latest[r.campaign_id] = _review_view(r)
-    return latest
+    return {r.campaign_id: _review_view(r) for r in ReviewRequest.objects.filter(campaign__owner=user).order_by("created_at")}  # 같은 캠페인은 뒤(최근)가 덮는다
 
 
 def reject_review_request(actor, review_request_id, note, now=None):
@@ -575,8 +563,7 @@ def update_ad_group(user, ad_group_id, changes, now=None, expected_updated_at=No
     잠금 안에서 대조해 다르면 409 — 옛 폼이 같은 칸의 최신 변경을 덮지 않게(외부 검토 41d2288 P3). 켜기/끄기처럼 바꿀 값이 분명한 동작은 주지 않는다."""
     require_advertiser(user)
     now = _now(now)
-    unknown = set(changes) - AD_GROUP_FIELDS
-    if unknown or not changes:
+    if set(changes) - AD_GROUP_FIELDS or not changes:
         raise _problem("/", f"바꿀 수 있는 필드: {sorted(AD_GROUP_FIELDS)}")
     with transaction.atomic():
         g = _locked_group(user, ad_group_id, now)
@@ -617,7 +604,7 @@ def add_bid(user, ad_group_id, amount, expected_version, now=None):
         try:
             with transaction.atomic():
                 bid = Bid.objects.create(ad_group=g, bid_version=(current_version or 0) + 1, amount=amount, created_by=user.pk, created_at=now)
-        except IntegrityError:  # 다른 DB 로 옮겼을 때의 안전망
+        except IntegrityError:  # 광고그룹 행 잠금(_locked_group)이 줄을 세워 오지 않는다 — 유일 제약(버전)의 안전망
             raise errors.StaleVersion()
         _record_bid_event(bid)  # 저장점 뒤, 바깥 트랜잭션 안
         _audit(user, "bid.added", ("campaigns.ad_group", g.ad_group_id), {"version": bid.bid_version, "amount": amount})
@@ -879,8 +866,7 @@ def update_creative(user, creative_id, changes, now=None, expected_updated_at=No
     `expected_updated_at`(화면이 본 마지막 변경 시각)을 주면 다르면 409 — 옛 폼이 그 사이의 변경(이미지 교체 포함)을 덮지 않게."""
     require_advertiser(user)
     now = _now(now)
-    unknown = set(changes) - CREATIVE_FIELDS
-    if unknown or not changes:
+    if set(changes) - CREATIVE_FIELDS or not changes:
         raise _problem("/", f"바꿀 수 있는 필드: {sorted(CREATIVE_FIELDS)}")
     with transaction.atomic():
         c = _locked_creative(user, creative_id)

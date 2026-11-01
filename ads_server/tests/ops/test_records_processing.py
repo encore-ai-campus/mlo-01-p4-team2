@@ -2,6 +2,7 @@
 import io
 import json
 import signal
+import threading
 import time
 import uuid
 from datetime import timedelta
@@ -19,7 +20,7 @@ from masters import api as masters
 from records import api as records
 from records.models import Reaction
 from records.rules import UnknownRule
-from tests.support.concurrency import run_together
+from tests.support.concurrency import BLOCKED, WAIT, Worker, pausing_before, run_together
 from tests.support.factories import DAY, NOW, SUBJECT, World, media_api
 from tests.support.cases import Cases
 
@@ -398,14 +399,15 @@ class CommandSafetyTests(Cases, ProcessingBase):
 
 
 @tag("security")
-class ConcurrentProcessingTests(TransactionTestCase):
-    def test_two_processors_at_once_charge_each_reaction_exactly_once(self):
+class ConcurrentProcessingTests(Cases, TransactionTestCase):  # records.receive_reaction 은 수신 직후 처리를 하지 않는다(그건 C1 뷰가 부른다)
+    def case_two_processors_at_once_charge_each_reaction_exactly_once(self):
         w = World()
         media = w.slot.media_id
         views = []
         for _ in range(6):  # 서로 다른 결정 6개 × 노출 하나씩
             d = records.decide(media, w.slot.slot_id, subject_id=SUBJECT, now=NOW, rng=Random(1))
             views.append(records.receive_reaction(media, d.decision_id, uuid.uuid4(), "IMPRESSION", NOW, {}, now=NOW)[0])
+        self.assertEqual(Reaction.objects.filter(status="RECEIVED").count(), 6)  # 처리기 둘이 실제로 나눠 처리한다
         errors = []
 
         def worker():
@@ -426,6 +428,32 @@ class ConcurrentProcessingTests(TransactionTestCase):
         self.assertEqual(LedgerEntry.objects.filter(entry_type="CHARGE").count(), 6)
         self.assertEqual(billing.get_wallet(w.adv, now=NOW).balance, 50_000 - 6 * 294)
         self.assertEqual(billing.check_ledger(), [])
+
+    def case_a_reaction_another_processor_holds_is_skipped_without_waiting(self):
+        w = World()
+        media = w.slot.media_id
+        d = records.decide(media, w.slot.slot_id, subject_id=SUBJECT, now=NOW, rng=Random(1))
+        view = records.receive_reaction(media, d.decision_id, uuid.uuid4(), "IMPRESSION", NOW, {}, now=NOW)[0]
+        paused, release = threading.Event(), threading.Event()
+        self.addCleanup(release.set)
+        first = Worker(pausing_before("UPDATE", "records_reaction", lambda: records.process_reaction(view.inbox_id, now=NOW), paused, release))
+        first.start()
+        self.assertTrue(paused.wait(WAIT))  # 첫 처리기가 반응 행을 잠근 채(과금까지 하고) 상태를 바꾸기 직전
+        second = Worker(lambda: records.process_reaction(view.inbox_id, now=NOW))
+        second.start()
+        second.join(BLOCKED)
+        self.assertFalse(second.is_alive(), "둘째 처리기가 잡힌 행의 잠금을 기다렸다")
+        self.assertEqual((second.errors, second.result), ([], None))  # 건너뜀 — 처리도 실패 기록도 하지 않는다
+        release.set()
+        first.join(WAIT)
+        self.assertEqual((first.errors, first.result), ([], "ACCEPTED"))
+        row = Reaction.objects.get(pk=view.inbox_id)
+        self.assertEqual((row.status, row.attempts), ("ACCEPTED", 0))
+        self.assertEqual(LedgerEntry.objects.filter(entry_type="CHARGE").count(), 1)
+        self.assertEqual(billing.check_ledger(), [])
+
+    def test_concurrent_processing(self):
+        self.run_cases()
 
 
 @tag("security")

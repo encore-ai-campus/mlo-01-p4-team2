@@ -83,9 +83,11 @@ def _hold(row, now):
 
 
 def _process(inbox_id, now):
-    row = Reaction.objects.select_for_update().filter(pk=inbox_id, status=ReactionStatus.RECEIVED).first()
+    # 다른 처리기가 잡고 있는 행은 기다리지 않고 건너뛴다(그쪽이 끝내고, 그쪽이 되돌리면 `RECEIVED` 로 남아 다음 주기에 다시 잡힌다).
+    # 처리기를 늘리면 같은 앞쪽 행에 줄을 서지 않고 나눠 처리한다(중계의 `SKIP LOCKED` 와 같다).
+    row = Reaction.objects.select_for_update(skip_locked=True).filter(pk=inbox_id, status=ReactionStatus.RECEIVED).first()
     if row is None:
-        return None  # 이미 처리됐거나 없다
+        return None  # 이미 처리됐거나 없거나, 다른 처리기가 지금 처리 중이다
     decision = Decision.objects.filter(decision_id=row.decision_id).first()
     facts = fact_gathering.gather(row, decision, now)
     verdict = run_rules(settings.REACTION_RULES, facts)

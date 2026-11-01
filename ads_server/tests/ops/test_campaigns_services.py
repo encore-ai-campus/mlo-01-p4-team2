@@ -2,15 +2,16 @@ import io
 import uuid
 from unittest import mock
 
-from django.db import connection
+from django.db import IntegrityError, connection, transaction
 from django.http import Http404
 from django.test import Client, TestCase, TransactionTestCase, override_settings, tag
 from django.test.utils import CaptureQueriesContext
 
 from assets.api import ImageRejected, asset_exists
 from campaigns import api
-from campaigns.models import AdGroup, Bid, Creative
-from events.api import event_id_for
+from campaigns.changes import record_change
+from campaigns.models import AdGroup, Bid, ChangeLog, Creative
+from events.api import OutsideTransaction, event_id_for
 from events.models import EventOutbox
 from foundation.errors import Forbidden, InvalidRequest, StaleVersion
 from foundation.models import AuditLog
@@ -153,6 +154,37 @@ class CampaignServiceTests(Cases, TestCase):
         with self.assertRaises(StaleVersion):  # 입찰 저장이 실패하면 이벤트도 없다
             api.add_bid(self.w.adv, gid, 450, expected_version=1, now=NOW)
         self.assertEqual(len(bid_events(gid)), 2)
+
+    def case_a_change_is_one_log_row_and_one_event_with_the_same_values(self):
+        """변경 로그(계획 docs/plans/00 §5.2·P2-5): 변경 한 번 = 로그 한 줄 + 변경 이벤트 하나, 같은 값·같은 트랜잭션. 값이 그대로면 아무것도 쓰지 않는다."""
+        c, g, slot = self.w.campaign, self.w.group, self.w.slot
+        args = dict(target_type="ad_group", target_id=g.ad_group_id, campaign_id=c.campaign_id, change_type="SLOTS_CHANGED")
+        other = uuid.uuid4()
+        change_id = record_change(**args, previous={"slot_ids": [slot.slot_id]}, new={"slot_ids": {other, slot.slot_id}}, now=NOW)
+        row = ChangeLog.objects.get(pk=change_id)
+        self.assertEqual((row.previous_value, row.new_value), ({"slot_ids": [str(slot.slot_id)]}, {"slot_ids": sorted([str(other), str(slot.slot_id)])}))  # UUID 목록은 정렬한 문자열
+        event = EventOutbox.objects.get(pk=event_id_for("ad.ad_group_changed", change_id))
+        self.assertEqual((event.aggregate_id, event.created_at, event.payload["previous_value"], event.payload["new_value"]),
+                         (g.ad_group_id, NOW, row.previous_value, row.new_value))  # 로그 = 이벤트(정합성 원천)
+        self.assertIsNone(record_change(**args, previous={"slot_ids": [slot.slot_id]}, new={"slot_ids": (slot.slot_id,)}, now=NOW))  # 그대로면 쓰지 않는다
+        created = record_change(target_type="campaign", target_id=c.campaign_id, campaign_id=c.campaign_id, change_type="CREATED", previous=None,
+                                new={"status": "ACTIVE", "daily_budget": 50_000, "ends_at": NOW + DAY, "starts_at": NOW}, now=NOW)
+        payload = EventOutbox.objects.get(pk=event_id_for("ad.campaign_changed", created)).payload
+        self.assertEqual((payload["previous_value"], payload["new_value"]["ends_at"], payload["campaign_id"]), (None, (NOW + DAY).isoformat(), str(c.campaign_id)))
+        self.assertEqual(ChangeLog.objects.count(), 2)
+        for bad in (1.5, NOW.replace(tzinfo=None)):  # 형식을 모르는 값·시간대 없는 시각은 조용히 바꾸지 않는다
+            with self.assertRaises(TypeError, msg=bad):
+                record_change(**args, previous={"x": 1}, new={"x": bad}, now=NOW)
+        with mock.patch("campaigns.changes.connection", mock.Mock(in_atomic_block=False)), self.assertRaises(OutsideTransaction):  # 트랜잭션 밖이면 로그를 쓰기 전에 막는다
+            record_change(**args, previous={"slot_ids": []}, new={"slot_ids": [slot.slot_id]}, now=NOW)
+        with mock.patch("campaigns.changes.events.record_campaign_changed", side_effect=RuntimeError("outbox down")):  # 이벤트가 실패하면 로그도 남지 않는다
+            with self.assertRaises(RuntimeError), transaction.atomic():
+                record_change(target_type="campaign", target_id=c.campaign_id, campaign_id=c.campaign_id, change_type="BUDGET_CHANGED",
+                              previous={"daily_budget": 50_000}, new={"daily_budget": 70_000}, now=NOW)
+        self.assertEqual(ChangeLog.objects.count(), 2)
+        for kind, previous in (({"target_type": "campaign", "change_type": "SLOTS_CHANGED"}, {"a": 1}), ({"target_type": "ad_group", "change_type": "CREATED"}, {"a": 1})):
+            with self.assertRaises(IntegrityError, msg=kind), transaction.atomic():  # DB 가 막는다: 대상에 없는 변경 종류, CREATED 의 이전 값
+                ChangeLog.objects.create(target_id=g.ad_group_id, campaign_id=c.campaign_id, previous_value=previous, new_value={"a": 2}, changed_at=NOW, **kind)
 
     def case_bid_validation(self):
         for bad in (0, -1, 1.5, True, "30", None, 2**53):

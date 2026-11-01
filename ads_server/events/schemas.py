@@ -5,7 +5,7 @@ events 는 foundation 만 알고, 객체를 받으면 import 없이도 위 모�
 JSON 이므로 UUID 는 문자열, 시각은 UTC ISO 8601(`records/basis.py` 와 같은 형식)이다. 모양이 바뀌면 **그 종류의** `schema_version` 을 올린다(종류별, 6-10c).
 """
 import uuid
-from datetime import timezone
+from datetime import datetime, timezone
 
 DECISION = "ad.decision"
 REACTION_RECEIVED = "ad.reaction_received"
@@ -93,6 +93,27 @@ def bid_policy_changed_payload(*, slot_id, bid_policy_id, policy_version, floor_
 def bid_added_payload(*, bid_id, ad_group_id, bid_version, amount, created_at):
     """광고그룹 입찰 버전 하나(추가 전용)."""
     return {"bid_id": _id(bid_id), "ad_group_id": _id(ad_group_id), "bid_version": bid_version, "amount": amount, "created_at": _iso(created_at)}
+
+
+def change_value(**fields):
+    """변경 로그·변경 이벤트의 값(`previous_value`·`new_value`) — 바뀐 업무 필드만. **형식은 여기서만 정한다**: UUID → 문자열, 시각 → UTC ISO(`_iso`, 마이크로초),
+    UUID 목록 → 정렬한 문자열 목록, 정수·불리언·문자열·`None` 은 그대로. 그 밖의 형은 받지 않는다(조용히 바꾸지 않는다). 로그를 쓰는 쪽(campaigns)이 결과를
+    저장하고 같은 값을 이벤트에 넘긴다 — JSONField 에 시각을 그대로 넣으면 저장 형식(밀리초·Z)이 이벤트의 다른 시각 필드와 갈린다."""
+    out = {}
+    for name, value in fields.items():
+        if isinstance(value, uuid.UUID):
+            out[name] = str(value)
+        elif isinstance(value, datetime):
+            if value.tzinfo is None:  # astimezone 은 서버 지역 시각으로 가정해 다른 순간을 만든다
+                raise TypeError(f"변경 값 {name} 은 시간대가 있는 시각이어야 한다")
+            out[name] = _iso(value)
+        elif isinstance(value, (list, tuple, set, frozenset)) and all(isinstance(v, uuid.UUID) for v in value):
+            out[name] = sorted(str(v) for v in value)
+        elif value is None or isinstance(value, (bool, int, str)):
+            out[name] = value
+        else:
+            raise TypeError(f"변경 값 {name} 의 형({type(value).__name__})은 받지 않는다")
+    return out
 
 
 def campaign_changed_payload(*, campaign_id, change_id, change_type, previous_value, new_value, changed_at):

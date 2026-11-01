@@ -63,6 +63,7 @@ decision_payload, reaction_received_payload, reaction_payload, charge_payload = 
     schemas.decision_payload, schemas.reaction_received_payload, schemas.reaction_payload, schemas.charge_payload)
 bid_policy_changed_payload, bid_added_payload, campaign_changed_payload, ad_group_changed_payload = (
     schemas.bid_policy_changed_payload, schemas.bid_added_payload, schemas.campaign_changed_payload, schemas.ad_group_changed_payload)
+change_value = schemas.change_value
 normal_document, summarize = hops.normal_document, hops.summarize
 summarize_windows, table_stream, outbox_streams, mongo_streams, unsent_counts, WINDOWS = (
     hops.summarize_windows, hops.table_stream, hops.outbox_streams, hops.mongo_streams, hops.unsent_counts, hops.WINDOWS)
@@ -70,7 +71,7 @@ HOP_SCHEMA_VERSION, window_label, format_time, parse_time = hops.HOP_SCHEMA_VERS
 
 __all__ = [
     "SCHEMA_VERSIONS", "decision_payload", "reaction_received_payload", "reaction_payload", "charge_payload",
-    "bid_policy_changed_payload", "bid_added_payload", "campaign_changed_payload", "ad_group_changed_payload",
+    "bid_policy_changed_payload", "bid_added_payload", "campaign_changed_payload", "ad_group_changed_payload", "change_value",
     "normal_document", "summarize", "summarize_windows", "table_stream", "outbox_streams", "mongo_streams", "unsent_counts", "WINDOWS", "HOP_SCHEMA_VERSION", "window_label", "format_time", "parse_time",
     "OutsideTransaction", "record_decision", "record_reaction_received", "record_reaction", "record_charge",
     "record_bid_policy_changed", "record_bid_added", "record_campaign_changed", "record_ad_group_changed", "event_id_for", "NAMES",

@@ -1,4 +1,4 @@
-"""광고주가 소유하는 운영 데이터: 캠페인·광고그룹·소재·입찰·재검토 요청(설계 §4.5~4.6)."""
+"""광고주가 소유하는 운영 데이터: 캠페인·광고그룹·소재·입찰·재검토 요청(설계 §4.5~4.6)과 캠페인·광고그룹의 변경 로그."""
 import uuid
 
 from django.conf import settings
@@ -142,6 +142,43 @@ class Bid(AppendOnlyModel):
         constraints = [
             models.UniqueConstraint(fields=["ad_group", "bid_version"], name="campaigns_bid_version_per_ad_group"),
             models.CheckConstraint(condition=Q(amount__gt=0, amount__lte=MAX_AMOUNT), name="campaigns_bid_amount_range"),
+        ]
+
+
+CAMPAIGN_CHANGES = ("CREATED", "STATUS_CHANGED", "BUDGET_CHANGED", "PERIOD_CHANGED")
+AD_GROUP_CHANGES = ("CREATED", "ENABLED_CHANGED", "SLOTS_CHANGED", "CREATIVE_SELECTED")
+
+
+class ChangeTarget(models.TextChoices):
+    CAMPAIGN = "campaign"
+    AD_GROUP = "ad_group"
+
+
+class ChangeLog(AppendOnlyModel):
+    """캠페인·광고그룹의 변경 한 번 = 한 줄(계획 docs/plans/00 §5.2, D2·D10). 이 행의 ID 가 `ad.campaign_changed`·`ad.ad_group_changed` 의 원천 ID 라
+    같은 대상을 두 번 바꿔도 이벤트가 충돌하지 않는다. 쓰는 곳은 `changes.record_change` 하나다(로그와 이벤트를 같은 트랜잭션에)."""
+
+    change_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
+    target_type = models.CharField(max_length=16, choices=ChangeTarget.choices)
+    target_id = models.UUIDField()  # FK 가 아니다: 이력 행은 값으로 가리킨다(Decision·AuditLog 와 같다)
+    campaign_id = models.UUIDField()  # 광고그룹 행도 소속 캠페인을 채운다 — 광고주 범위로 좁힐 때
+    change_type = models.CharField(max_length=32)
+    previous_value = models.JSONField(null=True)  # 바뀐 업무 필드만(형식은 events.change_value). CREATED 는 NULL
+    new_value = models.JSONField()
+    changed_at = models.DateTimeField()
+
+    class Meta:
+        db_table = "campaigns_change_log"
+        indexes = [models.Index(fields=["target_type", "changed_at"], name="campaigns_chg_type_at_idx")]  # 정합성 원천 스트림이 종류·창마다 읽는다
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(target_type=ChangeTarget.CAMPAIGN, change_type__in=CAMPAIGN_CHANGES) | Q(target_type=ChangeTarget.AD_GROUP, change_type__in=AD_GROUP_CHANGES),
+                name="campaigns_change_log_kind",
+            ),
+            models.CheckConstraint(
+                condition=Q(change_type="CREATED", previous_value__isnull=True) | (~Q(change_type="CREATED") & Q(previous_value__isnull=False)),
+                name="campaigns_change_log_previous_unless_created",
+            ),
         ]
 
 

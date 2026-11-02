@@ -8,7 +8,8 @@ from django.core.exceptions import ImproperlyConfigured
 ADVERTISER_PREFIX = "/advertiser/"
 # 다른 화면·API 가 쓰는 첫 경로 조각(config/urls.py — 시험이 URL 설정 전체와 대조한다). 관리자 경로가 이 밑에 오면
 # CSRF 예외(`CSRF_EXEMPT_PREFIXES` = /api/media/)에 들어가거나, 다른 경로를 가리거나, 역할 접두사(/advertiser/)와 겹친다.
-RESERVED_FIRST_SEGMENTS = frozenset({"api", "c", "assets", "advertiser", "accounts", "static"})
+# health: 프론트의 `/health/`(ads_frontend/config/urls.py — 관리자 경로보다 먼저 맞춘다). 두 서버는 같은 ADMIN_URL_PATH 를 쓰므로 여기서 함께 막는다.
+RESERVED_FIRST_SEGMENTS = frozenset({"api", "c", "assets", "advertiser", "accounts", "static", "health"})
 
 
 def validate_admin_path(path, allow_default=False):

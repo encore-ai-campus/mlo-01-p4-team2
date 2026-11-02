@@ -29,7 +29,7 @@ python manage.py runserver 127.0.0.1:8000  # 백엔드만 실행. 화면 요청�
 - **실행 환경은 `ads_server/.venv`** 하나다. 의존성은 `requirements.txt`가 전부이고(직접 의존성은 패치 버전까지 고정), `.venv`는 커밋하지 않는다. 다시 만들 때는 `.venv`를 지우고 위 세 줄을 그대로 실행한다. PostgreSQL 드라이버는 `psycopg[binary]`라 따로 빌드할 것이 없다. 이후 명령(`python manage.py …`, `tests/tools/check.sh`)은 모두 이 환경을 활성화한 셸에서 실행한다.
 - `.env`는 python-dotenv가 읽고, **실제 환경변수가 `.env`보다 우선**한다.
 - 설정은 `config/settings/{dev,prod,test}.py`. `manage.py`는 기본 dev, `manage.py test`는 항상 test, `wsgi/asgi`는 `.env`의 설정 모듈을 따르지 않고 실제 환경변수가 없으면 prod다(아래 "운영 배포").
-- prod는 `SECRET_KEY`(50자 이상)·`ALLOWED_HOSTS`·`DB_NAME`·`DB_USER`·`DB_PASSWORD`·`DB_HOST`·`ADMIN_URL_PATH`(기본값 `admin/` 금지, 첫 조각이 `api`·`c`·`assets`·`advertiser`·`accounts`·`static`이면 기동 거부)·`MEDIA_ROOT`·`ASSET_PUBLIC_BASE_URL`·`TRUSTED_PROXY_COUNT`(1 이상)·`CSRF_TRUSTED_ORIGINS`가 없으면 기동하지 않는다.
+- prod는 `SECRET_KEY`(50자 이상)·`ALLOWED_HOSTS`·`DB_NAME`·`DB_USER`·`DB_PASSWORD`·`DB_HOST`·`ADMIN_URL_PATH`(기본값 `admin/` 금지, 첫 조각이 `api`·`c`·`assets`·`advertiser`·`accounts`·`static`·`health`(프론트)이면 기동 거부)·`MEDIA_ROOT`·`ASSET_PUBLIC_BASE_URL`·`TRUSTED_PROXY_COUNT`(1 이상)·`CSRF_TRUSTED_ORIGINS`가 없으면 기동하지 않는다.
 - 관리자 계정은 가입 화면이 없다: `python manage.py createsuperuser`.
 - 정적 파일(CSS·JS)은 Django가 WhiteNoise로 서빙한다(설계 §10 "정적 파일 서빙"). 6-15 부터 콘솔·운영 화면과 Django admin 의 정적 파일은 **프론트가** 서빙하고, 이 백엔드에는 직접 오는 경우의 Django admin 것만 남는다. dev에서 `DJANGO_DEBUG=1`이면 `runserver`가 앱 폴더에서 바로 서빙하고, `DEBUG`가 꺼져 있으면(기본) `python manage.py collectstatic --noinput`을 한 번 돌린 뒤 다시 시작해야 화면에 CSS가 붙는다.
 

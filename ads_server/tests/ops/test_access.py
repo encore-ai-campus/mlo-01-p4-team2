@@ -140,7 +140,7 @@ class AccessControlTests(Cases, TestCase):
 class AdminPathSettingTests(Cases, SimpleTestCase):
     def case_validate_admin_path_rules(self):
         self.assertEqual(validate_admin_path("ops-9f3a/"), "ops-9f3a/")
-        for bad in ("", "/ops/", "ops", "a//b/", "admin/", "api/media/ops/", "c/", "assets/x/", "advertiser/ops/", "accounts/"):  # 뒤의 다섯: 다른 경로 밑(B13 — /api/media/ 는 CSRF 예외)
+        for bad in ("", "/ops/", "ops", "a//b/", "admin/", "api/media/ops/", "c/", "assets/x/", "advertiser/ops/", "accounts/", "health/"):  # 뒤의 여섯: 다른 경로 밑(B13 — /api/media/ 는 CSRF 예외, health/ 는 프론트)
             with self.assertRaises(ImproperlyConfigured, msg=bad):
                 validate_admin_path(bad)
         self.assertEqual(validate_admin_path("admin/", allow_default=True), "admin/")

@@ -226,12 +226,14 @@ def verify_events(relayed=False):
     ② `relayed`(중계가 모두 끝난 시점): 미전송 0, MongoDB 의 ID 집합 = outbox, 그리고 **MongoDB 문서 전체(봉투 + 페이로드)가 outbox 와 같다**.
     outbox 와 MongoDB 를 같은 잘못된 값으로 바꿔도 ①이 잡고, MongoDB 만 바꿔도 ②가 잡는다.
     """
+    from django.db import transaction
     from events import relay, schemas, store
     from events.models import EventOutbox
 
     from records.api import expected_events
 
-    expected = expected_events()
+    with transaction.atomic():  # expected_events 의 `.iterator()` 는 트랜잭션 안에서만 연다 — 밖이면 WITH HOLD 커서가 된다(계획 D6: PgBouncer transaction 모드에서 깨진다)
+        expected = expected_events()
     outbox = {row.pk: row for row in EventOutbox.objects.all()}
     problems = []
     if expected.keys() - outbox.keys():

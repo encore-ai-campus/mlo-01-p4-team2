@@ -470,8 +470,8 @@ class HoldQueueTests(Cases, FunnelBase):
         order = []
         from records import processing
 
-        original = processing.process_reaction
-        with mock.patch("records.processing.process_reaction", side_effect=lambda i, now=None: (order.append(i), original(i, now=now))[1]):
+        original = processing._process  # process_pending 이 반응마다 부르는 판정(잠근 채 고른 트랜잭션 안)
+        with mock.patch("records.processing._process", side_effect=lambda i, now: (order.append(i), original(i, now))[1]):
             records.process_pending(now=at(100), limit=10)
         self.assertEqual(order[:3], [fresh.inbox_id, old_held.inbox_id, newer_held.inbox_id])
 

@@ -255,21 +255,23 @@ class QueueTests(Cases, ProcessingBase):
         bad = self.receive("IMPRESSION", at=NOW)
         others = [self.new_decision("0197a5c0-0000-7000-8000-00000000000%d" % i).decision_id for i in (1, 2)]
         good = [self.receive("IMPRESSION", decision_id=d, at=NOW + timedelta(seconds=i + 1)) for i, d in enumerate(others)]
-        real = records.process_reaction
+        from records import processing
 
-        def flaky(inbox_id, now=None):
+        real = processing._process
+
+        def flaky(inbox_id, now):
             if inbox_id == bad.inbox_id:
                 raise RuntimeError("poison")
-            return real(inbox_id, now=now)
+            return real(inbox_id, now)
 
-        with override_settings(REACTION_MAX_ATTEMPTS=3), mock.patch("records.processing.process_reaction", flaky):
+        with override_settings(REACTION_MAX_ATTEMPTS=3), mock.patch("records.processing._process", flaky):
             first = records.process_pending(now=NOW)
-        self.assertEqual((first["failed"], first["accepted"]), (1, 2))
+        self.assertEqual((first["failed"], first["accepted"], first["locked"]), (1, 2, 0))  # 이번 묶음에서 실패한 것은 locked 로 세지 않는다(멈춘 연결 신호가 거짓이 되지 않게)
         self.assertEqual([self.row(v).status for v in good], ["ACCEPTED", "ACCEPTED"])
         # 실패한 반응은 횟수가 쌓이다가 한도에서 자동 처리 대상에서 빠진다(거부·삭제하지 않는다)
         with override_settings(REACTION_MAX_ATTEMPTS=3):
             Reaction.objects.filter(pk=bad.inbox_id).update(attempts=3)
-            self.assertEqual(records.process_pending(now=NOW), {"accepted": 0, "rejected": 0, "pending": 0, "skipped": 0, "locked": 0, "failed": 0, "transient": 0, "contended": 0})
+            self.assertEqual(records.process_pending(now=NOW), {"accepted": 0, "rejected": 0, "pending": 0, "locked": 0, "failed": 0, "transient": 0, "contended": 0})
             self.assertEqual(records.stuck_count(), 1)
             self.assertEqual(self.row(bad).status, "RECEIVED")
             self.assertEqual(records.reset_stuck(), 1)
@@ -411,23 +413,25 @@ class CommandSafetyTests(Cases, ProcessingBase):
     def case_sigterm_finishes_the_current_reaction_and_stops_without_draining_the_queue(self):
         for i, kind in enumerate(("IMPRESSION", "CLICK", "CONVERSION", "IMPRESSION")):
             self.receive(kind, at=NOW + timedelta(seconds=i))
-        handlers, real = {}, records.process_reaction
+        from records import processing
+
+        handlers, real = {}, processing._process
 
         def capture(signum, handler):
             handlers[signum] = handler
             return signal.SIG_DFL
 
-        def term_during_first(inbox_id, now=None):
+        def term_during_first(inbox_id, now):
             if not handlers.get("fired"):
                 handlers["fired"] = True
                 handlers[signal.SIGTERM](signal.SIGTERM, None)  # 첫 반응을 처리하는 중에 SIGTERM
-            return real(inbox_id, now=now)
+            return real(inbox_id, now)
 
         for batch in ("2", "1", "100"):
             Reaction.objects.update(status="RECEIVED", reason_code=None, applied_rule=None, processed_at=None, person_id=None, accepted_key=None, basis=None)
             handlers.clear()
             with mock.patch("records.management.commands.process_reactions.signal.signal", capture), \
-                    mock.patch("records.processing.process_reaction", term_during_first):
+                    mock.patch("records.processing._process", term_during_first):
                 self.run_command("--batch", batch, "--interval", "0.01")
             done = Reaction.objects.exclude(status="RECEIVED").count()
             self.assertEqual(done, 1, f"batch={batch}: 현재 한 건만 끝내고 멈춘다")
@@ -436,19 +440,21 @@ class CommandSafetyTests(Cases, ProcessingBase):
     def case_a_restart_resumes_what_the_stopped_run_left(self):
         decisions = [self.decision.decision_id] + [self.new_decision("0197a5c0-0000-7000-8000-00000000000%d" % i).decision_id for i in (1, 2)]
         views = [self.receive("IMPRESSION", decision_id=d, at=NOW + timedelta(seconds=i)) for i, d in enumerate(decisions)]
-        handlers, real = {}, records.process_reaction
+        from records import processing
+
+        handlers, real = {}, processing._process
 
         def capture(signum, handler):
             handlers[signum] = handler
             return signal.SIG_DFL
 
-        def term_after_first(inbox_id, now=None):
-            result = real(inbox_id, now=now)
+        def term_after_first(inbox_id, now):
+            result = real(inbox_id, now)
             handlers[signal.SIGTERM](signal.SIGTERM, None)
             return result
 
         with mock.patch("records.management.commands.process_reactions.signal.signal", capture), \
-                mock.patch("records.processing.process_reaction", term_after_first):
+                mock.patch("records.processing._process", term_after_first):
             self.run_command("--batch", "1")
         self.assertEqual([self.row(v).status for v in views], ["ACCEPTED", "RECEIVED", "RECEIVED"])
         self.run_command("--once")  # 재기동
@@ -500,6 +506,9 @@ class ConcurrentProcessingTests(Cases, TransactionTestCase):  # records.receive_
         media = w.slot.media_id
         d = records.decide(media, w.slot.slot_id, subject_id=SUBJECT, now=NOW, rng=Random(1))
         view = records.receive_reaction(media, d.decision_id, uuid.uuid4(), "IMPRESSION", NOW, {}, now=NOW)[0]
+        others = [records.decide(media, w.slot.slot_id, subject_id=f"0197a5c0-0000-7000-8000-00000000000{i}", now=NOW, rng=Random(1)) for i in (4, 5)]
+        for o in others:  # 뒤에 접수된 다른 결정의 반응 둘 — 잡힌 행에 막히지 않고 이것들을 처리해야 한다(나눠 처리). 매체가 보고한 클릭이라 과금 없이 거부된다(지갑을 기다리지 않게)
+            records.receive_reaction(media, o.decision_id, uuid.uuid4(), "CLICK", NOW, {}, now=NOW + timedelta(seconds=1))
         paused, release = threading.Event(), threading.Event()
         self.addCleanup(release.set)
         first = Worker(pausing_before("UPDATE", "records_reaction", lambda: records.process_reaction(view.inbox_id, now=NOW), paused, release))
@@ -514,7 +523,14 @@ class ConcurrentProcessingTests(Cases, TransactionTestCase):  # records.receive_
         third.start()
         third.join(BLOCKED)
         self.assertFalse(third.is_alive())
-        self.assertEqual((third.errors, third.result["locked"], third.result["skipped"]), ([], 1, 0))  # 요약에서는 '이미 처리됨'과 갈라 locked(버그 탐색 K4)
+        self.assertEqual((third.errors, third.result["rejected"], third.result["locked"]), ([], 2, 1))  # 잡힌 행은 건너뛰고 뒤의 둘을 처리, 잡힌 것은 locked 로만 센다(K4)
+        from records.management.commands.process_reactions import Command
+
+        fourth = Worker(lambda: Command().drain(1, lambda: False))  # `--once --batch 1` 의 비우기 반복(신호 처리기는 주 스레드에서만 걸 수 있어 반복만 부른다)
+        fourth.start()
+        fourth.join(BLOCKED)
+        self.assertFalse(fourth.is_alive(), "--once 가 남이 쥔 행(locked) 때문에 끝나지 않았다")  # locked 는 처리한 건이 아니라 '묶음이 찼다'로 세지 않는다
+        self.assertEqual(fourth.errors, [])
         release.set()
         first.join(WAIT)
         self.assertEqual((first.errors, first.result), ([], "ACCEPTED"))

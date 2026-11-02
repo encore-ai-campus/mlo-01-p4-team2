@@ -172,4 +172,6 @@ class Reaction(models.Model):
             # 구간 manifest 가 창마다 그 범위만 읽는다(외부 검토 00d3067 P3-3): 접수 이벤트는 수신 시각, 판정·과금 이벤트는 처리 시각
             models.Index(fields=["received_at"], name="records_reaction_received_idx"),
             models.Index(fields=["processed_at"], name="records_reaction_processed_idx"),
+            # 처리기가 다음 반응을 잠근 채 고르는 순서(processing.process_pending — 반응마다 한 번 고른다). 대기 중인 행만 담는다(사용자 2026-11-02)
+            models.Index(F("checked_at").asc(nulls_first=True), "received_at", "inbox_id", condition=Q(status="RECEIVED"), name="records_reaction_queue_idx"),
         ]

@@ -192,41 +192,62 @@ def process_after_receipt(inbox_id):
         return None
 
 
+def _queue(now):
+    """처리 대상: `RECEIVED` 이고 실패 상한 전이며, 한 번도 확인하지 않았거나(깨워진 것 포함) 마지막 확인에서 재확인 간격이 지난 것."""
+    due = Q(checked_at__isnull=True) | Q(checked_at__lte=now - timedelta(seconds=settings.REACTION_HOLD_RECHECK_SECONDS))
+    return Reaction.objects.filter(due, status=ReactionStatus.RECEIVED, attempts__lt=settings.REACTION_MAX_ATTEMPTS)
+
+
 def process_pending(limit=100, now=None, should_stop=None):
     """`RECEIVED` 를 최대 `limit` 건 처리한다. 한 건의 실패가 다른 건을 막지 않는다. 반환: 결과별 건수.
 
+    반응마다 트랜잭션 하나에서 **다음 반응을 잠근 채 고르고**(`FOR UPDATE SKIP LOCKED` — 다른 처리기·멈춘 연결이 쥔 행은 기다리지 않고 건너뛴다, 중계와 같다)
+    그 트랜잭션에서 판정한다. 처리기 여럿이 같은 앞쪽 행을 다투지 않고 나눠 처리한다(사용자 2026-11-02 — 전에는 잠그지 않고 고른 ID 목록이 같아 서로 건너뛰기만 했다).
+    접수 잠금은 저장점에서 지나가기만 한다(`ordering.wait_for_inflight_receipts` — 잠금을 쥔 채 과금하지 않는다).
+    이번 호출에서 한 번 시도한 반응은 다시 고르지 않는다(실패한 반응을 연달아 다시 집어 곧바로 상한에 닿지 않게).
+
     앞을 기다리는 보류분은 앞 단계가 끝나 **깨워지거나**(`_wake_dependents`) `REACTION_HOLD_RECHECK_SECONDS` 가 지나야 다시 대상이 된다.
     정렬은 **한 번도 확인하지 않은(또는 깨워진) 것 먼저**(접수 순서), 그 다음은 마지막 확인이 오래된 순이다 — 보류분이 아무리 쌓여도 새 반응이 그 뒤로 밀리지 않는다.
+    더 고를 것이 없으면 `locked` 에 남은 대상 수(= 지금 다른 쪽이 쥐고 있는 것)를 한 번 센다 — 처리기가 하나인데 계속 보이면 멈춘 연결이다(버그 탐색 K4).
 
     `should_stop()` 이 참이 되면 **현재 반응을 끝낸 뒤 다음 반응을 시작하지 않는다**(남은 것은 `RECEIVED` 로 둔다).
     """
-    now_for_due = _now(now)
-    due = Q(checked_at__isnull=True) | Q(checked_at__lte=now_for_due - timedelta(seconds=settings.REACTION_HOLD_RECHECK_SECONDS))
-    ids = list(
-        Reaction.objects.filter(due, status=ReactionStatus.RECEIVED, attempts__lt=settings.REACTION_MAX_ATTEMPTS)
-        .order_by(F("checked_at").asc(nulls_first=True), "received_at", "inbox_id").values_list("inbox_id", flat=True)[:limit]
-    )
-    counts = {"accepted": 0, "rejected": 0, "pending": 0, "skipped": 0, "locked": 0, "failed": 0, "transient": 0, "contended": 0}
-    for inbox_id in ids:
+    counts = {"accepted": 0, "rejected": 0, "pending": 0, "locked": 0, "failed": 0, "transient": 0, "contended": 0}
+    tried, exhausted = [], False
+    for _ in range(limit):
         if should_stop is not None and should_stop():
             break
+        reaction_now, inbox_id = _now(now), None
         try:
-            outcome = process_reaction(inbox_id, now=now)
+            with transaction.atomic():
+                inbox_id = (_queue(reaction_now).select_for_update(skip_locked=True).exclude(pk__in=tried)
+                            .order_by(F("checked_at").asc(nulls_first=True), "received_at", "inbox_id").values_list("inbox_id", flat=True).first())
+                if inbox_id is None:
+                    exhausted = True
+                    break
+                tried.append(inbox_id)
+                ordering.wait_for_inflight_receipts(inbox_id)  # 저장점에서 진행 중인 접수·비활성화를 기다렸다가 그 잠금을 바로 놓는다
+                outcome = _process(inbox_id, reaction_now)
         except Exception as error:  # noqa: BLE001
-            if is_transient_lock_error(error):  # 다음 주기에 다시 한다(실패 횟수는 그대로)
+            if inbox_id is None:
+                raise  # 대기열 조회 자체의 실패(DB 연결 등)는 호출한 쪽이 다룬다
+            if is_transient_lock_error(error):  # 다음 주기에 다시 한다(실패 횟수는 그대로) — 서버가 되돌렸을 뿐이라 횟수를 올리면 정상 반응이 자동 재처리에서 빠진다
                 logger.warning("반응 처리가 교착·잠금 초과로 되돌려졌다(다음 주기에 다시) inbox=%s", inbox_id)
                 counts["transient"] += 1
-            elif violated_constraint(error) == ACCEPTED_KEY_CONSTRAINT:  # 두 조회 사이 창에서 같은 사람·유형의 인정이 겹쳤다(설계 D13) — 실패 횟수는 올렸다(설정 누락처럼 반복되면 stuck 으로 드러난다)
+                continue
+            _note_failure(inbox_id)
+            if violated_constraint(error) == ACCEPTED_KEY_CONSTRAINT:  # 두 조회 사이 창에서 같은 사람·유형의 인정이 겹쳤다(설계 D13) — 실패 횟수는 올렸다(설정 누락처럼 반복되면 stuck 으로 드러난다)
                 logger.warning("같은 사람·유형의 인정이 겹쳐 유일 제약이 막았다(다음 처리에서 거부된다) inbox=%s", inbox_id)
                 counts["contended"] += 1
             else:
                 logger.exception("반응 처리 실패 inbox=%s", inbox_id)
                 counts["failed"] += 1
             continue
-        if outcome is None:  # 건너뛴 이유를 가른다(버그 탐색 K4): 아직 RECEIVED 면 다른 처리기(또는 멈춘 연결)가 잡고 있는 것, 아니면 이미 처리됐다
-            counts["locked" if Reaction.objects.filter(pk=inbox_id, status=ReactionStatus.RECEIVED).exists() else "skipped"] += 1
-        else:
-            counts[outcome.lower()] += 1
+        if outcome in (ReactionStatus.ACCEPTED, ReactionStatus.REJECTED):
+            _wake_dependents(inbox_id)
+        counts[outcome.lower()] += 1
+    if exhausted:
+        counts["locked"] = _queue(_now(now)).exclude(pk__in=tried).count()
     return counts
 
 

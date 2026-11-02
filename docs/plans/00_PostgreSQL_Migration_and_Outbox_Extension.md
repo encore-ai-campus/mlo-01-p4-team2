@@ -294,6 +294,7 @@ PostgreSQL은 기본값 없는 NULL 열 추가가 표를 다시 쓰지 않는다
 
 - **Kafka 전환 때 바꿀 곳:** `events/relay.py:84-96`(성공 뒤 `sent_at` UPDATE), `events/management/commands/purge_sent_events.py`(보낸 지 N일 뒤 DELETE), `events/relay.py:107-132`(MongoDB 대조). Debezium Outbox Router는 INSERT만 있는 outbox를 전제한다(설계안 §3.5).
 - PgBouncer 도입(D6): 요청이 늘어 앱 서버·워커를 늘릴 때. `lock_timeout`·`idle_in_transaction_session_timeout`(60초, 2026-11-02 버그 탐색 K3) 전달 방식을 함께 정한다.
+- 반응이 많이 쌓인 DB 에 서비스 중 색인을 더할 때(예: `records/0002_reaction_queue_idx`, 2026-11-02): `AddIndex` 는 `CREATE INDEX`(동시 아님)라 만드는 동안 표 쓰기가 막힌다 — 트래픽이 적은 때 올리거나 `AddIndexConcurrently`(atomic=False 마이그레이션)로 바꾼다. 운영 데이터가 없는 지금은 그대로 둔다.
 - PostgreSQL 복제·HA 구성(MySQL InnoDB Cluster 대체)과 그 장애 시험(`failure_test.py`의 클러스터 시나리오): 인프라와 정한 뒤.
 - `masters.create_slot`의 `except IntegrityError`(P2-3 검토, 선택): 블록 안의 모든 무결성 오류를 "같은 이름의 구성" 409로 바꾼다 — 같은 블록의 감사·outbox 쓰기 결함(CHECK·NOT NULL)도 이름 충돌로 보인다. `is_unique_violation`이 아니면 다시 올리도록 고친다. 실패 방식이 바뀌므로 따로 한다.
 - C4 Insight 저장·`ad.insight_recorded`, `ad.decision` v3: 가격 모델 단계(§8.3).

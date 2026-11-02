@@ -133,12 +133,13 @@ class PostgresSessionTests(Cases, TestCase):
 
     def case_session_settings(self):
         with transaction.atomic(), connection.cursor() as cur:  # 격리 수준은 트랜잭션을 여는 BEGIN 에 붙는다 — 트랜잭션 밖의 값은 서버 기본값이다
-            cur.execute("SELECT current_setting('transaction_isolation'), current_setting('lock_timeout'), current_setting('server_encoding')")
-            isolation, lock_timeout, encoding = cur.fetchone()
+            cur.execute("SELECT current_setting('transaction_isolation'), current_setting('lock_timeout'), current_setting('server_encoding'), current_setting('idle_in_transaction_session_timeout')")
+            isolation, lock_timeout, encoding, idle_timeout = cur.fetchone()
             cur.execute("SELECT 'a' = 'A', 'e' = 'é', 'B' < 'a', 'z' < 'é', upper('é')")
             case_equal, accent_equal, upper_before_lower, accent_after_z, upper_e = cur.fetchone()
         self.assertEqual(isolation, "read committed")
         self.assertEqual(lock_timeout, "5s")  # 넘으면 55P03 → 503 + Retry-After(결정 D9). 기본(0)은 끝없이 기다린다
+        self.assertEqual(idle_timeout, "1min")  # 트랜잭션을 연 채 멈춘 연결은 60초 뒤 서버가 끊어 행 잠금을 푼다(버그 탐색 K3). 기본(0)은 끝없이 쥔다
         self.assertEqual(encoding, "UTF8")
         # 정렬 builtin C.UTF-8(결정 D11): 같음은 대소문자·악센트를 구분하고(유일 제약이 MySQL utf8mb4_0900_as_cs 와 같게), 순서는 코드값이다.
         # 대소문자 변환은 유니코드라 대소문자 무시 검색(icontains)이 ASCII 밖의 글자도 접는다

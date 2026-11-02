@@ -218,9 +218,11 @@ def postgres_config(name, user, password, host, port):
       REPEATABLE READ 는 동시 갱신을 직렬화 실패(40001)로 끝내므로 운영 기본값으로 쓰지 않는다(정합성 점검의 읽기 전용 스냅샷만 `billing.consistent_read`).
     - lock_timeout 5s(결정 D9): PostgreSQL 기본(0)은 잠금을 끝없이 기다린다. 넘으면 55P03 → 일시 오류(503 + Retry-After, 반응 처리는 다음 주기 — foundation/dberrors.py).
       값은 부하 시험(계획 P1-10)으로 확정했다(55P03·40P01 0건).
+    - idle_in_transaction_session_timeout 60s(사용자 2026-11-02, 버그 탐색 K3): 트랜잭션을 연 채 멈춘 연결은 서버가 끊어 잡은 행 잠금을 푼다 — 반응 처리는 잠긴 행을
+      `SKIP LOCKED` 로 건너뛰므로, 멈춘 연결이 쥔 반응은 경고 없이 계속 남았다. 트랜잭션 안에서 가장 오래 쉬는 곳(중계가 MongoDB 쓰기를 기다림 — 서버 선택 3초 + 소켓 10초, 재시도 한 번이라 최대 약 26초)보다 넉넉하다.
     - 문자열 검사(MySQL STRICT)·문자 집합·정렬 옵션은 없다: PostgreSQL 은 잘리거나 잘못된 값을 항상 오류로 하고, 기본(결정적) 정렬은 대소문자·악센트를 구분한다.
     - CONN_MAX_AGE=0: 요청마다 연결을 닫는다. 연결 수는 운영 `max_connections` 기본 100 안에 든다(동기 워커 + 상시 프로세스). 요청이 늘면 앱 풀이 아니라
-      PgBouncer(transaction 모드)로 넓히고, 그때 `lock_timeout` 전달 방식(DB 역할 설정 또는 PgBouncer `track_extra_parameters`)을 고른다(결정 D6).
+      PgBouncer(transaction 모드)로 넓히고, 그때 `lock_timeout`·`idle_in_transaction_session_timeout` 전달 방식(DB 역할 설정 또는 PgBouncer `track_extra_parameters`)을 고른다(결정 D6).
     """
     return {
         "ENGINE": "django.db.backends.postgresql",
@@ -232,7 +234,7 @@ def postgres_config(name, user, password, host, port):
         "CONN_MAX_AGE": 0,
         "OPTIONS": {
             "isolation_level": IsolationLevel.READ_COMMITTED,
-            "options": "-c lock_timeout=5s",
+            "options": "-c lock_timeout=5s -c idle_in_transaction_session_timeout=60s",
             "connect_timeout": 5,
         },
     }

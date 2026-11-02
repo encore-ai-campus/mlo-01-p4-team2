@@ -32,8 +32,9 @@ class Command(BaseCommand):
         parser.add_argument("--retry-stuck", action="store_true", help="실패가 반복돼 빠진 반응의 실패 횟수를 0 으로 되돌려 다시 처리 대상으로")
 
     def drain(self, batch, should_stop):
-        # transient = 교착·잠금 초과로 되돌려져 다음 주기에 다시 하는 것, contended = 같은 사람·유형의 인정이 겹쳐 유일 제약이 막은 것(다음 처리에서 거부, 설계 D13)
-        total = {"accepted": 0, "rejected": 0, "pending": 0, "skipped": 0, "failed": 0, "transient": 0, "contended": 0}
+        # skipped = 이미 처리됨, locked = 다른 처리기(또는 멈춘 연결)가 잡고 있어 건너뜀, transient = 교착·잠금 초과로 되돌려져 다음 주기에 다시 하는 것,
+        # contended = 같은 사람·유형의 인정이 겹쳐 유일 제약이 막은 것(다음 처리에서 거부, 설계 D13)
+        total = {"accepted": 0, "rejected": 0, "pending": 0, "skipped": 0, "locked": 0, "failed": 0, "transient": 0, "contended": 0}
         while not should_stop():
             counts = process_pending(limit=batch, should_stop=should_stop)
             for key, value in counts.items():

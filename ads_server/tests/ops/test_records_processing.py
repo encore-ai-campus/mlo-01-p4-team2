@@ -269,7 +269,7 @@ class QueueTests(Cases, ProcessingBase):
         # 실패한 반응은 횟수가 쌓이다가 한도에서 자동 처리 대상에서 빠진다(거부·삭제하지 않는다)
         with override_settings(REACTION_MAX_ATTEMPTS=3):
             Reaction.objects.filter(pk=bad.inbox_id).update(attempts=3)
-            self.assertEqual(records.process_pending(now=NOW), {"accepted": 0, "rejected": 0, "pending": 0, "skipped": 0, "failed": 0, "transient": 0, "contended": 0})
+            self.assertEqual(records.process_pending(now=NOW), {"accepted": 0, "rejected": 0, "pending": 0, "skipped": 0, "locked": 0, "failed": 0, "transient": 0, "contended": 0})
             self.assertEqual(records.stuck_count(), 1)
             self.assertEqual(self.row(bad).status, "RECEIVED")
             self.assertEqual(records.reset_stuck(), 1)
@@ -510,6 +510,11 @@ class ConcurrentProcessingTests(Cases, TransactionTestCase):  # records.receive_
         second.join(BLOCKED)
         self.assertFalse(second.is_alive(), "둘째 처리기가 잡힌 행의 잠금을 기다렸다")
         self.assertEqual((second.errors, second.result), ([], None))  # 건너뜀 — 처리도 실패 기록도 하지 않는다
+        third = Worker(lambda: records.process_pending(now=NOW))
+        third.start()
+        third.join(BLOCKED)
+        self.assertFalse(third.is_alive())
+        self.assertEqual((third.errors, third.result["locked"], third.result["skipped"]), ([], 1, 0))  # 요약에서는 '이미 처리됨'과 갈라 locked(버그 탐색 K4)
         release.set()
         first.join(WAIT)
         self.assertEqual((first.errors, first.result), ([], "ACCEPTED"))

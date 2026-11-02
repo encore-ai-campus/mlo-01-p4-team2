@@ -206,7 +206,7 @@ def process_pending(limit=100, now=None, should_stop=None):
         Reaction.objects.filter(due, status=ReactionStatus.RECEIVED, attempts__lt=settings.REACTION_MAX_ATTEMPTS)
         .order_by(F("checked_at").asc(nulls_first=True), "received_at", "inbox_id").values_list("inbox_id", flat=True)[:limit]
     )
-    counts = {"accepted": 0, "rejected": 0, "pending": 0, "skipped": 0, "failed": 0, "transient": 0, "contended": 0}
+    counts = {"accepted": 0, "rejected": 0, "pending": 0, "skipped": 0, "locked": 0, "failed": 0, "transient": 0, "contended": 0}
     for inbox_id in ids:
         if should_stop is not None and should_stop():
             break
@@ -223,7 +223,10 @@ def process_pending(limit=100, now=None, should_stop=None):
                 logger.exception("반응 처리 실패 inbox=%s", inbox_id)
                 counts["failed"] += 1
             continue
-        counts["skipped" if outcome is None else outcome.lower()] += 1
+        if outcome is None:  # 건너뛴 이유를 가른다(버그 탐색 K4): 아직 RECEIVED 면 다른 처리기(또는 멈춘 연결)가 잡고 있는 것, 아니면 이미 처리됐다
+            counts["locked" if Reaction.objects.filter(pk=inbox_id, status=ReactionStatus.RECEIVED).exists() else "skipped"] += 1
+        else:
+            counts[outcome.lower()] += 1
     return counts
 
 

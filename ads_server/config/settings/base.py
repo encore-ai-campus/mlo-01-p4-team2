@@ -216,9 +216,10 @@ def postgres_config(name, user, password, host, port):
     - READ COMMITTED 고정: 판정은 유일 제약·행 잠금·조건부 UPDATE 에 기대고, PostgreSQL 은 잠금을 기다린 뒤 새 행 버전으로 WHERE 를 다시 본다.
       REPEATABLE READ 는 동시 갱신을 직렬화 실패(40001)로 끝내므로 운영 기본값으로 쓰지 않는다(정합성 점검의 읽기 전용 스냅샷만 `billing.consistent_read`).
     - lock_timeout 5s(결정 D9): PostgreSQL 기본(0)은 잠금을 끝없이 기다린다. 넘으면 55P03 → 일시 오류(503 + Retry-After, 반응 처리는 다음 주기 — foundation/dberrors.py).
-      값은 부하 시험(계획 P1-10)으로 확정한다.
+      값은 부하 시험(계획 P1-10)으로 확정했다(55P03·40P01 0건).
     - 문자열 검사(MySQL STRICT)·문자 집합·정렬 옵션은 없다: PostgreSQL 은 잘리거나 잘못된 값을 항상 오류로 하고, 기본(결정적) 정렬은 대소문자·악센트를 구분한다.
-    - CONN_MAX_AGE=0: 요청마다 연결을 닫는다. 영속 연결·풀은 배포 구성(워커 수 × 스레드 수)과 `max_connections` 가 정해진 뒤에 정한다(결정 D6).
+    - CONN_MAX_AGE=0: 요청마다 연결을 닫는다. 연결 수는 운영 `max_connections` 기본 100 안에 든다(동기 워커 + 상시 프로세스). 요청이 늘면 앱 풀이 아니라
+      PgBouncer(transaction 모드)로 넓히고, 그때 `lock_timeout` 전달 방식(DB 역할 설정 또는 PgBouncer `track_extra_parameters`)을 고른다(결정 D6).
     """
     return {
         "ENGINE": "django.db.backends.postgresql",

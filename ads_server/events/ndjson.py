@@ -34,18 +34,14 @@ def manifest_path(directory, name):
     return Path(directory) / f"{name}.manifest.json"
 
 
-def _fsync_directory(directory):
-    fd = os.open(directory, os.O_RDONLY)
+def _replace_durably(tmp, final):
+    """완성·동기화된 임시 파일을 같은 폴더의 최종 이름으로 바꾸고, 이름 바꾸기도 디스크에 남긴다(폴더 동기화). 데이터 파일과 manifest·세대 사본이 같은 단계를 쓴다."""
+    os.replace(tmp, final)
+    fd = os.open(Path(final).parent, os.O_RDONLY)
     try:
         os.fsync(fd)  # 이름 바꾸기(rename) 자체도 디스크에 남긴다
     finally:
         os.close(fd)
-
-
-def _replace_durably(tmp, final):
-    """완성·동기화된 임시 파일을 같은 폴더의 최종 이름으로 바꾸고, 이름 바꾸기도 디스크에 남긴다(폴더 동기화). 데이터 파일과 manifest·세대 사본이 같은 단계를 쓴다."""
-    os.replace(tmp, final)
-    _fsync_directory(Path(final).parent)
 
 
 def _publish(path, write):

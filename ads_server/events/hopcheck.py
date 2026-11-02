@@ -10,7 +10,6 @@
 """
 import json
 import re
-from datetime import timedelta
 from pathlib import Path
 
 from . import hops, ndjson
@@ -54,8 +53,7 @@ def _check_line(number, line, size):
     start, end = _time(line["window_start"], f"{number}번째 줄 window_start"), _time(line["window_end"], f"{number}번째 줄 window_end")
     if end - start != size:
         raise HopInputError(f"{number}번째 줄의 창 길이({end - start})가 선언한 창 크기({size})와 다르다 — 집계 범위가 다른 manifest 다")
-    aligned = start.minute == 0 and start.second == 0 and (size != timedelta(days=1) or start.hour == 0)
-    if not aligned:
+    if hops.window_start(start, size) != start:
         raise HopInputError(f"{number}번째 줄의 창 시작 {line['window_start']} 이 UTC 경계(자정·정시)에 맞지 않는다")
     if not isinstance(line["event_name"], str) or not line["event_name"]:
         raise HopInputError(f"{number}번째 줄의 event_name 이 올바르지 않다")

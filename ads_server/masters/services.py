@@ -19,8 +19,9 @@ from .models import MAX_SHARE, MIN_FLOOR, MIN_SHARE, SHARE_FIELDS, Audience, Bid
 from .types import IssuedKey, MediaIdentity, MediaKeyView, MediaView, PolicyView, SlotView
 
 
-def _validate_policy(floor, base, cap, shares):
-    """`shares` = {비율 열 이름: 값}(노출·클릭·전환). 각각 정수 1~98, 합 100 — DB 제약과 같은 규칙을 읽기 쉬운 400 으로."""
+def _validated_shares(floor, base, cap, impression_share, click_share, conversion_share):
+    """정책 값을 검사하고 비율을 {비율 열 이름: 값}(노출·클릭·전환)으로 돌려준다. 비율은 각각 정수 1~98, 합 100 — DB 제약과 같은 규칙을 읽기 쉬운 400 으로."""
+    shares = dict(zip(SHARE_FIELDS, (impression_share, click_share, conversion_share)))
     problems = []
     for pointer, value, minimum in (("/floor", floor, MIN_FLOOR), ("/base", base, 1), ("/cap", cap, 1)):  # 기준가·상한은 하한 이상이라 하한 최소를 따른다
         if not is_int(value) or not (minimum <= value <= MAX_AMOUNT):
@@ -34,10 +35,7 @@ def _validate_policy(floor, base, cap, shares):
         raise errors.InvalidRequest(errors=[{"pointer": "/base", "message": "하한 ≤ 기준가 ≤ 상한이어야 합니다."}])
     if sum(shares.values()) != 100:
         raise errors.InvalidRequest(errors=[{"pointer": "/shares", "message": f"노출·클릭·전환 비율의 합은 100이어야 합니다(지금 {sum(shares.values())})."}])
-
-
-def _shares(impression_share, click_share, conversion_share):
-    return dict(zip(SHARE_FIELDS, (impression_share, click_share, conversion_share)))
+    return shares
 
 
 def _policy_view(row):
@@ -204,15 +202,14 @@ def create_slot(actor, media_id, name, floor, base, cap, reason, *, audience, im
     reason = clean_text(reason, "사유", "/reason", 200)
     if audience not in Audience.values:
         raise errors.InvalidRequest(errors=[{"pointer": "/audience", "message": f"{', '.join(Audience.values)} 중 하나여야 합니다."}])
-    shares = _shares(impression_share, click_share, conversion_share)
-    _validate_policy(floor, base, cap, shares)
+    shares = _validated_shares(floor, base, cap, impression_share, click_share, conversion_share)
     try:
         with transaction.atomic():
             media = _get_media(media_id)
             slot = Slot.objects.create(media=media, name=name, audience=audience)
             policy = BidPolicy.objects.create(
                 slot=slot, policy_version=1, floor_amount=floor, base_amount=base, cap_amount=cap, **shares,
-                changed_by=actor.pk, changed_at=now or timezone.now(), reason=reason,
+                changed_by=actor.pk, changed_at=_now(now), reason=reason,
             )
             _record_policy_event(policy)
             _audit(actor, "masters.slot_created", ("masters.slot", slot.slot_id),
@@ -232,7 +229,7 @@ def _add_version(actor, slot_id, floor, base, cap, shares, reason, expected_vers
         with transaction.atomic():
             policy = BidPolicy.objects.create(
                 slot=slot, policy_version=current.policy_version + 1, floor_amount=floor, base_amount=base,
-                cap_amount=cap, **shares, changed_by=actor.pk, changed_at=now or timezone.now(), reason=reason,
+                cap_amount=cap, **shares, changed_by=actor.pk, changed_at=_now(now), reason=reason,
             )
     except IntegrityError:  # 같은 버전을 동시에 만든 쪽의 충돌은 유일 제약이 막는다(뒤쪽이 유일 색인에서 앞쪽 커밋을 기다렸다가 충돌한다 — DB-1c 에서 동시 시험)
         raise errors.StaleVersion()
@@ -247,8 +244,7 @@ def _add_version(actor, slot_id, floor, base, cap, shares, reason, expected_vers
 def add_policy_version(actor, slot_id, floor, base, cap, reason, expected_version, *, impression_share, click_share, conversion_share, now=None):
     require_admin(actor)
     reason = clean_text(reason, "사유", "/reason", 200)
-    shares = _shares(impression_share, click_share, conversion_share)
-    _validate_policy(floor, base, cap, shares)
+    shares = _validated_shares(floor, base, cap, impression_share, click_share, conversion_share)
     with transaction.atomic():
         return _add_version(actor, slot_id, floor, base, cap, shares, reason, expected_version, now)
 
@@ -257,8 +253,7 @@ def add_policy_version_bulk(actor, expected_versions, floor, base, cap, reason, 
     """같은 값(비율 포함)을 여러 슬롯에 새 버전으로. `expected_versions` = {slot_id: 본 버전}. 하나라도 어긋나면 전부 취소."""
     require_admin(actor)
     reason = clean_text(reason, "사유", "/reason", 200)
-    shares = _shares(impression_share, click_share, conversion_share)
-    _validate_policy(floor, base, cap, shares)
+    shares = _validated_shares(floor, base, cap, impression_share, click_share, conversion_share)
     if not expected_versions:
         raise errors.InvalidRequest(errors=[{"pointer": "/slots", "message": "슬롯을 하나 이상 고르세요."}])
     with transaction.atomic():
@@ -430,8 +425,6 @@ def authenticate_media_key(raw_key, now=None):
     row = MediaKey.objects.select_related("media").filter(key_id=uuid.UUID(key_hex)).first()
     expected = row.secret_hash if row is not None else _DUMMY_HASH
     matches = hmac.compare_digest(_hash_secret(secret), expected)
-    if row is None or not matches:
-        return None
-    if not _key_active(row, now):
+    if row is None or not matches or not _key_active(row, now):
         return None
     return MediaIdentity(media_id=row.media_id, key_id=row.key_id, media_is_active=row.media.is_active)

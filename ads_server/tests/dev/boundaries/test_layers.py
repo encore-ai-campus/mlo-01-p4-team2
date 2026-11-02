@@ -47,7 +47,7 @@ class LayerRuleTests(Cases, SimpleTestCase):
         """새 모듈이 LAYERS 에 등록되지 않은 채 생기면 검사를 피해 갈 수 있다."""
         unregistered = [
             d.name for d in BASE_DIR.iterdir()
-            if d.is_dir() and (d / "apps.py").exists() and d.name not in LAYERS and d.name != "tests"
+            if d.is_dir() and (d / "apps.py").exists() and d.name not in LAYERS and d.name not in ("tests", "config")  # config 는 조립(위 LAYERS 설명)
         ]
         self.assertEqual(unregistered, [])
 

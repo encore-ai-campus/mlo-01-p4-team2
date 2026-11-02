@@ -87,6 +87,37 @@ class DevAndTestSettingsTests(Cases, SimpleTestCase):
             self.assertNotEqual(r.returncode, 0, missing)
             self.assertIn(missing, r.stderr)
 
+    def case_settings_are_checked_at_startup(self):
+        """버그 탐색 K1: 쓰는 순간에만 검사하던 설정을 시스템 검사(check·migrate·runserver·check --deploy)가 미리 막는다 — 잘못 배포하면 매체 요청이 모두 500 이던 것."""
+        from django.core.checks import run_checks
+        from django.test import override_settings
+
+        from config.checks import check_settings
+
+        self.assertEqual(check_settings(), [])
+        limits = settings.MEDIA_RATE_LIMITS
+        bad = {
+            "MEDIA_RATE_LIMITS": [{"decisions": (150, 300)}, dict(limits, extra=(1, 1)), dict(limits, reads=(0, 300)), dict(limits, reads=(float("inf"), 300)),
+                                  dict(limits, reads=(True, 300)), dict(limits, reads=(150, 0)), dict(limits, reads=(150, 1.5)), dict(limits, reads=150)],
+            "ADS_SELECTION_POLICY": ["nope", ["x"]],
+            "ADS_ENGINE_EXTRA_FILTERS": [("nope",), "status"],
+            "REACTION_RULES": [("known-decision", "nope"), "known-decision"],
+            "BILLING_CHARGE_POLICY": ["nope"],
+            "SIGNUP_GRANT_POINTS": [-1, True, "1"],
+            "ASSET_PUBLIC_BASE_URL": ["ads.example.com", "ftp://ads.example.com", "https://", None, "http://[::1"],
+            "BUDGET_DAY_OFFSET_HOURS": [15, -13, 10**9, 1.5],
+        }
+        for name, values in bad.items():
+            for value in values:
+                with self.subTest(name=name, value=value), override_settings(**{name: value}):
+                    self.assertEqual([(e.id, e.msg.split()[0].split("[")[0].rstrip(":")) for e in check_settings()], [("config.E001", name)])
+        with override_settings(BUDGET_DAY_OFFSET_HOURS=-12, ASSET_PUBLIC_BASE_URL="http://127.0.0.1:8001"):
+            self.assertEqual(check_settings(), [])  # 경계값·dev 의 http 주소는 통과
+        with override_settings(BUDGET_DAY_OFFSET_HOURS=14):
+            self.assertEqual(check_settings(), [])
+        with override_settings(SIGNUP_GRANT_POINTS=-1):
+            self.assertIn("config.E001", [e.id for e in run_checks()])  # 등록돼 있다(check·migrate 가 돈다)
+
     def test_dev_and_test_settings(self):
         self.run_cases()
 

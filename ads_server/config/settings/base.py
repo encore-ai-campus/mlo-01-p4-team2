@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "records.apps.RecordsConfig",
     "serving_api.apps.ServingApiConfig",
     "console.apps.ConsoleConfig",
+    "config.apps.AssemblyConfig",  # 조립 층: 여러 모듈의 설정을 함께 보는 시스템 검사(config/checks.py)
 ]
 
 MIDDLEWARE = [

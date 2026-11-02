@@ -25,11 +25,8 @@ def redact_detail(value):
 
 def _request_id(request):
     """요청이 있으면 그 ID, 요청 없이 서비스가 직접 호출됐으면 로깅이 쓰는 현재 요청 ID(없으면 빈 값)."""
-    rid = getattr(request, "request_id", "") if request is not None else ""
-    if not rid:
-        current = request_id_var.get()
-        rid = "" if current == "-" else current
-    return str(rid or "")
+    rid = getattr(request, "request_id", "") or request_id_var.get()  # 요청 ID 는 미들웨어가 UUID 만 넣는다. "-" 는 로깅의 '없음'
+    return "" if rid == "-" else str(rid)
 
 
 def record_audit(request, action, target=None, detail=None, actor=None):
@@ -57,7 +54,7 @@ def record_audit(request, action, target=None, detail=None, actor=None):
         target_type=target_type,
         target_id=target_id,
         detail=cleaned,
-        ip=(client_ip(request) if request is not None else "") or "",
+        ip=client_ip(request) if request is not None else "",  # client_ip 는 늘 문자열
         request_id=_request_id(request),
     )
 

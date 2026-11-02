@@ -4,21 +4,19 @@ from django.shortcuts import redirect
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from billing import api as billing
 from campaigns import api as campaigns
-from foundation.api import change_password, errors, update_profile
+from foundation.api import change_password, update_profile
 
 from ..errors import submit
 from ..forms import PasswordChangeForm, ProfileForm
+from ..queries.alerts import wallet_or_none
 from .common import present
 
 
 def _page(request, profile_form=None, password_form=None, status=200):
     profile_form = profile_form or ProfileForm(initial={"nickname": request.user.nickname, "class_label": request.user.class_label})
-    try:
-        balance = billing.get_wallet(request.user, now=timezone.now()).balance
-    except errors.NotFound:  # 가입 절차를 거치지 않은 옛 계정(포인트 화면과 같다)
-        balance = None
+    wallet = wallet_or_none(request.user, timezone.now())
+    balance = None if wallet is None else wallet.balance
     summary = {"joined": request.user.created_at, "balance": balance,  # 오른쪽 계정 요약(시안 v2)
                "active_campaigns": sum(1 for c in campaigns.list_campaigns(request.user) if c.status == campaigns.CampaignStatus.ACTIVE)}
     return present(request, "console/my_account.html", {"profile_form": profile_form, "password_form": password_form or PasswordChangeForm(), "summary": summary},

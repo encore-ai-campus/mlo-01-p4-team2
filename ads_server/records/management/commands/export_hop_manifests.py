@@ -83,11 +83,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"{hop}: rows={manifest['rows']} events={scanned[hop]} open_windows={len(open_windows)} largest_window={results[hop][3]} file={manifest['file']}")
             record_audit(None, "events.hop_manifests_exported", detail={  # 폴더 밖의 고정점(H12) — verify_hops 는 폴더로 찾는다(폴더·창 크기를 여럿 운영해도 서로 덮지 않게)
                 "anchors": anchors, "out": str(out.resolve()), "window": options["window"], "since": options["since"], "grace_seconds": grace})
-        self.stdout.write(f"peak_rss={peak_rss_mib():.1f}MiB")  # 이 프로세스의 최대 상주 메모리 — 이력이 쌓여도 늘지 않아야 한다(창 하나·종류 하나만 든다)
+        peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (2**20 if sys.platform == "darwin" else 2**10)  # macOS 는 바이트, Linux 는 KiB
+        self.stdout.write(f"peak_rss={peak:.1f}MiB")  # 이 프로세스의 최대 상주 메모리 — 이력이 쌓여도 늘지 않아야 한다(창 하나·종류 하나만 든다)
         if unresolved:  # 게시는 한다(나머지 대조는 계속된다). 실패로 끝내고 verify_hops 도 실패로 본다
             raise CommandError(f"창에 놓을 수 없는 과금 원장 줄 {unresolved}건 — 반응이 없거나 판정 전이라 생성 시각을 정할 수 없다(추정하지 않는다). 예: {', '.join(examples)}")
-
-
-def peak_rss_mib():
-    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    return peak / (2**20 if sys.platform == "darwin" else 2**10)  # macOS 는 바이트, Linux 는 KiB

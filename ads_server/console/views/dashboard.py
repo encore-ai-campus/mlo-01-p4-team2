@@ -8,11 +8,10 @@ from django.utils import timezone
 
 from billing import api as billing
 from campaigns import api as campaigns
-from foundation.api import errors
 from records import api as records
 
 from ..forms import METRICS, PeriodForm
-from ..queries.alerts import alerts_for
+from ..queries.alerts import alerts_for, wallet_or_none
 from ..queries.dashboard import TOP, top_campaigns
 from .common import present
 
@@ -31,10 +30,7 @@ def advertiser_home(request):
     report = records.daily_report(request.user, start, end)
     # '오늘'(1일)은 그래프·표에 어제도 그려 둘을 나란히 비교한다(6-23c) — 카드의 비교(오늘 대 어제)는 그대로 report 가 한다
     chart_rows = report.rows if chosen["days"] > 1 else records.daily_report(request.user, billing.day_start(today - timedelta(days=1)), end).rows
-    try:
-        wallet = billing.get_wallet(request.user, now=now)
-    except errors.NotFound:  # 가입 절차를 거치지 않은 옛 계정
-        wallet = None
+    wallet = wallet_or_none(request.user, now)
     camps = campaigns.list_campaigns(request.user, now=now)  # 지갑과 함께 상위 캠페인 표·알림이 같은 읽기를 본다
     alerts = alerts_for(request.user, now, camps, wallet)
     return present(request, "console/advertiser_home.html", {

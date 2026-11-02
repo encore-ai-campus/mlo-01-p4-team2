@@ -15,6 +15,7 @@ from foundation.api import errors, is_unique_violation, parse_uuid
 from masters import api as masters
 
 from .assemble import assemble
+from .facts import person_of
 from . import ordering
 from .models import SHARE_COLUMNS, Decision, Reaction, ReactionSource, ReactionType, charge_shares
 from .processing import process_after_receipt
@@ -214,7 +215,7 @@ def observe_click(decision_id, viewer_id=None, now=None):
     d = _get(Decision, "결정을 찾을 수 없습니다.", decision_id=decision_id)
     if d.creative_id is None:
         raise errors.NotFound("결정을 찾을 수 없습니다.")  # 광고가 없던 결정에는 클릭이 있을 수 없다
-    person = d.subject_id if d.audience == masters.Audience.INDIVIDUAL else viewer_id
+    person = person_of(d, viewer_id)
     redirect_url = d.snapshot["redirect_url"]
     if person is not None:
         try:

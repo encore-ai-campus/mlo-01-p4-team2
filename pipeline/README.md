@@ -9,6 +9,7 @@
 | `connect/ads-outbox-cdc.json` | Debezium 커넥터 설정 정본. 비밀번호는 Connect `FileConfigProvider` 경로 참조만 들어 있다 |
 | `bronze/bronze_ads_outbox.py` | Bronze 앱(Kafka → Delta, key·value 바이트·헤더·위치만 — 해석·중복 제거는 Silver) |
 | `bronze/spark-submit-ads.sh` | Spark 제출(Standalone client 모드). 의존 jar는 미리 둔 세트를 `extraClassPath`로 쓴다 |
+| `bronze/run-bronze.sh` | Bronze 상시 실행(로컬). 운영 `restartPolicy: OnFailure`(최초 1회 + 재시도 3회)를 흉내 내고 잠듦을 막는다 |
 | `tools/` | 검증 도구(아래) |
 
 ## 로컬 시험대(2026-11-03)
@@ -41,13 +42,16 @@ curl -X PUT -H 'Content-Type: application/json' --data @/tmp/ads-outbox-cdc.conf
 curl -X PUT $R/resume
 ```
 
-Bronze 실행(checkpoint 경로마다 하나만 띄운다 — 같은 checkpoint에 writer가 둘이면 Delta 로그가 꼬인다. 장시간 실행은 잠듦을 막는다):
+Bronze 실행(checkpoint 경로마다 하나만 띄운다 — 같은 checkpoint에 writer가 둘이면 Delta 로그가 꼬인다):
 
 ```bash
-caffeinate -is pipeline/bronze/spark-submit-ads.sh pipeline/bronze/bronze_ads_outbox.py
+pipeline/bronze/run-bronze.sh            # 비정상 종료면 같은 checkpoint로 다시 띄움(최초 1회 + 재시도 3회), 다 쓰면 rc=1
+kill -TERM <run-bronze.sh의 pid>          # 사람이 멈춤: Bronze를 정상 종료하고 다시 띄우지 않음
 ```
 
-환경 변수(기본값은 로컬 시험대): `KAFKA_BOOTSTRAP`, `BRONZE_BUCKET`, `BRONZE_TRIGGER`, `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_FILE`, `S3_SECRET_KEY_FILE`, `SPARK_MASTER`, `SPARK_CORES_MAX`, `SPARK_EXECUTOR_MEMORY`, `SPARK_DEPS`, `SPARK_LOCAL_IP`(기본 127.0.0.1), 도구의 `PG_PORT`(기본 5010).
+드라이버를 직접 죽이면(`kill -9 <SparkSubmit pid>`, 드라이버에 직접 `kill -TERM`도) 장애로 보고 다시 띄운다(재시도 1회 사용). 사람이 멈출 때는 드라이버가 아니라 `run-bronze.sh`에 TERM을 준다.
+
+환경 변수(기본값은 로컬 시험대): `KAFKA_BOOTSTRAP`, `BRONZE_BUCKET`, `BRONZE_TRIGGER`, `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_FILE`, `S3_SECRET_KEY_FILE`, `SPARK_MASTER`, `SPARK_CORES_MAX`, `SPARK_EXECUTOR_MEMORY`, `SPARK_DEPS`, `SPARK_LOCAL_IP`(기본 127.0.0.1), `BRONZE_MAX_OFFSETS_PER_TRIGGER`(기본 10,000 — 임시값, E-B4로 정함), `BRONZE_RETRIES`(기본 3), `BRONZE_RETRY_INTERVAL`(기본 10초 — 팀이 아직 정하지 않은 값이라 임시값), 도구의 `PG_PORT`(기본 5010).
 
 ## 검증 도구(`tools/`)
 

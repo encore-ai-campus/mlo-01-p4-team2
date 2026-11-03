@@ -1,6 +1,18 @@
 /* Clockwise 45-degree view. Simulation and networking stay in floor coordinates. */
 (() => {
   'use strict';
+  // Visual ordering only: use the existing ground polygon, never the image rectangle.
+  function artFrontDepth(outline, screenX) {
+    const x=Math.max(Math.min(...outline.map(p=>p.x)),Math.min(screenX,Math.max(...outline.map(p=>p.x))));
+    const crossings=[];
+    for(let i=0;i<outline.length;i++){
+      const a=outline[i],b=outline[(i+1)%outline.length];
+      if(x<Math.min(a.x,b.x)-.001||x>Math.max(a.x,b.x)+.001)continue;
+      if(Math.abs(b.x-a.x)<.001){crossings.push(a.y,b.y);continue;}
+      const t=(x-a.x)/(b.x-a.x);crossings.push(a.y+(b.y-a.y)*t);
+    }
+    return Math.max(...crossings);
+  }
   function createProjection({width,height,angle=Math.PI/4,tilt=.58,padding=85,paddingTop=padding}) {
     const c=Math.cos(angle),s=Math.sin(angle);
     const vector=(x,y)=>({x:c*x-s*y,y:(s*x+c*y)*tilt});
@@ -433,6 +445,7 @@
         g.strokeStyle='#f6d695';g.lineWidth=2;g.beginPath();g.arc(0,-35,8,0,Math.PI*2);g.stroke();g.beginPath();g.arc(0,-35,3,0,Math.PI*2);g.stroke();
         g.fillStyle='#f4d4ab';g.font='bold 8px sans-serif';g.textAlign='center';g.fillText('BLOCK',0,-63);g.restore();return;
       }
+      if(window.CampusStory?.paint(o,{g,p,box,plane,line},base))return;
       if(peperoSeason&&window.CampusSeasonal?.paint(o,{g,p,plane,box,line,ellipse,poly,verticalPanel,font},base)){
         return;
       }
@@ -934,7 +947,7 @@
         b.x=Math.floor(q.x-w/2-5);b.y=Math.floor(q.y-h-5);b.w=Math.ceil(w+10);b.h=Math.ceil(h*1.2+10);
       }
       const canvas=makeCanvas(b.w*2,b.h*2);g=canvas.getContext('2d',{willReadFrequently:Boolean(o.name)});g.scale(2,2);g.translate(-b.x,-b.y);paint();
-      return {o,r,b,canvas,isWall,depth:isWall&&D.backdropWalls&&((o.x<=15&&o.w<=10)||(o.y<=15&&o.h<=10))?-Infinity:p(r.x+r.w/2,r.y+r.h/2).y};
+      return {o,r,b,canvas,isWall,groundOutline:o.seasonalArt&&o.collisionPolygon?o.collisionPolygon.map(([x,y])=>p(x,y)):null,depth:isWall&&D.backdropWalls&&((o.x<=15&&o.w<=10)||(o.y<=15&&o.h<=10))?-Infinity:p(r.x+r.w/2,r.y+r.h/2).y};
     }
     const sprites=[];
     for(const o of objects.filter(o=>!attached.has(o.id)&&!['rug','plaza-paving','floor-arrow','booth-collider'].includes(o.type))) {
@@ -1103,7 +1116,7 @@
       }
       ellipse(top.x,top.y-1,4.5,3.6,'#f4ffff');g.restore();
     }
-    function drawSprite(ctx,s,alpha=1){ctx.save();ctx.globalAlpha=alpha;if(s.o.type==='sliding-door'&&doorStates.has(s.o.id)){const progress=doorProgress(doorStates.get(s.o.id),performance.now());g=ctx;furniture({...s.o,x:s.o.x-s.o.w*progress,closed:true},0);}else ctx.drawImage(s.canvas,s.b.x,s.b.y,s.b.w,s.b.h);ctx.restore();}
+    function drawSprite(ctx,s,alpha=1){ctx.save();ctx.globalAlpha=alpha;if(s.o.type==='story-evidence'){g=ctx;furniture(s.o,groundHeight(s.o.x+s.o.w/2,s.o.y+s.o.h/2));}else if(s.o.type==='sliding-door'&&doorStates.has(s.o.id)){const progress=doorProgress(doorStates.get(s.o.id),performance.now());g=ctx;furniture({...s.o,x:s.o.x-s.o.w*progress,closed:true},0);}else ctx.drawImage(s.canvas,s.b.x,s.b.y,s.b.w,s.b.h);ctx.restore();}
     const scene=makeCanvas(P.width*resolution,P.height*resolution),sg=scene.getContext('2d');
     function repaintScene(){sg.setTransform(1,0,0,1,0,0);sg.clearRect(0,0,scene.width,scene.height);sg.setTransform(resolution,0,0,resolution,0,0);city?.draw(sg);sg.drawImage(floorCanvas,0,0,P.width,P.height);for(const s of sprites){drawSprite(sg,s);if(s.o.type==='fountain'){g=sg;fountainWater(s.o,0);}if(s.o.type==='floor-portal'){g=sg;if(s.o.portalStyle==='compact')compactPortalEnergy(s.o);else portalEnergy(s.o,groundHeight(s.o.x+s.o.w/2,s.o.y+s.o.h/2));}else if(s.o.type==='stair-portal'||(s.o.type==='fire-extinguisher'&&s.o.portalGlow)){g=sg;compactPortalEnergy(s.o);}}for(const sprite of sprites.filter(sprite=>sprite.o.type==='wall-sign'||(sprite.o.type==='wall-poster'&&sprite.o.inFrontOfWalls)))drawSprite(sg,sprite);drawLabels(sg);}
     let seasonRepaintPending=false;
@@ -1153,13 +1166,18 @@
     function placeActors(visible,actors){
       const clamp=(v,a,b)=>Math.min(Math.max(v,a),b);
       const slots=actors.map(actor=>{
-        const q=projectActor(actor),area={x:q.x-14,y:q.y-50,w:28,h:54},depth=p(actor.x,actor.y).y;let at=0;
+        const q=projectActor(actor),area={x:q.x-14,y:q.y-50,w:28,h:54},depth=p(actor.x,actor.y).y;let at=0,inFrontAt=visible.length;
         visible.forEach((s,i)=>{
           if(!overlaps(s.b,area))return;
+          if(s.groundOutline){
+            const foot=p(actor.x,actor.y),front=artFrontDepth(s.groundOutline,foot.x);
+            if(depth>=front)at=i+1;else inFrontAt=Math.min(inFrontAt,i);
+            return;
+          }
           const r=s.r,inside=actor.x>=r.x&&actor.x<=r.x+r.w&&actor.y>=r.y&&actor.y<=r.y+r.h;
           if(inside?s.depth<=depth:p(clamp(actor.x,r.x,r.x+r.w),clamp(actor.y,r.y,r.y+r.h)).y<depth)at=i+1;
         });
-        return {actor,at,depth};
+        return {actor,at:Math.min(at,inFrontAt),depth};
       }).sort((a,b)=>a.at-b.at||a.depth-b.depth);
       const entities=[];let k=0;
       visible.forEach((s,i)=>{while(k<slots.length&&slots[k].at===i)entities.push(slots[k++]);entities.push(s);});
@@ -1185,8 +1203,7 @@
       const entities=placeActors(visible,drawnActors);
       for(const e of entities){
         if(e.actor){drawActor(ctx,e.actor,t,camera.zoom);continue;}
-        const blocked=e.isWall&&actors.some(a=>{const q=projectActor(a),b=e.b;return q.x>b.x+10&&q.x<b.x+b.w-10&&q.y>b.y+55&&q.y<b.y+b.h+7&&q.y<e.depth+20;});
-        drawSprite(ctx,e,blocked ? .27 : 1);
+        drawSprite(ctx,e);
         if(e.o.type==='guard-sandbag'){
           const target=window.CampusPoke?.targets(D.id).find(a=>a.id===e.o.id);
           if(target){const q=projectGround(target.x,target.y);ctx.save();ctx.translate(q.x,q.y-12);window.CampusPoke.guard(ctx,target,t);ctx.restore();}

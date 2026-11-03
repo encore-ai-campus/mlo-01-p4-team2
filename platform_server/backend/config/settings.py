@@ -34,6 +34,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 INSTALLED_APPS = [
+    "campus_control.apps.CampusControlConfig",
     "direct_messages.apps.DirectMessagesConfig",
     "daphne",
     "django.contrib.auth",
@@ -42,6 +43,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "accounts.apps.AccountsConfig",
     "campus.apps.CampusConfig",
+    "event_story.apps.EventStoryConfig",
     "learning.apps.LearningConfig",
     "eventing.apps.EventingConfig",
     "community.apps.CommunityConfig",
@@ -55,6 +57,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "eventing.middleware.PlatformSessionMiddleware",
+    "campus_control.middleware.CampusFreezeMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 ROOT_URLCONF = "config.urls"
@@ -179,3 +182,7 @@ ADS_ENABLED = os.environ.get("ADS_ENABLED", "0") == "1"
 ADS_ROOFTOP_SLOT_ID = os.environ.get("ADS_ROOFTOP_SLOT_ID", "")
 ADS_PORTAL_LEFT_SLOT_ID = os.environ.get("ADS_PORTAL_LEFT_SLOT_ID", "")
 ADS_PORTAL_RIGHT_SLOT_ID = os.environ.get("ADS_PORTAL_RIGHT_SLOT_ID", "")
+
+# Event main story: production follows the KST event day; local preview is explicit.
+EVENT_STORY_DATE = os.environ.get("EVENT_STORY_DATE", "2026-11-11")
+EVENT_STORY_PREVIEW = os.environ.get("EVENT_STORY_PREVIEW", "0") == "1"

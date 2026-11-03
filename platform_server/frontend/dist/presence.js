@@ -95,15 +95,17 @@
       }
       function publish(t, force = false) {
         if (!ready || socket?.readyState !== WebSocket.OPEN || (!force && t - lastSent < 100)) return;
-        socket.send(JSON.stringify({type:'input',keys:inputKeys,...(poking?{poking:true,...(force?{pokeContext}: {})}: {})}));
+        socket.send(JSON.stringify({type:'input',...(window.CampusFreeze?{freezeRevision:window.CampusFreeze.revision}:{}),keys:window.CampusFreeze?.blocking?[]:inputKeys,...(poking?{poking:true,...(force?{pokeContext}: {})}: {})}));
         lastSent=t;
       }
       function setInput(keys) {
+        if(window.CampusFreeze?.blocking)keys=[];
         const next=[...new Set(keys)].filter(key=>allowedKeys.has(key)).sort(), encoded=JSON.stringify(next);
         inputKeys=next;
         if(encoded!==lastInput){lastInput=encoded;publish(performance.now(),true);}
       }
       function setPoking(active,scope=null,keys=inputKeys) {
+        if(window.CampusFreeze?.blocking){active=false;keys=[];}
         const next=[...new Set(keys)].filter(key=>allowedKeys.has(key)).sort(), encoded=JSON.stringify(next);
         const value=active===true;
         if(value===poking&&encoded===lastInput&&(!value||JSON.stringify(scope)===JSON.stringify(pokeContext)))return;
@@ -111,12 +113,13 @@
         publish(performance.now(),true);
       }
       function command(action,data={}) {
+        if(window.CampusFreeze?.blocking&&action!=='prepare_logout')return Promise.reject(new Error('캠퍼스 이용이 일시정지되어 있어요.'));
         if(!ready||socket?.readyState!==WebSocket.OPEN)return Promise.reject(new Error('연결된 뒤 이용해 주세요.'));
         const requestId=String(++sequence);
         return new Promise((resolve,reject)=>{
           const timer=setTimeout(()=>{pending.delete(requestId);reject(new Error('서버 응답을 기다리지 못했어요. 다시 시도해 주세요.'));},10000);
           pending.set(requestId,{resolve,reject,timer});
-          socket.send(JSON.stringify({type:'control',requestId,action,data}));
+          socket.send(JSON.stringify({type:'control',...(window.CampusFreeze?{freezeRevision:window.CampusFreeze.revision}:{}),requestId,action,data}));
         });
       }
       function rejectPending() {
@@ -160,6 +163,7 @@
           try {message = JSON.parse(event.data);} catch {return;}
           if (!message || typeof message !== 'object') return;
           lastReceived=performance.now();
+          if(message.type==='campus_freeze'){window.CampusFreeze?.accept(message);return;}
           if (message.type === 'welcome' && Array.isArray(message.players)) {
             const own = message.players.find(p => p?.id === message.selfId);
             if (!validPeer(own)) return;

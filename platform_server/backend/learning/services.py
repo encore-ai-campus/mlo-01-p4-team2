@@ -109,6 +109,8 @@ def start_learning_session(user, question_type, difficulty, subject=Subject.PYTH
     for order, question in enumerate(selected, 1):
         # save/full_clean also verifies type/difficulty relationships.
         SessionQuestion.objects.create(session=session, question=question, question_order=order)
+    from event_story.services import learning_started
+    learning_started(session)
     return session
 
 
@@ -265,6 +267,8 @@ def complete_session(user, session_id):
     session.correct_count = stats['correct_count']
     session.completed_at = timezone.now()
     session.save(update_fields=['correct_count', 'completed_at'])
+    from event_story.services import learning_completed
+    learning_completed(session)
     return session
 
 

@@ -49,10 +49,10 @@ def direction_vector(active_world, direction):
 
 
 def world_targets(active_world):
-    return [{"id": o["id"], "objectId": o["id"], "guarding": True,
+    return [{"id": o["id"], "objectId": o["id"], "guarding": o.get("action") == "guard_sandbag",
              "x": o["footprint"]["x"] + o["footprint"]["w"] / 2,
              "y": o["footprint"]["y"] + o["footprint"]["h"] / 2}
-            for o in active_world.objects.values() if o.get("action") == "guard_sandbag"]
+            for o in active_world.objects.values() if o.get("action") == "guard_sandbag" or o.get("type") == "guide-npc"]
 
 
 def find_target(pose, targets, active_world, direction=None):

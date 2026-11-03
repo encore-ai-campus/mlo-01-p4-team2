@@ -112,7 +112,7 @@
   async function finish() {
     if (zoom.open) zoom.close();
     dialog.close();
-    const target = returnFocus?.isConnected && !returnFocus.closest('dialog:not([open])') ? returnFocus : get('mapCanvas');
+    const target = get('mapCanvas');
     target?.focus({preventScroll: true});
     window.dispatchEvent(new Event('campus:guide-close'));
     if (saving || !config.guideCompleteUrl) return;

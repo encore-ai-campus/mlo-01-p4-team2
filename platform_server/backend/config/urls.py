@@ -1,7 +1,11 @@
 from django.urls import include, path
 from learning.views import learning_page
 
+from campus_control.views import freeze
+
 urlpatterns = [
+    path("api/campus/freeze/", freeze, name="campus-freeze"),
+    path("api/event-story/", include("event_story.urls")),
     path("api/messages/", include("direct_messages.urls")),
     path("api/ads/", include("ad_bridge.game.urls")),
     path("api/accounts/", include("accounts.urls", namespace="accounts-api")),

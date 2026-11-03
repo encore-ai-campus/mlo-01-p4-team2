@@ -23,7 +23,7 @@
   const lunchWheel=window.CampusLunchWheel?.create();
   let menuRequest=null,menuVersion=0;
   let directMessages=null;
-  const isDialogOpen=(includeClassroom=true,includeTyping=true)=>logoutPending||directMessages?.blocking||(includeClassroom&&classroom.blocking)||window.CampusLearning?.blocking||window.CampusGuide?.blocking||window.CampusSession?.ending||floorTransition.blocking||$('lunchDialog').open||dialog.open||boardDialog.open||exitDialog.open||transferDialog.open||$('settingsDialog').open||(includeTyping&&social.isTyping)||boothUI.blocking;
+  const isDialogOpen=(includeClassroom=true,includeTyping=true)=>window.CampusFreeze?.blocking||logoutPending||directMessages?.blocking||(includeClassroom&&classroom.blocking)||window.CampusLearning?.blocking||window.CampusGuide?.blocking||window.CampusStory?.blocking||window.CampusSession?.ending||floorTransition.blocking||$('lunchDialog').open||dialog.open||boardDialog.open||exitDialog.open||transferDialog.open||$('settingsDialog').open||(includeTyping&&social.isTyping)||boothUI.blocking;
   const renderers=new Map();
   const displayRefresh=new Map();
   let renderer=window.CampusIsometric.create({data:D}), P=renderer.projection, scene=renderer.scene;
@@ -124,6 +124,7 @@
     const actors=visibleActors();
     renderer.draw(ctx,{camera,actors,t,hover,nearby,viewportWidth:vw,viewportHeight:vh,showNicknames:social.preferences.nicknames});ctx.restore();
     window.CampusWorldActions?.update({floor:D.id,project:worldToScreen,width:vw,height:vh,blocked:isDialogOpen(true,false)});
+    window.CampusStory?.update({project:worldToScreen,width:vw,height:vh,blocked:isDialogOpen(true,false)});
     window.CampusAds?.tick({now:t,floor:D.id,renderer,camera,canvas,width:vw,height:vh,blocked:isDialogOpen()});
     social.render(t,{actors,camera,projectActor:actor=>{const q=renderer.projectActor(actor);return {...q,y:q.y-window.CampusJump.height(actor,t)};},selfId:presence.selfId,floor:D.id,avatarSize:window.CampusAvatars.size});
   }
@@ -248,6 +249,7 @@
     logoutForm.requestSubmit();
   }
   function showDetail(item,{keyboard=false}={}){
+    if(window.CampusStory?.handles(item)){window.CampusStory.open(item);return;}
     if(item.type==='sliding-door'){const r={x:item.x,y:item.y,w:item.w,h:item.h};const distance=Math.hypot(Math.max(r.x-player.x,0,player.x-r.x-r.w),Math.max(r.y-player.y,0,player.y-r.y-r.h));if(distance>50){toast('유리문 가까이에서 E키를 눌러주세요.');return;}const open=renderer.toggleDoor(item.id);toast(open?'유리문을 열었습니다.':'유리문을 닫았습니다.');return;}
     if(item.action==='pepero_refill'){presence.command('pepero_refill',{objectId:item.id}).then(result=>{poke.receive({type:'pepero_status',remaining:result.remaining});toast('빼빼로를 꺼냈어요! 10번 적중할 수 있어요.');}).catch(error=>toast(error.message));return;}
     if(item.action==='learning'){toast(window.CampusClassroom?'학습교실 출입구로 입장해 주세요.':'로그인한 서버 화면에서 학습교실을 이용해 주세요.');return;}
@@ -255,7 +257,7 @@
     if(item.action==='lunch'){window.dispatchEvent(new CustomEvent('campus:open-service',{detail:'lunch'}));return;}
     if(item.id==='roof-ad-board'){window.CampusAds?.clickRoof();return;}
     if(item.info===false)return;
-    if(item.action==='guide'){window.CampusGuide?.open();return;}
+    if(item.action==='guide'){if(window.CampusStory)window.CampusStory.guide();else window.CampusGuide?.open();return;}
     if(item.action==='booth'){presence.command('open_booth',{objectId:item.id}).then(()=>boothUI.open(item)).catch(error=>toast(error.message));return;}
     if(item.toFloor&&(keyboard||item.confirmTransfer)){useStairs(item);return;}
     if(item.type==='noticeboard'){showBoard();communityUI.open();return;}
@@ -327,11 +329,21 @@
   });
   document.addEventListener('keyup',e=>{const k=window.CampusKeyboard.key(e);keys.delete(k);suppressedKeys.delete(k);});
   window.addEventListener('blur',()=>{keys.clear();suppressedKeys.clear();});
+  window.addEventListener('campus:freeze',()=>{
+    for(const key of keys)suppressedKeys.add(key);
+    keys.clear();press=null;hover=nearby=null;player.moving=false;player.running=false;player.guarding=false;
+    jump.reset();poke.stop(true);presence.setPoking(false,null,[]);presence.setInput([]);classroom.freeze?.();
+    for(const actor of [player,...presence.peers.values()]){
+      actor.moving=false;actor.running=false;actor.guarding=false;
+      for(const key of Object.keys(actor))if(key.startsWith('_campus')||key.startsWith('_pepero'))delete actor[key];
+    }
+    $('interactionPrompt').hidden=true;
+  });
   window.addEventListener('campus-keybindings-changed',()=>{keys.clear();suppressedKeys.clear();presence.setInput([]);poke.stop();});
   $('zoomIn').onclick=()=>zoomBy(1.25);$('zoomOut').onclick=()=>zoomBy(1/1.25);
   $('closeDialog').onclick=$('detailClose').onclick=()=>{dialog.close();canvas.focus({preventScroll:true});};
   $('closeBoardDialog').onclick=()=>{if(communityUI.canLeave())boardDialog.close();};
-  $('openBoardShortcut').onclick=()=>{if(D.id==='campus'&&!isDialogOpen()){showBoard();communityUI.open();}};
+  $('openBoardShortcut').onclick=()=>{if(D.id==='campus'&&!isDialogOpen()){const board=D.objects.find(o=>o.id==='class3-4-noticeboard');if(board&&window.CampusStory)window.CampusStory.open(board);else{showBoard();communityUI.open();}}};
   $('openCafeteriaShortcut').onclick=()=>{if(D.id==='campus'&&!isDialogOpen()){showBoard();showMenuPhoto();}};
   $('chatOpen').onclick=()=>{if(!isDialogOpen())social.focusChat();};
   for(const card of boardCards)card.addEventListener('click',()=>{
@@ -375,8 +387,8 @@
   function updateAvatarPreview(){const id=window.CampusAvatars.resolve(player.avatar),src=`assets/characters/${id.startsWith('female-')?'female':'male'}-face.png`,name=window.CampusAvatars.definitions[id].name;if($('avatarPreview').getAttribute('src')!==src)$('avatarPreview').src=src;if($('avatarName').textContent!==name)$('avatarName').textContent=name;}
   updateAvatarPreview();
   window.addEventListener('campus:avatar',updateAvatarPreview);
-  window.CampusApp={showDetail,get scene(){return scene;},player,camera,screenToWorld,worldToScreen,canZoom:isAdmin,canFreeCamera:isAdmin,boothUI,floorTransition,social,presence,classroom,poke,get nearby(){return nearby;},get renderer(){return renderer;},get floor(){return D.id;},get data(){return D;},visibleActors,switchFloor,quickTravelMenu:spaceGuide,render,toast,zoomBy};
-  window.addEventListener('campus:guide-open',()=>{keys.clear();suppressedKeys.clear();player.moving=false;presence.setInput([]);poke.setHeld(false);});
+  window.CampusApp={showDetail,openRegularBoard(){showBoard();communityUI.open();},get scene(){return scene;},player,camera,screenToWorld,worldToScreen,canZoom:isAdmin,canFreeCamera:isAdmin,boothUI,floorTransition,social,presence,classroom,poke,get nearby(){return nearby;},get renderer(){return renderer;},get floor(){return D.id;},get data(){return D;},visibleActors,switchFloor,quickTravelMenu:spaceGuide,render,toast,zoomBy};
+  window.addEventListener('campus:guide-open',()=>{social.leaveEditor({focusMap:false});keys.clear();suppressedKeys.clear();player.moving=false;presence.setInput([]);poke.setHeld(false);});
   requestAnimationFrame(update);
   window.dispatchEvent(new Event('campus:ready'));
   setInterval(()=>{if(D.id==='rooftop'&&!document.hidden)loadPlazaDisplays(D,renderer);},60000);

@@ -99,7 +99,7 @@ test('stairs and poses add no fields to movement reports or change world coordin
   S.resetActor(roof,actor);S.updateActor(roof,actor,1/60);
   assert.equal(JSON.stringify({floor:actor.floor,x:actor.x,y:actor.y,dir:actor.dir}),position);
   const presence=fs.readFileSync(path.join(__dirname,'../dist/presence.js'),'utf8');
-  assert.match(presence,/type:'input',keys:inputKeys/);
+  assert.match(presence,/type:'input',[\s\S]*?keys:window\.CampusFreeze\?\.blocking\?\[\]:inputKeys/);
   assert.doesNotMatch(presence,/stairMotion|stairFrame|visualZ/);
 });
 

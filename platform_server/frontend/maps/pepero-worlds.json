@@ -367,24 +367,6 @@
         },
         {
           "x1": 792,
-          "y1": 400.5,
-          "x2": 820.5,
-          "y2": 400.5
-        },
-        {
-          "x1": 885,
-          "y1": 400.5,
-          "x2": 1617,
-          "y2": 400.5
-        },
-        {
-          "x1": 1681.5,
-          "y1": 400.5,
-          "x2": 1708.5,
-          "y2": 400.5
-        },
-        {
-          "x1": 792,
           "y1": 553.5,
           "x2": 820.5,
           "y2": 553.5
@@ -599,55 +581,6 @@
           "color": "#d592aa"
         },
         {
-          "id": "object-278",
-          "type": "pepero-art",
-          "x": 1608.5,
-          "y": 807.5,
-          "w": 45,
-          "h": 35,
-          "roomId": "class1",
-          "solid": true,
-          "action": "pepero_refill",
-          "subject": "python",
-          "contentType": "python_fill_blank",
-          "name": "빼빼로 리필 상자 · E",
-          "description": "학습교실 출입구로 입장해 객관식·코드 빈칸 채우기를 시작할 수 있습니다.",
-          "tags": [
-            "초급 · 중급 · 고급",
-            "학습교실"
-          ],
-          "seasonalArt": "refill-chest",
-          "artWidth": 112,
-          "artHeight": 145,
-          "artAnchor": 0.92,
-          "renderHeight": 155,
-          "interactionPoint": [
-            1671,
-            825
-          ],
-          "info": true,
-          "refillBox": true,
-          "collisionPolygon": [
-            [
-              1592.45,
-              827.409
-            ],
-            [
-              1598.286,
-              792.41
-            ],
-            [
-              1635.987,
-              788.037
-            ],
-            [
-              1637.441,
-              830.327
-            ]
-          ],
-          "interactionRadius": 60
-        },
-        {
           "id": "pepero-lounge2-refill",
           "type": "pepero-art",
           "x": 613,
@@ -672,23 +605,27 @@
           "refillBox": true,
           "collisionPolygon": [
             [
-              571.015,
-              222.31
+              533.431,
+              219.114
             ],
             [
-              580.853,
-              163.311
+              667.116,
+              210.659
             ],
             [
-              644.407,
-              155.943
+              659.332,
+              137.597
             ],
             [
-              646.859,
-              227.232
+              602.541,
+              141.623
+            ],
+            [
+              532.672,
+              211.492
             ]
           ],
-          "interactionRadius": 60
+          "interactionRadius": 120
         },
         {
           "id": "extinguisher-meeting2",
@@ -813,7 +750,12 @@
           "mountHeight": 12,
           "renderHeight": 190,
           "description": "통합 강의실의 긴 벽 가운데에 달린 대형 게시판입니다. 가까이서 E를 누르거나 클릭하면 구내식당 메뉴·엔코아 타임 카드를 선택할 수 있습니다.",
-          "referenceBoard": true
+          "referenceBoard": true,
+          "interactionPoint": [
+            1250,
+            185
+          ],
+          "interactionRadius": 100
         },
         {
           "id": "reference-campus-0",
@@ -1367,102 +1309,6 @@
           ]
         },
         {
-          "id": "reference-campus-49",
-          "type": "pepero-art",
-          "x": 1316.5,
-          "y": 656.5,
-          "w": 46,
-          "h": 46,
-          "solid": true,
-          "renderHeight": 147.5,
-          "seasonalArt": "pedestal",
-          "artWidth": 118,
-          "artHeight": 147.5,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              1282.469,
-              677.538
-            ],
-            [
-              1290.339,
-              630.339
-            ],
-            [
-              1341.182,
-              624.444
-            ],
-            [
-              1343.144,
-              681.475
-            ]
-          ]
-        },
-        {
-          "id": "reference-campus-50",
-          "type": "pepero-art",
-          "x": 1637.5,
-          "y": 661.5,
-          "w": 46,
-          "h": 46,
-          "solid": true,
-          "renderHeight": 147.5,
-          "seasonalArt": "pedestal",
-          "artWidth": 118,
-          "artHeight": 147.5,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              1603.469,
-              682.538
-            ],
-            [
-              1611.339,
-              635.339
-            ],
-            [
-              1662.182,
-              629.444
-            ],
-            [
-              1664.144,
-              686.475
-            ]
-          ]
-        },
-        {
-          "id": "reference-campus-51",
-          "type": "pepero-art",
-          "x": 1316.5,
-          "y": 860.5,
-          "w": 46,
-          "h": 46,
-          "solid": true,
-          "renderHeight": 147.5,
-          "seasonalArt": "pedestal",
-          "artWidth": 118,
-          "artHeight": 147.5,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              1282.469,
-              881.538
-            ],
-            [
-              1290.339,
-              834.339
-            ],
-            [
-              1341.182,
-              828.444
-            ],
-            [
-              1343.144,
-              885.475
-            ]
-          ]
-        },
-        {
           "id": "reference-campus-53",
           "type": "pepero-art",
           "x": 1279.5,
@@ -1656,134 +1502,6 @@
           ]
         },
         {
-          "id": "reference-campus-64",
-          "type": "pepero-art",
-          "x": 847,
-          "y": 656.5,
-          "w": 46,
-          "h": 46,
-          "solid": true,
-          "renderHeight": 147.5,
-          "seasonalArt": "pedestal",
-          "artWidth": 118,
-          "artHeight": 147.5,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              812.969,
-              677.538
-            ],
-            [
-              820.839,
-              630.339
-            ],
-            [
-              871.682,
-              624.444
-            ],
-            [
-              873.644,
-              681.475
-            ]
-          ]
-        },
-        {
-          "id": "reference-campus-65",
-          "type": "pepero-art",
-          "x": 1190.5,
-          "y": 661.5,
-          "w": 46,
-          "h": 46,
-          "solid": true,
-          "renderHeight": 147.5,
-          "seasonalArt": "pedestal",
-          "artWidth": 118,
-          "artHeight": 147.5,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              1156.469,
-              682.538
-            ],
-            [
-              1164.339,
-              635.339
-            ],
-            [
-              1215.182,
-              629.444
-            ],
-            [
-              1217.144,
-              686.475
-            ]
-          ]
-        },
-        {
-          "id": "reference-campus-66",
-          "type": "pepero-art",
-          "x": 847,
-          "y": 860.5,
-          "w": 46,
-          "h": 46,
-          "solid": true,
-          "renderHeight": 147.5,
-          "seasonalArt": "pedestal",
-          "artWidth": 118,
-          "artHeight": 147.5,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              812.969,
-              881.538
-            ],
-            [
-              820.839,
-              834.339
-            ],
-            [
-              871.682,
-              828.444
-            ],
-            [
-              873.644,
-              885.475
-            ]
-          ]
-        },
-        {
-          "id": "reference-campus-67",
-          "type": "pepero-art",
-          "x": 1190.5,
-          "y": 860.5,
-          "w": 46,
-          "h": 46,
-          "solid": true,
-          "renderHeight": 147.5,
-          "seasonalArt": "pedestal",
-          "artWidth": 118,
-          "artHeight": 147.5,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              1156.469,
-              881.538
-            ],
-            [
-              1164.339,
-              834.339
-            ],
-            [
-              1215.182,
-              828.444
-            ],
-            [
-              1217.144,
-              885.475
-            ]
-          ]
-        },
-        {
           "id": "reference-campus-68",
           "type": "pepero-art",
           "x": 810,
@@ -1903,86 +1621,6 @@
           "solid": false,
           "renderHeight": 160,
           "color": "#b9667b"
-        },
-        {
-          "id": "reference-campus-76",
-          "type": "pepero-art",
-          "x": 1165.25,
-          "y": 171,
-          "w": 170,
-          "h": 115,
-          "solid": true,
-          "renderHeight": 480,
-          "seasonalArt": "hero",
-          "artWidth": 420,
-          "artHeight": 525,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              1324.21,
-              76.751
-            ],
-            [
-              1337.946,
-              107.668
-            ],
-            [
-              1332.409,
-              151.059
-            ],
-            [
-              1308.444,
-              200.319
-            ],
-            [
-              1269.697,
-              247.947
-            ],
-            [
-              1222.069,
-              286.694
-            ],
-            [
-              1172.809,
-              310.659
-            ],
-            [
-              1129.418,
-              316.196
-            ],
-            [
-              1098.501,
-              302.46
-            ],
-            [
-              1084.765,
-              271.543
-            ],
-            [
-              1090.302,
-              228.152
-            ],
-            [
-              1114.267,
-              178.892
-            ],
-            [
-              1153.014,
-              131.264
-            ],
-            [
-              1200.642,
-              92.517
-            ],
-            [
-              1249.902,
-              68.552
-            ],
-            [
-              1293.293,
-              63.015
-            ]
-          ]
         },
         {
           "id": "reference-campus-77",
@@ -2111,18 +1749,6 @@
               306.475
             ]
           ]
-        },
-        {
-          "id": "reference-campus-83",
-          "type": "pepero-light-rail",
-          "x": 808,
-          "y": 393.5,
-          "w": 884.5,
-          "h": 4,
-          "solid": false,
-          "renderHeight": 95,
-          "axis": "x",
-          "height": 62
         },
         {
           "id": "reference-campus-84",
@@ -2354,23 +1980,27 @@
           "refillBox": true,
           "collisionPolygon": [
             [
-              2008.5149999999999,
-              463.05999999999995
+              1970.931,
+              459.864
             ],
             [
-              2018.353,
-              404.061
+              2104.616,
+              451.409
             ],
             [
-              2081.907,
-              396.693
+              2096.832,
+              378.347
             ],
             [
-              2084.359,
-              467.981
+              2040.041,
+              382.373
+            ],
+            [
+              1970.172,
+              452.242
             ]
           ],
-          "interactionRadius": 60
+          "interactionRadius": 120
         },
         {
           "id": "reference-campus-98",
@@ -2749,6 +2379,68 @@
             "w": 10,
             "h": 10
           }
+        },
+        {
+          "id": "campus-guide-kkuwang",
+          "type": "guide-npc",
+          "name": "메타버스 가이드 꾸왕이",
+          "action": "guide",
+          "x": 1226.25,
+          "y": 120,
+          "w": 48,
+          "h": 40,
+          "solid": true,
+          "renderHeight": 60,
+          "description": "클릭하거나 가까이에서 E를 누르면 이벤트맵 이용 안내를 볼 수 있어요.",
+          "roomId": "class3-4"
+        },
+        {
+          "id": "story-evidence-table",
+          "type": "story-evidence",
+          "x": 565,
+          "y": 355,
+          "w": 170,
+          "h": 80,
+          "roomId": "lounge2",
+          "solid": true,
+          "info": false,
+          "renderHeight": 90
+        },
+        {
+          "id": "story-wrapper",
+          "type": "booth-interaction",
+          "x": 576,
+          "y": 432,
+          "w": 28,
+          "h": 20,
+          "roomId": "lounge2",
+          "solid": false,
+          "info": true,
+          "name": "빈 포장지 조사",
+          "action": "story",
+          "interactionPoint": [
+            590,
+            445
+          ],
+          "interactionRadius": 50
+        },
+        {
+          "id": "story-count",
+          "type": "booth-interaction",
+          "x": 686,
+          "y": 432,
+          "w": 28,
+          "h": 20,
+          "roomId": "lounge2",
+          "solid": false,
+          "info": true,
+          "name": "선물 수량 확인표 · 행사 기록",
+          "action": "story",
+          "interactionPoint": [
+            700,
+            445
+          ],
+          "interactionRadius": 50
         }
       ],
       "entrance": {
@@ -2780,7 +2472,17 @@
         }
       ],
       "seasonalReference": true,
-      "eventId": "pepero-1111"
+      "eventId": "pepero-1111",
+      "npcs": [
+        {
+          "id": "campus-guide-kkuwang-actor",
+          "guideNpc": true,
+          "x": 1250.25,
+          "y": 140,
+          "dir": "down",
+          "moving": false
+        }
+      ]
     },
     "rooftop": {
       "id": "rooftop",
@@ -3759,23 +3461,27 @@
           "refillBox": true,
           "collisionPolygon": [
             [
-              2143.015,
-              437.06
+              2105.431,
+              433.864
             ],
             [
-              2152.853,
-              378.062
+              2239.116,
+              425.409
             ],
             [
-              2216.407,
-              370.693
+              2231.332,
+              352.347
             ],
             [
-              2218.859,
-              441.982
+              2174.543,
+              356.372
+            ],
+            [
+              2104.672,
+              426.243
             ]
           ],
-          "interactionRadius": 60
+          "interactionRadius": 120
         },
         {
           "id": "reference-rooftop-169",
@@ -3967,6 +3673,1422 @@
           "solid": false,
           "renderHeight": 420,
           "height": 350
+        },
+        {
+          "id": "reference-rooftop-224",
+          "type": "rug",
+          "x": 1485,
+          "y": 725,
+          "w": 480,
+          "h": 420,
+          "solid": false,
+          "renderHeight": 160,
+          "color": "#b9667b"
+        },
+        {
+          "id": "reference-rooftop-225",
+          "type": "pepero-art",
+          "x": 1615,
+          "y": 845,
+          "w": 190,
+          "h": 130,
+          "solid": true,
+          "renderHeight": 570,
+          "seasonalArt": "hero",
+          "artWidth": 490,
+          "artHeight": 612.5,
+          "artAnchor": 0.92,
+          "collisionPolygon": [
+            [
+              1796.286,
+              732.96
+            ],
+            [
+              1812.312,
+              769.03
+            ],
+            [
+              1805.853,
+              819.653
+            ],
+            [
+              1777.893,
+              877.122
+            ],
+            [
+              1732.688,
+              932.688
+            ],
+            [
+              1677.122,
+              977.893
+            ],
+            [
+              1619.653,
+              1005.853
+            ],
+            [
+              1569.03,
+              1012.312
+            ],
+            [
+              1532.96,
+              996.286
+            ],
+            [
+              1516.934,
+              960.216
+            ],
+            [
+              1523.393,
+              909.593
+            ],
+            [
+              1551.353,
+              852.124
+            ],
+            [
+              1596.558,
+              796.558
+            ],
+            [
+              1652.124,
+              751.353
+            ],
+            [
+              1709.593,
+              723.393
+            ],
+            [
+              1760.216,
+              716.934
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-226",
+          "type": "pepero-art",
+          "x": 1485,
+          "y": 740,
+          "w": 130,
+          "h": 24,
+          "solid": true,
+          "renderHeight": 182.00000000000003,
+          "seasonalArt": "flowerbox",
+          "artWidth": 145.60000000000002,
+          "artHeight": 182.00000000000003,
+          "artAnchor": 0.92,
+          "flip": false,
+          "collisionPolygon": [
+            [
+              1473.932,
+              766.532
+            ],
+            [
+              1481.044,
+              726.285
+            ],
+            [
+              1581.975,
+              689.257
+            ],
+            [
+              1576.354,
+              735.113
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-227",
+          "type": "pepero-art",
+          "x": 1830,
+          "y": 740,
+          "w": 130,
+          "h": 24,
+          "solid": true,
+          "renderHeight": 182.00000000000003,
+          "seasonalArt": "flowerbox",
+          "artWidth": 145.60000000000002,
+          "artHeight": 182.00000000000003,
+          "artAnchor": 0.92,
+          "flip": false,
+          "collisionPolygon": [
+            [
+              1818.932,
+              766.532
+            ],
+            [
+              1826.044,
+              726.285
+            ],
+            [
+              1926.975,
+              689.257
+            ],
+            [
+              1921.354,
+              735.113
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-228",
+          "type": "pepero-art",
+          "x": 1485,
+          "y": 1110,
+          "w": 130,
+          "h": 24,
+          "solid": true,
+          "renderHeight": 182.00000000000003,
+          "seasonalArt": "flowerbox",
+          "artWidth": 145.60000000000002,
+          "artHeight": 182.00000000000003,
+          "artAnchor": 0.92,
+          "flip": false,
+          "collisionPolygon": [
+            [
+              1473.932,
+              1136.532
+            ],
+            [
+              1481.044,
+              1096.285
+            ],
+            [
+              1581.975,
+              1059.257
+            ],
+            [
+              1576.354,
+              1105.113
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-229",
+          "type": "pepero-art",
+          "x": 1830,
+          "y": 1110,
+          "w": 130,
+          "h": 24,
+          "solid": true,
+          "renderHeight": 182.00000000000003,
+          "seasonalArt": "flowerbox",
+          "artWidth": 145.60000000000002,
+          "artHeight": 182.00000000000003,
+          "artAnchor": 0.92,
+          "flip": false,
+          "collisionPolygon": [
+            [
+              1818.932,
+              1136.532
+            ],
+            [
+              1826.044,
+              1096.285
+            ],
+            [
+              1926.975,
+              1059.257
+            ],
+            [
+              1921.354,
+              1105.113
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-230",
+          "type": "pepero-art",
+          "x": 1480,
+          "y": 885,
+          "w": 46,
+          "h": 46,
+          "solid": true,
+          "renderHeight": 147.5,
+          "seasonalArt": "pedestal",
+          "artWidth": 118,
+          "artHeight": 147.5,
+          "artAnchor": 0.92,
+          "collisionPolygon": [
+            [
+              1445.969,
+              906.038
+            ],
+            [
+              1453.839,
+              858.839
+            ],
+            [
+              1504.682,
+              852.944
+            ],
+            [
+              1506.644,
+              909.975
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-231",
+          "type": "pepero-art",
+          "x": 1910,
+          "y": 885,
+          "w": 46,
+          "h": 46,
+          "solid": true,
+          "renderHeight": 200,
+          "seasonalArt": "refill-chest",
+          "artWidth": 165,
+          "artHeight": 190,
+          "artAnchor": 0.92,
+          "action": "pepero_refill",
+          "name": "빼빼로 리필 상자 · E",
+          "interactionPoint": [
+            1973,
+            908
+          ],
+          "info": true,
+          "refillBox": true,
+          "collisionPolygon": [
+            [
+              1830.431,
+              908.864
+            ],
+            [
+              1964.116,
+              900.409
+            ],
+            [
+              1956.332,
+              827.347
+            ],
+            [
+              1899.543,
+              831.372
+            ],
+            [
+              1829.672,
+              901.243
+            ]
+          ],
+          "interactionRadius": 120
+        },
+        {
+          "id": "reference-rooftop-232",
+          "type": "pepero-art",
+          "x": 190,
+          "y": 390,
+          "w": 130,
+          "h": 115,
+          "solid": true,
+          "renderHeight": 293.75,
+          "seasonalArt": "cafe",
+          "artWidth": 235,
+          "artHeight": 293.75,
+          "artAnchor": 0.92,
+          "collisionPolygon": [
+            [
+              286.033,
+              358.891
+            ],
+            [
+              295.251,
+              377.215
+            ],
+            [
+              293.957,
+              401.857
+            ],
+            [
+              282.35,
+              429.065
+            ],
+            [
+              262.197,
+              454.697
+            ],
+            [
+              236.565,
+              474.85
+            ],
+            [
+              209.357,
+              486.457
+            ],
+            [
+              184.715,
+              487.751
+            ],
+            [
+              166.391,
+              478.533
+            ],
+            [
+              157.174,
+              460.209
+            ],
+            [
+              158.467,
+              435.567
+            ],
+            [
+              170.074,
+              408.359
+            ],
+            [
+              190.227,
+              382.727
+            ],
+            [
+              215.859,
+              362.574
+            ],
+            [
+              243.067,
+              350.967
+            ],
+            [
+              267.709,
+              349.674
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-233",
+          "type": "pepero-art",
+          "x": 190,
+          "y": 1050,
+          "w": 130,
+          "h": 115,
+          "solid": true,
+          "renderHeight": 293.75,
+          "seasonalArt": "cafe",
+          "artWidth": 235,
+          "artHeight": 293.75,
+          "artAnchor": 0.92,
+          "collisionPolygon": [
+            [
+              286.033,
+              1018.891
+            ],
+            [
+              295.251,
+              1037.215
+            ],
+            [
+              293.957,
+              1061.857
+            ],
+            [
+              282.35,
+              1089.065
+            ],
+            [
+              262.197,
+              1114.697
+            ],
+            [
+              236.565,
+              1134.85
+            ],
+            [
+              209.357,
+              1146.457
+            ],
+            [
+              184.715,
+              1147.751
+            ],
+            [
+              166.391,
+              1138.533
+            ],
+            [
+              157.174,
+              1120.209
+            ],
+            [
+              158.467,
+              1095.567
+            ],
+            [
+              170.074,
+              1068.359
+            ],
+            [
+              190.227,
+              1042.727
+            ],
+            [
+              215.859,
+              1022.574
+            ],
+            [
+              243.067,
+              1010.967
+            ],
+            [
+              267.709,
+              1009.674
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-234",
+          "type": "pepero-art",
+          "x": 2140,
+          "y": 900,
+          "w": 130,
+          "h": 115,
+          "solid": true,
+          "renderHeight": 293.75,
+          "seasonalArt": "cafe",
+          "artWidth": 235,
+          "artHeight": 293.75,
+          "artAnchor": 0.92,
+          "collisionPolygon": [
+            [
+              2236.033,
+              868.891
+            ],
+            [
+              2245.251,
+              887.215
+            ],
+            [
+              2243.957,
+              911.857
+            ],
+            [
+              2232.35,
+              939.065
+            ],
+            [
+              2212.197,
+              964.697
+            ],
+            [
+              2186.565,
+              984.85
+            ],
+            [
+              2159.357,
+              996.457
+            ],
+            [
+              2134.715,
+              997.751
+            ],
+            [
+              2116.391,
+              988.533
+            ],
+            [
+              2107.174,
+              970.209
+            ],
+            [
+              2108.467,
+              945.567
+            ],
+            [
+              2120.074,
+              918.359
+            ],
+            [
+              2140.227,
+              892.727
+            ],
+            [
+              2165.859,
+              872.574
+            ],
+            [
+              2193.067,
+              860.967
+            ],
+            [
+              2217.709,
+              859.674
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-236",
+          "type": "pepero-art",
+          "x": 130,
+          "y": 160,
+          "w": 24,
+          "h": 125,
+          "solid": true,
+          "renderHeight": 175,
+          "seasonalArt": "flowerbox",
+          "artWidth": 140,
+          "artHeight": 175,
+          "artAnchor": 0.92,
+          "flip": true,
+          "collisionPolygon": [
+            [
+              155.973,
+              149.358
+            ],
+            [
+              117.274,
+              156.196
+            ],
+            [
+              81.67,
+              253.245
+            ],
+            [
+              125.763,
+              247.84
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-237",
+          "type": "pepero-ribbon-lamp",
+          "x": 131,
+          "y": 290,
+          "w": 12,
+          "h": 12,
+          "solid": true,
+          "renderHeight": 145,
+          "collision": {
+            "x": 1,
+            "y": 1,
+            "w": 10,
+            "h": 10
+          }
+        },
+        {
+          "id": "reference-rooftop-238",
+          "type": "pepero-art",
+          "x": 130,
+          "y": 340,
+          "w": 24,
+          "h": 125,
+          "solid": true,
+          "renderHeight": 175,
+          "seasonalArt": "flowerbox",
+          "artWidth": 140,
+          "artHeight": 175,
+          "artAnchor": 0.92,
+          "flip": true,
+          "collisionPolygon": [
+            [
+              155.973,
+              329.358
+            ],
+            [
+              117.274,
+              336.196
+            ],
+            [
+              81.67,
+              433.245
+            ],
+            [
+              125.763,
+              427.84
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-239",
+          "type": "pepero-ribbon-lamp",
+          "x": 131,
+          "y": 470,
+          "w": 12,
+          "h": 12,
+          "solid": true,
+          "renderHeight": 145,
+          "collision": {
+            "x": 1,
+            "y": 1,
+            "w": 10,
+            "h": 10
+          }
+        },
+        {
+          "id": "reference-rooftop-240",
+          "type": "pepero-art",
+          "x": 130,
+          "y": 520,
+          "w": 24,
+          "h": 125,
+          "solid": true,
+          "renderHeight": 175,
+          "seasonalArt": "flowerbox",
+          "artWidth": 140,
+          "artHeight": 175,
+          "artAnchor": 0.92,
+          "flip": true,
+          "collisionPolygon": [
+            [
+              155.973,
+              509.358
+            ],
+            [
+              117.274,
+              516.196
+            ],
+            [
+              81.67,
+              613.245
+            ],
+            [
+              125.763,
+              607.84
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-241",
+          "type": "pepero-ribbon-lamp",
+          "x": 131,
+          "y": 650,
+          "w": 12,
+          "h": 12,
+          "solid": true,
+          "renderHeight": 145,
+          "collision": {
+            "x": 1,
+            "y": 1,
+            "w": 10,
+            "h": 10
+          }
+        },
+        {
+          "id": "reference-rooftop-242",
+          "type": "pepero-art",
+          "x": 130,
+          "y": 700,
+          "w": 24,
+          "h": 125,
+          "solid": true,
+          "renderHeight": 175,
+          "seasonalArt": "flowerbox",
+          "artWidth": 140,
+          "artHeight": 175,
+          "artAnchor": 0.92,
+          "flip": true,
+          "collisionPolygon": [
+            [
+              155.973,
+              689.358
+            ],
+            [
+              117.274,
+              696.196
+            ],
+            [
+              81.67,
+              793.245
+            ],
+            [
+              125.763,
+              787.84
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-243",
+          "type": "pepero-ribbon-lamp",
+          "x": 131,
+          "y": 830,
+          "w": 12,
+          "h": 12,
+          "solid": true,
+          "renderHeight": 145,
+          "collision": {
+            "x": 1,
+            "y": 1,
+            "w": 10,
+            "h": 10
+          }
+        },
+        {
+          "id": "reference-rooftop-244",
+          "type": "pepero-art",
+          "x": 130,
+          "y": 880,
+          "w": 24,
+          "h": 125,
+          "solid": true,
+          "renderHeight": 175,
+          "seasonalArt": "flowerbox",
+          "artWidth": 140,
+          "artHeight": 175,
+          "artAnchor": 0.92,
+          "flip": true,
+          "collisionPolygon": [
+            [
+              155.973,
+              869.358
+            ],
+            [
+              117.274,
+              876.196
+            ],
+            [
+              81.67,
+              973.245
+            ],
+            [
+              125.763,
+              967.84
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-245",
+          "type": "pepero-ribbon-lamp",
+          "x": 131,
+          "y": 1010,
+          "w": 12,
+          "h": 12,
+          "solid": true,
+          "renderHeight": 145,
+          "collision": {
+            "x": 1,
+            "y": 1,
+            "w": 10,
+            "h": 10
+          }
+        },
+        {
+          "id": "reference-rooftop-246",
+          "type": "pepero-art",
+          "x": 130,
+          "y": 1060,
+          "w": 24,
+          "h": 125,
+          "solid": true,
+          "renderHeight": 175,
+          "seasonalArt": "flowerbox",
+          "artWidth": 140,
+          "artHeight": 175,
+          "artAnchor": 0.92,
+          "flip": true,
+          "collisionPolygon": [
+            [
+              155.973,
+              1049.358
+            ],
+            [
+              117.274,
+              1056.196
+            ],
+            [
+              81.67,
+              1153.245
+            ],
+            [
+              125.763,
+              1147.84
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-247",
+          "type": "pepero-ribbon-lamp",
+          "x": 131,
+          "y": 1190,
+          "w": 12,
+          "h": 12,
+          "solid": true,
+          "renderHeight": 145,
+          "collision": {
+            "x": 1,
+            "y": 1,
+            "w": 10,
+            "h": 10
+          }
+        },
+        {
+          "id": "reference-rooftop-248",
+          "type": "pepero-art",
+          "x": 130,
+          "y": 1240,
+          "w": 24,
+          "h": 125,
+          "solid": true,
+          "renderHeight": 175,
+          "seasonalArt": "flowerbox",
+          "artWidth": 140,
+          "artHeight": 175,
+          "artAnchor": 0.92,
+          "flip": true,
+          "collisionPolygon": [
+            [
+              155.973,
+              1229.358
+            ],
+            [
+              117.274,
+              1236.196
+            ],
+            [
+              81.67,
+              1333.245
+            ],
+            [
+              125.763,
+              1327.84
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-249",
+          "type": "pepero-ribbon-lamp",
+          "x": 131,
+          "y": 1370,
+          "w": 12,
+          "h": 12,
+          "solid": true,
+          "renderHeight": 145,
+          "collision": {
+            "x": 1,
+            "y": 1,
+            "w": 10,
+            "h": 10
+          }
+        },
+        {
+          "id": "reference-rooftop-250",
+          "type": "pepero-art",
+          "x": 130,
+          "y": 1420,
+          "w": 24,
+          "h": 125,
+          "solid": true,
+          "renderHeight": 175,
+          "seasonalArt": "flowerbox",
+          "artWidth": 140,
+          "artHeight": 175,
+          "artAnchor": 0.92,
+          "flip": true,
+          "collisionPolygon": [
+            [
+              155.973,
+              1409.358
+            ],
+            [
+              117.274,
+              1416.196
+            ],
+            [
+              81.67,
+              1513.245
+            ],
+            [
+              125.763,
+              1507.84
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-251",
+          "type": "pepero-ribbon-lamp",
+          "x": 131,
+          "y": 1550,
+          "w": 12,
+          "h": 12,
+          "solid": true,
+          "renderHeight": 145,
+          "collision": {
+            "x": 1,
+            "y": 1,
+            "w": 10,
+            "h": 10
+          }
+        },
+        {
+          "id": "reference-rooftop-252",
+          "type": "pepero-art",
+          "x": 2350,
+          "y": 500,
+          "w": 24,
+          "h": 160,
+          "solid": true,
+          "renderHeight": 224.00000000000003,
+          "seasonalArt": "flowerbox",
+          "artWidth": 179.20000000000002,
+          "artHeight": 224.00000000000003,
+          "artAnchor": 0.92,
+          "flip": true,
+          "collisionPolygon": [
+            [
+              2379.886,
+              486.378
+            ],
+            [
+              2330.351,
+              495.131
+            ],
+            [
+              2284.778,
+              619.354
+            ],
+            [
+              2341.216,
+              612.436
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-253",
+          "type": "pepero-art",
+          "x": 2350,
+          "y": 735,
+          "w": 24,
+          "h": 160,
+          "solid": true,
+          "renderHeight": 224.00000000000003,
+          "seasonalArt": "flowerbox",
+          "artWidth": 179.20000000000002,
+          "artHeight": 224.00000000000003,
+          "artAnchor": 0.92,
+          "flip": true,
+          "collisionPolygon": [
+            [
+              2379.886,
+              721.378
+            ],
+            [
+              2330.351,
+              730.131
+            ],
+            [
+              2284.778,
+              854.354
+            ],
+            [
+              2341.216,
+              847.436
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-254",
+          "type": "pepero-art",
+          "x": 2350,
+          "y": 970,
+          "w": 24,
+          "h": 160,
+          "solid": true,
+          "renderHeight": 224.00000000000003,
+          "seasonalArt": "flowerbox",
+          "artWidth": 179.20000000000002,
+          "artHeight": 224.00000000000003,
+          "artAnchor": 0.92,
+          "flip": true,
+          "collisionPolygon": [
+            [
+              2379.886,
+              956.378
+            ],
+            [
+              2330.351,
+              965.131
+            ],
+            [
+              2284.778,
+              1089.354
+            ],
+            [
+              2341.216,
+              1082.436
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-255",
+          "type": "pepero-art",
+          "x": 2350,
+          "y": 1205,
+          "w": 24,
+          "h": 160,
+          "solid": true,
+          "renderHeight": 224.00000000000003,
+          "seasonalArt": "flowerbox",
+          "artWidth": 179.20000000000002,
+          "artHeight": 224.00000000000003,
+          "artAnchor": 0.92,
+          "flip": true,
+          "collisionPolygon": [
+            [
+              2379.886,
+              1191.378
+            ],
+            [
+              2330.351,
+              1200.131
+            ],
+            [
+              2284.778,
+              1324.354
+            ],
+            [
+              2341.216,
+              1317.436
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-257",
+          "type": "pepero-art",
+          "x": 280,
+          "y": 1690,
+          "w": 170,
+          "h": 24,
+          "solid": true,
+          "renderHeight": 238,
+          "seasonalArt": "flowerbox",
+          "artWidth": 190.4,
+          "artHeight": 238,
+          "artAnchor": 0.92,
+          "flip": false,
+          "collisionPolygon": [
+            [
+              265.526,
+              1721.003
+            ],
+            [
+              274.827,
+              1668.373
+            ],
+            [
+              406.814,
+              1619.951
+            ],
+            [
+              399.463,
+              1679.917
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-258",
+          "type": "pepero-art",
+          "x": 520,
+          "y": 1690,
+          "w": 170,
+          "h": 24,
+          "solid": true,
+          "renderHeight": 238,
+          "seasonalArt": "flowerbox",
+          "artWidth": 190.4,
+          "artHeight": 238,
+          "artAnchor": 0.92,
+          "flip": false,
+          "collisionPolygon": [
+            [
+              505.526,
+              1721.003
+            ],
+            [
+              514.827,
+              1668.373
+            ],
+            [
+              646.814,
+              1619.951
+            ],
+            [
+              639.463,
+              1679.917
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-259",
+          "type": "pepero-art",
+          "x": 760,
+          "y": 1690,
+          "w": 170,
+          "h": 24,
+          "solid": true,
+          "renderHeight": 238,
+          "seasonalArt": "flowerbox",
+          "artWidth": 190.4,
+          "artHeight": 238,
+          "artAnchor": 0.92,
+          "flip": false,
+          "collisionPolygon": [
+            [
+              745.526,
+              1721.003
+            ],
+            [
+              754.827,
+              1668.373
+            ],
+            [
+              886.814,
+              1619.951
+            ],
+            [
+              879.463,
+              1679.917
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-260",
+          "type": "pepero-art",
+          "x": 1000,
+          "y": 1690,
+          "w": 170,
+          "h": 24,
+          "solid": true,
+          "renderHeight": 238,
+          "seasonalArt": "flowerbox",
+          "artWidth": 190.4,
+          "artHeight": 238,
+          "artAnchor": 0.92,
+          "flip": false,
+          "collisionPolygon": [
+            [
+              985.526,
+              1721.003
+            ],
+            [
+              994.827,
+              1668.373
+            ],
+            [
+              1126.814,
+              1619.951
+            ],
+            [
+              1119.463,
+              1679.917
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-262",
+          "type": "pepero-art",
+          "x": 1480,
+          "y": 1690,
+          "w": 170,
+          "h": 24,
+          "solid": true,
+          "renderHeight": 238,
+          "seasonalArt": "flowerbox",
+          "artWidth": 190.4,
+          "artHeight": 238,
+          "artAnchor": 0.92,
+          "flip": false,
+          "collisionPolygon": [
+            [
+              1465.526,
+              1721.003
+            ],
+            [
+              1474.827,
+              1668.373
+            ],
+            [
+              1606.814,
+              1619.951
+            ],
+            [
+              1599.463,
+              1679.917
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-263",
+          "type": "pepero-art",
+          "x": 1720,
+          "y": 1690,
+          "w": 170,
+          "h": 24,
+          "solid": true,
+          "renderHeight": 238,
+          "seasonalArt": "flowerbox",
+          "artWidth": 190.4,
+          "artHeight": 238,
+          "artAnchor": 0.92,
+          "flip": false,
+          "collisionPolygon": [
+            [
+              1705.526,
+              1721.003
+            ],
+            [
+              1714.827,
+              1668.373
+            ],
+            [
+              1846.814,
+              1619.951
+            ],
+            [
+              1839.463,
+              1679.917
+            ]
+          ]
+        },
+        {
+          "id": "reference-rooftop-266",
+          "type": "pepero-ribbon-lamp",
+          "x": 1940,
+          "y": 1500,
+          "w": 12,
+          "h": 12,
+          "solid": true,
+          "renderHeight": 145,
+          "collision": {
+            "x": 1,
+            "y": 1,
+            "w": 10,
+            "h": 10
+          }
+        },
+        {
+          "id": "reference-rooftop-267",
+          "type": "pepero-ribbon-lamp",
+          "x": 2185,
+          "y": 1500,
+          "w": 12,
+          "h": 12,
+          "solid": true,
+          "renderHeight": 145,
+          "collision": {
+            "x": 1,
+            "y": 1,
+            "w": 10,
+            "h": 10
+          }
+        },
+        {
+          "id": "reference-rooftop-268",
+          "type": "pepero-ribbon-lamp",
+          "x": 1495,
+          "y": 1240,
+          "w": 12,
+          "h": 12,
+          "solid": true,
+          "renderHeight": 145,
+          "collision": {
+            "x": 1,
+            "y": 1,
+            "w": 10,
+            "h": 10
+          }
+        },
+        {
+          "id": "reference-rooftop-269",
+          "type": "pepero-ribbon-lamp",
+          "x": 1920,
+          "y": 1240,
+          "w": 12,
+          "h": 12,
+          "solid": true,
+          "renderHeight": 145,
+          "collision": {
+            "x": 1,
+            "y": 1,
+            "w": 10,
+            "h": 10
+          }
+        },
+        {
+          "id": "reference-rooftop-270",
+          "type": "pepero-garland",
+          "x": 160,
+          "y": 100,
+          "w": 230,
+          "h": 3,
+          "solid": false,
+          "renderHeight": 220,
+          "height": 190
+        },
+        {
+          "id": "reference-rooftop-271",
+          "type": "pepero-garland",
+          "x": 390,
+          "y": 100,
+          "w": 230,
+          "h": 3,
+          "solid": false,
+          "renderHeight": 220,
+          "height": 190
+        },
+        {
+          "id": "reference-rooftop-272",
+          "type": "pepero-garland",
+          "x": 620,
+          "y": 100,
+          "w": 230,
+          "h": 3,
+          "solid": false,
+          "renderHeight": 220,
+          "height": 190
+        },
+        {
+          "id": "reference-rooftop-273",
+          "type": "pepero-garland",
+          "x": 850,
+          "y": 100,
+          "w": 230,
+          "h": 3,
+          "solid": false,
+          "renderHeight": 220,
+          "height": 190
+        },
+        {
+          "id": "pepero-guard-sandbag",
+          "type": "guard-sandbag",
+          "action": "guard_sandbag",
+          "name": "방어 연습 샌드백",
+          "x": 2011,
+          "y": 921,
+          "w": 18,
+          "h": 18,
+          "solid": true,
+          "renderHeight": 85,
+          "info": false
+        },
+        {
+          "id": "reference-rooftop-261",
+          "type": "pepero-art",
+          "x": 1240,
+          "y": 1690,
+          "w": 170,
+          "h": 24,
+          "solid": true,
+          "renderHeight": 238,
+          "seasonalArt": "flowerbox",
+          "artWidth": 190.4,
+          "artHeight": 238,
+          "artAnchor": 0.92,
+          "flip": false,
+          "collisionPolygon": [
+            [
+              1225.526,
+              1721.003
+            ],
+            [
+              1234.827,
+              1668.373
+            ],
+            [
+              1366.814,
+              1619.951
+            ],
+            [
+              1359.463,
+              1679.917
+            ]
+          ]
         },
         {
           "id": "reference-rooftop-184",
@@ -5025,52 +6147,32 @@
           ]
         },
         {
-          "id": "reference-rooftop-216",
-          "type": "pepero-light-rail",
-          "x": 1048,
-          "y": 315,
-          "w": 342,
-          "h": 4,
-          "solid": false,
-          "renderHeight": 95,
-          "axis": "x",
-          "height": 62
-        },
-        {
-          "id": "reference-rooftop-217",
-          "type": "pepero-light-rail",
-          "x": 1048,
-          "y": 685,
-          "w": 342,
-          "h": 4,
-          "solid": false,
-          "renderHeight": 95,
-          "axis": "x",
-          "height": 62
-        },
-        {
-          "id": "reference-rooftop-218",
-          "type": "pepero-light-rail",
-          "x": 1048,
-          "y": 1055,
-          "w": 342,
-          "h": 4,
-          "solid": false,
-          "renderHeight": 95,
-          "axis": "x",
-          "height": 62
-        },
-        {
-          "id": "reference-rooftop-219",
-          "type": "pepero-light-rail",
-          "x": 1048,
-          "y": 1425,
-          "w": 342,
-          "h": 4,
-          "solid": false,
-          "renderHeight": 95,
-          "axis": "x",
-          "height": 62
+          "id": "reference-rooftop-265",
+          "type": "pepero-art",
+          "x": 1980,
+          "y": 1535,
+          "w": 180,
+          "h": 30,
+          "solid": true,
+          "renderHeight": 315,
+          "seasonalArt": "gate",
+          "artWidth": 350,
+          "artHeight": 437.5,
+          "artAnchor": 0.92,
+          "collisionParts": [
+            {
+              "x": 0,
+              "y": 0,
+              "w": 18,
+              "h": 30
+            },
+            {
+              "x": 162,
+              "y": 0,
+              "w": 18,
+              "h": 30
+            }
+          ]
         },
         {
           "id": "reference-rooftop-220",
@@ -5115,1526 +6217,6 @@
           "solid": false,
           "renderHeight": 135,
           "axis": "x"
-        },
-        {
-          "id": "reference-rooftop-224",
-          "type": "rug",
-          "x": 1485,
-          "y": 725,
-          "w": 480,
-          "h": 420,
-          "solid": false,
-          "renderHeight": 160,
-          "color": "#b9667b"
-        },
-        {
-          "id": "reference-rooftop-225",
-          "type": "pepero-art",
-          "x": 1615,
-          "y": 845,
-          "w": 190,
-          "h": 130,
-          "solid": true,
-          "renderHeight": 570,
-          "seasonalArt": "hero",
-          "artWidth": 490,
-          "artHeight": 612.5,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              1796.286,
-              732.96
-            ],
-            [
-              1812.312,
-              769.03
-            ],
-            [
-              1805.853,
-              819.653
-            ],
-            [
-              1777.893,
-              877.122
-            ],
-            [
-              1732.688,
-              932.688
-            ],
-            [
-              1677.122,
-              977.893
-            ],
-            [
-              1619.653,
-              1005.853
-            ],
-            [
-              1569.03,
-              1012.312
-            ],
-            [
-              1532.96,
-              996.286
-            ],
-            [
-              1516.934,
-              960.216
-            ],
-            [
-              1523.393,
-              909.593
-            ],
-            [
-              1551.353,
-              852.124
-            ],
-            [
-              1596.558,
-              796.558
-            ],
-            [
-              1652.124,
-              751.353
-            ],
-            [
-              1709.593,
-              723.393
-            ],
-            [
-              1760.216,
-              716.934
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-226",
-          "type": "pepero-art",
-          "x": 1485,
-          "y": 740,
-          "w": 130,
-          "h": 24,
-          "solid": true,
-          "renderHeight": 182.00000000000003,
-          "seasonalArt": "flowerbox",
-          "artWidth": 145.60000000000002,
-          "artHeight": 182.00000000000003,
-          "artAnchor": 0.92,
-          "flip": false,
-          "collisionPolygon": [
-            [
-              1473.932,
-              766.532
-            ],
-            [
-              1481.044,
-              726.285
-            ],
-            [
-              1581.975,
-              689.257
-            ],
-            [
-              1576.354,
-              735.113
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-227",
-          "type": "pepero-art",
-          "x": 1830,
-          "y": 740,
-          "w": 130,
-          "h": 24,
-          "solid": true,
-          "renderHeight": 182.00000000000003,
-          "seasonalArt": "flowerbox",
-          "artWidth": 145.60000000000002,
-          "artHeight": 182.00000000000003,
-          "artAnchor": 0.92,
-          "flip": false,
-          "collisionPolygon": [
-            [
-              1818.932,
-              766.532
-            ],
-            [
-              1826.044,
-              726.285
-            ],
-            [
-              1926.975,
-              689.257
-            ],
-            [
-              1921.354,
-              735.113
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-228",
-          "type": "pepero-art",
-          "x": 1485,
-          "y": 1110,
-          "w": 130,
-          "h": 24,
-          "solid": true,
-          "renderHeight": 182.00000000000003,
-          "seasonalArt": "flowerbox",
-          "artWidth": 145.60000000000002,
-          "artHeight": 182.00000000000003,
-          "artAnchor": 0.92,
-          "flip": false,
-          "collisionPolygon": [
-            [
-              1473.932,
-              1136.532
-            ],
-            [
-              1481.044,
-              1096.285
-            ],
-            [
-              1581.975,
-              1059.257
-            ],
-            [
-              1576.354,
-              1105.113
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-229",
-          "type": "pepero-art",
-          "x": 1830,
-          "y": 1110,
-          "w": 130,
-          "h": 24,
-          "solid": true,
-          "renderHeight": 182.00000000000003,
-          "seasonalArt": "flowerbox",
-          "artWidth": 145.60000000000002,
-          "artHeight": 182.00000000000003,
-          "artAnchor": 0.92,
-          "flip": false,
-          "collisionPolygon": [
-            [
-              1818.932,
-              1136.532
-            ],
-            [
-              1826.044,
-              1096.285
-            ],
-            [
-              1926.975,
-              1059.257
-            ],
-            [
-              1921.354,
-              1105.113
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-230",
-          "type": "pepero-art",
-          "x": 1480,
-          "y": 885,
-          "w": 46,
-          "h": 46,
-          "solid": true,
-          "renderHeight": 147.5,
-          "seasonalArt": "pedestal",
-          "artWidth": 118,
-          "artHeight": 147.5,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              1445.969,
-              906.038
-            ],
-            [
-              1453.839,
-              858.839
-            ],
-            [
-              1504.682,
-              852.944
-            ],
-            [
-              1506.644,
-              909.975
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-231",
-          "type": "pepero-art",
-          "x": 1910,
-          "y": 885,
-          "w": 46,
-          "h": 46,
-          "solid": true,
-          "renderHeight": 200,
-          "seasonalArt": "refill-chest",
-          "artWidth": 165,
-          "artHeight": 190,
-          "artAnchor": 0.92,
-          "action": "pepero_refill",
-          "name": "빼빼로 리필 상자 · E",
-          "interactionPoint": [
-            1973,
-            908
-          ],
-          "info": true,
-          "refillBox": true,
-          "collisionPolygon": [
-            [
-              1868.015,
-              912.06
-            ],
-            [
-              1877.853,
-              853.062
-            ],
-            [
-              1941.407,
-              845.693
-            ],
-            [
-              1943.859,
-              916.981
-            ]
-          ],
-          "interactionRadius": 60
-        },
-        {
-          "id": "reference-rooftop-232",
-          "type": "pepero-art",
-          "x": 190,
-          "y": 390,
-          "w": 130,
-          "h": 115,
-          "solid": true,
-          "renderHeight": 293.75,
-          "seasonalArt": "cafe",
-          "artWidth": 235,
-          "artHeight": 293.75,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              286.033,
-              358.891
-            ],
-            [
-              295.251,
-              377.215
-            ],
-            [
-              293.957,
-              401.857
-            ],
-            [
-              282.35,
-              429.065
-            ],
-            [
-              262.197,
-              454.697
-            ],
-            [
-              236.565,
-              474.85
-            ],
-            [
-              209.357,
-              486.457
-            ],
-            [
-              184.715,
-              487.751
-            ],
-            [
-              166.391,
-              478.533
-            ],
-            [
-              157.174,
-              460.209
-            ],
-            [
-              158.467,
-              435.567
-            ],
-            [
-              170.074,
-              408.359
-            ],
-            [
-              190.227,
-              382.727
-            ],
-            [
-              215.859,
-              362.574
-            ],
-            [
-              243.067,
-              350.967
-            ],
-            [
-              267.709,
-              349.674
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-233",
-          "type": "pepero-art",
-          "x": 190,
-          "y": 1050,
-          "w": 130,
-          "h": 115,
-          "solid": true,
-          "renderHeight": 293.75,
-          "seasonalArt": "cafe",
-          "artWidth": 235,
-          "artHeight": 293.75,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              286.033,
-              1018.891
-            ],
-            [
-              295.251,
-              1037.215
-            ],
-            [
-              293.957,
-              1061.857
-            ],
-            [
-              282.35,
-              1089.065
-            ],
-            [
-              262.197,
-              1114.697
-            ],
-            [
-              236.565,
-              1134.85
-            ],
-            [
-              209.357,
-              1146.457
-            ],
-            [
-              184.715,
-              1147.751
-            ],
-            [
-              166.391,
-              1138.533
-            ],
-            [
-              157.174,
-              1120.209
-            ],
-            [
-              158.467,
-              1095.567
-            ],
-            [
-              170.074,
-              1068.359
-            ],
-            [
-              190.227,
-              1042.727
-            ],
-            [
-              215.859,
-              1022.574
-            ],
-            [
-              243.067,
-              1010.967
-            ],
-            [
-              267.709,
-              1009.674
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-234",
-          "type": "pepero-art",
-          "x": 2140,
-          "y": 900,
-          "w": 130,
-          "h": 115,
-          "solid": true,
-          "renderHeight": 293.75,
-          "seasonalArt": "cafe",
-          "artWidth": 235,
-          "artHeight": 293.75,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              2236.033,
-              868.891
-            ],
-            [
-              2245.251,
-              887.215
-            ],
-            [
-              2243.957,
-              911.857
-            ],
-            [
-              2232.35,
-              939.065
-            ],
-            [
-              2212.197,
-              964.697
-            ],
-            [
-              2186.565,
-              984.85
-            ],
-            [
-              2159.357,
-              996.457
-            ],
-            [
-              2134.715,
-              997.751
-            ],
-            [
-              2116.391,
-              988.533
-            ],
-            [
-              2107.174,
-              970.209
-            ],
-            [
-              2108.467,
-              945.567
-            ],
-            [
-              2120.074,
-              918.359
-            ],
-            [
-              2140.227,
-              892.727
-            ],
-            [
-              2165.859,
-              872.574
-            ],
-            [
-              2193.067,
-              860.967
-            ],
-            [
-              2217.709,
-              859.674
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-235",
-          "type": "pepero-art",
-          "x": 2140,
-          "y": 1310,
-          "w": 130,
-          "h": 115,
-          "solid": true,
-          "renderHeight": 293.75,
-          "seasonalArt": "cafe",
-          "artWidth": 235,
-          "artHeight": 293.75,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              2236.033,
-              1278.891
-            ],
-            [
-              2245.251,
-              1297.215
-            ],
-            [
-              2243.957,
-              1321.857
-            ],
-            [
-              2232.35,
-              1349.065
-            ],
-            [
-              2212.197,
-              1374.697
-            ],
-            [
-              2186.565,
-              1394.85
-            ],
-            [
-              2159.357,
-              1406.457
-            ],
-            [
-              2134.715,
-              1407.751
-            ],
-            [
-              2116.391,
-              1398.533
-            ],
-            [
-              2107.174,
-              1380.209
-            ],
-            [
-              2108.467,
-              1355.567
-            ],
-            [
-              2120.074,
-              1328.359
-            ],
-            [
-              2140.227,
-              1302.727
-            ],
-            [
-              2165.859,
-              1282.574
-            ],
-            [
-              2193.067,
-              1270.967
-            ],
-            [
-              2217.709,
-              1269.674
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-236",
-          "type": "pepero-art",
-          "x": 130,
-          "y": 160,
-          "w": 24,
-          "h": 125,
-          "solid": true,
-          "renderHeight": 175,
-          "seasonalArt": "flowerbox",
-          "artWidth": 140,
-          "artHeight": 175,
-          "artAnchor": 0.92,
-          "flip": true,
-          "collisionPolygon": [
-            [
-              155.973,
-              149.358
-            ],
-            [
-              117.274,
-              156.196
-            ],
-            [
-              81.67,
-              253.245
-            ],
-            [
-              125.763,
-              247.84
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-237",
-          "type": "pepero-ribbon-lamp",
-          "x": 131,
-          "y": 290,
-          "w": 12,
-          "h": 12,
-          "solid": true,
-          "renderHeight": 145,
-          "collision": {
-            "x": 1,
-            "y": 1,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-rooftop-238",
-          "type": "pepero-art",
-          "x": 130,
-          "y": 340,
-          "w": 24,
-          "h": 125,
-          "solid": true,
-          "renderHeight": 175,
-          "seasonalArt": "flowerbox",
-          "artWidth": 140,
-          "artHeight": 175,
-          "artAnchor": 0.92,
-          "flip": true,
-          "collisionPolygon": [
-            [
-              155.973,
-              329.358
-            ],
-            [
-              117.274,
-              336.196
-            ],
-            [
-              81.67,
-              433.245
-            ],
-            [
-              125.763,
-              427.84
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-239",
-          "type": "pepero-ribbon-lamp",
-          "x": 131,
-          "y": 470,
-          "w": 12,
-          "h": 12,
-          "solid": true,
-          "renderHeight": 145,
-          "collision": {
-            "x": 1,
-            "y": 1,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-rooftop-240",
-          "type": "pepero-art",
-          "x": 130,
-          "y": 520,
-          "w": 24,
-          "h": 125,
-          "solid": true,
-          "renderHeight": 175,
-          "seasonalArt": "flowerbox",
-          "artWidth": 140,
-          "artHeight": 175,
-          "artAnchor": 0.92,
-          "flip": true,
-          "collisionPolygon": [
-            [
-              155.973,
-              509.358
-            ],
-            [
-              117.274,
-              516.196
-            ],
-            [
-              81.67,
-              613.245
-            ],
-            [
-              125.763,
-              607.84
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-241",
-          "type": "pepero-ribbon-lamp",
-          "x": 131,
-          "y": 650,
-          "w": 12,
-          "h": 12,
-          "solid": true,
-          "renderHeight": 145,
-          "collision": {
-            "x": 1,
-            "y": 1,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-rooftop-242",
-          "type": "pepero-art",
-          "x": 130,
-          "y": 700,
-          "w": 24,
-          "h": 125,
-          "solid": true,
-          "renderHeight": 175,
-          "seasonalArt": "flowerbox",
-          "artWidth": 140,
-          "artHeight": 175,
-          "artAnchor": 0.92,
-          "flip": true,
-          "collisionPolygon": [
-            [
-              155.973,
-              689.358
-            ],
-            [
-              117.274,
-              696.196
-            ],
-            [
-              81.67,
-              793.245
-            ],
-            [
-              125.763,
-              787.84
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-243",
-          "type": "pepero-ribbon-lamp",
-          "x": 131,
-          "y": 830,
-          "w": 12,
-          "h": 12,
-          "solid": true,
-          "renderHeight": 145,
-          "collision": {
-            "x": 1,
-            "y": 1,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-rooftop-244",
-          "type": "pepero-art",
-          "x": 130,
-          "y": 880,
-          "w": 24,
-          "h": 125,
-          "solid": true,
-          "renderHeight": 175,
-          "seasonalArt": "flowerbox",
-          "artWidth": 140,
-          "artHeight": 175,
-          "artAnchor": 0.92,
-          "flip": true,
-          "collisionPolygon": [
-            [
-              155.973,
-              869.358
-            ],
-            [
-              117.274,
-              876.196
-            ],
-            [
-              81.67,
-              973.245
-            ],
-            [
-              125.763,
-              967.84
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-245",
-          "type": "pepero-ribbon-lamp",
-          "x": 131,
-          "y": 1010,
-          "w": 12,
-          "h": 12,
-          "solid": true,
-          "renderHeight": 145,
-          "collision": {
-            "x": 1,
-            "y": 1,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-rooftop-246",
-          "type": "pepero-art",
-          "x": 130,
-          "y": 1060,
-          "w": 24,
-          "h": 125,
-          "solid": true,
-          "renderHeight": 175,
-          "seasonalArt": "flowerbox",
-          "artWidth": 140,
-          "artHeight": 175,
-          "artAnchor": 0.92,
-          "flip": true,
-          "collisionPolygon": [
-            [
-              155.973,
-              1049.358
-            ],
-            [
-              117.274,
-              1056.196
-            ],
-            [
-              81.67,
-              1153.245
-            ],
-            [
-              125.763,
-              1147.84
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-247",
-          "type": "pepero-ribbon-lamp",
-          "x": 131,
-          "y": 1190,
-          "w": 12,
-          "h": 12,
-          "solid": true,
-          "renderHeight": 145,
-          "collision": {
-            "x": 1,
-            "y": 1,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-rooftop-248",
-          "type": "pepero-art",
-          "x": 130,
-          "y": 1240,
-          "w": 24,
-          "h": 125,
-          "solid": true,
-          "renderHeight": 175,
-          "seasonalArt": "flowerbox",
-          "artWidth": 140,
-          "artHeight": 175,
-          "artAnchor": 0.92,
-          "flip": true,
-          "collisionPolygon": [
-            [
-              155.973,
-              1229.358
-            ],
-            [
-              117.274,
-              1236.196
-            ],
-            [
-              81.67,
-              1333.245
-            ],
-            [
-              125.763,
-              1327.84
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-249",
-          "type": "pepero-ribbon-lamp",
-          "x": 131,
-          "y": 1370,
-          "w": 12,
-          "h": 12,
-          "solid": true,
-          "renderHeight": 145,
-          "collision": {
-            "x": 1,
-            "y": 1,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-rooftop-250",
-          "type": "pepero-art",
-          "x": 130,
-          "y": 1420,
-          "w": 24,
-          "h": 125,
-          "solid": true,
-          "renderHeight": 175,
-          "seasonalArt": "flowerbox",
-          "artWidth": 140,
-          "artHeight": 175,
-          "artAnchor": 0.92,
-          "flip": true,
-          "collisionPolygon": [
-            [
-              155.973,
-              1409.358
-            ],
-            [
-              117.274,
-              1416.196
-            ],
-            [
-              81.67,
-              1513.245
-            ],
-            [
-              125.763,
-              1507.84
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-251",
-          "type": "pepero-ribbon-lamp",
-          "x": 131,
-          "y": 1550,
-          "w": 12,
-          "h": 12,
-          "solid": true,
-          "renderHeight": 145,
-          "collision": {
-            "x": 1,
-            "y": 1,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-rooftop-252",
-          "type": "pepero-art",
-          "x": 2350,
-          "y": 500,
-          "w": 24,
-          "h": 160,
-          "solid": true,
-          "renderHeight": 224.00000000000003,
-          "seasonalArt": "flowerbox",
-          "artWidth": 179.20000000000002,
-          "artHeight": 224.00000000000003,
-          "artAnchor": 0.92,
-          "flip": true,
-          "collisionPolygon": [
-            [
-              2379.886,
-              486.378
-            ],
-            [
-              2330.351,
-              495.131
-            ],
-            [
-              2284.778,
-              619.354
-            ],
-            [
-              2341.216,
-              612.436
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-253",
-          "type": "pepero-art",
-          "x": 2350,
-          "y": 735,
-          "w": 24,
-          "h": 160,
-          "solid": true,
-          "renderHeight": 224.00000000000003,
-          "seasonalArt": "flowerbox",
-          "artWidth": 179.20000000000002,
-          "artHeight": 224.00000000000003,
-          "artAnchor": 0.92,
-          "flip": true,
-          "collisionPolygon": [
-            [
-              2379.886,
-              721.378
-            ],
-            [
-              2330.351,
-              730.131
-            ],
-            [
-              2284.778,
-              854.354
-            ],
-            [
-              2341.216,
-              847.436
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-254",
-          "type": "pepero-art",
-          "x": 2350,
-          "y": 970,
-          "w": 24,
-          "h": 160,
-          "solid": true,
-          "renderHeight": 224.00000000000003,
-          "seasonalArt": "flowerbox",
-          "artWidth": 179.20000000000002,
-          "artHeight": 224.00000000000003,
-          "artAnchor": 0.92,
-          "flip": true,
-          "collisionPolygon": [
-            [
-              2379.886,
-              956.378
-            ],
-            [
-              2330.351,
-              965.131
-            ],
-            [
-              2284.778,
-              1089.354
-            ],
-            [
-              2341.216,
-              1082.436
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-255",
-          "type": "pepero-art",
-          "x": 2350,
-          "y": 1205,
-          "w": 24,
-          "h": 160,
-          "solid": true,
-          "renderHeight": 224.00000000000003,
-          "seasonalArt": "flowerbox",
-          "artWidth": 179.20000000000002,
-          "artHeight": 224.00000000000003,
-          "artAnchor": 0.92,
-          "flip": true,
-          "collisionPolygon": [
-            [
-              2379.886,
-              1191.378
-            ],
-            [
-              2330.351,
-              1200.131
-            ],
-            [
-              2284.778,
-              1324.354
-            ],
-            [
-              2341.216,
-              1317.436
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-257",
-          "type": "pepero-art",
-          "x": 280,
-          "y": 1690,
-          "w": 170,
-          "h": 24,
-          "solid": true,
-          "renderHeight": 238,
-          "seasonalArt": "flowerbox",
-          "artWidth": 190.4,
-          "artHeight": 238,
-          "artAnchor": 0.92,
-          "flip": false,
-          "collisionPolygon": [
-            [
-              265.526,
-              1721.003
-            ],
-            [
-              274.827,
-              1668.373
-            ],
-            [
-              406.814,
-              1619.951
-            ],
-            [
-              399.463,
-              1679.917
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-258",
-          "type": "pepero-art",
-          "x": 520,
-          "y": 1690,
-          "w": 170,
-          "h": 24,
-          "solid": true,
-          "renderHeight": 238,
-          "seasonalArt": "flowerbox",
-          "artWidth": 190.4,
-          "artHeight": 238,
-          "artAnchor": 0.92,
-          "flip": false,
-          "collisionPolygon": [
-            [
-              505.526,
-              1721.003
-            ],
-            [
-              514.827,
-              1668.373
-            ],
-            [
-              646.814,
-              1619.951
-            ],
-            [
-              639.463,
-              1679.917
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-259",
-          "type": "pepero-art",
-          "x": 760,
-          "y": 1690,
-          "w": 170,
-          "h": 24,
-          "solid": true,
-          "renderHeight": 238,
-          "seasonalArt": "flowerbox",
-          "artWidth": 190.4,
-          "artHeight": 238,
-          "artAnchor": 0.92,
-          "flip": false,
-          "collisionPolygon": [
-            [
-              745.526,
-              1721.003
-            ],
-            [
-              754.827,
-              1668.373
-            ],
-            [
-              886.814,
-              1619.951
-            ],
-            [
-              879.463,
-              1679.917
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-260",
-          "type": "pepero-art",
-          "x": 1000,
-          "y": 1690,
-          "w": 170,
-          "h": 24,
-          "solid": true,
-          "renderHeight": 238,
-          "seasonalArt": "flowerbox",
-          "artWidth": 190.4,
-          "artHeight": 238,
-          "artAnchor": 0.92,
-          "flip": false,
-          "collisionPolygon": [
-            [
-              985.526,
-              1721.003
-            ],
-            [
-              994.827,
-              1668.373
-            ],
-            [
-              1126.814,
-              1619.951
-            ],
-            [
-              1119.463,
-              1679.917
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-261",
-          "type": "pepero-art",
-          "x": 1240,
-          "y": 1690,
-          "w": 170,
-          "h": 24,
-          "solid": true,
-          "renderHeight": 238,
-          "seasonalArt": "flowerbox",
-          "artWidth": 190.4,
-          "artHeight": 238,
-          "artAnchor": 0.92,
-          "flip": false,
-          "collisionPolygon": [
-            [
-              1225.526,
-              1721.003
-            ],
-            [
-              1234.827,
-              1668.373
-            ],
-            [
-              1366.814,
-              1619.951
-            ],
-            [
-              1359.463,
-              1679.917
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-262",
-          "type": "pepero-art",
-          "x": 1480,
-          "y": 1690,
-          "w": 170,
-          "h": 24,
-          "solid": true,
-          "renderHeight": 238,
-          "seasonalArt": "flowerbox",
-          "artWidth": 190.4,
-          "artHeight": 238,
-          "artAnchor": 0.92,
-          "flip": false,
-          "collisionPolygon": [
-            [
-              1465.526,
-              1721.003
-            ],
-            [
-              1474.827,
-              1668.373
-            ],
-            [
-              1606.814,
-              1619.951
-            ],
-            [
-              1599.463,
-              1679.917
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-263",
-          "type": "pepero-art",
-          "x": 1720,
-          "y": 1690,
-          "w": 170,
-          "h": 24,
-          "solid": true,
-          "renderHeight": 238,
-          "seasonalArt": "flowerbox",
-          "artWidth": 190.4,
-          "artHeight": 238,
-          "artAnchor": 0.92,
-          "flip": false,
-          "collisionPolygon": [
-            [
-              1705.526,
-              1721.003
-            ],
-            [
-              1714.827,
-              1668.373
-            ],
-            [
-              1846.814,
-              1619.951
-            ],
-            [
-              1839.463,
-              1679.917
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-265",
-          "type": "pepero-art",
-          "x": 1980,
-          "y": 1535,
-          "w": 180,
-          "h": 30,
-          "solid": true,
-          "renderHeight": 315,
-          "seasonalArt": "gate",
-          "artWidth": 350,
-          "artHeight": 437.5,
-          "artAnchor": 0.92,
-          "collisionParts": [
-            {
-              "x": 0,
-              "y": 0,
-              "w": 18,
-              "h": 30
-            },
-            {
-              "x": 162,
-              "y": 0,
-              "w": 18,
-              "h": 30
-            }
-          ]
-        },
-        {
-          "id": "reference-rooftop-266",
-          "type": "pepero-ribbon-lamp",
-          "x": 1940,
-          "y": 1500,
-          "w": 12,
-          "h": 12,
-          "solid": true,
-          "renderHeight": 145,
-          "collision": {
-            "x": 1,
-            "y": 1,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-rooftop-267",
-          "type": "pepero-ribbon-lamp",
-          "x": 2185,
-          "y": 1500,
-          "w": 12,
-          "h": 12,
-          "solid": true,
-          "renderHeight": 145,
-          "collision": {
-            "x": 1,
-            "y": 1,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-rooftop-268",
-          "type": "pepero-ribbon-lamp",
-          "x": 1495,
-          "y": 1240,
-          "w": 12,
-          "h": 12,
-          "solid": true,
-          "renderHeight": 145,
-          "collision": {
-            "x": 1,
-            "y": 1,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-rooftop-269",
-          "type": "pepero-ribbon-lamp",
-          "x": 1920,
-          "y": 1240,
-          "w": 12,
-          "h": 12,
-          "solid": true,
-          "renderHeight": 145,
-          "collision": {
-            "x": 1,
-            "y": 1,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-rooftop-270",
-          "type": "pepero-garland",
-          "x": 160,
-          "y": 100,
-          "w": 230,
-          "h": 3,
-          "solid": false,
-          "renderHeight": 220,
-          "height": 190
-        },
-        {
-          "id": "reference-rooftop-271",
-          "type": "pepero-garland",
-          "x": 390,
-          "y": 100,
-          "w": 230,
-          "h": 3,
-          "solid": false,
-          "renderHeight": 220,
-          "height": 190
-        },
-        {
-          "id": "reference-rooftop-272",
-          "type": "pepero-garland",
-          "x": 620,
-          "y": 100,
-          "w": 230,
-          "h": 3,
-          "solid": false,
-          "renderHeight": 220,
-          "height": 190
-        },
-        {
-          "id": "reference-rooftop-273",
-          "type": "pepero-garland",
-          "x": 850,
-          "y": 100,
-          "w": 230,
-          "h": 3,
-          "solid": false,
-          "renderHeight": 220,
-          "height": 190
-        },
-        {
-          "id": "pepero-guard-sandbag",
-          "type": "guard-sandbag",
-          "action": "guard_sandbag",
-          "name": "방어 연습 샌드백",
-          "x": 2011,
-          "y": 921,
-          "w": 18,
-          "h": 18,
-          "solid": true,
-          "renderHeight": 85,
-          "info": false
         }
       ],
       "walls": [

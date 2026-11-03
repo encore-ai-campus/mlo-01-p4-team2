@@ -18,6 +18,7 @@ TRIGGER = os.environ.get("BRONZE_TRIGGER", "1 minute")
 KAFKA = os.environ.get("KAFKA_BOOTSTRAP", "127.0.0.1:9092,127.0.0.1:9192,127.0.0.1:9292")  # 브로커 3대(로컬 3노드) — 한 대가 죽어도 새로 연결
 # 설계 R6-3: 긴 정지 뒤 첫 배치가 적체 전부를 읽다 메모리가 모자라지 않게 상한을 둔다. 10,000은 임시값 — E-B4(P0-8) 실측으로 정한다
 MAX_OFFSETS = os.environ.get("BRONZE_MAX_OFFSETS_PER_TRIGGER", "10000")
+STARTING_OFFSETS = os.environ.get("BRONZE_STARTING_OFFSETS", "earliest")  # RB-4·RB-5: runbooks/rb_offsets.py 가 낸 JSON(설계 01 §6)
 RELEASE = "bronze_ads_outbox@" + hashlib.sha256(Path(__file__).read_bytes()).hexdigest()[:12]
 
 
@@ -60,7 +61,7 @@ if __name__ == "__main__":
     query = (spark.readStream.format("kafka")
              .option("kafka.bootstrap.servers", KAFKA)
              .option("subscribe", TOPIC)
-             .option("startingOffsets", "earliest")  # 첫 실행만. 이후는 checkpoint
+             .option("startingOffsets", STARTING_OFFSETS)  # 새 checkpoint 에서만 쓰인다. 이후는 checkpoint
              .option("kafka.isolation.level", "read_committed")
              .option("includeHeaders", "true")
              .option("maxOffsetsPerTrigger", MAX_OFFSETS)

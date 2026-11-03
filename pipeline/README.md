@@ -11,6 +11,9 @@
 | `bronze/spark-submit-ads.sh` | Spark 제출(Standalone client 모드). 의존 jar는 미리 둔 세트를 `extraClassPath`로 쓴다 |
 | `bronze/run-bronze.sh` | Bronze 상시 실행(로컬). 운영 `restartPolicy: OnFailure`(최초 1회 + 재시도 3회)를 흉내 내고 잠듦을 막는다 |
 | `tools/` | 검증 도구(아래) |
+| `monitor/` | 점검·경보(**임시 D18** — 점검 스크립트 + 1분 주기 + 웹훅). `monitor/README.md` |
+| `requirements.txt` | `pipeline/`의 Python 도구가 직접 쓰는 라이브러리(Spark 도구는 Spark 배포판의 pyspark) |
+| `legacy/metaverse/` | 메타버스 파이프라인 Step1·Step2 보관본(Metaverse 쪽 소유). 재사용할 부분은 통합 설계(M2)에서 정해 본체로 옮긴다 |
 
 ## 로컬 시험대(2026-11-03)
 

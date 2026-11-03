@@ -1,0 +1,284 @@
+"""파이프라인 점검(설계 01 §10 M1~M8·S7) — **임시**(D18, 운영 배포 전에 정식으로 다시 정한다).
+
+사용: check.py   (주기 실행은 launchd·systemd 타이머가 1분마다 부른다. 결과는 표준 출력에 JSON 한 줄)
+- 점검마다 결과(ok·alert·error·unimplemented·unsupported)를 낸다. 상태가 바뀐 것만 알린다(새 경보, 경보 해소) — 상태 파일 MONITOR_STATE.
+- 알림: MONITOR_WEBHOOK_URL 또는 MONITOR_WEBHOOK_FILE(주소를 담은 저장소 밖 파일)에 POST {"text","content"}. 없으면 화면에만 쓴다. 주소는 출력하지 않는다.
+- 끝: 경보가 하나라도 있으면 rc=1.
+- R7(FAILED Task 자동 재시작)은 넣지 않았다. M3 는 FAILED 경보만 낸다. E-K2(계획 02 P0-7) 결과로 R7 (나)가 정해지면 그때 넣는다.
+비밀값(DB 비밀번호·RustFS 키·웹훅 주소)은 파일·환경 변수로만 받고 출력하지 않는다.
+"""
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.error
+import urllib.request
+from datetime import UTC, datetime
+from pathlib import Path
+
+import psycopg
+
+E = os.environ.get
+PG_HOST, PG_PORT = E("MONITOR_PG_HOST", "127.0.0.1"), int(E("MONITOR_PG_PORT", "5010"))   # HAProxy rw = 지금 primary
+NODE_PORTS = [int(p) for p in E("MONITOR_PG_NODE_PORTS", "5432,5433,5434").split(",") if p]  # 노드마다 직접(대기 서버면 synced 슬롯 확인) — 승격 뒤에도 그대로
+PG_PASSWORD_FILE = E("MONITOR_PG_PASSWORD_FILE", "/opt/postgresql/config/postgres-password")
+SLOTS = E("MONITOR_SLOTS", "ads_outbox_slot,ads_e2e_slot").split(",")
+REPLICA_LAG_BYTES = int(E("MONITOR_REPLICA_LAG_BYTES", str(64 * 1024 * 1024)))  # 임시 기준
+SLOT_INACTIVE_S = int(E("MONITOR_SLOT_INACTIVE_S", "600"))  # 설계 M1: 10분 넘게 쉼(R2 재시도 약 3분 + R3 재배치 60초보다 넉넉히)
+UNLISTED_S, UNLISTED_EVERY_S = 10, 2  # 설계 M2: 복제 중인데 synchronized_standby_slots 에 없음이 10초 넘게(갱신 주기 2초 × 5)
+CONNECT = E("MONITOR_CONNECT_REST", "http://127.0.0.1:8083")
+KAFKA = E("MONITOR_KAFKA", "127.0.0.1:9092,127.0.0.1:9192,127.0.0.1:9292")
+KAFKA_BIN = Path(E("MONITOR_KAFKA_BIN", "/opt/kafka/current/bin"))
+JAVA_HOME = E("MONITOR_JAVA_HOME", "/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home")
+# Bronze: "이름|토픽|checkpoint s3a 경로" 를 쉼표로
+BRONZE = [b.split("|") for b in E("MONITOR_BRONZE", "lab|ads.outbox.events|s3a://ads-lake/checkpoints/bronze_ads_outbox,"
+                                                     "e2e|ads.e2e.outbox.events|s3a://ads-lake/checkpoints/bronze_e2e_ads_outbox").split(",") if b]
+BRONZE_STALE_S = int(E("MONITOR_BRONZE_STALE_S", "300"))   # 설계 M5: 유입이 있는데 5분 넘게 배치 없음
+BRONZE_LAG_MIN = int(E("MONITOR_BRONZE_LAG_MIN", "10"))    # EOS 트랜잭션 표식만큼의 차이는 지연으로 보지 않는다
+S3_ENDPOINT = E("S3_ENDPOINT", "http://127.0.0.1:9000")
+S3_KEY_FILES = (E("S3_ACCESS_KEY_FILE", "/opt/rustfs/config/access-key"), E("S3_SECRET_KEY_FILE", "/opt/rustfs/config/secret-key"))
+STATE = Path(E("MONITOR_STATE", str(Path(tempfile.gettempdir()) / "pipeline_monitor" / "state.json")))
+KAFKA_TIMEOUT_S = 30  # Kafka 가 멈추면 명령이 오래 걸린다 — 명령마다 30초에서 끊는다(M4 2번 + M5 토픽마다 1번 = 한 번에 최대 약 2분)
+
+
+def finding(check, key, level, detail):
+    return {"check": check, "key": key, "level": level, "detail": detail}
+
+
+def pg(port):
+    return psycopg.connect(host=PG_HOST, port=port, user="postgres", password=Path(PG_PASSWORD_FILE).read_text().strip(), dbname="postgres",
+                           connect_timeout=5, autocommit=True)
+
+
+def m1_m2():
+    """M1 슬롯(무효·오래 쉼·붙잡은 WAL), M2 대기 서버(복제 지연·동기 후보·보호 목록 양쪽·failover·synced)."""
+    out = []
+    with pg(PG_PORT) as c:
+        limit = c.execute("select pg_size_bytes(current_setting('max_slot_wal_keep_size'))").fetchone()[0]
+        for name in SLOTS:
+            row = c.execute("select active, inactive_since, extract(epoch from now() - inactive_since)::float, wal_status, failover, "
+                            "pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)::bigint from pg_replication_slots where slot_name = %s", (name,)).fetchone()
+            if row is None:
+                out.append(finding("M1", f"slot:{name}", "alert", "슬롯이 없다"))
+                continue
+            active, inactive_since, idle_s, wal_status, failover, held = row
+            # 설계 M1: unreserved·lost, 10분 넘게 쉼, 붙잡은 WAL ≥ 한도 50%. 무효(lost)가 되면 restart_lsn 이 NULL 이라 held 도 None 이다
+            bad = [w for w, cond in (("wal_status=" + str(wal_status), wal_status in ("unreserved", "lost")),
+                                     (f"{int(idle_s or 0)}초 쉼 > {SLOT_INACTIVE_S}초", not active and idle_s is not None and idle_s > SLOT_INACTIVE_S),
+                                     (f"붙잡은 WAL {held}B ≥ 한도 50%", held is not None and limit > 0 and held >= limit // 2)) if cond]
+            seen = "active" if active else f"쉼(inactive_since {inactive_since})"
+            out.append(finding("M1", f"slot:{name}", "alert" if bad else "ok", f"{', '.join(bad) + ' — ' if bad else ''}{seen}, {wal_status}, 붙잡은 WAL {'held=None' if held is None else f'{held}B'}"))
+            out.append(finding("M2", f"failover:{name}", "ok" if failover else "alert", f"failover={failover}"))
+        # 대기 서버만: 논리 슬롯을 쥔 walsender(Debezium — 커넥터마다 같은 이름 'Debezium Streaming')는 뺀다
+        reps = c.execute("select application_name, state, sync_state, pg_wal_lsn_diff(pg_current_wal_lsn(), replay_lsn)::bigint from pg_stat_replication "
+                         "where pid not in (select active_pid from pg_replication_slots where slot_type = 'logical' and active_pid is not null)").fetchall()
+        candidates = [r for r in reps if r[1] == "streaming" and r[2] in ("sync", "quorum", "potential")]
+        out.append(finding("M2", "sync_candidates", "ok" if candidates else "alert", f"동기 후보 {len(candidates)}개 {[(r[0], r[2]) for r in reps]}"))
+        for name, state, _sync, lag in reps:
+            out.append(finding("M2", f"replica_lag:{name}", "alert" if state != "streaming" or (lag or 0) > REPLICA_LAG_BYTES else "ok", f"{state}, 재생 지연 {lag}B"))
+        listed, attached, streaming = standby_slots(c)
+        missing = [s for s in listed if s not in attached]
+        out.append(finding("M2", "synchronized_standby_slots", "alert" if missing else "ok",
+                           f"목록 {listed}, 붙어 있는 물리 슬롯 {sorted(attached)}" + (f" — 목록에 있는데 안 붙음 {missing}(CDC 가 기다린다)" if missing else "")))
+        # 반대쪽: 복제 중인데 목록에 없음 = 갱신 스크립트(D12-2)가 멈춤. 갱신 한 번 사이의 틈은 경보가 아니다 — 10초 넘게 이어질 때만
+        unlisted, started = streaming - set(listed), time.monotonic()
+        while unlisted and time.monotonic() - started <= UNLISTED_S:
+            time.sleep(UNLISTED_EVERY_S)
+            now_listed, _attached, now_streaming = standby_slots(c)
+            unlisted &= now_streaming - set(now_listed)
+        out.append(finding("M2", "synchronized_standby_slots_unlisted", "alert" if unlisted else "ok",
+                           f"복제 중인데 목록에 없는 물리 슬롯 {sorted(unlisted)}" + (f" — {UNLISTED_S}초 넘게 이어짐(갱신 스크립트가 멈춤, 승격되면 그 대기 서버의 보호가 빠진다)" if unlisted else "")))
+    for port in NODE_PORTS:
+        try:
+            with pg(port) as c:
+                rows = {r[0]: r[1:] for r in c.execute("select slot_name, synced, temporary from pg_replication_slots where slot_type = 'logical'").fetchall()}
+                recovery = c.execute("select pg_is_in_recovery()").fetchone()[0]
+        except psycopg.Error as error:  # 키는 노드·슬롯마다 같게 둔다(못 본 것을 '해소'로 알리지 않게)
+            out += [finding("M2", f"synced:{port}:{name}", "alert", f"노드 접속 실패 {type(error).__name__}") for name in SLOTS]
+            continue
+        if not recovery:
+            out += [finding("M2", f"synced:{port}:{name}", "ok", "이 노드는 지금 primary(대기 아님)") for name in SLOTS]
+            continue
+        for name in SLOTS:
+            synced, temporary = rows.get(name, (None, None))
+            ok = synced is True and temporary is False
+            out.append(finding("M2", f"synced:{port}:{name}", "ok" if ok else "alert", f"synced={synced}, temporary={temporary}"))
+    return out
+
+
+def standby_slots(c):
+    """(synchronized_standby_slots 목록, 붙어 있는 물리 슬롯, 그중 복제 중(streaming)인 것)."""
+    listed = [s.strip() for s in c.execute("select current_setting('synchronized_standby_slots')").fetchone()[0].split(",") if s.strip()]
+    rows = c.execute("select s.slot_name, r.state from pg_replication_slots s left join pg_stat_replication r on r.pid = s.active_pid "
+                     "where s.slot_type = 'physical' and s.active").fetchall()
+    return listed, {r[0] for r in rows}, {r[0] for r in rows if r[1] == "streaming"}
+
+
+def rest(method, path):
+    req = urllib.request.Request(CONNECT + path, method=method, headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        raw = resp.read()
+        return json.loads(raw) if raw else None
+
+
+def m3():
+    """M3 커넥터·Task FAILED 경보(재시작은 하지 않는다 — R7 은 E-K2 뒤)."""
+    out = []
+    for name, info in rest("GET", "/connectors?expand=status").items():
+        s = info["status"]
+        states = [s["connector"]["state"]] + [t["state"] for t in s.get("tasks", [])]
+        out.append(finding("M3", f"connector:{name}", "alert" if "FAILED" in states else "ok", f"{states}"))
+    return out
+
+
+def kafka(*args):
+    return subprocess.run([str(KAFKA_BIN / args[0]), "--bootstrap-server", KAFKA, *args[1:]], env=dict(os.environ, JAVA_HOME=JAVA_HOME),
+                          capture_output=True, text=True, timeout=KAFKA_TIMEOUT_S)
+
+
+def m4():
+    out = []
+    for flag in ("--under-min-isr-partitions", "--unavailable-partitions"):
+        r = kafka("kafka-topics.sh", "--describe", flag)
+        if r.returncode:
+            out.append(finding("M4", flag, "error", r.stderr.strip()[-200:]))
+            continue
+        lines = [ln for ln in r.stdout.splitlines() if ln.strip().startswith("Topic:") and "Partition:" in ln]
+        out.append(finding("M4", flag, "alert" if lines else "ok", f"{len(lines)}개 파티션" + (f": {lines[:3]}" if lines else "")))
+    return out
+
+
+def kafka_end(topic):
+    r = kafka("kafka-get-offsets.sh", "--topic", topic)
+    return {p: int(o) for _t, p, o in (ln.split(":") for ln in r.stdout.split())} if r.returncode == 0 else None
+
+
+def m5():
+    """M5 Bronze 신선도: checkpoint 의 마지막 확정 배치(commits/N 의 시각, offsets/N 의 위치)와 Kafka 끝 offset."""
+    import boto3
+
+    keys = [Path(f).read_text().strip() for f in S3_KEY_FILES]
+    s3 = boto3.client("s3", endpoint_url=S3_ENDPOINT, aws_access_key_id=keys[0], aws_secret_access_key=keys[1], region_name=E("S3_REGION", "ap-northeast-2"))
+    out = []
+    for name, topic, uri in BRONZE:
+        bucket, prefix = uri.removeprefix("s3a://").split("/", 1)
+        commits = s3.list_objects_v2(Bucket=bucket, Prefix=f"{prefix}/commits/").get("Contents", [])
+        batches = [(int(o["Key"].rsplit("/", 1)[1]), o["LastModified"]) for o in commits if o["Key"].rsplit("/", 1)[1].isdigit()]
+        if not batches:
+            out.append(finding("M5", f"bronze:{name}", "alert", "확정된 배치가 없다(checkpoint 없음)"))
+            continue
+        batch, at = max(batches)
+        body = s3.get_object(Bucket=bucket, Key=f"{prefix}/offsets/{batch}")["Body"].read().decode().splitlines()
+        done = json.loads(body[2]).get(topic, {})
+        end = kafka_end(topic)
+        if end is None:
+            out.append(finding("M5", f"bronze:{name}", "error", "Kafka 끝 offset 을 못 읽음"))
+            continue
+        lag = sum(max(0, end.get(p, 0) - int(done.get(p, 0))) for p in end)
+        age = (datetime.now(UTC) - at).total_seconds()
+        stale = lag > BRONZE_LAG_MIN and age > BRONZE_STALE_S
+        out.append(finding("M5", f"bronze:{name}", "alert" if stale else "ok", f"마지막 확정 배치 {batch}({int(age)}초 전), Kafka 지연 {lag} offset"))
+    out.append(finding("M5", "bronze_app_failed", "unimplemented", "운영은 Spark Operator 앱 상태(FAILED·재시도 소진). 로컬은 run-bronze.sh 로그의 'retries exhausted'"))
+    return out
+
+
+def s7():
+    out = []
+    with pg(PG_PORT) as c:
+        db_now = c.execute("select now()").fetchone()[0]
+    skew = abs((datetime.now(UTC) - db_now).total_seconds())
+    out.append(finding("S7", "clock_skew", "alert" if skew > 1 else "ok", f"이 장치와 DB primary 시계 차이 {skew:.3f}초"))
+    if sys.platform != "darwin":
+        out.append(finding("S7", "power", "unsupported", "macOS 밖은 아직 없다(운영 노트북: upower·systemd-logind 설정으로)"))
+        return out
+    batt = subprocess.run(["pmset", "-g", "batt"], capture_output=True, text=True).stdout
+    pct = re.search(r"(\d+)%", batt)
+    on_ac = "AC Power" in batt
+    low = pct is not None and int(pct.group(1)) < 20 and not on_ac
+    out.append(finding("S7", "battery", "alert" if low else "ok", f"{'AC' if on_ac else '배터리'} {pct.group(1) + '%' if pct else '?'}"))
+    sleep = next((ln for ln in subprocess.run(["pmset", "-g"], capture_output=True, text=True).stdout.splitlines() if ln.strip().startswith("sleep")), "")
+    out.append(finding("S7", "sleep", "ok" if "prevented" in sleep or re.search(r"sleep\s+0\b", sleep) else "alert", sleep.strip()))
+    return out
+
+
+def unimplemented():
+    return [finding("M6", "hop_reconcile", "unimplemented", "창 대사 결과 — P1·P2-2 뒤"),
+            finding("M7", "kafka_bronze_positions", "unimplemented", "Kafka ↔ Bronze 위치 대사 — P2 뒤"),
+            finding("M8", "outbox_unconfirmed_age", "unimplemented", "outbox 미확정 창 나이 — P1-4·P1-6 뒤")]
+
+
+def notify(text):
+    try:  # 주소 파일이 없거나 못 읽어도 점검은 끝까지 간다(전송 실패로 다룬다 — 다음 점검이 다시 보낸다)
+        url = E("MONITOR_WEBHOOK_URL") or (Path(E("MONITOR_WEBHOOK_FILE")).read_text().strip() if E("MONITOR_WEBHOOK_FILE") else None)
+    except OSError as error:
+        return f"웹훅 실패 {type(error).__name__}(주소 파일)"
+    if not url:
+        return "웹훅 없음(화면에만)"
+    try:
+        req = urllib.request.Request(url, method="POST", data=json.dumps({"text": text, "content": text}).encode(), headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return f"웹훅 {resp.status}"
+    except (urllib.error.URLError, OSError, ValueError) as error:  # ValueError: 주소 형식이 틀림
+        return f"웹훅 실패 {type(error).__name__}"
+
+
+def load_state():
+    """(상태, 다시 시작했는지). 상태 파일이 깨졌거나 못 읽으면 빈 상태로 이어 간다 — 지금 경보를 다시 알리게 되며, 그쪽이 맞다(감시가 멈추는 것보다)."""
+    if not STATE.exists():
+        return {}, False
+    try:
+        state = json.loads(STATE.read_text())
+    except (ValueError, OSError):
+        return {}, True
+    return (state, False) if isinstance(state, dict) else ({}, True)
+
+
+def save_state(state):
+    """같은 폴더의 임시 파일에 쓰고 바꿔 끼운다(쓰는 도중 꺼져도 옛 파일이나 새 파일 하나만 남는다)."""
+    STATE.parent.mkdir(parents=True, exist_ok=True)
+    tmp = STATE.with_name(f"{STATE.name}.{os.getpid()}.tmp")
+    tmp.write_text(json.dumps(state, ensure_ascii=False))
+    os.replace(tmp, STATE)
+
+
+def main():
+    state, state_reset = load_state()
+    findings, failed_checks = [], set()
+    for name, fn in (("M1·M2", m1_m2), ("M3", m3), ("M4", m4), ("M5", m5), ("S7", s7)):
+        try:
+            findings += fn()
+        except Exception as error:  # noqa: BLE001 — 점검 하나가 실패해도 나머지는 본다(실패 자체를 결과로)
+            findings.append(finding(name, f"{name}:run", "error", f"{type(error).__name__}: {str(error)[:200]}"))
+            failed_checks |= set(name.split("·"))
+    findings += unimplemented()
+    before, before_check = state.get("levels", {}), state.get("checks", {})
+    now_keys = {f["key"] for f in findings}
+    carried = {k: v for k, v in before.items() if k not in now_keys and before_check.get(k) in failed_checks}  # 보지 못한 것은 해소가 아니다 — 지난 값을 그대로 둔다
+    changes = []
+    for f in findings:
+        old = before.get(f["key"])
+        if f["level"] in ("alert", "error") and old != f["level"]:
+            changes.append(f"[경보] {f['check']} {f['key']}: {f['detail']}")
+        elif f["level"] == "ok" and old in ("alert", "error"):
+            changes.append(f"[해소] {f['check']} {f['key']}: {f['detail']}")
+    for key, old in before.items():  # 점검이 정상으로 돌았는데 없어진 키(예: 살아난 M3:run, 지워진 커넥터) — 해소로 알린다
+        if old in ("alert", "error") and key not in now_keys and key not in carried:
+            changes.append(f"[해소] {key}: 이번 점검 결과에 없음")
+    if state_reset:
+        changes.insert(0, f"[알림] 상태 파일 {STATE.name} 을 읽지 못해 새로 시작했다 — 지금 경보를 다시 알린다")
+    sent = notify("파이프라인 점검(임시 D18)\n" + "\n".join(changes)) if changes else None
+    if not (sent or "").startswith("웹훅 실패"):  # 못 보낸 변화는 버리지 않는다 — 지난 값을 두어 다음 점검이 다시 보낸다
+        state["levels"] = {**carried, **{f["key"]: f["level"] for f in findings}}
+        state["checks"] = {**{k: before_check[k] for k in carried}, **{f["key"]: f["check"] for f in findings}}
+    save_state(state)
+    alerts = [f for f in findings if f["level"] in ("alert", "error")]
+    print(json.dumps({"t": datetime.now(UTC).isoformat(), "alerts": len(alerts), "changes": changes, "notify": sent, "state_reset": state_reset,
+                      "findings": findings}, ensure_ascii=False, default=str))
+    sys.exit(1 if alerts else 0)
+
+
+if __name__ == "__main__":
+    main()

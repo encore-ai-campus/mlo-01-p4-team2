@@ -8,9 +8,9 @@ class EventOutbox(models.Model):
     # 같은 이벤트를 두 번 쓰려 해도 PK 가 막아 한 줄만 남는다. 시각순이 아니라서(UUIDv5) 쓰기 위치는 흩어지지만 이 표는 보낸 뒤 비워지는 대기열이다.
     # PK 규칙(UUIDv7)의 예외라 기본값이 없다 — 빠뜨리면 무작위 ID 로 중복 차단을 비켜 가지 않고 저장이 실패한다(6-7c, 규약 시험이 확인).
     event_id = models.UUIDField(primary_key=True, editable=False)
-    event_name = models.CharField(max_length=64)  # 예: ad.decision. Debezium outbox 라우터의 type 에 대응
+    event_name = models.CharField(max_length=64)  # 예: ad.decision. Kafka 메시지의 after.event_name 으로 그대로 실린다
     schema_version = models.PositiveSmallIntegerField()
-    aggregate_id = models.UUIDField()  # 메시지 키 = 종류별 키: 결정·접수·판정·과금은 decision_id, 정책은 slot_id, 입찰·광고그룹 변경은 ad_group_id, 캠페인 변경은 campaign_id(계획 docs/plans/00 §5.1). Debezium 의 aggregateid 에 대응
+    aggregate_id = models.UUIDField()  # 메시지 키 = 종류별 키: 결정·접수·판정·과금은 decision_id, 정책은 slot_id, 입찰·광고그룹 변경은 ad_group_id, 캠페인 변경은 campaign_id(계획 docs/plans/00 §5.1). Kafka 메시지 키
     payload = models.JSONField()
     created_at = models.DateTimeField(default=timezone.now)  # 이벤트의 produced_at: outbox 에 쓴 시각
     sent_at = models.DateTimeField(null=True, blank=True)  # 비어 있으면 아직 안 보냈다. 중계는 "마지막 번호 이후"가 아니라 이 열이 빈 행을 보낸다(늦게 커밋된 행을 건너뛰지 않으려고)

@@ -3,13 +3,13 @@ import json
 
 from pyspark.sql import functions as F
 
-from bronze_ads_outbox import KAFKA, TABLE, s3a_session
+from bronze_ads_outbox import KAFKA, TABLE, TOPIC, s3a_session
 
 spark = s3a_session("c3_check")
 spark.sparkContext.setLogLevel("WARN")
 POS = ["topic", "partition", "offset"]
 b = spark.read.format("delta").load(TABLE)
-k = (spark.read.format("kafka").option("kafka.bootstrap.servers", KAFKA).option("subscribe", "ads.outbox.events")
+k = (spark.read.format("kafka").option("kafka.bootstrap.servers", KAFKA).option("subscribe", TOPIC)
      .option("startingOffsets", "earliest").option("endingOffsets", "latest").option("kafka.isolation.level", "read_committed")
      .option("includeHeaders", "true").load())
 bb = b.select(*POS, F.col("key_binary").alias("bk"), F.col("value_binary").alias("bv"), F.col("headers").alias("bh"),

@@ -4,14 +4,16 @@ JSON을 해석하지 않는다 — key·value 바이트, 헤더, 위치만 쌓�
 """
 import hashlib
 import os
+import tempfile
 from pathlib import Path
 
 from pyspark.sql import SparkSession, functions as F
 from pyspark.sql.streaming import StreamingQueryListener
 
 BUCKET = os.environ.get("BRONZE_BUCKET", "ads-lake")
-TABLE = f"s3a://{BUCKET}/bronze/ads_outbox_events"
-CHECKPOINT = f"s3a://{BUCKET}/checkpoints/bronze_ads_outbox"
+TABLE = os.environ.get("BRONZE_TABLE", f"s3a://{BUCKET}/bronze/ads_outbox_events")
+CHECKPOINT = os.environ.get("BRONZE_CHECKPOINT", f"s3a://{BUCKET}/checkpoints/bronze_ads_outbox")
+TOPIC = os.environ.get("BRONZE_TOPIC", "ads.outbox.events")  # 종단 시험은 시험 전용 토픽·표·checkpoint 를 쓴다(설계 §11.1)
 TRIGGER = os.environ.get("BRONZE_TRIGGER", "1 minute")
 KAFKA = os.environ.get("KAFKA_BOOTSTRAP", "127.0.0.1:9092,127.0.0.1:9192,127.0.0.1:9292")  # 브로커 3대(로컬 3노드) — 한 대가 죽어도 새로 연결
 # 설계 R6-3: 긴 정지 뒤 첫 배치가 적체 전부를 읽다 메모리가 모자라지 않게 상한을 둔다. 10,000은 임시값 — E-B4(P0-8) 실측으로 정한다
@@ -26,6 +28,7 @@ def s3a_session(app):
     return (SparkSession.builder.appName(app)
             .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
             .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
+            .config("spark.sql.warehouse.dir", str(Path(tempfile.gettempdir()) / "ads_pipeline_lab" / "spark-warehouse"))  # 현재 폴더에 빈 spark-warehouse/ 를 만들지 않게
             .config("spark.sql.session.timeZone", "UTC")  # ingest_date = ingested_at 의 UTC 날짜
             .config("spark.hadoop.fs.s3a.endpoint", os.environ.get("S3_ENDPOINT", "http://127.0.0.1:9000"))
             .config("spark.hadoop.fs.s3a.endpoint.region", os.environ.get("S3_REGION", "ap-northeast-2"))
@@ -56,7 +59,7 @@ if __name__ == "__main__":
     spark.streams.addListener(ProgressLog())
     query = (spark.readStream.format("kafka")
              .option("kafka.bootstrap.servers", KAFKA)
-             .option("subscribe", "ads.outbox.events")
+             .option("subscribe", TOPIC)
              .option("startingOffsets", "earliest")  # 첫 실행만. 이후는 checkpoint
              .option("kafka.isolation.level", "read_committed")
              .option("includeHeaders", "true")

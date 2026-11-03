@@ -1,6 +1,6 @@
 """의존 jar 세트(extraClassPath) 확인: 클래스 출처, RustFS s3a Delta 쓰기·읽기, Bronze 표 읽기, Kafka 배치 읽기. 시험 경로는 끝나면 지운다."""
 import time
-from bronze_ads_outbox import BUCKET, KAFKA, TABLE, s3a_session
+from bronze_ads_outbox import BUCKET, KAFKA, TABLE, TOPIC, s3a_session
 
 spark = s3a_session("deps_check")
 jvm = spark.sparkContext._jvm
@@ -27,7 +27,7 @@ print(f"DEPS_CLEANUP deleted={fs.delete(jvm.org.apache.hadoop.fs.Path(path), Tru
 
 bronze = spark.read.format("delta").load(TABLE)
 print(f"DEPS_BRONZE rows={bronze.count()} distinct_offsets={bronze.select('partition', 'offset').distinct().count()}", flush=True)
-kafka = (spark.read.format("kafka").option("kafka.bootstrap.servers", KAFKA).option("subscribe", "ads.outbox.events")
+kafka = (spark.read.format("kafka").option("kafka.bootstrap.servers", KAFKA).option("subscribe", TOPIC)
          .option("startingOffsets", "earliest").option("endingOffsets", "latest").option("kafka.isolation.level", "read_committed").load())
 print(f"DEPS_KAFKA rows={kafka.count()}", flush=True)
 print("DEPS_APP", spark.sparkContext.applicationId, flush=True)

@@ -51,7 +51,7 @@ kill -TERM <run-bronze.sh의 pid>          # 사람이 멈춤: Bronze를 정상 
 
 드라이버를 직접 죽이면(`kill -9 <SparkSubmit pid>`, 드라이버에 직접 `kill -TERM`도) 장애로 보고 다시 띄운다(재시도 1회 사용). 사람이 멈출 때는 드라이버가 아니라 `run-bronze.sh`에 TERM을 준다.
 
-환경 변수(기본값은 로컬 시험대): `KAFKA_BOOTSTRAP`, `BRONZE_BUCKET`, `BRONZE_TRIGGER`, `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_FILE`, `S3_SECRET_KEY_FILE`, `SPARK_MASTER`, `SPARK_CORES_MAX`, `SPARK_EXECUTOR_MEMORY`, `SPARK_DEPS`, `SPARK_LOCAL_IP`(기본 127.0.0.1), `BRONZE_MAX_OFFSETS_PER_TRIGGER`(기본 10,000 — 임시값, E-B4로 정함), `BRONZE_RETRIES`(기본 3), `BRONZE_RETRY_INTERVAL`(기본 10초 — 팀이 아직 정하지 않은 값이라 임시값), 도구의 `PG_PORT`(기본 5010).
+환경 변수(기본값은 로컬 시험대): `KAFKA_BOOTSTRAP`, `BRONZE_BUCKET`, `BRONZE_TRIGGER`, `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_FILE`, `S3_SECRET_KEY_FILE`, `SPARK_MASTER`, `SPARK_CORES_MAX`, `SPARK_EXECUTOR_MEMORY`, `SPARK_DEPS`, `SPARK_LOCAL_IP`(기본 127.0.0.1), `BRONZE_TOPIC`·`BRONZE_TABLE`·`BRONZE_CHECKPOINT`(기본은 lab 토픽·표·checkpoint), `BRONZE_MAX_OFFSETS_PER_TRIGGER`(기본 10,000 — 임시값, E-B4로 정함), `BRONZE_RETRIES`(기본 3), `BRONZE_RETRY_INTERVAL`(기본 10초 — 팀이 아직 정하지 않은 값이라 임시값), 도구의 `PG_PORT`(기본 5010)·`PG_DB`(대사 도구의 DB, 기본 `ads_pipeline_lab`).
 
 ## 검증 도구(`tools/`)
 
@@ -68,4 +68,22 @@ Spark 도구는 제출 스크립트로 돌린다(`pipeline/bronze/spark-submit-a
 | `real_events2.py <MEDIA_ROOT> <STATIC_ROOT> <접미사>` | Python | lab DB에 업무 흐름으로 이벤트를 만든다 |
 | `deps_check.py` | Spark | 의존 jar 세트의 클래스 출처, RustFS Delta 쓰기·읽기(시험 경로는 지움), Bronze·Kafka 읽기 |
 
-Django를 쓰는 도구의 `MEDIA_ROOT`·`STATIC_ROOT`는 저장소 밖(`$TMPDIR/ads_pipeline_lab/`)에 둔다.
+Django를 쓰는 도구의 `MEDIA_ROOT`·`STATIC_ROOT`는 저장소 밖(`$TMPDIR/ads_pipeline_lab/`·`$TMPDIR/ads_pipeline_e2e/`)에 둔다.
+
+## 종단 시험 전용 환경(설계 §11.1)
+
+lab(`ads_pipeline_lab`·커넥터 `ads-outbox-cdc`·토픽 `ads.outbox.events`)과 섞이지 않게 따로 둔다.
+
+| 부분 | 이름 |
+|---|---|
+| DB | `ads_pipeline_e2e`(HAProxy 5010) |
+| 커넥터 | `ads-outbox-e2e`(정본 `connect/ads-outbox-cdc.json`에서 이름·DB·슬롯·토픽만 바꿈), `topic.prefix` `adse2e`, 슬롯 `ads_e2e_slot`(failover) |
+| 토픽 | `ads.e2e.outbox.events`(3), `ads.e2e.outbox.signal`(1 — signal 키는 `adse2e`), `__debezium-heartbeat.adse2e`(1) — 모두 복제 3·`min.insync.replicas=2` |
+| Bronze | `BRONZE_TOPIC=ads.e2e.outbox.events BRONZE_TABLE=s3a://ads-lake/bronze_e2e/ads_outbox_events BRONZE_CHECKPOINT=s3a://ads-lake/checkpoints/bronze_e2e_ads_outbox pipeline/bronze/run-bronze.sh` |
+
+```bash
+python pipeline/tools/e2e_setup.py                 # DB·마이그레이션·권한·publication·토픽·커넥터(다시 돌려도 안전)
+python pipeline/tools/e2e_load.py --duration 1800   # 광고 서버·처리기를 띄우고 초당 20쌍 유입 → J0~J3 판정(J0 시험 유효: 이벤트 8종·광고 없는 결정 ≤ 1%), 결과 JSON. 긴 정지 시험은 --give-up 을 늘린다
+```
+
+`e2e_load.py`는 처음 한 번 시드를 만들고 문맥(매체 키 포함)을 `$TMPDIR/ads_pipeline_e2e/ctx.json`(0600)에 둔다. 변경 이벤트는 정해진 간격마다 입찰 정책·입찰·캠페인 예산·일괄 슬롯 그룹 켜기/끄기를 돌아가며 낸다(이름 변경은 이벤트에 싣지 않는다).

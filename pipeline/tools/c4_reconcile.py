@@ -20,7 +20,7 @@ LAB = Path(tempfile.gettempdir()) / "ads_pipeline_lab"  # Django MEDIA_ROOT·STA
 sys.path.insert(0, str(BASE))
 os.chdir(BASE)
 os.environ.update(DJANGO_SETTINGS_MODULE="config.settings.dev", DB_HOST="127.0.0.1", DB_PORT=os.environ.get("PG_PORT", "5010"), DB_USER="postgres",
-                  DB_PASSWORD=Path("/opt/postgresql/config/postgres-password").read_text().strip(), DB_NAME="ads_pipeline_lab",
+                  DB_PASSWORD=Path("/opt/postgresql/config/postgres-password").read_text().strip(), DB_NAME=os.environ.get("PG_DB", "ads_pipeline_lab"),
                   MEDIA_ROOT=str(LAB / "media"), STATIC_ROOT=str(LAB / "static"))
 import django  # noqa: E402
 
@@ -53,7 +53,7 @@ dump = [json.loads(t) for t in (CWD / a.dump).read_text(encoding="utf-8").splitl
 for r in dump:
     v = json.loads(r["value"])
     s, af = v["source"], v["after"]
-    if (s["db"], s["schema"], s["table"]) != ("ads_pipeline_lab", "public", "events_outbox"):
+    if (s["db"], s["schema"], s["table"]) != (os.environ["DB_NAME"], "public", "events_outbox"):
         problems["foreign_source"] += 1
         continue
     if v["op"] != "c" or af is None:

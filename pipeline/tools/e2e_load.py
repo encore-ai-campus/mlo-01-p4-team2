@@ -13,6 +13,7 @@ import argparse
 import itertools
 import json
 import os
+import resource
 import signal
 import subprocess
 import sys
@@ -259,8 +260,12 @@ def main():
     ended_at = datetime.now(UTC)
     connection.close()
     j1_bad = {f"{k}:{s}": c for (k, s), c in traffic.status.items() if s not in ACK[k]}
+    t0 = time.perf_counter()
     j2 = load_test.verify_invariants(traffic.acked_decisions, traffic.acked_reactions)
+    t1 = time.perf_counter()
     j3 = load_test.verify_events()
+    checks = {"J2_s": round(t1 - t0, 1), "J3_s": round(time.perf_counter() - t1, 1),
+              "max_rss_mb": round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (1024 * 1024 if sys.platform == "darwin" else 1024), 1)}  # 설계 §11.2: 검사 시간·메모리를 결과에 적는다
     by_name = Counter(EventOutbox.objects.filter(created_at__gte=started_at, created_at__lte=ended_at).values_list("event_name", flat=True))
     pairs = sum(c for (k, s), c in traffic.status.items() if k == "decision")
     missing = sorted(EVENT_NAMES - set(by_name))
@@ -280,7 +285,7 @@ def main():
         "acked": {"decisions": len(traffic.acked_decisions), "reactions": len(traffic.acked_reactions)},
         "changes": {str(k): v for k, v in done.items()}, "outbox_rows_added": EventOutbox.objects.count() - outbox_before,
         "outbox_by_name_in_run": dict(sorted(by_name.items())), "server_exit_codes": exit_codes,
-        "funded_balances": funded, "J0": j0,
+        "funded_balances": funded, "checks": checks, "J0": j0,
         "J1": {"ok": not j1_bad and exit_codes == [0, 0], "not_2xx_final": j1_bad, "servers_alive_to_end": exit_codes == [0, 0], "http_500": sum(c for (k, s), c in traffic.status.items() if s == 500)},
         "J2": {"ok": not j2, "problems": j2}, "J3": {"ok": not j3, "problems": j3},
     }

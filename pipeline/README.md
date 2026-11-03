@@ -60,8 +60,9 @@ Spark 도구는 제출 스크립트로 돌린다(`pipeline/bronze/spark-submit-a
 | 도구 | 실행 | 하는 일 |
 |---|---|---|
 | `c3_check.py` | Spark | Bronze ↔ Kafka(`read_committed`) 위치별 바이트 대조, 중복, 배치·지연, Delta 이력 |
-| `c4_bronze_dump.py <out.ndjson>` | Spark | Bronze 최신 판의 위치·value 원문·적재 시각을 NDJSON으로 |
-| `c4_reconcile.py <dump.ndjson> <out_dir> [--as-of ISO] [--window hour\|day]` | Python | outbox ↔ Bronze 창별 manifest(DRD §5.6, 규칙은 `ads_server/events/hops.py`)와 대조. 중복·충돌을 따로 센다 |
+| `c4_bronze_dump.py <out.ndjson> [--since ISO]` | Spark | Bronze 최신 판의 위치·value 원문·적재 시각을 NDJSON으로. `--since`: 원천 생성 시각이 그 뒤인 행만(생성 시각이 없는 행 — 삭제·다른 표·툼스톤 — 은 그대로 남겨 대사가 본다) |
+| `c4_reconcile.py <dump.ndjson> <out_dir> [--as-of ISO] [--window hour\|day] [--since ISO]` | Python | outbox ↔ Bronze 창별 manifest(DRD §5.6, 규칙은 `ads_server/events/hops.py`)와 대조. 중복·충돌을 따로 센다. **덤프와 대사에는 같은 `--since`를 준다** |
+| `bronze_latency.py --since ISO --until ISO` | Spark | 원천 생성 시각이 [since, until)인 이벤트의 단계별 지연(생성→Kafka, Kafka→Bronze, 생성→Bronze) p50·p95·p99·최대, 분당 생성 건수, 적재 배치 수 |
 | `c5_lib.py` | — | 아래 두 도구의 공용 관측(DB·Kafka·Connect REST·슬롯) |
 | `c5_connect.py <접미사>` | Python | 커넥터 REST stop 동안 이벤트를 만들고, 슬롯 WAL·Kafka offset을 관측한 뒤 resume해서 빠짐·중복을 본다. 결과는 `$TMPDIR/ads_pipeline_lab/c5a_report.json` |
 | `c5_dup.py <event_id…>` | Python | 이미 확정된 메시지를 같은 key·value로 한 번 더 발행(재전송 중복 흉내) |

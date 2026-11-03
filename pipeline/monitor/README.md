@@ -16,7 +16,9 @@
 
 R7(FAILED Task 자동 재시작)은 **넣지 않았다.** M3는 FAILED 경보만 낸다. E-K2(계획 02 P0-7) 결과로 R7 (나)가 정해지면 그때 넣는다.
 
-- 상태 파일은 같은 폴더의 임시 파일에 쓰고 바꿔 끼운다.
+- 상태 파일은 같은 폴더에 새 임시 파일(`mkstemp`, O_EXCL·0600 — 이름을 미리 알 수 없음)을 만들어 쓰고 바꿔 끼운다.
+- 상태 파일 자리는 이 사용자만 쓴다. 기본은 `~/.local/state/pipeline_monitor/state.json`(`XDG_STATE_HOME`이 있으면 그 아래)이고, 폴더는 0700으로 만든다. 공용 `/tmp`에 두면 다른 로컬 사용자가 폴더·파일·링크를 미리 만들어 경보를 막을 수 있다.
+- 폴더·파일이 이 사용자 것이 아니거나, 심볼릭 링크이거나, 그룹·다른 사용자가 쓸 수 있으면 점검하지 않는다. `[오류] 상태 파일 자리가 안전하지 않아 점검하지 않았다` 알림을 보내고 rc=2로 끝난다(조용히 멈추지 않는다).
 - 상태 파일이 깨져 읽지 못하면 빈 상태로 다시 시작한다. 그러면 지금 경보를 다시 알리고, `[알림] 상태 파일 … 새로 시작` 줄이 붙는다.
 - 웹훅 전송에 실패하면(주소 파일을 못 읽은 경우 포함) 상태를 갱신하지 않는다. 다음 점검이 같은 변화를 다시 보낸다.
 - 점검 묶음이 실패하면 그 묶음의 지난 값을 그대로 둔다. 못 본 것을 해소로 알리지 않는다.
@@ -24,7 +26,7 @@ R7(FAILED Task 자동 재시작)은 **넣지 않았다.** M3는 FAILED 경보만
 
 ## 설정(환경 변수, 기본값은 로컬 시험대)
 
-`MONITOR_PG_HOST`·`MONITOR_PG_PORT`(5010 = HAProxy rw), `MONITOR_PG_NODE_PORTS`(5432,5433,5434 — 노드마다 직접 물어 대기 서버면 synced를 본다. 승격 뒤에도 고칠 필요 없음), `MONITOR_PG_PASSWORD_FILE`, `MONITOR_SLOTS`, `MONITOR_SLOT_INACTIVE_S`(600), `MONITOR_CONNECT_REST`, `MONITOR_KAFKA`, `MONITOR_KAFKA_BIN`, `MONITOR_JAVA_HOME`, `MONITOR_BRONZE`(`이름|토픽|checkpoint s3a 경로`를 쉼표로), `S3_ENDPOINT`·`S3_ACCESS_KEY_FILE`·`S3_SECRET_KEY_FILE`, `MONITOR_STATE`(상태 파일, 기본 `$TMPDIR/pipeline_monitor/state.json`), `MONITOR_WEBHOOK_URL` 또는 `MONITOR_WEBHOOK_FILE`.
+`MONITOR_PG_HOST`·`MONITOR_PG_PORT`(5010 = HAProxy rw), `MONITOR_PG_NODE_PORTS`(5432,5433,5434 — 노드마다 직접 물어 대기 서버면 synced를 본다. 승격 뒤에도 고칠 필요 없음), `MONITOR_PG_PASSWORD_FILE`, `MONITOR_SLOTS`, `MONITOR_SLOT_INACTIVE_S`(600), `MONITOR_CONNECT_REST`, `MONITOR_KAFKA`, `MONITOR_KAFKA_BIN`, `MONITOR_JAVA_HOME`, `MONITOR_BRONZE`(`이름|토픽|checkpoint s3a 경로`를 쉼표로), `S3_ENDPOINT`·`S3_ACCESS_KEY_FILE`·`S3_SECRET_KEY_FILE`, `MONITOR_STATE`(상태 파일, 기본 `~/.local/state/pipeline_monitor/state.json` — 운영 systemd는 `StateDirectory=`가 만든 폴더를 주면 된다), `MONITOR_WEBHOOK_URL` 또는 `MONITOR_WEBHOOK_FILE`.
 
 비밀값(DB 비밀번호·RustFS 키·웹훅 주소)은 저장소에 두지 않는다. 파일 경로나 환경 변수로만 받고 출력하지 않는다.
 

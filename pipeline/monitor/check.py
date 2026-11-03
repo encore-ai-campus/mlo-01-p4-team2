@@ -3,13 +3,15 @@
 사용: check.py   (주기 실행은 launchd·systemd 타이머가 1분마다 부른다. 결과는 표준 출력에 JSON 한 줄)
 - 점검마다 결과(ok·alert·error·unimplemented·unsupported)를 낸다. 상태가 바뀐 것만 알린다(새 경보, 경보 해소) — 상태 파일 MONITOR_STATE.
 - 알림: MONITOR_WEBHOOK_URL 또는 MONITOR_WEBHOOK_FILE(주소를 담은 저장소 밖 파일)에 POST {"text","content"}. 없으면 화면에만 쓴다. 주소는 출력하지 않는다.
-- 끝: 경보가 하나라도 있으면 rc=1.
+- 끝: 경보가 하나라도 있으면 rc=1. 상태 파일 자리(MONITOR_STATE, 기본 ~/.local/state/pipeline_monitor/state.json)가 이 사용자 것이 아니거나
+  링크이거나 그룹·다른 사용자가 쓸 수 있으면 점검하지 않고 알린 뒤 rc=2.
 - R7(FAILED Task 자동 재시작)은 넣지 않았다. M3 는 FAILED 경보만 낸다. E-K2(계획 02 P0-7) 결과로 R7 (나)가 정해지면 그때 넣는다.
 비밀값(DB 비밀번호·RustFS 키·웹훅 주소)은 파일·환경 변수로만 받고 출력하지 않는다.
 """
 import json
 import os
 import re
+import stat
 import subprocess
 import sys
 import tempfile
@@ -40,7 +42,8 @@ BRONZE_STALE_S = int(E("MONITOR_BRONZE_STALE_S", "300"))   # 설계 M5: 유입�
 BRONZE_LAG_MIN = int(E("MONITOR_BRONZE_LAG_MIN", "10"))    # EOS 트랜잭션 표식만큼의 차이는 지연으로 보지 않는다
 S3_ENDPOINT = E("S3_ENDPOINT", "http://127.0.0.1:9000")
 S3_KEY_FILES = (E("S3_ACCESS_KEY_FILE", "/opt/rustfs/config/access-key"), E("S3_SECRET_KEY_FILE", "/opt/rustfs/config/secret-key"))
-STATE = Path(E("MONITOR_STATE", str(Path(tempfile.gettempdir()) / "pipeline_monitor" / "state.json")))
+# 상태 파일은 이 사용자만 쓰는 폴더에(공용 /tmp 이면 다른 사용자가 미리 만든 폴더·파일·링크로 경보를 막을 수 있다)
+STATE = Path(E("MONITOR_STATE", str(Path(E("XDG_STATE_HOME") or Path.home() / ".local" / "state") / "pipeline_monitor" / "state.json")))
 KAFKA_TIMEOUT_S = 30  # Kafka 가 멈추면 명령이 오래 걸린다 — 명령마다 30초에서 끊는다(M4 2번 + M5 토픽마다 1번 = 한 번에 최대 약 2분)
 
 
@@ -225,6 +228,26 @@ def notify(text):
         return f"웹훅 실패 {type(error).__name__}"
 
 
+def unsafe(path, *, directory):
+    """이 사용자 것이 아니거나, 심볼릭 링크이거나, 그룹·다른 사용자가 쓸 수 있으면 그 까닭. 괜찮으면 None."""
+    st = os.lstat(path)
+    if stat.S_ISLNK(st.st_mode):
+        return f"{path} 가 심볼릭 링크다"
+    if not (stat.S_ISDIR(st.st_mode) if directory else stat.S_ISREG(st.st_mode)):  # 파일 자리의 FIFO·소켓도 거른다(읽다가 멈추지 않게)
+        return f"{path} 가 {'폴더가' if directory else '보통 파일이'} 아니다"
+    if st.st_uid != os.getuid():
+        return f"{path} 의 소유자가 이 사용자가 아니다(uid {st.st_uid})"
+    if st.st_mode & (stat.S_IWGRP | stat.S_IWOTH):
+        return f"{path} 를 그룹·다른 사용자가 쓸 수 있다(mode {stat.S_IMODE(st.st_mode):o})"
+    return None
+
+
+def state_problem():
+    """상태 폴더를 0700 으로 만들고(이미 있으면 그대로), 폴더·파일이 안전한지 본다. 문제가 있으면 그 까닭."""
+    STATE.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    return unsafe(STATE.parent, directory=True) or (unsafe(STATE, directory=False) if os.path.lexists(STATE) else None)
+
+
 def load_state():
     """(상태, 다시 시작했는지). 상태 파일이 깨졌거나 못 읽으면 빈 상태로 이어 간다 — 지금 경보를 다시 알리게 되며, 그쪽이 맞다(감시가 멈추는 것보다)."""
     if not STATE.exists():
@@ -237,14 +260,23 @@ def load_state():
 
 
 def save_state(state):
-    """같은 폴더의 임시 파일에 쓰고 바꿔 끼운다(쓰는 도중 꺼져도 옛 파일이나 새 파일 하나만 남는다)."""
-    STATE.parent.mkdir(parents=True, exist_ok=True)
-    tmp = STATE.with_name(f"{STATE.name}.{os.getpid()}.tmp")
-    tmp.write_text(json.dumps(state, ensure_ascii=False))
-    os.replace(tmp, STATE)
+    """같은 폴더에 새 임시 파일(O_EXCL, 0600 — 이름을 미리 알 수 없다)을 만들어 쓰고 바꿔 끼운다(쓰는 도중 꺼져도 옛 파일이나 새 파일 하나만 남는다)."""
+    fd, tmp = tempfile.mkstemp(dir=STATE.parent, prefix=f".{STATE.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(json.dumps(state, ensure_ascii=False))
+        os.replace(tmp, STATE)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
 
 
 def main():
+    problem = state_problem()
+    if problem:  # 경보를 막을 수 있는 상태 파일은 믿지 않는다 — 점검하지 않고 크게 실패한다(알림을 보내고 rc=2)
+        sent = notify(f"파이프라인 점검(임시 D18)\n[오류] 상태 파일 자리가 안전하지 않아 점검하지 않았다: {problem}")
+        print(json.dumps({"t": datetime.now(UTC).isoformat(), "error": "unsafe_state", "detail": problem, "notify": sent}, ensure_ascii=False))
+        sys.exit(2)
     state, state_reset = load_state()
     findings, failed_checks = [], set()
     for name, fn in (("M1·M2", m1_m2), ("M3", m3), ("M4", m4), ("M5", m5), ("S7", s7)):

@@ -59,13 +59,13 @@ def record_audit(request, action, target=None, detail=None, actor=None):
     )
 
 
-def details_in_order(action, **detail):
-    """그 종류(와 `detail` 의 키 = 값)의 감사 로그 `detail` 전부를 **기록된 순서(PK — UUIDv7 증가)**로. 같은 대상의 판정을 여러 번 남겨 마지막 것이 이기는 기록을 읽을 때 쓴다
-    (시각이 같은 두 기록도 순서가 갈린다). ponytail: 그 종류의 기록을 모두 읽는다 — 많아지면 created_at 하한을 둔다."""
+def entries_in_order(action, **detail):
+    """그 종류(와 `detail` 의 키 = 값)의 감사 로그 전부를 **기록된 순서(PK — UUIDv7 증가)**로 `(created_at, detail)` 목록으로. 같은 대상의 판정을 여러 번 남겨
+    마지막 것이 이기는 기록이나 기록일부터 세는 기한을 읽을 때 쓴다(시각이 같은 두 기록도 순서가 갈린다). ponytail: 그 종류의 기록을 모두 읽는다 — 많아지면 created_at 하한을 둔다."""
     from .models import AuditLog
 
     match = {f"detail__{key}": value for key, value in detail.items()}
-    return list(AuditLog.objects.filter(action=action, **match).order_by("log_id").values_list("detail", flat=True))
+    return list(AuditLog.objects.filter(action=action, **match).order_by("log_id").values_list("created_at", "detail"))
 
 
 def latest_detail(action, **detail):

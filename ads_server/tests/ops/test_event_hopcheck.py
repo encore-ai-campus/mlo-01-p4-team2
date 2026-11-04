@@ -1,4 +1,5 @@
 """Step 4-3c: 구간 대조(`verify_hops`) — 분류(일치·확정 불일치·중계 지연 후보·열린 창·비교 불가), 세대 사슬, 폴더 밖 고정점."""
+import getpass
 import io
 import json
 import shutil
@@ -18,7 +19,7 @@ from events.models import EventOutbox
 from events.relay import relay_batch
 from foundation.models import AuditLog
 from records import api as records
-from tests.support.factories import NOW, SUBJECT, World
+from tests.support.factories import NOW, SUBJECT, World, make_admin
 from tests.support.mongo_support import MongoDatabaseMixin
 from tests.support.cases import Cases
 
@@ -487,6 +488,14 @@ class VerifyHopsCommandTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         manifest = ndjson.read_manifest(ndjson.manifest_path(self.dir / folder, hop_name))
         return [json.loads(l) for l in (self.dir / folder / manifest["file"]).read_text().splitlines()]
 
+    def exception(self, *flags):
+        out = io.StringIO()
+        try:
+            call_command("record_hop_exception", *flags, stdout=out)
+            return True, out.getvalue()
+        except CommandError as error:
+            return False, out.getvalue() + str(error)
+
     def pipeline(self, lines, **checkpoint):
         """계약 모양의 파이프라인 manifest(DRD §5.6 [P1-3] — 줄의 세 건수·checkpoint 필수 필드·이 광고 서버의 rule_sha256)를 쓰고 경로를 돌려준다."""
         full = {"open_windows": [], "window": "utc-day", "rule_sha256": hop_rules.rule_sha256(), "not_insert_unplaced": 0, "foreign_source_rows": 0,
@@ -698,15 +707,99 @@ class VerifyHopsCommandTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.assertEqual(hopcheck.window_verdicts("utc-day"), {"2026-10-07T00:00:00Z": True})
 
     def case_a_verdict_too_large_for_the_audit_is_replaced_by_an_unconfirmed_span(self):
-        """감사 detail 은 크기 한도를 넘으면 통째로 잘린다 — 판정이 사라져 앞의 확정이 남지 않게, 전 범위를 미확정 한 구간으로 다시 남기고 실패한다."""
+        """감사 detail 은 크기 한도를 넘으면 통째로 잘린다 — 판정이 사라져 앞의 확정이 남지 않게, 전 범위(사이의 빈 창까지)를 미확정 한 구간으로 다시 남기고 실패한다."""
+        gap = World()  # 12시에 더해 14시에도 이벤트 — 13시는 빈 창
+        records.decide(gap.slot.media_id, gap.slot.slot_id, subject_id=SUBJECT, now=NOW + timedelta(hours=2), rng=Random(3))
         relay_batch()
-        self.export()
+        self.export(folder="hours", window="hour")
         with mock.patch("foundation.audit._MAX_DETAIL_JSON", 380):  # 판정 기록(입력 해시 셋 포함)은 넘고, 대신 남기는 기록(해시 없음)은 들어가는 크기
-            ok, text = self.verify("--pipeline", self.pipeline(self.lines("hop_mongo")))
+            ok, text = self.verify("--pipeline", self.pipeline(self.lines("hop_mongo", folder="hours"), window="utc-hour"), folder="hours")
         self.assertFalse(ok)
         self.assertIn("판정 기록이 감사 detail 크기 한도를 넘어 전 범위를 미확정으로 남겼다", text)
-        self.assertEqual(list(AuditLog.objects.filter(action=hopcheck.CONFIRM_ACTION).order_by("log_id").values_list("detail__truncated", flat=True)), [True, None])
-        self.assertEqual(hopcheck.window_verdicts("utc-day"), {"2026-10-07T00:00:00Z": False})
+        first, fallback = AuditLog.objects.filter(action=hopcheck.CONFIRM_ACTION).order_by("log_id").values_list("detail", flat=True)
+        self.assertEqual((first, fallback["unconfirmed"], fallback["confirmed"], fallback["inputs"]), ({"truncated": True}, [[0, 2]], [], {}))  # 구간 하나 — 늘 들어간다
+        self.assertEqual(hopcheck.window_verdicts("utc-hour"), {f"2026-10-07T{h}:00:00Z": False for h in (12, 13, 14)})
+
+    def case_a_known_exception_is_recorded_with_its_recorder_and_read_back(self):
+        """설계 01 D16: 사람이 사건을 확인한 창을 '알려진 예외'로 남긴다 — 기록자(관리자 계정은 actor, OS 로그인 이름은 detail), 창(오프셋 구간), 사유, 사건 번호. 창 크기별로 읽고, 다시 기록하면 나중 것이 이긴다."""
+        admin = make_admin()
+        ok, text = self.exception("--window", "hour", "--start", "2026-10-07T12:00:00Z", "--start", "2026-10-07T14:00:00Z", "--start", "2026-10-07T12:00:00Z",
+                                  "--reason", "Bronze 에만 있는 유령 확인", "--incident", "INC-1", "--by", admin.username)
+        self.assertTrue(ok, text)
+        self.assertIn(f"알려진 예외 기록: 2창(창 utc-hour, 사건 INC-1, 기록자 {admin.username}·", text)
+        log = AuditLog.objects.get(action=hopcheck.EXCEPTION_ACTION)
+        self.assertEqual((log.actor_id, log.actor_username), (admin.pk, admin.username))
+        self.assertEqual(log.detail, {"pair": "hop_outbox->pipeline", "window": "utc-hour", "base": "2026-10-07T12:00:00Z", "windows": [[0, 0], [2, 2]],
+                                      "reason": "Bronze 에만 있는 유령 확인", "incident": "INC-1", "os_user": getpass.getuser()})
+        found = hopcheck.window_exceptions("utc-hour")
+        self.assertEqual({k: (v["incident"], v["recorded_at"]) for k, v in found.items()},
+                         {"2026-10-07T12:00:00Z": ("INC-1", log.created_at), "2026-10-07T14:00:00Z": ("INC-1", log.created_at)})  # 기록일 = 감사 created_at(정리의 30일 기준)
+        self.assertEqual(hopcheck.window_exceptions("utc-day"), {})
+        self.assertTrue(self.exception("--window", "hour", "--start", "2026-10-07T14:00:00Z", "--reason", "재확인", "--incident", "INC-2", "--by", admin.username)[0])
+        self.assertEqual({k: v["incident"] for k, v in hopcheck.window_exceptions("utc-hour").items()}, {"2026-10-07T12:00:00Z": "INC-1", "2026-10-07T14:00:00Z": "INC-2"})
+
+    def case_an_exception_is_refused_for_a_bad_recorder_or_window(self):
+        """기록자는 활성 관리자 계정이어야 하고, 창은 그 크기의 UTC 경계·닫힌 창·마지막 판정이 확정이 아닌 창이어야 한다 — 어기면 아무것도 남기지 않는다."""
+        admin, inactive, advertiser = make_admin(), make_admin(), World().adv
+        inactive.is_active = False
+        inactive.save()
+        relay_batch()
+        self.export()
+        self.assertTrue(self.verify("--pipeline", self.pipeline(self.lines("hop_mongo")))[0])  # 10-07 하루 창은 확정
+        current_hour = hop_rules.format_time(hop_rules.window_start(datetime.now(timezone.utc), hop_rules.HOUR))
+        ok_args = ["--reason", "r", "--incident", "INC-9"]
+        for flags, message in (
+                (["--window", "day", "--start", "2026-10-06T00:00:00Z", "--by", "없는계정"], "활성 관리자"),
+                (["--window", "day", "--start", "2026-10-06T00:00:00Z", "--by", advertiser.username], "활성 관리자"),
+                (["--window", "day", "--start", "2026-10-06T00:00:00Z", "--by", inactive.username], "활성 관리자"),
+                (["--window", "day", "--start", "2026-10-06T05:00:00Z", "--by", admin.username], "UTC 경계"),
+                (["--window", "day", "--start", "2026-10-6T00:00:00Z", "--by", admin.username], "UTC 경계"),
+                (["--window", "day", "--start", "어제", "--by", admin.username], "형식"),
+                (["--window", "hour", "--start", current_hour, "--by", admin.username], "닫히지 않은"),
+                (["--window", "day", "--start", "2026-10-06T00:00:00Z", "--start", "2026-10-07T00:00:00Z", "--by", admin.username], "확정인 창")):
+            ok, text = self.exception(*flags, *ok_args)
+            self.assertFalse(ok, flags)
+            self.assertIn(message, text)
+        self.assertFalse(self.exception("--window", "day", "--start", "2026-10-06T00:00:00Z", "--reason", " ", "--incident", "INC-9", "--by", admin.username)[0])
+        ok, text = self.exception("--window", "day", "--start", "2026-10-06T00:00:00Z", "--reason", "가" * 501, "--incident", "INC-9", "--by", admin.username)
+        self.assertFalse(ok)
+        self.assertIn("500자까지", text)  # 감사 기록이 사유를 잘라 저장하지 않게 미리 거부
+        self.assertFalse(AuditLog.objects.filter(action=hopcheck.EXCEPTION_ACTION).exists())
+        self.assertTrue(self.exception("--window", "day", "--start", "2026-10-06T00:00:00Z", *ok_args, "--by", admin.username)[0])  # 판정 기록이 없는 창은 받는다
+        with mock.patch("foundation.audit._MAX_DETAIL_JSON", 150):  # 감사 detail 이 크기 한도로 잘리면 기록됐다고 알리지 않고 실패한다
+            ok, text = self.exception("--window", "day", "--start", "2026-10-05T00:00:00Z", *ok_args, "--by", admin.username)
+        self.assertFalse(ok)
+        self.assertIn("예외가 기록되지 않았다 — 창을 나눠서", text)
+        self.assertEqual(sorted(hopcheck.window_exceptions("utc-day")), ["2026-10-06T00:00:00Z"])  # 잘린 기록은 예외로 읽히지 않는다
+
+    def case_mismatches_of_excepted_windows_do_not_fail_the_check_but_others_still_do(self):
+        """설계 01 D16: 알려진 예외 창의 파이프라인 쌍 불일치는 EXC 로 보이고 실패로 세지 않는다(보고에는 mismatch 그대로 + 사건 번호). 예외가 아닌 창에 불일치가 하나라도 있으면 전처럼 실패한다."""
+        later = World()
+        records.decide(later.slot.media_id, later.slot.slot_id, subject_id=SUBJECT, now=NOW + timedelta(days=1), rng=Random(2))  # 10-08 창에도 결정
+        relay_batch()
+        self.export()
+        lines = self.lines("hop_mongo")
+        self.assertTrue(self.exception("--window", "day", "--start", "2026-10-07T00:00:00Z", "--reason", "유령 확인", "--incident", "INC-7", "--by", make_admin().username)[0])
+        both = [dict(l, content_sha256="0" * 64) if l["event_name"] == "ad.decision" else l for l in lines]  # 10-07·10-08 둘 다 결정 줄 불일치
+        ok, text = self.verify("--pipeline", self.pipeline(both))
+        self.assertFalse(ok)  # 10-08 은 예외가 아니다
+        self.assertIn("EXC  hop_outbox->pipeline 2026-10-07T00:00:00Z ad.decision ['content_sha256'] 사건=INC-7", text)
+        self.assertIn("FAIL hop_outbox->pipeline 2026-10-08T00:00:00Z ad.decision ['content_sha256']", text)
+        self.assertIn("확정 불일치 2건", text)  # 10-08 의 두 쌍(outbox·MongoDB → 파이프라인)
+        only_excepted = [dict(l, content_sha256="0" * 64) if l["event_name"] == "ad.decision" and l["window_start"] == "2026-10-07T00:00:00Z" else l for l in lines]
+        ok, text = self.verify("--pipeline", self.pipeline(only_excepted), "--out", str(self.dir / "report"))
+        self.assertTrue(ok, text)
+        self.assertIn("그 가운데 알려진 예외 창의 불일치 2줄(EXC, 실패로 세지 않음)", text)
+        manifest = ndjson.read_manifest(ndjson.manifest_path(self.dir / "report", "hop_report"))
+        rows = [json.loads(l) for l in (self.dir / "report" / manifest["file"]).read_text().splitlines()]
+        self.assertEqual(sorted((r["pair"], r["status"], r.get("exception")) for r in rows if r.get("exception")),
+                         [("hop_mongo->pipeline", "mismatch", "INC-7"), ("hop_outbox->pipeline", "mismatch", "INC-7")])  # 사실(mismatch)은 그대로
+        self.assertIn("판정 기록: 확정 1창 · 미확정 1창", text)  # 예외 창도 확정은 아니다(정리는 기록일 + 30일, P1-6)
+        store.collection().delete_one({"event_name": "ad.charge"})  # 예외는 파이프라인 쌍에만 — 광고 서버 안의 쌍(outbox → MongoDB 등)의 불일치는 예외 창이어도 실패
+        self.export()
+        ok, text = self.verify("--pipeline", self.pipeline(only_excepted))
+        self.assertFalse(ok)
+        self.assertIn("FAIL hop_outbox->hop_mongo 2026-10-07T00:00:00Z ad.charge", text)
 
     def case_verdicts_are_read_per_window_size(self):
         """같은 시각이라도 시간 창과 하루 창은 다른 창이다 — 마지막 판정은 창 크기마다 따로 읽는다(P1-6 정리가 자기 창 크기의 판정만 본다)."""

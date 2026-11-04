@@ -16,7 +16,7 @@ import json
 import re
 from pathlib import Path
 
-from foundation.api import audit_details_in_order
+from foundation.api import audit_entries_in_order
 
 from . import hop_rules, hops, ndjson
 
@@ -284,10 +284,35 @@ def window_verdicts(window):
     """창 크기 `window`(`utc-hour`·`utc-day`)의 창마다 **마지막 판정**(확정이면 True) — 감사 기록 순서(PK)대로 덮어쓴다(설계 01 S3 (가)).
     다른 창 크기의 기록은 보지 않는다(같은 시각이라도 시간 창과 하루 창의 판정은 서로 다른 창이다)."""
     size, verdicts = hops.WINDOW_SIZES[window], {}
-    for detail in audit_details_in_order(CONFIRM_ACTION, pair=PIPELINE_PAIR, window=window):
-        base = hops.parse_time(detail["base"])
+    for _at, detail in audit_entries_in_order(CONFIRM_ACTION, pair=PIPELINE_PAIR, window=window):
         for field, value in (("confirmed", True), ("unconfirmed", False)):
-            for first, last in detail[field]:
-                for k in range(first, last + 1):
-                    verdicts[hops.format_time(base + k * size)] = value
+            for start in _starts(detail["base"], detail[field], size):
+                verdicts[start] = value
     return verdicts
+
+
+def _starts(base, ranges, size):
+    """`_ranges` 의 반대: 기준 창에서 센 오프셋 구간 → 창 시작 문자열."""
+    first = hops.parse_time(base)
+    return [hops.format_time(first + k * size) for lo, hi in ranges for k in range(lo, hi + 1)]
+
+
+# ---------------------------------------------------------------- 알려진 예외(설계 01 D16, 계획 02 P1-5)
+
+EXCEPTION_ACTION = "events.hop_window_exception"  # 사람이 사건을 확인하고 남긴 "끝내 match 가 안 되는 창" — 그때부터 감시(M6·M8)에서 빼고, 기록일부터 30일 뒤 정리한다(P1-6)
+
+
+def exception_detail(window, starts, reason, incident, os_user):
+    """`events.hop_window_exception` 의 detail. 창 목록은 판정 기록과 같은 오프셋 구간이다. 기록자(앱 관리자 계정)는 감사 actor 로 남는다."""
+    size, base = hops.WINDOW_SIZES[window], hops.parse_time(min(starts))
+    return {"pair": PIPELINE_PAIR, "window": window, "base": hops.format_time(base), "windows": _ranges(starts, base, size),
+            "reason": reason, "incident": incident, "os_user": os_user}
+
+
+def window_exceptions(window):
+    """창 크기 `window` 의 알려진 예외 창 → `{"recorded_at", "incident", "reason"}`. 같은 창을 다시 기록하면 나중 기록이 이긴다(기록일이 늦어져 정리도 늦어진다 — 안전한 쪽)."""
+    size, found = hops.WINDOW_SIZES[window], {}
+    for recorded_at, detail in audit_entries_in_order(EXCEPTION_ACTION, pair=PIPELINE_PAIR, window=window):
+        for start in _starts(detail["base"], detail["windows"], size):
+            found[start] = {"recorded_at": recorded_at, "incident": detail["incident"], "reason": detail["reason"]}
+    return found

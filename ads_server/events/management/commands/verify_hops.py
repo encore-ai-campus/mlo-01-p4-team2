@@ -17,7 +17,8 @@ class Command(BaseCommand):
         "구간별 정합 manifest(export_hop_manifests 가 낸 폴더)를 대조한다: 원본→outbox, outbox→MongoDB, 원본→MongoDB. 각 manifest 의 SHA-256·행 수와 세대 사슬을 검증하고, "
         "최신 manifest 가 감사 로그의 고정점과 같은지 본다. --pipeline 으로 파이프라인 쪽이 같은 규칙(hop_rules.py)으로 낸 manifest 를 outbox 구간과(로컬 병행 기간에는 MongoDB 구간과도) 대조한다. "
         "확정 불일치·사슬 오류·고정점 불일치가 있으면 비정상 종료한다(중계 지연 후보는 보고만 하고 다시 확인한다). "
-        "--pipeline 이면 창마다의 판정(확정·미확정)을 감사 로그 events.hop_windows_confirmed 에 남긴다 — outbox 정리는 창마다 마지막 판정이 확정일 때만 한다."
+        "--pipeline 이면 창마다의 판정(확정·미확정)을 감사 로그 events.hop_windows_confirmed 에 남긴다 — outbox 정리는 창마다 마지막 판정이 확정일 때만 한다. "
+        "알려진 예외(record_hop_exception)로 기록된 창의 파이프라인 쌍 불일치는 EXC 로 보이고 실패로 세지 않는다."
     )
 
     def add_arguments(self, parser):
@@ -73,21 +74,30 @@ class Command(BaseCommand):
                             errors.append(f"pipeline: {error}")
                             pipeline_error = str(error)
                             break
+        if options["pipeline"] and "hop_outbox" in hops:  # 알려진 예외(D16): 사람이 기록한 창의 파이프라인 쌍 불일치는 사실 그대로 두되(mismatch) 사건 번호를 붙이고 실패로 세지 않는다
+            exceptions = hopcheck.window_exceptions(hops["hop_outbox"].window)
+            for row in rows:
+                if row["status"] == hopcheck.MISMATCH and row["pair"].endswith("->pipeline") and row["window_start"] in exceptions:
+                    row["exception"] = exceptions[row["window_start"]]["incident"]
         counts = dict(Counter(row["status"] for row in rows))
+        excepted = sum(1 for row in rows if row.get("exception"))
         for line in errors:
             self.stdout.write(f"FAIL {line}")
         for row in rows:
             if row["status"] in (hopcheck.MISMATCH, hopcheck.LAG):
-                self.stdout.write(f"{'FAIL' if row['status'] == hopcheck.MISMATCH else 'LAG '} {row['pair']} {row['window_start']} {row['event_name']} {row['fields']}")
-        self.stdout.write(f"결과: {counts or '비교한 줄 없음'}")
+                tag = "EXC " if row.get("exception") else "FAIL" if row["status"] == hopcheck.MISMATCH else "LAG "
+                note = f" 사건={row['exception']}" if row.get("exception") else ""
+                self.stdout.write(f"{tag} {row['pair']} {row['window_start']} {row['event_name']} {row['fields']}{note}")
+        self.stdout.write(f"결과: {counts or '비교한 줄 없음'}" + (f" — 그 가운데 알려진 예외 창의 불일치 {excepted}줄(EXC, 실패로 세지 않음)" if excepted else ""))
         if options["pipeline"]:
             self.stdout.write(self.record_verdicts(options, directory, hops, rows, outbox_errors, pipeline_error))
         if options["out"]:
             checkpoint = {"counts": counts, "errors": errors, "inputs": {n: h.manifest["sha256"] for n, h in hops.items()}}
             manifest = ndjson.write(Path(options["out"]), "hop_report", rows, "hop_report", SCHEMA_VERSION, checkpoint=checkpoint, now=datetime.now(timezone.utc))
             self.stdout.write(f"hop_report: rows={manifest['rows']} file={manifest['file']}")
-        if errors or counts.get(hopcheck.MISMATCH):
-            raise CommandError(f"구간 대조 실패 — 오류 {len(errors)}건, 확정 불일치 {counts.get(hopcheck.MISMATCH, 0)}건")
+        failing = counts.get(hopcheck.MISMATCH, 0) - excepted
+        if errors or failing:
+            raise CommandError(f"구간 대조 실패 — 오류 {len(errors)}건, 확정 불일치 {failing}건")
 
     def record_verdicts(self, options, directory, hops, rows, outbox_errors, pipeline_error):
         """창 확정 판정을 감사 로그에 남긴다(설계 01 D8 구현 규칙 1·S3 (가)·D17). 이 DB 의 outbox 와 이어진 판정만 정리 근거가 된다 —

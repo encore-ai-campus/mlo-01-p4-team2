@@ -15,6 +15,8 @@ CAMPAIGN_ID = UUID("f50d87cd-4f59-5750-b06b-dfd532576846")
 GREETING_ID = UUID("7b8b6d9b-84c1-53e9-bb0f-32b1c767c610")
 POKING_ID = UUID("4804de8c-261b-5eb8-b648-db7ab2b5279d")
 PYTHON_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd106")
+ALL_SUBJECTS_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd105")
+CS_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd107")
 SQL_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd111")
 TIMER_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd108")
 TYPING_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd109")
@@ -25,6 +27,8 @@ ACHIEVEMENT_IMAGES = {
     SQL_ID: "/static/campus/assets/achievements/sql-intermediate.png",
     TIMER_ID: "/static/campus/assets/achievements/timer.png",
     TYPING_ID: "/static/campus/assets/achievements/code-typing.png",
+    ALL_SUBJECTS_ID: "/static/campus/assets/achievements/all-subjects.png",
+    CS_ID: "/static/campus/assets/achievements/cs-intermediate.png",
 }
 
 
@@ -96,19 +100,27 @@ def record_manager_action(user, manager_id, action):
 
 def record_learning_completion(user, lesson):
     if (lesson.user_id != user.pk or lesson.completed_at is None or lesson.total_questions != 10
-            or lesson.correct_count < 7 or lesson.difficulty not in ("intermediate", "advanced")):
+            or lesson.correct_count < 7 or lesson.subject not in ("python", "sql", "cs")):
         return None
-    event_id = {"python": PYTHON_ID, "sql": SQL_ID}.get(lesson.subject)
-    if event_id is None:
-        return None
+    from learning.models import LearningSession
     with transaction.atomic():
         get_user_model().objects.select_for_update().get(pk=user.pk)
-        progress, _ = EventProgress.objects.get_or_create(
-            user=user, event_id=event_id, defaults={"started_at": lesson.started_at})
+        event_ids = []
+        if lesson.difficulty in ("intermediate", "advanced"):
+            event_ids.append({"python": PYTHON_ID, "sql": SQL_ID, "cs": CS_ID}[lesson.subject])
+        passed_subjects = set(LearningSession.objects.filter(
+            user=user, completed_at__isnull=False, total_questions=10, correct_count__gte=7,
+            subject__in=("python", "sql", "cs"),
+        ).values_list("subject", flat=True).distinct())
+        if passed_subjects == {"python", "sql", "cs"}:
+            event_ids.append(ALL_SUBJECTS_ID)
         newly_completed = []
-        if progress.status != EventProgress.Status.COMPLETED:
-            progress.status = EventProgress.Status.COMPLETED
-            progress.completed_at = timezone.now()
-            progress.save(update_fields=["status", "completed_at"])
-            newly_completed.append(str(event_id))
+        for event_id in event_ids:
+            progress, _ = EventProgress.objects.get_or_create(
+                user=user, event_id=event_id, defaults={"started_at": lesson.started_at})
+            if progress.status != EventProgress.Status.COMPLETED:
+                progress.status = EventProgress.Status.COMPLETED
+                progress.completed_at = timezone.now()
+                progress.save(update_fields=["status", "completed_at"])
+                newly_completed.append(str(event_id))
         return {"achievements": achievement_snapshot(user), "newly_completed": newly_completed}

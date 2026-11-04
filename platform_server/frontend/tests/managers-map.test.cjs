@@ -19,3 +19,8 @@ test('achievement PNGs are copied byte-for-byte from the supplied original image
   assert.equal(crypto.createHash('sha256').update(copied).digest('hex'),originalHash);
  }
 });
+
+test('the two new learning badge assets preserve the supplied PNG bytes',()=>{
+ for(const [name,hash] of [['all-subjects.png','f2094d9cb7a2c046816692758c0b77af5ab9ec600cc2723ec17ad1a1d53d9b7c'],['cs-intermediate.png','804a790e56a58698219145f3b6140dcc9aac7c60e2f3bee0950e0a3ee396b631']])
+  assert.equal(crypto.createHash('sha256').update(fs.readFileSync(path.join(root,'dist/assets/achievements',name))).digest('hex'),hash);
+});

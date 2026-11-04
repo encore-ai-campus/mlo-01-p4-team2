@@ -76,6 +76,8 @@ pipeline/reconcile/run-reconcile.sh hour      # lab DB ↔ manifests/hop_pipelin
 pipeline/reconcile/run-reconcile.sh day
 ```
 
+종료 코드 1은 확정 불일치이거나 상태 파일을 쓰기 전에 멈춘 것이다(래퍼의 비밀 파일 없음·설정 오류·작업 폴더 오류 등). 둘은 상태 파일로 구별한다 — 그 회차의 `status`가 `mismatch`인지, `finished_at`이 갱신됐는지 본다. `--as-of` 형식 오류는 2다. outbox 창 닫힘 시각은 받은 `checkpoint.started_at`과 대사의 지금 가운데 이른 쪽이다. 그래서 잡 쪽 시계가 앞서도, 이쪽 기준으로 아직 여유 안에 있는 창은 확정하지 않는다.
+
 하루 주기는 UTC로 정의한다(하루 잡 00:35Z, 하루 대사 00:50Z). LaunchAgent `StartCalendarInterval`은 이 Mac의 현지 시각이라 견본은 Asia/Seoul(UTC+9) 기준 09:35·09:50으로 두었다. 시간대가 다르면 Hour를 바꾼다. 운영 예약(ScheduledSparkApplication·systemd 타이머)은 UTC로 둔다.
 
 잡의 설정(제출 스크립트가 넘긴다 — 잡 본문에는 기본값이 없다): `HOP_BRONZE_TABLE`, `HOP_MANIFEST_URI`(`/`로 끝나는 `s3a://` 접두사), `HOP_SOURCE_DB`(Debezium `source.db`), `HOP_GRACE_SECONDS`(광고 서버 `EVENTS_HOP_GRACE_SECONDS`와 같게), 선택 `HOP_MAX_PARTITION_BYTES`(기본 16m). 로컬 래퍼의 기본값은 lab 표·운영 접두사·`ads_pipeline_lab`·120초이고, 잠금 폴더는 `HOP_LOCK_DIR`(기본 `~/Library/Caches/ads-pipeline`). 시험은 Spark 없이 `python -m unittest discover -s pipeline/tests/common -t pipeline/tests`·`… -s pipeline/tests/bronze …`.

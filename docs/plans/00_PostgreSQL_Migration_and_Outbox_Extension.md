@@ -127,6 +127,7 @@ DB 전체를 builtin `C.UTF-8`로 만든다. 그래서 ICU·glibc가 바뀌어�
 | `ad.campaign_changed` v1 | `change_id` | `campaign_id` | `campaign_id`, `change_id`, `change_type`, `previous_value`, `new_value`, `changed_at` |
 | `ad.ad_group_changed` v1 | `change_id` | `ad_group_id` | `ad_group_id`, `campaign_id`, `change_id`, `change_type`, `previous_value`, `new_value`, `changed_at` |
 
+- (2026-11-04: Kafka 메시지 키는 `event_id`로 바뀌었다 — 설계 §10 C2. `aggregate_id`는 대상 키로 남는다.)
 - `event_id`는 기존 규칙대로 `event_id_of(event_name, source_id)`(UUIDv5)로 만든다.
 - `change_source`: `policy_version = 1`이면 `INITIAL`, 나머지는 `MANUAL`이다. 지금은 DB 열 없이 계산한다. `insight_id`는 지금은 항상 `null`이다(§8.2).
 - 싣지 않는 것: 정책 변경 사유·`changed_by`(관리자 자유문·사람 연결), 캠페인 중단 사유, 캠페인·광고그룹 이름(표시용). 광고주 계정·잔액·요청 원문도 싣지 않는다.

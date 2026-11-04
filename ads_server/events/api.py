@@ -28,7 +28,7 @@ def record_charge(*, now=None, **fields):
     return enqueue(schemas.CHARGE, fields["entry_id"], fields["decision_id"], payload, now)
 
 
-# 아래 넷은 메시지 키(aggregate_id)가 결정이 아니라 그 종류의 대상이다(계획 docs/plans/00 §5.1)
+# 아래 넷은 대상 키(aggregate_id)가 결정이 아니라 그 종류의 대상이다(계획 docs/plans/00 §5.1)
 def record_bid_policy_changed(*, now=None, **fields):
     payload = schemas.bid_policy_changed_payload(**fields)
     return enqueue(schemas.BID_POLICY_CHANGED, fields["bid_policy_id"], fields["slot_id"], payload, now)

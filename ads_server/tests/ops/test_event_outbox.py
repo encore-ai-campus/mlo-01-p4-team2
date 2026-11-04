@@ -102,12 +102,12 @@ class EnqueueTests(Cases, TestCase):
         self.assertEqual(p["raw"], {"type": "IMPRESSION"})
 
     def case_change_events_carry_the_planned_fields_under_their_own_message_key(self):
-        """정책·입찰·캠페인·광고그룹 이벤트(계획 docs/plans/00 §5.1): 필드는 표 그대로(사유·바꾼 사람·이름 없음), 메시지 키는 종류별 대상."""
+        """정책·입찰·캠페인·광고그룹 이벤트(계획 docs/plans/00 §5.1): 필드는 표 그대로(사유·바꾼 사람·이름 없음), 대상 키는 종류별 대상."""
         slot, policy, ad_group, bid, campaign, change = (uuid.uuid4() for _ in range(6))
         policy_fields = dict(slot_id=slot, bid_policy_id=policy, policy_version=1, floor_amount=100, base_amount=200, cap_amount=300,
                              impression_share=98, click_share=1, conversion_share=1, changed_at=NOW)
         change_fields = dict(change_id=change, change_type="STATUS_CHANGED", previous_value={"status": "ACTIVE"}, new_value={"status": "PAUSED"}, changed_at=NOW)
-        cases = [  # (기록 함수, 값, 이벤트 이름, 원천 ID, 메시지 키, payload 필드)
+        cases = [  # (기록 함수, 값, 이벤트 이름, 원천 ID, 대상 키, payload 필드)
             (events.record_bid_policy_changed, policy_fields, "ad.bid_policy_changed", policy, slot,
              {"slot_id", "bid_policy_id", "policy_version", "floor_amount", "base_amount", "cap_amount", "impression_share", "click_share",
               "conversion_share", "changed_at", "change_source", "insight_id"}),

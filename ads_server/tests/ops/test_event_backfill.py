@@ -111,7 +111,7 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.wipe()
         ok, text = self.run_backfill(self.gaps_manifest(), "--apply")
         self.assertTrue(ok, text)
-        self.assertEqual(snapshot(outbox()), self.live)  # 이름·버전·메시지 키·생성 시각·페이로드가 라이브와 같다
+        self.assertEqual(snapshot(outbox()), self.live)  # 이름·버전·대상 키·생성 시각·페이로드가 라이브와 같다
         rows, manifest = self.result_rows()
         self.assertEqual({r["outcome"] for r in rows}, {"written"})
         self.assertEqual(manifest["checkpoint"]["counts"]["written"], 4)

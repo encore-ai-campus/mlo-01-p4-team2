@@ -55,6 +55,7 @@ EVENT_STORE = mongo_config(
     env_str("MONGO_REPLICA_SET"),
 ) if env_list("MONGO_HOSTS") else None
 EVENTS_HOP_CONFIRM_WITH_MONGO = False  # 운영에는 MongoDB 가 없다 — 창 확정은 outbox → 파이프라인만으로 한다(설계 01 D17)
+EVENTS_HOP_WITH_MONGO = False  # 구간별 정합 manifest·대조에 MongoDB 구간(③)이 없다 — 원본·outbox·파이프라인만(P2-2 결정 A)
 
 # 파이프라인 manifest 저장소(S3·RustFS — fetch_hop_manifest, 설계 01 D14·S5). `manifests/hop_pipeline/` 만 읽는 키를 쓴다. HOP_S3_BUCKET 이 없으면 None(명령이 설정 없음으로 멈춘다).
 HOP_PIPELINE_S3 = {

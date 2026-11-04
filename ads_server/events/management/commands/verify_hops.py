@@ -18,7 +18,8 @@ class Command(BaseCommand):
         "최신 manifest 가 감사 로그의 고정점과 같은지 본다. --pipeline 으로 파이프라인 쪽이 같은 규칙(hop_rules.py)으로 낸 manifest 를 outbox 구간과(로컬 병행 기간에는 MongoDB 구간과도) 대조한다. "
         "확정 불일치·사슬 오류·고정점 불일치가 있으면 비정상 종료한다(중계 지연 후보는 보고만 하고 다시 확인한다). "
         "--pipeline 이면 창마다의 판정(확정·미확정)을 감사 로그 events.hop_windows_confirmed 에 남긴다 — outbox 정리는 창마다 마지막 판정이 확정일 때만 한다. "
-        "알려진 예외(record_hop_exception)로 기록된 창의 파이프라인 쌍 불일치는 EXC 로 보이고 실패로 세지 않는다."
+        "알려진 예외(record_hop_exception)로 기록된 창의 파이프라인 쌍 불일치는 EXC 로 보이고 실패로 세지 않는다. "
+        "설정 EVENTS_HOP_WITH_MONGO 가 꺼져 있으면(운영 — MongoDB 없음) MongoDB 구간 없이 원본·outbox(·파이프라인)만 대조한다."
     )
 
     def add_arguments(self, parser):
@@ -30,7 +31,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         directory = Path(options["dir"])
         errors, hops = [], {}
-        for name in HOP_FILES:
+        hop_files = HOP_FILES if settings.EVENTS_HOP_WITH_MONGO else HOP_FILES[:2]  # 운영은 MongoDB 구간이 없다(P2-2 결정 A)
+        for name in hop_files:
             path = ndjson.manifest_path(directory, name)
             try:
                 hops[name] = hopcheck.load_hop(path, name, expected_kind=name)
@@ -46,14 +48,16 @@ class Command(BaseCommand):
             if anchors is None:
                 errors.append("감사 로그에 이 폴더의 고정점이 없다(이 폴더로 export_hop_manifests 를 실행한 적이 없거나 다른 환경의 폴더다 — --no-anchor)")
             else:
-                for name in HOP_FILES:
+                for name in hop_files:
                     if anchors.get(name) != ndjson.manifest_sha256(ndjson.manifest_path(directory, name)):
                         errors.append(f"{name}: 최신 manifest 가 감사 로그의 고정점과 다르다(폴더가 마지막 실행 뒤에 바뀌었다)")
         rows = []
-        if len(hops) == len(HOP_FILES):
-            source, outbox, mongo = (hops[n] for n in HOP_FILES)
+        if len(hops) == len(hop_files):
+            source, outbox, mongo = hops["hop_source"], hops["hop_outbox"], hops.get("hop_mongo")
             try:
-                rows += hopcheck.compare(source, outbox) + hopcheck.compare(outbox, mongo) + hopcheck.compare(source, mongo, unsent_from=outbox)
+                rows += hopcheck.compare(source, outbox)
+                if mongo is not None:
+                    rows += hopcheck.compare(outbox, mongo) + hopcheck.compare(source, mongo, unsent_from=outbox)
             except hopcheck.HopInputError as error:
                 errors.append(str(error))
         outbox_errors, pipeline_error = len(errors), None  # 여기까지는 광고 서버 쪽(원본·outbox·MongoDB) 입력 오류
@@ -107,7 +111,7 @@ class Command(BaseCommand):
             return "판정 기록: 남기지 않음 — --no-anchor(이 DB 의 내보내기와 이어지지 않는 폴더)"
         if outbox_errors:
             return f"판정 기록: 남기지 않음 — 광고 서버 쪽 입력 오류 {outbox_errors}건(위 FAIL)"
-        outbox, with_mongo = hops["hop_outbox"], settings.EVENTS_HOP_CONFIRM_WITH_MONGO
+        outbox, with_mongo = hops["hop_outbox"], settings.EVENTS_HOP_CONFIRM_WITH_MONGO and settings.EVENTS_HOP_WITH_MONGO
         if pipeline_error:
             confirmed, unconfirmed = [], hopcheck.outbox_windows(outbox)
         else:

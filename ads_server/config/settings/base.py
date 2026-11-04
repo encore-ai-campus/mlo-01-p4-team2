@@ -181,6 +181,7 @@ HOP_PIPELINE_S3 = None  # 파이프라인 manifest 저장소 접속(fetch_hop_ma
 # 매시 게시면 1년에 약 8,760세대, 세대 사본은 수 KB — 빈 폴더의 첫 받기도 2년 넘게 걸리지 않는다. 누적 바이트는 포인터·데이터·새 사본을 모두 더한 값
 HOP_FETCH_MAX_NEW_GENERATIONS = 20_000
 HOP_FETCH_MAX_BYTES = 256 << 20
+EVENTS_HOP_WITH_MONGO = True  # MongoDB 구간(③ hop_mongo)을 내고 대조한다 — 로컬 병행 기간(설계 01 D17). 운영은 MongoDB 가 없어 prod 에서 끈다(파이프라인 계획 P2-2 결정 A). 끄면 아래 확정 조건도 MongoDB 쌍을 보지 않는다
 EVENTS_HOP_CONFIRM_WITH_MONGO = True  # 창 확정(verify_hops --pipeline)에 같은 창의 outbox → MongoDB match 도 요구한다 — 로컬 병행 기간(설계 01 D17). 운영은 MongoDB 가 없어 prod 에서 끈다
 
 # --- 광고 선택 (설계 §4.3). 구현 선택은 config 한 곳(R4): 알고리즘·필터를 바꿔도 Decision 구조는 그대로다 ---

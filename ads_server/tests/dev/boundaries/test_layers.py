@@ -1,5 +1,10 @@
+import ast
+import hashlib
+import sys
+
 from django.test import SimpleTestCase, tag
 
+from events import hop_rules
 from tests.support.helpers import BASE_DIR
 
 from .checker import find_engine_violations, find_fk_violations, find_violations
@@ -54,6 +59,16 @@ class LayerRuleTests(Cases, SimpleTestCase):
     def case_engine_is_pure(self):
         for path in project_files("engine"):
             self.assertEqual(find_engine_violations(path.read_text(encoding="utf-8"), LAYERS), [], str(path))
+
+    def case_hop_rules_is_stdlib_only(self):
+        """공용 요약 규칙은 파이프라인 쪽이 파일 하나만 복사해 쓴다 — 표준 라이브러리만(상대 import·Django·프로젝트 모듈 없음, 계획 02 P1-1)."""
+        path = BASE_DIR / "events" / "hop_rules.py"
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        names = [a.name for n in ast.walk(tree) if isinstance(n, ast.Import) for a in n.names]
+        names += ["." * n.level + (n.module or "") for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)]
+        self.assertIn("hashlib", names)  # 공회전이 아님
+        self.assertEqual([n for n in names if n.startswith(".") or n.split(".")[0] not in sys.stdlib_module_names], [])
+        self.assertEqual(hop_rules.rule_sha256(), hashlib.sha256(path.read_bytes()).hexdigest())  # manifest 의 rule_sha256(설계 01 S5)
 
     def case_foreign_keys_use_label_strings(self):
         for module in LAYERS:

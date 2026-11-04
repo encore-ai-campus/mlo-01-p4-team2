@@ -20,15 +20,17 @@ class Command(BaseCommand):
     help = (
         "창 대사 한 번(파이프라인 계획 P2-2, 설계 01 D14): 파이프라인 manifest 받기(fetch_hop_manifest --name hop_pipeline_<창>) → 받은 checkpoint.since 로 "
         "outbox manifest(export_hop_manifests) → 대조·확정 기록(verify_hops --pipeline). 결과를 상태 파일 <dir>/reconcile-<창>.json 에 남기고 종료 코드로 알린다: "
-        "0 정상, 1 확정 불일치(mismatch), 2 입력 실패(받기·내보내기·입력 검증), 3 늦음(받은 since 가 기대보다 이르다 — 대조는 했다), 75 같은 창 크기 대사가 돌고 있어 건너뜀. "
+        "0 정상, 1 확정 불일치(mismatch), 2 입력 실패(받기·내보내기·입력 검증·--as-of 형식), 3 늦음(받은 since 가 기대보다 이르다 — 대조는 했다), 75 같은 창 크기 대사가 돌고 있어 건너뜀. "
+        "상태 파일을 쓰기 전에 멈추면(설정 오류·작업 폴더 오류 등) Python·Django 기본값 1 이다 — 확정 불일치와는 상태 파일로 구별한다. "
         "기대 since = 그 창 크기의 지금 경계 − 48시간(hour)·8일(day). outbox 의 창 닫힘 기준 시각(--as-of)은 받은 manifest 의 checkpoint.started_at(파이프라인 잡이 닫힘에 쓴 시각)이다 — "
-        "since 와 같이 두 쪽이 같은 범위·같은 닫힘을 본다(잡이 늦은 회차에 그 뒤 닫힌 창이 한쪽에만 나와 거짓 불일치가 되지 않게)."
+        "since 와 같이 두 쪽이 같은 범위·같은 닫힘을 본다(잡이 늦은 회차에 그 뒤 닫힌 창이 한쪽에만 나와 거짓 불일치가 되지 않게). "
+        "다만 이쪽 지금보다 늦으면 이쪽 지금으로 닫는다(잡 쪽 시계가 앞서도 이쪽 기준으로 아직 여유 안인 창을 확정하지 않게 — 그 창은 한쪽 열림으로 다음 회차에 판정한다)."
     )
 
     def add_arguments(self, parser):
         parser.add_argument("--window", choices=sorted(SPANS), required=True, help="창 크기: hour(매시) 또는 day(매일)")
         parser.add_argument("--dir", required=True, help="작업 폴더 — <창>/pipeline(받은 manifest)·<창>/outbox·<창>/report 와 상태 파일 reconcile-<창>.json")
-        parser.add_argument("--as-of", help="재현용 기준 시각(시간대를 붙인 ISO 8601) — 기대 since 에 쓴다(기본은 지금). outbox 창 닫힘은 받은 manifest 의 started_at 이다")
+        parser.add_argument("--as-of", help="재현용 기준 시각(시간대를 붙인 ISO 8601) — 기대 since 에 쓴다(기본은 지금). outbox 창 닫힘은 받은 manifest 의 started_at 과 이것 중 이른 쪽이다")
 
     def handle(self, *args, **options):
         window, base = options["window"], Path(options["dir"])
@@ -51,9 +53,9 @@ class Command(BaseCommand):
         try:
             now = datetime.fromisoformat(as_of) if as_of else datetime.now(timezone.utc)
         except ValueError:
-            raise CommandError("--as-of 는 ISO 8601 시각이어야 합니다.")
+            raise CommandError("--as-of 는 ISO 8601 시각이어야 합니다.", returncode=2)  # 입력 실패 — 기본값 1(확정 불일치)로 보이지 않게
         if now.tzinfo is None:
-            raise CommandError("--as-of 에는 시간대를 붙여야 합니다.")
+            raise CommandError("--as-of 에는 시간대를 붙여야 합니다.", returncode=2)
         now = now.astimezone(timezone.utc)
         size, name, folder = hops.WINDOWS[window], f"hop_pipeline_{window}", base / window
         status = {"window": window, "started_at": datetime.now(timezone.utc).isoformat(), "as_of": now.isoformat(), "finished_at": None, "status": None, "rc": None,
@@ -102,7 +104,7 @@ class Command(BaseCommand):
             return done("input_failed", "since", f"받은 manifest 의 checkpoint.started_at 이 시간대를 붙인 ISO 8601 시각이 아니다: {closed_at!r}")
         status["pipeline_as_of"] = cut.astimezone(timezone.utc).isoformat()
         stage[0] = "export"
-        _, error = run("export_hop_manifests", "--out", str(folder / "outbox"), "--window", window, "--since", since, "--as-of", status["pipeline_as_of"])
+        _, error = run("export_hop_manifests", "--out", str(folder / "outbox"), "--window", window, "--since", since, "--as-of", min(cut, now).astimezone(timezone.utc).isoformat())  # 잡 시계가 앞서면 이쪽 지금(상태 파일 pipeline_as_of 는 받은 값 그대로)
         if error:
             return done("input_failed", "export", error)
         status["outbox_manifest_sha256"] = ndjson.manifest_sha256(ndjson.manifest_path(folder / "outbox", "hop_outbox"))

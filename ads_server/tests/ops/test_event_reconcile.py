@@ -23,7 +23,7 @@ from foundation.api import latest_audit_detail
 from records import api as records
 from tests.ops.test_event_hop_fetch import CONFIG, PREFIX, FakeS3
 from tests.support.cases import Cases
-from tests.support.factories import NOW, SUBJECT, World
+from tests.support.factories import NOW, SUBJECT, World, make_admin
 
 HOUR_AS_OF = NOW + timedelta(hours=3)  # 12시 창이 닫혀 있고, 기대 since(지금 창 − 48시간)가 그 창을 덮는다
 DAY_AS_OF = NOW + timedelta(days=1, hours=1)
@@ -112,6 +112,28 @@ class ReconcileTests(Cases, TransactionTestCase):
         self.assertEqual(outbox["checkpoint"]["started_at"], job_as_of.isoformat())  # outbox 도 잡과 같은 시각으로 닫았다
         self.assertIn("2026-10-07T12:00:00Z", outbox["checkpoint"]["open_windows"])
 
+    def case_a_job_clock_ahead_of_this_server_does_not_confirm_a_window_still_in_grace(self):
+        """잡 쪽 시계가 앞설 때: 잡은 13:03 에 12시 창을 닫고 줄을 냈지만 이쪽 지금(13:01)은 아직 여유(120초) 안이다 —
+        outbox 를 이쪽 지금으로 닫아 그 창을 판정하지 않는다(한쪽 열림, 다음 회차에 판정)."""
+        job_as_of, here = NOW + timedelta(hours=1, minutes=3), NOW + timedelta(hours=1, minutes=1)
+        lines = self.publish(as_of=job_as_of)
+        self.assertTrue([l for l in lines if l["window_start"] == "2026-10-07T12:00:00Z"])  # 잡은 12시 창을 닫았다
+        code, text, state = self.reconcile(as_of=here)
+        self.assertEqual((code, state["status"], state["mismatch_lines"]), (0, "ok", 0), text)
+        self.assertEqual(state["pipeline_as_of"], job_as_of.isoformat())  # 상태 파일에는 받은 값 그대로
+        outbox = ndjson.read_manifest(next(Path(self.work).glob("*/hour/outbox/hop_outbox.manifest.json")))
+        self.assertEqual(outbox["checkpoint"]["started_at"], here.isoformat())
+        self.assertIn("2026-10-07T12:00:00Z", outbox["checkpoint"]["open_windows"])
+        self.assertNotIn("2026-10-07T12:00:00Z", hopcheck.window_verdicts("utc-hour"))
+
+    def case_a_known_exception_window_is_counted_apart_from_mismatches(self):
+        """알려진 예외로 기록한 창의 다른 줄은 exception_lines 로만 센다 — mismatch_lines(경보로 쓰는 불일치)에 섞지 않는다."""
+        lines = self.publish(change=lambda lines: lines[0].update(count=lines[0]["count"] + 1))
+        call_command("record_hop_exception", "--window", "hour", "--start", lines[0]["window_start"], "--reason", "확인한 차이", "--incident", "INC-1",
+                     "--by", make_admin().username, stdout=io.StringIO())
+        code, text, state = self.reconcile()
+        self.assertEqual((code, state["status"], state["mismatch_lines"], state["exception_lines"]), (0, "ok", 0, 1), text)
+
     def case_a_mismatch_in_a_late_run_is_still_a_mismatch(self):
         """늦음보다 불일치가 앞선다 — 늦은 회차의 진짜 불일치를 rc 3 으로 가리지 않는다."""
         older = hop_rules.format_time(hop_rules.parse_time(self.expected_since("hour", HOUR_AS_OF)) - timedelta(hours=1))
@@ -137,6 +159,11 @@ class ReconcileTests(Cases, TransactionTestCase):
                 self.publish(started_at=started_at)
                 code, _, state = self.reconcile()
                 self.assertEqual((code, state["status"], state["stage"]), (2, "input_failed", "since"))
+        for as_of in ("어제", "2026-10-07T15:00:00"):  # 이쪽 --as-of 가 틀리면 상태 파일을 쓰기 전에 멈춘다 — 종료 코드는 확정 불일치(1)가 아닌 2
+            with self.subTest(as_of=as_of), self.assertRaises(CommandError) as raised:
+                call_command("reconcile_hops", "--window", "hour", "--dir", str(self.work / "bad"), "--as-of", as_of, stdout=io.StringIO())
+            self.assertEqual(raised.exception.returncode, 2)
+        self.assertFalse((self.work / "bad" / "reconcile-hour.json").exists())
 
     def case_a_database_error_rewrites_the_state_as_an_input_failure(self):
         """CommandError 밖의 예외(DB 연결 끊김·읽기 전용 등)도 상태 파일을 새로 쓰고 rc 2 다 — 지난 회차의 ok 가 남거나 불일치(1)로 보이지 않는다."""
@@ -149,6 +176,14 @@ class ReconcileTests(Cases, TransactionTestCase):
         self.assertEqual((code, state["status"], state["rc"], state["stage"]), (2, "input_failed", 2, "export"), text)
         self.assertTrue(state["message"].startswith("OperationalError: connection failed"))
         self.assertNotEqual(state["finished_at"], first["finished_at"])
+        with mock.patch.object(ndjson, "read_manifest", side_effect=PermissionError(13, "Permission denied")):  # 받은 포인터를 읽지 못함
+            code, text, state = self.reconcile(work=work)
+        self.assertEqual((code, state["stage"], state["pipeline_since"]), (2, "since", None), text)  # 지난 회차 값이 섞이지 않는다
+        self.assertTrue(state["message"].startswith("PermissionError:"))
+        with mock.patch.object(verify_hops.Command, "record_verdicts", side_effect=OperationalError("cannot execute INSERT in a read-only transaction")):
+            code, text, state = self.reconcile(work=work)
+        self.assertEqual((code, state["status"], state["stage"]), (2, "input_failed", "verify"), text)
+        self.assertTrue(state["message"].startswith("OperationalError: cannot execute INSERT"))
 
     def case_a_verify_that_stops_before_its_report_is_an_input_failure(self):
         """대조가 보고를 쓰기 전에 멈추면(판정 기록이 감사 한도를 넘음 등) 지난 회차의 보고로 분류하지 않는다."""

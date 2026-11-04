@@ -4,8 +4,8 @@ from django.db import transaction
 from django.http import Http404
 from django.utils import timezone
 from eventing.models import PlatformSession
-from .models import EventProgress, GameDefinition, GamePlay
-from .achievement_services import TIMER_ID, TYPING_ID, achievement_snapshot
+from .models import GameDefinition, GamePlay
+from .achievement_services import TIMER_ID, TYPING_ID, achievement_snapshot, complete_achievement
 
 CONFIGS = {"timer": {"targetMs": 11110, "toleranceMs": 0, "overtimeMs": 2000},
            "typing": {"minimumAccuracy": 95}}
@@ -96,10 +96,6 @@ def finish_game(user, play_id, session_id, data):
     newly_completed = []
     if play.status == GamePlay.Status.SUCCESS:
         event_id = {"timer": TIMER_ID, "typing": TYPING_ID}[play.game.game_code]
-        progress, _ = EventProgress.objects.get_or_create(
-            user=user, event_id=event_id, defaults={"started_at": play.started_at})
-        if progress.status != EventProgress.Status.COMPLETED:
-            progress.status, progress.completed_at = EventProgress.Status.COMPLETED, play.ended_at
-            progress.save(update_fields=["status", "completed_at"])
+        if complete_achievement(user, event_id, play.ended_at, started_at=play.started_at):
             newly_completed.append(str(event_id))
     return {**receipt(play), "achievements": achievement_snapshot(user), "newly_completed": newly_completed}

@@ -5,6 +5,7 @@ from uuid import UUID
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 from django.db import transaction
+from django.db.models import Max
 from django.utils import timezone
 
 from campus.motion import geometry, mission_geometry
@@ -58,9 +59,27 @@ def achievement_snapshot(user):
          "achieved": event_id in progress and progress[event_id].status == EventProgress.Status.COMPLETED,
          "completed_at": progress[event_id].completed_at.isoformat()
          if event_id in progress and progress[event_id].completed_at else None,
+         "completion_order": progress[event_id].completion_order if event_id in progress else None,
          "image_url": image_url}
         for event_id, image_url in ACHIEVEMENT_IMAGES.items()
     ]
+
+
+@transaction.atomic
+def complete_achievement(user, event_id, completed_at, *, started_at=None):
+    # Lock the shared definition before INSERT takes a foreign-key lock on it.
+    EventDefinition.objects.select_for_update().get(pk=event_id)
+    progress, _ = EventProgress.objects.get_or_create(
+        user=user, event_id=event_id,
+        defaults={"started_at": started_at} if started_at is not None else {},
+    )
+    if progress.status == EventProgress.Status.COMPLETED:
+        return False
+    progress.completion_order = (EventProgress.objects.filter(event_id=event_id).aggregate(
+        last=Max("completion_order"))["last"] or 0) + 1
+    progress.status, progress.completed_at = EventProgress.Status.COMPLETED, completed_at
+    progress.save(update_fields=["status", "completed_at", "completion_order"])
+    return True
 
 
 def record_ad_impression(impression):
@@ -77,11 +96,8 @@ def record_ad_impression(impression):
         user = get_user_model().objects.select_for_update().filter(pk=impression.owner_id, is_active=True).first()
         if user is None:
             return None
-        progress, _ = EventProgress.objects.get_or_create(user=user, event_id=AD_ID)
         newly_completed = []
-        if progress.status != EventProgress.Status.COMPLETED:
-            progress.status, progress.completed_at = EventProgress.Status.COMPLETED, timezone.now()
-            progress.save(update_fields=['status', 'completed_at'])
+        if complete_achievement(user, AD_ID, timezone.now()):
             newly_completed.append(str(AD_ID))
         result = {'achievements': achievement_snapshot(user), 'newly_completed': newly_completed}
         key = ActiveLogin.objects.filter(user=user).values_list('session_key', flat=True).first()
@@ -116,20 +132,17 @@ def record_manager_action(user, manager_id, action):
             interaction.poke_count += 1
             interaction.save(update_fields=["poke_count"])
         event_id = GREETING_ID if action == "greet" else POKING_ID
-        progress, _ = EventProgress.objects.get_or_create(
-            user=user, event_id=event_id, defaults={"started_at": now},
-        )
         interactions = ManagerInteraction.objects.filter(
             user=user, campaign_id=CAMPAIGN_ID, manager_id__in=required,
         )
         ready = (interactions.filter(greeted_at__isnull=False).count() == 7 if action == "greet"
                  else interactions.filter(poke_count__gte=11).count() == 7)
         newly_completed = []
-        if ready and progress.status != EventProgress.Status.COMPLETED:
-            progress.status = EventProgress.Status.COMPLETED
-            progress.completed_at = now
-            progress.save(update_fields=["status", "completed_at"])
-            newly_completed.append(str(event_id))
+        if ready:
+            if complete_achievement(user, event_id, now, started_at=now):
+                newly_completed.append(str(event_id))
+        else:
+            EventProgress.objects.get_or_create(user=user, event_id=event_id, defaults={"started_at": now})
         return {"achievements": achievement_snapshot(user), "newly_completed": newly_completed}
 
 
@@ -151,11 +164,6 @@ def record_learning_completion(user, lesson):
             event_ids.append(ALL_SUBJECTS_ID)
         newly_completed = []
         for event_id in event_ids:
-            progress, _ = EventProgress.objects.get_or_create(
-                user=user, event_id=event_id, defaults={"started_at": lesson.started_at})
-            if progress.status != EventProgress.Status.COMPLETED:
-                progress.status = EventProgress.Status.COMPLETED
-                progress.completed_at = timezone.now()
-                progress.save(update_fields=["status", "completed_at"])
+            if complete_achievement(user, event_id, timezone.now(), started_at=lesson.started_at):
                 newly_completed.append(str(event_id))
         return {"achievements": achievement_snapshot(user), "newly_completed": newly_completed}

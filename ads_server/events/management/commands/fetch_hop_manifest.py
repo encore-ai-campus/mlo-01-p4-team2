@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 from pathlib import Path
 
 from django.conf import settings
@@ -7,7 +8,8 @@ from django.core.management.base import BaseCommand, CommandError
 
 from events import ndjson
 
-PREFIX = "manifests/hop_pipeline/"  # 파이프라인 잡이 게시하는 경로(설계 01 D14). 이 경로만 읽는 키를 쓴다(S5)
+PREFIX = "manifests/hop_pipeline/"  # 파이프라인 잡이 게시하는 경로(설계 01 D14) — 설정 HOP_PIPELINE_S3["PREFIX"] 가 없을 때. 이 경로만 읽는 키를 쓴다(S5)
+PREFIX_FORMAT = re.compile(r"(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)+")  # 상대 경로, '/' 로 끝남, 빈 칸·'.'·'..' 마디 없음(마디가 '.' 으로 시작하지 않는다)
 MANIFEST_LIMIT = 1 << 20  # 포인터·세대 사본 한 개(수 KB)의 상한 — 믿지 않는 입력이 메모리를 채우지 못하게
 DATA_LIMIT = 16 << 20  # 데이터 파일 한 개의 상한(시간 창 48개 × 이벤트 종류 8 = 384줄, 수백 KB)
 
@@ -34,13 +36,16 @@ class Command(BaseCommand):
         config = settings.HOP_PIPELINE_S3
         if not config:
             raise CommandError("파이프라인 manifest 저장소 설정이 없습니다(환경변수 HOP_S3_BUCKET 등).")
+        prefix = config.get("PREFIX") or PREFIX
+        if not PREFIX_FORMAT.fullmatch(prefix):
+            raise CommandError(f"S3 접두사는 '/' 로 끝나는 상대 경로여야 한다('.'·'..'·빈 마디 없음): {prefix!r}")
         budget = {"bytes": settings.HOP_FETCH_MAX_BYTES, "generations": settings.HOP_FETCH_MAX_NEW_GENERATIONS}
 
         def get(file, limit):  # 한 번의 받기 전체에 누적 바이트 상한(파일 하나의 상한 `limit` 과 별개)
-            body = get_object(s3, config["BUCKET"], file, limit)
+            body = get_object(s3, config["BUCKET"], prefix + file, limit)
             budget["bytes"] -= len(body)
             if budget["bytes"] < 0:
-                raise CommandError(f"한 번에 받는 양이 누적 바이트 상한({settings.HOP_FETCH_MAX_BYTES}바이트)을 넘어 아무것도 바꾸지 않았다: {PREFIX + file}")
+                raise CommandError(f"한 번에 받는 양이 누적 바이트 상한({settings.HOP_FETCH_MAX_BYTES}바이트)을 넘어 아무것도 바꾸지 않았다: {prefix + file}")
             return body
 
         s3 = client(config)
@@ -103,11 +108,10 @@ def client(config):
     )
 
 
-def get_object(s3, bucket, file, limit):
-    """`PREFIX` 아래의 정해진 키 하나를 받는다(목록 조회 없음 — 읽기 전용 키에 ListBucket 이 없다). `file` 은 호출한 쪽이 형식을 확인한 파일 이름이다."""
+def get_object(s3, bucket, key, limit):
+    """정해진 키 하나를 받는다(목록 조회 없음 — 읽기 전용 키에 ListBucket 이 없다). `key` 는 형식을 확인한 접두사 + 형식을 확인한 파일 이름이다."""
     from botocore.exceptions import BotoCoreError, ClientError
 
-    key = PREFIX + file
     try:
         response = s3.get_object(Bucket=bucket, Key=key)
         body = response["Body"].read(limit + 1)

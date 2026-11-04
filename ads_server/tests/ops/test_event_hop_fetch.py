@@ -204,6 +204,19 @@ class FetchTests(Cases, SimpleTestCase):
             self.assertTrue(ok, text)
             self.assertIn("새로 받은 세대 사본 1개", text)
 
+    def case_the_prefix_is_a_setting_and_must_be_a_relative_folder(self):
+        """시험 게시(P2-1)는 다른 접두사에 둔다 — 받는 쪽 접두사도 설정이다. 형식이 틀리면 S3 에 묻지 않고 거부한다."""
+        self.publish()
+        self.s3.objects = {"tmp/p2-1-test/" + key: body for key, body in self.s3.objects.items()}
+        with override_settings(HOP_PIPELINE_S3=CONFIG | {"PREFIX": "tmp/p2-1-test/manifests/hop_pipeline/"}):
+            ok, text = self.fetch()
+            self.assertTrue(ok, text)
+            self.assertTrue(all(key.startswith("tmp/p2-1-test/manifests/hop_pipeline/") for key in self.s3.gets))
+        for prefix in ("/manifests/hop_pipeline/", "manifests/hop_pipeline", "manifests/../hop_pipeline/", "manifests//hop_pipeline/", "./manifests/", "manifests/.hidden/", " /x/"):
+            with self.subTest(prefix=prefix), override_settings(HOP_PIPELINE_S3=CONFIG | {"PREFIX": prefix}):
+                self.refused("S3 접두사는")
+                self.assertEqual(self.s3.gets, [])
+
     def test_fetch(self):
         self.run_cases()
 

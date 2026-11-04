@@ -56,6 +56,9 @@ class EventDefinition(models.Model):
 
 
 class EventProgress(models.Model):
+    class Status:
+        IN_PROGRESS = "IN_PROGRESS"
+        COMPLETED = "COMPLETED"
     progress_uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     event = models.ForeignKey(EventDefinition, on_delete=models.PROTECT)
@@ -69,6 +72,12 @@ class EventProgress(models.Model):
 
 
 class GamePlay(models.Model):
+    class Status:
+        RUNNING = "RUNNING"
+        SUCCESS = "SUCCESS"
+        FAILED = "FAILED"
+        INTERRUPTED = "INTERRUPTED"
+        FINISHED = "FINISHED"
     play_uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     session = models.ForeignKey('eventing.PlatformSession', on_delete=models.PROTECT)
@@ -82,3 +91,18 @@ class GamePlay(models.Model):
     evidence = models.JSONField(default=dict)
     class Meta:
         db_table = 'game_play'
+
+
+class ManagerInteraction(models.Model):
+    interaction_uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    campaign = models.ForeignKey(EventDefinition, on_delete=models.PROTECT)
+    manager_id = models.CharField(max_length=64)
+    greeted_at = models.DateTimeField(null=True, blank=True)
+    poke_count = models.PositiveBigIntegerField(default=0)
+
+    class Meta:
+        db_table = "manager_interaction"
+        constraints = [models.UniqueConstraint(
+            fields=["user", "campaign", "manager_id"], name="manager_user_campaign_unique",
+        )]

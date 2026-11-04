@@ -1018,17 +1018,6 @@
           }
         },
         {
-          "id": "reference-campus-109",
-          "type": "pepero-art",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2226.5,
-            "y": 475.5,
-            "w": 135.5,
-            "h": 24
-          }
-        },
-        {
           "id": "reference-campus-110",
           "type": "pepero-art",
           "confirmTransfer": false,
@@ -1117,6 +1106,42 @@
             "y": 120,
             "w": 48,
             "h": 40
+          }
+        },
+        {
+          "id": "minigame-timer",
+          "type": "game-pc-station",
+          "name": "타이머 게임",
+          "action": "minigame",
+          "gameCode": "timer",
+          "confirmTransfer": false,
+          "interactionPoint": [
+            2317,
+            262
+          ],
+          "footprint": {
+            "x": 2280,
+            "y": 180,
+            "w": 74,
+            "h": 54
+          }
+        },
+        {
+          "id": "minigame-typing",
+          "type": "game-pc-station",
+          "name": "코드 타이핑 게임",
+          "action": "minigame",
+          "gameCode": "typing",
+          "confirmTransfer": false,
+          "interactionPoint": [
+            2317,
+            422
+          ],
+          "footprint": {
+            "x": 2280,
+            "y": 340,
+            "w": 74,
+            "h": 54
           }
         }
       ],
@@ -2469,32 +2494,6 @@
           "objectId": "reference-campus-108"
         },
         {
-          "x": 2214.964,
-          "y": 422.102,
-          "w": 112.61400000000003,
-          "h": 80.54500000000002,
-          "points": [
-            [
-              2214.964,
-              502.647
-            ],
-            [
-              2222.377,
-              460.697
-            ],
-            [
-              2327.578,
-              422.102
-            ],
-            [
-              2321.719,
-              469.899
-            ]
-          ],
-          "pad": 0,
-          "objectId": "reference-campus-109"
-        },
-        {
           "x": 2237.469,
           "y": 533.444,
           "w": 60.67499999999973,
@@ -2611,6 +2610,22 @@
           "h": 40,
           "pad": 0,
           "objectId": "campus-guide-kkuwang"
+        },
+        {
+          "x": 2280,
+          "y": 180,
+          "w": 74,
+          "h": 54,
+          "pad": 0,
+          "objectId": "minigame-timer"
+        },
+        {
+          "x": 2280,
+          "y": 340,
+          "w": 74,
+          "h": 54,
+          "pad": 0,
+          "objectId": "minigame-typing"
         }
       ]
     },

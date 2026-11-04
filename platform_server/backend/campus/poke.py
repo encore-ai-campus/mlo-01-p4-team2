@@ -18,6 +18,8 @@ STUDENT_CHAIRS = ("student-0-0-chair", "student-0-1-second-chair",
 
 
 def classroom_targets(subject):
+    if subject.startswith("mission"):
+        return world_targets(world(subject))
     # These residents are drawn by CampusClassroomMap; chairs come from the same geometry.
     targets = [{"id": "classroom-instructor", "x": 385, "y": 115}]
     for chair_id in STUDENT_CHAIRS:
@@ -50,9 +52,9 @@ def direction_vector(active_world, direction):
 
 def world_targets(active_world):
     return [{"id": o["id"], "objectId": o["id"], "guarding": o.get("action") == "guard_sandbag",
-             "x": o["footprint"]["x"] + o["footprint"]["w"] / 2,
-             "y": o["footprint"]["y"] + o["footprint"]["h"] / 2}
-            for o in active_world.objects.values() if o.get("action") == "guard_sandbag" or o.get("type") == "guide-npc"]
+             "x": o.get("footprint", o)["x"] + o.get("footprint", o)["w"] / 2,
+             "y": o.get("footprint", o)["y"] + o.get("footprint", o)["h"] / 2}
+            for o in active_world.objects.values() if o.get("action") in {"guard_sandbag", "manager_greet"} or o.get("type") == "guide-npc"]
 
 
 def find_target(pose, targets, active_world, direction=None):

@@ -247,15 +247,18 @@ def submit_answer(user, session_id, order, answer, submission_request_uuid=None,
 
 @learning_write_transaction
 def complete_session(user, session_id):
+    from event_story.achievement_services import record_learning_completion
+    # Keep the same owner -> lesson lock order as answer submission.
+    get_user_model().objects.select_for_update().get(pk=user.pk)
     session = owned_session(user, session_id, lock=True)
-    if session.completed_at:
-        return session
-    stats = session_statistics(session)
-    if stats['finalized_count'] != session.total_questions:
-        raise LearningError('모든 문제가 정답 또는 3회 오답으로 확정되어야 완료할 수 있습니다.', 'unfinalized_questions', 409)
-    session.correct_count = stats['correct_count']
-    session.completed_at = timezone.now()
-    session.save(update_fields=['correct_count', 'completed_at'])
+    if not session.completed_at:
+        stats = session_statistics(session)
+        if stats['finalized_count'] != session.total_questions:
+            raise LearningError('모든 문제가 정답 또는 3회 오답으로 확정되어야 완료할 수 있습니다.', 'unfinalized_questions', 409)
+        session.correct_count = stats['correct_count']
+        session.completed_at = timezone.now()
+        session.save(update_fields=['correct_count', 'completed_at'])
+    session.achievement_update = record_learning_completion(user, session)
     from event_story.services import learning_completed
     learning_completed(session)
     return session

@@ -54,6 +54,33 @@
       "name": "유형 매니저님",
       "sprite": "yuhyeong",
       "copy": "직원실 안쪽까지 찾아왔네요! 사건의 단서는 데이터 안에 있어요. ROOM 01에서는 영석 매니저님의 설명을 듣고 SQL 실행 순서를 복원해 보세요."
+    },
+    {
+      "id": "manager-songhee",
+      "floor": "campus",
+      "x": 685,
+      "y": 720,
+      "name": "송희 매니저님",
+      "sprite": "songhee",
+      "copy": "이곳에는 숨겨진 이스터에그가 많다던데..."
+    },
+    {
+      "id": "manager-huiae",
+      "floor": "campus",
+      "x": 1160,
+      "y": 470,
+      "name": "희애 매니저님",
+      "sprite": "huiae",
+      "copy": "이곳에는 숨겨진 이스터에그가 많다던데..."
+    },
+    {
+      "id": "manager-jeonghun",
+      "floor": "rooftop",
+      "x": 1790,
+      "y": 1180,
+      "name": "정훈 매니저님",
+      "sprite": "jeonghun",
+      "copy": "이곳에는 숨겨진 이스터에그가 많다던데..."
     }
   ],
   "rooms": {
@@ -100,7 +127,9 @@
           "interactionPoint": [
             355,
             195
-          ]
+          ],
+          "action": "manager_greet",
+          "managerId": "manager-yeongseok"
         },
         {
           "id": "back-cabinet",
@@ -181,7 +210,8 @@
           "y": 155,
           "w": 20,
           "h": 14,
-          "pad": 1
+          "pad": 1,
+          "objectId": "sql_answer"
         },
         {
           "x": 30,

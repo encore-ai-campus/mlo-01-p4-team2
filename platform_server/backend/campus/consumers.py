@@ -21,10 +21,12 @@ from django.utils import timezone
 from accounts.models import get_identity, needs_profile_setup
 from accounts.session_policy import check_session
 from eventing.events import ensure_platform_session, record_floor_transfer, touch_platform_session
+from event_story.achievement_services import record_manager_action
+from event_story.game_services import GameError, start_game
 from . import cluster, session_registry, poke, socket_db
 from campus_control.service import async_state as freeze_state
 from .interest import InterestView, SpatialIndex
-from .motion import CLASSROOM_TRANSITION_DELAY, MotionController, ControlError, geometry, world
+from .motion import CLASSROOM_TRANSITION_DELAY, MotionController, ControlError, World, geometry, world
 from .positions import DIRECTIONS, FLOOR_BOUNDS, get_position, save_position, validate_position
 from .chat_tokens import issue_actor_token
 
@@ -663,6 +665,16 @@ class CampusConsumer(AsyncWebsocketConsumer):
                     result = await self.refill_pepero(arguments)
                     await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
                     return
+                if action == "game_start":
+                    result = await self.start_minigame(arguments)
+                    await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
+                    await self.touch_activity()
+                    return
+                if action == "manager_greet":
+                    result = await self.greet_manager(arguments)
+                    await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
+                    await self.touch_activity()
+                    return
                 if action == "poke":
                     result = await self.receive_poke(arguments)
                     await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
@@ -679,9 +691,19 @@ class CampusConsumer(AsyncWebsocketConsumer):
                 await self.send_control_state()
                 await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
                 await self.touch_activity()
-        except ControlError as error:
+        except (ControlError, GameError) as error:
             await self.send_packet({"type": "control_result", "requestId": request_id, "error": str(error)})
         except DatabaseError:
+            if action == "game_start":
+                logging.getLogger(__name__).exception("Could not start a minigame")
+                await self.send_packet({"type": "control_result", "requestId": request_id,
+                                        "error": "게임을 시작하지 못했어요. 다시 시도해 주세요."})
+                return
+            if action == "manager_greet":
+                logging.getLogger(__name__).exception("Could not save a manager greeting")
+                await self.send_packet({"type": "control_result", "requestId": request_id,
+                                        "error": "인사 기록을 저장하지 못했어요. 다시 시도해 주세요."})
+                return
             if action != "prepare_logout":
                 raise
             logging.getLogger(__name__).exception("Could not save the final logout position")
@@ -735,6 +757,65 @@ class CampusConsumer(AsyncWebsocketConsumer):
             pose = self.controller.pose
             await share_effect(room, packet, near=(pose["floor"], pose["x"], pose["y"], VIEW_RANGE))
         return {"type": "jump", "id": packet["id"]}
+
+    async def start_minigame(self, arguments):
+        obj_id = arguments.get("objectId")
+        obj = self.controller.world.objects.get(obj_id) if isinstance(obj_id, str) else None
+        point = obj.get("interactionPoint") if obj else None
+        if (not obj or obj.get("action") != "minigame" or self.controller.interior
+                or self.controller.pending_transfer or not point
+                or self.controller.world.distance(obj, self.controller.pose) >= obj.get("interactionRadius", 35)
+                or not self.controller.world.clear(self.controller.pose, {"x": point[0], "y": point[1]})):
+            raise ControlError("게임 단말 가까이에서 상호작용해 주세요.")
+        self.controller.input([])
+        self.controller.route.clear()
+        result = await socket_db.run(self.start_minigame_now, obj["gameCode"])
+        if result is None:
+            raise ControlError("로그인 상태를 확인한 뒤 다시 시도해 주세요.")
+        return result
+
+    def start_minigame_now(self, code):
+        user = self.session_user()
+        return start_game(user, code, self.platform_session_uuid) if user is not None else None
+
+    async def greet_manager(self, arguments):
+        obj_id = arguments.get("objectId")
+        controller = self.controller
+        interior = controller.interior
+        active = world(interior["subject"]) if interior else controller.world
+        pose = interior["actor"] if interior else controller.pose
+        obj = active.objects.get(obj_id) if isinstance(obj_id, str) else None
+        point = obj.get("interactionPoint") if obj else None
+        if not obj or obj.get("action") != "manager_greet" or controller.pending_transfer or not point:
+            raise ControlError("매니저 가까이에서 상호작용해 주세요.")
+        clear_world = World({**active.data, "colliders": [c for c in active.data["colliders"] if c.get("objectId") != obj_id]})
+        if active.distance(obj, pose) >= obj.get("interactionRadius", 55) or not clear_world.clear(pose, {"x":point[0], "y":point[1]}):
+            raise ControlError("매니저 가까이에서 상호작용해 주세요.")
+        result = await socket_db.run(self.manager_action_now, obj.get("managerId",obj_id), "greet")
+        if result is None:
+            raise ControlError("로그인 상태를 확인한 뒤 다시 시도해 주세요.")
+        return {"type":"manager_greeting", "managerName":obj["name"],
+                "dialogue":"이곳에는 숨겨진 이스터에그가 많다던데...", **result}
+
+    def manager_action_now(self, manager_id, action):
+        user = self.session_user()
+        return record_manager_action(user, manager_id, action) if user is not None else None
+
+    async def record_manager_poke(self, manager_id):
+        if manager_id is None:
+            return
+        try:
+            result = await socket_db.run(self.manager_action_now, manager_id, "poke")
+        except DatabaseError:
+            logging.getLogger(__name__).exception("Could not save a manager poke")
+            await self.send_packet({"type": "control_error", "message": "찌르기 기록을 저장하지 못했어요. 다시 시도해 주세요."})
+            return
+        if result is None:
+            self.poke_requested = False
+            await self.session_expired({"reason": self.policy_status.get("reason", "signed_out")})
+            return
+        if result["newly_completed"]:
+            await self.send_packet({"type": "achievement_update", **result})
 
     async def refill_pepero(self, arguments):
         obj_id = arguments.get("objectId")
@@ -800,11 +881,14 @@ class CampusConsumer(AsyncWebsocketConsumer):
                 targets = [player for player_id, player in self.everyone() if player_id != self.player_id and player["floor"] == pose["floor"]] + poke.world_targets(active_world)
             target_id = poke.find_target(pose, targets, active_world, direction)
             blocked = bool(target_id and next((target for target in targets if target.get("id") == target_id), {}).get("guarding"))
+            manager_id = active_world.objects.get(target_id, {}).get("managerId",target_id) if not blocked and active_world.objects.get(target_id, {}).get("action") == "manager_greet" else None
             pepero_effect = await self.spend_pepero(target_id, blocked)
             packet = {**pepero_effect, "remaining": self.pepero_remaining, "type": "poke", "id": uuid4().hex, "actorId": self.player_id,
                       "targetId": target_id, "dir": direction, "floor": self.controller.pose["floor"],
                       "blocked": blocked, **expected}
             await self.send_poke_to(self.poke_audience(expected), packet)
+        # Database work must not hold the room-wide movement lock.
+        await self.record_manager_poke(manager_id)
         return {"type": "poke", "hit": target_id is not None and not blocked, "blocked": blocked}
 
     def current_poke_scope(self):
@@ -871,6 +955,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
         changed_direction = self.poke_direction != direction
         self.poke_direction = direction
         self.last_poke = now
+        manager_id = None
         async with room.lock:
             if self.player_id not in room.players:
                 await self.stop_poke()
@@ -891,11 +976,13 @@ class CampusConsumer(AsyncWebsocketConsumer):
             target_id = poke.find_target(pose, targets, active_world, direction)
             if target_id is not None:
                 blocked=bool(next((target for target in targets if target.get("id")==target_id),{}).get("guarding"))
+                manager_id = active_world.objects.get(target_id, {}).get("managerId",target_id) if not blocked and active_world.objects.get(target_id, {}).get("action") == "manager_greet" else None
                 pepero_effect = await self.spend_pepero(target_id, blocked)
                 await self.send_poke_to(audience, {
                     **pepero_effect, "remaining": self.pepero_remaining, "type": "poke_hit", "id": uuid4().hex, "actorId": self.player_id,
                     "targetId": target_id, "dir": direction, "floor": self.state["floor"], "blocked":blocked, **scope,
                 })
+        await self.record_manager_poke(manager_id)
 
     async def touch_activity(self, wait=True):
         now = time.monotonic()

@@ -61,6 +61,8 @@ def end_platform_session(user, session_data, end_reason, *, now=None):
         record.ended_at = now
         record.end_reason = end_reason
         record.save(update_fields=["ended_at", "end_reason"])
+        from event_story.models import GamePlay
+        GamePlay.objects.filter(session=record, status="RUNNING").update(status="INTERRUPTED", ended_at=now)
     return True
 
 

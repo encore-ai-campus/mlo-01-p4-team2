@@ -34,8 +34,8 @@ def geometry():
         w['objects'].append({'id':'mission-building-'+str(e['room']),'type':'mission-building','footprint':b})
     for npc in mission['npcs']:
         w=data['worlds'][npc['floor']];fp={'x':npc['x']-9,'y':npc['y']-7,'w':18,'h':14}
-        w['objects'].append({**npc,'type':'mission-manager','footprint':fp,'interactionRadius':110 if npc['id']=='manager-suhyeon' else 65})
-        w['colliders'].append({**fp,'pad':0})
+        w['objects'].append({**npc,'type':'mission-manager','action':'manager_greet','interactionPoint':[npc['x']+(60 if npc['id']=='manager-suhyeon' else 0),npc['y']+(0 if npc['id']=='manager-suhyeon' else 50)],'footprint':fp,'interactionRadius':110 if npc['id']=='manager-suhyeon' else 65})
+        w['colliders'].append({**fp,'pad':0,'objectId':npc['id']})
     data['worlds']['campus']['colliders'].append({'x':2040,'y':846,'w':100,'h':30,'pad':1})
     return data
 

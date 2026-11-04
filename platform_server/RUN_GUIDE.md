@@ -321,3 +321,47 @@ python backend/manage.py test event_story campus.test_minigames campus.test_mana
 
 백엔드 검사는 별도로 설정한 PostgreSQL 테스트 DB에서 실행한다. 운영 DB는 사용하지 않는다.
 전체 DRD 재작성과 기존 검증 기록의 이전은 이번 제출에 포함하지 않는다.
+
+## CS 학습교실과 문제은행 (2026-11-04)
+
+18층 학습 구역은 SQL·CS·Python 순서다. CS 교실의 오른쪽은 개념 빈칸 채우기다.
+기존 학습 API에 `subject: "cs"`를 추가했으며, 새 테이블은 만들지 않는다.
+`learning.0006_cs_subject`와 `eventing.0013_cs_learning_catalog`를 마이그레이션한다.
+
+문제 파일은 DB에 자동 적재되지 않는다. 아래 명령은 `backend/`에서 실행한다.
+실행 전 DB를 확인하고, 백업 경로는 Git 밖의 비공개 디렉터리로 지정한다.
+
+```powershell
+python manage.py migrate
+python manage.py seed_learning_questions
+python manage.py seed_learning_questions --file learning/data/initial_subject_bank.json
+python manage.py import_learning_bank --file learning/data/expanded_questions_20261016.json
+python manage.py import_learning_bank --file learning/data/expanded_questions_20261016.json --apply --backup-dir C:/platform-backups/learning
+python manage.py validate_learning_bank --file learning/data/cs_questions.json
+python manage.py import_learning_bank --file learning/data/cs_questions.json
+python manage.py import_learning_bank --file learning/data/cs_questions.json --apply --backup-dir C:/platform-backups/learning
+```
+
+빈 DB라면 기존 2,400문항과 CS 1,200문항을 합쳐 3,600문항이 된다.
+적재 명령은 파일에 포함된 과목만 검사한다. 재실행해도 기존 문제·답안·세션을 덮어쓰지 않는다.
+CS 문제는 여섯 분류에 200문항씩이며, 각 분류는 다섯 분야에 40문항씩 배정한다.
+한 세트 10문항, 문항당 최대 3회 시도, 세트 완료 시 7문항 이상 정답이 통과 기준이다.
+CS 빈칸은 영문 대소문자와 앞뒤 공백을 허용한다. 동의어는 자동 변환하지 않는다.
+CS 중급 이상 통과와 세 과목 통과 업적을 연결했다. 메인 Python 미션 조건은 바뀌지 않는다.
+
+CS 추가 검증: 프런트 166개와 CS 전용 PostgreSQL 검사 10개를 통과했다.
+실제 HTTP·WebSocket·브라우저에서 세 교실 출입, CS 두 유형, 10문항 정답·200P 저장을 확인했다.
+재접속 후 완료 성적 조회와 메인 미션 상태 유지도 확인했다.
+확대 검사에서 남은 캠퍼스 실패 9개는 수정 없는 event 원본에서도 재현했다.
+Docker의 호스트 경로를 사용하는 검증 환경에서는 테스트 DB 삭제 중 파일 I/O 오류가 발생했다.
+테스트 DB를 보존하는 방식으로 CS 검사를 완료했다. 실행 DB와 운영 DB의 문제로 일반화하지 않는다.
+문항의 교육 난이도와 표현은 운영 전 최종 검수 대상이다.
+
+두 학습 업적 추가 (2026-11-04):
+- 삼각지대 탈출: Python·SQL·CS에서 각각 10문항 세트를 완료하고 7문항 이상 정답. 난이도와 문제 유형은 무관하다.
+- 컴퓨터의 속마음: CS 중급 또는 고급의 10문항 세트를 완료하고 7문항 이상 정답. 객관식과 빈칸 모두 인정한다.
+- 같은 과목을 반복 통과해도 다른 과목을 대신할 수 없다. 사용자가 다른 통과 기록도 합치지 않는다.
+- `event_story.0005_learning_achievements`가 업적 정의를 추가하고 기존 완료 기록에서 두 업적을 복구한다.
+- 기존 학습·답안·포인트 기록은 변경하지 않는다. 업적은 사용자별 `event_progress`에 최초 1회 저장한다.
+- 달성 알림은 차례로 표시하고, 재전송은 최초 달성 시각과 알림을 중복 생성하지 않는다.
+- 원본 이미지: `easter-egg/easter-egg-final-asset/05-삼각지대 탈출.png`, `07-컴퓨터의 속마음.png`.

@@ -23,7 +23,8 @@
   const lunchWheel=window.CampusLunchWheel?.create();
   let menuRequest=null,menuVersion=0;
   let directMessages=null;
-  const isDialogOpen=(includeClassroom=true,includeTyping=true)=>window.CampusFreeze?.blocking||logoutPending||directMessages?.blocking||(includeClassroom&&classroom.blocking)||window.CampusLearning?.blocking||window.CampusGuide?.blocking||window.CampusStory?.blocking||window.CampusSession?.ending||floorTransition.blocking||$('lunchDialog').open||dialog.open||boardDialog.open||exitDialog.open||transferDialog.open||$('settingsDialog').open||(includeTyping&&social.isTyping)||boothUI.blocking;
+  let achievements=null,minigames=null,managerGreetingPending=false;
+  const isDialogOpen=(includeClassroom=true,includeTyping=true)=>window.CampusFreeze?.blocking||window.CampusStory?.blocking||logoutPending||managerGreetingPending||minigames?.blocking||achievements?.blocking||directMessages?.blocking||(includeClassroom&&classroom.blocking)||window.CampusLearning?.blocking||window.CampusGuide?.blocking||window.CampusSession?.ending||floorTransition.blocking||$('lunchDialog').open||dialog.open||boardDialog.open||exitDialog.open||transferDialog.open||$('settingsDialog').open||(includeTyping&&social.isTyping)||boothUI.blocking;
   const renderers=new Map();
   const displayRefresh=new Map();
   let renderer=window.CampusIsometric.create({data:D}), P=renderer.projection, scene=renderer.scene;
@@ -60,9 +61,13 @@
     onJump:()=>jump.trigger(),
     onExit(){keys.clear();focusPlayer();canvas.focus({preventScroll:true});}
   })||{blocking:false,applyState(){},tick(){}};
-  const presence=window.CampusPresence.create({player,width:D.width,height:D.height,floors:worlds,onRestore:position=>restorePosition(position),onState:state=>applyControlState(state),onControlEvent:event=>applyControlEvent(event),onPoke:event=>poke.receive(event),onJump:event=>jump.receive(event),onAuthExpired(){keys.clear();player.moving=false;},onChat:message=>social.receive(message),onChatError:message=>social.reportError(message),onConnectionChange:value=>social.setConnected(value),onControlError:message=>toast(message),onLogoutPending(pending){logoutPending=pending;$('exitYes').disabled=$('exitNo').disabled=pending;keys.clear();player.moving=false;}});
+  const presence=window.CampusPresence.create({player,width:D.width,height:D.height,floors:worlds,onRestore:position=>restorePosition(position),onState:state=>applyControlState(state),onControlEvent:event=>applyControlEvent(event),onPoke:event=>poke.receive(event),onJump:event=>jump.receive(event),onAuthExpired(){keys.clear();player.moving=false;},onChat:message=>social.receive(message),onChatError:message=>social.reportError(message),onConnectionChange(value){social.setConnected(value);if(value)achievements?.refresh();},onControlError:message=>toast(message),onLogoutPending(pending){logoutPending=pending;$('exitYes').disabled=$('exitNo').disabled=pending;keys.clear();player.moving=false;}});
   const poke=window.CampusPoke.create({getPlayer:()=>player,getPresence:()=>presence,getClassroom:()=>classroom,getInput:()=>classroom.blocking?classroom.inputKeys:[...keys],isBlocked:()=>isDialogOpen(false),notify:toast});
   const jump=window.CampusJump.create({getPlayer:()=>player,getPresence:()=>presence,getClassroom:()=>classroom,isBlocked:()=>isDialogOpen(false),notify:toast});
+  minigames=window.CampusMinigames.create({start:objectId=>presence.command('game_start',{objectId}),isBlocked:()=>isDialogOpen(),
+    onOpen(){keys.clear();player.moving=false;presence.setInput([]);poke.stop(true);},
+    onClose(){keys.clear();presence.setInput([]);canvas.focus({preventScroll:true});}});
+  achievements=window.CampusAchievements.create({isBlocked:()=>isDialogOpen(),onOpen(){keys.clear();player.moving=false;presence.setInput([]);poke.stop(true);},onClose(){keys.clear();presence.setInput([]);}});
   directMessages=window.CampusMessages.create({config:JSON.parse($('campusViewConfig')?.textContent||'{}').privateMessages||{},
     onOpen(){keys.clear();player.moving=false;presence.setInput([]);},
     onClose(){keys.clear();canvas.focus({preventScroll:true});},notify:toast});
@@ -249,6 +254,8 @@
     logoutForm.requestSubmit();
   }
   function showDetail(item,{keyboard=false}={}){
+    if(item.action==='minigame'){minigames.open(item).catch(error=>toast(error.message));return;}
+    if(item.action==='manager_greet'){greetManager(item);return;}
     if(window.CampusStory?.handles(item)){window.CampusStory.open(item);return;}
     if(item.type==='sliding-door'){const r={x:item.x,y:item.y,w:item.w,h:item.h};const distance=Math.hypot(Math.max(r.x-player.x,0,player.x-r.x-r.w),Math.max(r.y-player.y,0,player.y-r.y-r.h));if(distance>50){toast('유리문 가까이에서 E키를 눌러주세요.');return;}const open=renderer.toggleDoor(item.id);toast(open?'유리문을 열었습니다.':'유리문을 닫았습니다.');return;}
     if(item.action==='pepero_refill'){presence.command('pepero_refill',{objectId:item.id}).then(result=>{poke.receive({type:'pepero_status',remaining:result.remaining});toast('빼빼로를 꺼냈어요! 10번 적중할 수 있어요.');}).catch(error=>toast(error.message));return;}
@@ -263,11 +270,24 @@
     if(item.type==='noticeboard'){showBoard();communityUI.open();return;}
     if(item.type==='plaza-display'&&item.source==='menu'){showBoard();showMenuPhoto();return;}
     const r=D.rooms.find(r=>r.id===(item.roomId||item.id));
-    $('detailTitle').textContent=item.name;$('detailEyebrow').textContent=item.type?'FACILITY GUIDE':'SPACE GUIDE';
+    $('detailTitle').textContent=item.name;$('detailEyebrow').textContent=item.type==='manager'?'MANAGER':item.type?'FACILITY GUIDE':'SPACE GUIDE';
     $('detailText').textContent=item.description||r?.description||'캠퍼스 안에 배치된 '+item.name+'입니다. 캐릭터로 가까이 이동해 공간을 둘러보세요.';
     const photo=item.photo??item.imageUrl??r?.photo;$('detailImage').hidden=!photo;if(photo){$('detailImage').src=photo;$('detailImage').alt=item.name+' 참고 사진';}else $('detailImage').removeAttribute('src');
     $('detailTags').replaceChildren();for(const label of item.tags||r?.tags||[]){const e=document.createElement('span');e.textContent=label;$('detailTags').append(e);}
-    keys.clear();player.moving=false;dialog.showModal();
+    keys.clear();player.moving=false;presence.setInput([]);poke.stop(true);dialog.showModal();$('closeDialog').focus({preventScroll:true});
+  }
+  async function greetManager(item,{silent=false}={}){
+    if(!silent&&isDialogOpen())return;
+    managerGreetingPending=true;keys.clear();player.moving=false;presence.setInput([]);poke.stop(true);
+    try{
+      const result=await presence.command('manager_greet',{objectId:item.id});
+      if(typeof result?.dialogue!=='string'||typeof result.managerName!=='string')throw new Error('인사 내용을 불러오지 못했어요.');
+      if(Array.isArray(result.achievements))window.dispatchEvent(new CustomEvent('campus:achievements',{detail:result.achievements}));
+      if(Array.isArray(result.newly_completed)&&result.newly_completed.length)window.dispatchEvent(new CustomEvent('campus:achievement-earned',{detail:result}));
+      if(silent)return result;
+      if(item.type==='mission-manager'){window.CampusStory.open({...item,action:'mission-manager',copy:result.dialogue+'\n\n'+(item.copy||'')});}
+      else showDetail({...item,action:undefined,name:result.managerName,description:result.dialogue});
+    }catch(error){if(silent)throw error;toast(error.message);}finally{managerGreetingPending=false;}
   }
   function showBoard(){
     keys.clear();player.moving=false;communityUI.hide();cancelMenuRequest();
@@ -382,12 +402,13 @@
   $('exitNo').onclick=cancelExit;$('exitYes').onclick=confirmExit;
   exitDialog.addEventListener('cancel',e=>{e.preventDefault();cancelExit();});
   dialog.addEventListener('click',e=>{const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();});
+  dialog.addEventListener('close',()=>{keys.clear();presence.setInput([]);canvas.focus({preventScroll:true});});
   $('interactionPrompt').querySelector('button').onclick=()=>nearby&&showDetail(nearby);
   // 이미지 주소·이름이 같으면 다시 넣지 않는다(계획 5단계)
   function updateAvatarPreview(){const id=window.CampusAvatars.resolve(player.avatar),src=`assets/characters/${id.startsWith('female-')?'female':'male'}-face.png`,name=window.CampusAvatars.definitions[id].name;if($('avatarPreview').getAttribute('src')!==src)$('avatarPreview').src=src;if($('avatarName').textContent!==name)$('avatarName').textContent=name;}
   updateAvatarPreview();
   window.addEventListener('campus:avatar',updateAvatarPreview);
-  window.CampusApp={showDetail,openRegularBoard(){showBoard();communityUI.open();},get scene(){return scene;},player,camera,screenToWorld,worldToScreen,canZoom:isAdmin,canFreeCamera:isAdmin,boothUI,floorTransition,social,presence,classroom,poke,get nearby(){return nearby;},get renderer(){return renderer;},get floor(){return D.id;},get data(){return D;},visibleActors,switchFloor,quickTravelMenu:spaceGuide,render,toast,zoomBy};
+  window.CampusApp={showDetail,greetManager,openRegularBoard(){showBoard();communityUI.open();},get scene(){return scene;},player,camera,screenToWorld,worldToScreen,canZoom:isAdmin,canFreeCamera:isAdmin,boothUI,floorTransition,social,presence,classroom,poke,get nearby(){return nearby;},get renderer(){return renderer;},get floor(){return D.id;},get data(){return D;},visibleActors,switchFloor,quickTravelMenu:spaceGuide,render,toast,zoomBy};
   window.addEventListener('campus:guide-open',()=>{social.leaveEditor({focusMap:false});keys.clear();suppressedKeys.clear();player.moving=false;presence.setInput([]);poke.setHeld(false);});
   requestAnimationFrame(update);
   window.dispatchEvent(new Event('campus:ready'));

@@ -1,0 +1,59 @@
+[
+  {
+    "id": "manager-suhyeon",
+    "floor": "campus",
+    "x": 2090,
+    "y": 818,
+    "name": "수현 매니저님",
+    "sprite": "suhyeon"
+  },
+  {
+    "id": "manager-yebin",
+    "floor": "rooftop",
+    "x": 850,
+    "y": 650,
+    "name": "예빈 매니저님",
+    "sprite": "yebin"
+  },
+  {
+    "id": "manager-yuhyeong",
+    "floor": "campus",
+    "x": 2340,
+    "y": 95,
+    "name": "유형 매니저님",
+    "sprite": "yuhyeong"
+  },
+  {
+    "id": "manager-songhee",
+    "floor": "campus",
+    "x": 685,
+    "y": 720,
+    "name": "송희 매니저님",
+    "sprite": "songhee"
+  },
+  {
+    "id": "manager-huiae",
+    "floor": "campus",
+    "x": 1160,
+    "y": 470,
+    "name": "희애 매니저님",
+    "sprite": "huiae"
+  },
+  {
+    "id": "manager-jeonghun",
+    "floor": "rooftop",
+    "x": 1790,
+    "y": 1180,
+    "name": "정훈 매니저님",
+    "sprite": "jeonghun"
+  },
+  {
+    "id": "manager-yeongseok",
+    "floor": "mission1",
+    "x": 355,
+    "y": 162,
+    "name": "영석 매니저님",
+    "sprite": "yeongseok",
+    "objectId": "sql_answer"
+  }
+]

@@ -18,7 +18,8 @@
     return value;
   }
   function targets(floor){
-    return (window.CampusWorlds?.[floor]?.objects||[]).filter(o=>o.action==='guard_sandbag'||o.type==='guide-npc').map(o=>o._guardTarget||(o._guardTarget={id:o.id,x:o.x+o.w/2,y:o.y+o.h/2,guarding:o.action==='guard_sandbag'}));
+    const world=window.CampusWorlds?.[floor];
+    return [...(world?.npcs||[]).filter(actor=>actor.managerNpc),...(world?.objects||[]).filter(o=>o.action==='guard_sandbag'||o.type==='guide-npc'||o.type==='mission-manager').map(o=>o._guardTarget||(o._guardTarget={id:o.id,x:o.x+o.w/2,y:o.y+o.h/2,guarding:o.action==='guard_sandbag'}))];
   }
   function action(actor,t){
     const loop=actor._campusPokeLoop;

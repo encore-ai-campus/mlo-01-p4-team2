@@ -2179,39 +2179,6 @@
           ]
         },
         {
-          "id": "reference-campus-109",
-          "type": "pepero-art",
-          "x": 2226.5,
-          "y": 475.5,
-          "w": 135.5,
-          "h": 24,
-          "solid": true,
-          "renderHeight": 189.70000000000002,
-          "seasonalArt": "flowerbox",
-          "artWidth": 151.76000000000002,
-          "artHeight": 189.70000000000002,
-          "artAnchor": 0.92,
-          "flip": false,
-          "collisionPolygon": [
-            [
-              2214.964,
-              502.647
-            ],
-            [
-              2222.377,
-              460.697
-            ],
-            [
-              2327.578,
-              422.102
-            ],
-            [
-              2321.719,
-              469.899
-            ]
-          ]
-        },
-        {
           "id": "reference-campus-110",
           "type": "pepero-art",
           "x": 2271.5,

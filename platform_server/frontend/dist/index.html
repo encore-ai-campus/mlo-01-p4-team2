@@ -14,6 +14,8 @@
   <link rel="stylesheet" href="avatars.css">
   <link rel="stylesheet" href="social.css">
   <link rel="stylesheet" href="point-wallet.css">
+  <link rel="stylesheet" href="achievements.css">
+  <link rel="stylesheet" href="minigames.css">
   <link rel="stylesheet" href="poke.css">
   <link rel="stylesheet" href="board-shortcut.css">
   <link rel="stylesheet" href="community.css">
@@ -53,6 +55,7 @@
         <div class="map-status-tools">
           <div id="presenceStatus" class="presence-status" role="status" aria-live="polite" hidden></div>
           <div class="map-view-tools">
+            <button id="achievementsOpen" type="button" aria-haspopup="dialog" aria-controls="achievementsDialog">업적</button>
             <button id="privateMessagesOpen" type="button" aria-haspopup="dialog" aria-controls="privateMessagesDialog" hidden>쪽지함 <span id="dmBadge" hidden>0</span></button>
             <div class="map-controls" hidden><button id="zoomIn" aria-label="지도 확대" disabled>+</button><span id="zoomLabel">150%</span><button id="zoomOut" aria-label="지도 축소" disabled>−</button></div>
             <div class="map-wallet-anchor">
@@ -162,6 +165,21 @@
   </dialog>
   <dialog id="campusGuideImageDialog" class="campus-guide-image-dialog" aria-labelledby="campusGuideLargeTitle"><header class="campus-guide-image-heading"><h2 id="campusGuideLargeTitle">화면 예시</h2><button id="campusGuideImageClose" type="button" aria-label="화면 예시 닫기">닫기</button></header><div class="campus-guide-large-wrap"><img id="campusGuideLargeImage" alt=""></div></dialog>
   <dialog id="detailDialog" aria-labelledby="detailTitle"><div class="dialog-top"><div><span id="detailEyebrow" class="eyebrow">SPACE GUIDE</span><h2 id="detailTitle"></h2></div><button id="closeDialog" class="close-button" aria-label="안내 닫기">×</button></div><img id="detailImage" alt="" hidden><div class="dialog-content"><p id="detailText"></p><div id="detailTags" class="detail-tags"></div><div class="dialog-actions"><button id="detailClose" class="btn quiet">닫기</button></div></div></dialog>
+  <aside id="achievementNotice" popover="manual" role="status" aria-live="polite" aria-atomic="true" hidden>
+    <img id="achievementNoticeImage" width="80" height="80" alt="">
+    <div><span>업적 달성!</span><strong id="achievementNoticeName"></strong></div>
+    <button id="achievementNoticeClose" type="button" aria-label="업적 달성 알림 닫기">×</button>
+  </aside>
+  <dialog id="minigameDialog" aria-labelledby="minigameTitle">
+    <div class="dialog-top"><h2 id="minigameTitle">게임</h2><button id="minigameClose" type="button" class="close-button" aria-label="게임 종료">×</button></div>
+    <p id="minigameStatus" role="status" aria-live="polite"></p>
+    <button id="minigameRetry" type="button" hidden>저장 다시 시도</button>
+    <div id="minigameFrame"></div>
+  </dialog>
+  <dialog id="achievementsDialog" aria-labelledby="achievementsTitle" aria-describedby="achievementsStatus">
+    <div class="dialog-top"><h2 id="achievementsTitle">업적</h2><button id="achievementsClose" type="button" class="close-button" aria-label="업적 닫기">×</button></div>
+    <div class="achievements-content"><p id="achievementsStatus" role="status" aria-live="polite">업적을 불러오는 중이에요.</p><ul id="achievementsList" aria-label="업적 목록" hidden></ul><button id="achievementsRetry" type="button" hidden>다시 불러오기</button></div>
+  </dialog>
   <dialog id="lunchDialog" class="lunch-dialog" aria-labelledby="lunchDialogTitle">
     <div class="dialog-top"><div><span class="eyebrow">TODAY’S LUNCH</span><h2 id="lunchDialogTitle">점심추천 돌림판</h2></div><button id="lunchDialogClose" type="button" class="close-button" aria-label="점메추 닫기">×</button></div>
     <div class="dialog-content">        <section id="lunchWheel" class="lunch-wheel-panel" aria-labelledby="lunchWheelTitle">
@@ -347,6 +365,8 @@
   <script src="floor-transition.js"></script>
   <script src="lunch-wheel.js"></script>
   <script src="point-wallet.js"></script>
+  <script src="achievements.js"></script>
+  <script src="minigames.js"></script>
   <!-- learning-assets -->
   <script src="campus-guide.js"></script>
   <script src="campus-space-guide.js"></script>

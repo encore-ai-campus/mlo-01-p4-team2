@@ -178,6 +178,32 @@ class FetchTests(Cases, SimpleTestCase):
         with self.assertRaises(CommandError):
             call_command("fetch_hop_manifest", "--out", str(self.out), "--name", "../x", stdout=io.StringIO())
 
+    def case_one_run_is_bounded_in_new_generations_and_total_bytes(self):
+        """보안 검토(P1-8 후속): 사슬이 아무리 길어도 한 번의 받기는 상한 안에서 멈추고, 넘으면 아무것도 쓰지 않는다."""
+        for windows in (1, 2, 3, 4):
+            self.publish(windows=windows)  # 빈 폴더의 첫 받기가 세대 사본 3개를 새로 받아야 한다
+        with override_settings(HOP_FETCH_MAX_NEW_GENERATIONS=2):
+            self.refused("새로 받을 세대 사본이 상한(2개)을 넘어")
+        empty, self.out = self.out, Path(tempfile.mkdtemp())  # 상한 없이 다른 폴더로 한 번 받아, 첫 받기가 받는 바이트(포인터 + 마지막 데이터 + 앞 세대 사본 셋)를 잰다
+        self.addCleanup(shutil.rmtree, self.out, True)
+        self.assertTrue(self.fetch()[0])
+        total, self.out = sum(len(self.s3.objects[key]) for key in self.s3.gets), empty
+        with override_settings(HOP_FETCH_MAX_BYTES=total - 1):
+            self.refused("누적 바이트 상한")
+        with override_settings(HOP_FETCH_MAX_NEW_GENERATIONS=3, HOP_FETCH_MAX_BYTES=total):  # 경계값은 받는다
+            ok, text = self.fetch()
+            self.assertTrue(ok, text)
+            self.assertIn("새로 받은 세대 사본 3개", text)
+        self.publish(windows=5)
+        self.publish(windows=6)  # 새로 받을 사본은 다섯째 세대 하나 — 사슬 걸음은 로컬에 둔 사본 넷을 더 지난다
+        pointer = self.s3.objects[PREFIX + "hop_pipeline.manifest.json"]
+        copy = ndjson.generation_copy_name("hop_pipeline", json.loads(pointer)["previous_sha256"])
+        new_bytes = sum(len(self.s3.objects[PREFIX + f]) for f in ("hop_pipeline.manifest.json", self.pointer()["file"], copy))
+        with override_settings(HOP_FETCH_MAX_NEW_GENERATIONS=1, HOP_FETCH_MAX_BYTES=new_bytes):  # 상한은 새로 받는 것만 센다(로컬 사본은 세지 않는다)
+            ok, text = self.fetch()
+            self.assertTrue(ok, text)
+            self.assertIn("새로 받은 세대 사본 1개", text)
+
     def test_fetch(self):
         self.run_cases()
 

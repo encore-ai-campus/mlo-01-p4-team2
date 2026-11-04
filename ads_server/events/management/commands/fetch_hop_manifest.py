@@ -1,6 +1,5 @@
 import hashlib
 import json
-from functools import partial
 from pathlib import Path
 
 from django.conf import settings
@@ -18,6 +17,7 @@ class Command(BaseCommand):
         "파이프라인 쪽이 S3 에 게시한 구간 manifest(hop_pipeline)를 받아 로컬 폴더에 같은 모양으로 둔다(설계 01 D14, 계획 P1-8) — 그 폴더를 verify_hops --pipeline 이 읽는다. "
         "포인터 → 가리키는 불변 데이터 파일 → SHA-256·행 수·줄 형식, 세대 사슬(previous_sha256)을 처음까지 확인하고, 모두 맞을 때만 불변 파일을 먼저·포인터를 마지막에 쓴다. "
         "하나라도 어긋나면(위조·손상·경로 밖 파일·사슬 끊김) 아무것도 바꾸지 않고 실패한다. 받은 세대 사본은 폴더에 쌓아 다음에는 새 세대만 받는다. "
+        "한 번에 새로 받는 세대 사본 수와 누적 바이트에 상한이 있다(설정 HOP_FETCH_MAX_NEW_GENERATIONS·HOP_FETCH_MAX_BYTES, 넘으면 실패). "
         "폴더에 이미 받은 포인터가 있으면 그것이 고정점이다 — 새 사슬이 그 세대를 지나지 않으면(옛 세대로 되돌림, 사슬을 처음부터 새로 시작) 받지 않는다. "
         "정당하게 새로 시작한 사슬이면 사람이 사건을 확인한 뒤 폴더를 비우고 다시 받는다(설계 01 D14·S5, 고정점 결정 (나)). "
         "접속 값은 환경변수 HOP_S3_*(키는 인자로 받지 않는다)."
@@ -34,7 +34,16 @@ class Command(BaseCommand):
         config = settings.HOP_PIPELINE_S3
         if not config:
             raise CommandError("파이프라인 manifest 저장소 설정이 없습니다(환경변수 HOP_S3_BUCKET 등).")
-        get = partial(get_object, client(config), config["BUCKET"])
+        budget = {"bytes": settings.HOP_FETCH_MAX_BYTES, "generations": settings.HOP_FETCH_MAX_NEW_GENERATIONS}
+
+        def get(file, limit):  # 한 번의 받기 전체에 누적 바이트 상한(파일 하나의 상한 `limit` 과 별개)
+            body = get_object(s3, config["BUCKET"], file, limit)
+            budget["bytes"] -= len(body)
+            if budget["bytes"] < 0:
+                raise CommandError(f"한 번에 받는 양이 누적 바이트 상한({settings.HOP_FETCH_MAX_BYTES}바이트)을 넘어 아무것도 바꾸지 않았다: {PREFIX + file}")
+            return body
+
+        s3 = client(config)
         with ndjson.run_lock(out):
             local_pointer = ndjson.manifest_path(out, name)
             anchor = hashlib.sha256(local_pointer.read_bytes()).hexdigest() if local_pointer.exists() else None  # 직전에 받은 포인터(없으면 첫 받기)
@@ -61,6 +70,8 @@ class Command(BaseCommand):
                 if local.exists():
                     body = local.read_bytes()
                 else:
+                    if len(fetched) >= budget["generations"]:
+                        raise CommandError(f"새로 받을 세대 사본이 상한({budget['generations']}개)을 넘어 아무것도 바꾸지 않았다 — 사슬이 비정상적으로 길다")
                     body = fetched[copy_name] = get(copy_name, MANIFEST_LIMIT)
                 chain.add(hashlib.sha256(body).hexdigest())
                 return body

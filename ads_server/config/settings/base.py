@@ -177,6 +177,10 @@ EVENTS_OUTBOX_RETENTION_DAYS = 7  # MongoDB 로 보낸 outbox 행을 이만큼 �
 
 EVENTS_HOP_GRACE_SECONDS = 120  # 구간별 정합 manifest(4-3b)의 창 닫힘 여유: 창이 끝나고 이만큼 지나야 그 창의 첫 세대를 낸다(설계 §10 H11 A안). 늦은 이벤트가 보이면 B안으로 다시 정한다
 HOP_PIPELINE_S3 = None  # 파이프라인 manifest 저장소 접속(fetch_hop_manifest, 계획 P1-8) — dev·prod 가 환경변수 HOP_S3_* 에서 채운다
+# fetch_hop_manifest 한 번에 새로 받는 양의 상한(넘으면 아무것도 쓰지 않고 실패 — 믿지 않는 입력의 긴 사슬이 받는 쪽을 멈추지 못하게).
+# 매시 게시면 1년에 약 8,760세대, 세대 사본은 수 KB — 빈 폴더의 첫 받기도 2년 넘게 걸리지 않는다. 누적 바이트는 포인터·데이터·새 사본을 모두 더한 값
+HOP_FETCH_MAX_NEW_GENERATIONS = 20_000
+HOP_FETCH_MAX_BYTES = 256 << 20
 EVENTS_HOP_CONFIRM_WITH_MONGO = True  # 창 확정(verify_hops --pipeline)에 같은 창의 outbox → MongoDB match 도 요구한다 — 로컬 병행 기간(설계 01 D17). 운영은 MongoDB 가 없어 prod 에서 끈다
 
 # --- 광고 선택 (설계 §4.3). 구현 선택은 config 한 곳(R4): 알고리즘·필터를 바꿔도 Decision 구조는 그대로다 ---

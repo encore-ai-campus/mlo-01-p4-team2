@@ -80,7 +80,7 @@ with (CWD / a.dump).open(encoding="utf-8") as dump_file:  # 줄 단위로 읽는
         docs[eid], content[eid], seen_at[eid] = doc, same, [pos]
 b_lines, b_open = hops.summarize(list(docs.values()), now, grace, since, size)
 
-common = {"window": label, "grace_seconds": grace, "started_at": now.isoformat(), "since": since.isoformat() if since else None}
+common = {"window": label, "grace_seconds": grace, "started_at": now.isoformat(), "since": hops.format_time(since) if since else None}  # UTC 정시 문자열(hopcheck 가 검증·대조, 설계 01 S1)
 mo = ndjson.write(out / "outbox", "outbox", o_lines, "hop_outbox", hops.HOP_SCHEMA_VERSION,
                   checkpoint={"scope": "postgresql-repeatable-read-snapshot", "hop": "hop_outbox", **common,
                               "open_windows": [hops.format_time(w) for w in o_open], "scanned_events": o_read})
@@ -94,7 +94,7 @@ rule_now = hopcheck.compare(hopcheck.load_hop(ob, expected_kind="hop_outbox"), h
 report = {
     "as_of": now.isoformat(), "window": label, "grace_seconds": grace,
     "outbox": {"scanned_events": o_read, "lines": len(o_lines), "open_windows": [hops.format_time(w) for w in o_open], "manifest_sha256": ndjson.manifest_digest(mo)},
-    "since": since.isoformat() if since else None,
+    "since": hops.format_time(since) if since else None,
     "bronze": {"rows": rows_read, "distinct_events": len(docs), "duplicate_rows": sum(dup.values()), "content_conflicts": conflict, "problems": dict(problems),
                "duplicates": {e: seen_at[e] for e in sorted(dup)}, "lines": len(b_lines), "open_windows": [hops.format_time(w) for w in b_open],
                "manifest_sha256": ndjson.manifest_digest(mb)},

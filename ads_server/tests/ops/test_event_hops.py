@@ -524,6 +524,27 @@ class ExportHopManifestsTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.assertTrue(ok)
         self.assertEqual(self.lines("hop_source")[0], [])  # 2026-10-07 창은 제외
         self.assertFalse(self.export("--since", "어제")[0])
+        # 설계 01 S1: 범위 시작은 UTC 정시 — 날짜만 주면 그날 0시, 다른 시간대는 UTC 로 바꾸고, manifest·감사 기록에는 UTC 정시 문자열로 남는다
+        for hop in ("hop_source", "hop_outbox", "hop_mongo"):
+            self.assertEqual(self.lines(hop)[1]["checkpoint"]["since"], "2026-10-08T00:00:00Z", hop)
+        for since, out, written in (("2026-10-07T12:00:00Z", "noon", "2026-10-07T12:00:00Z"), ("2026-10-07T21:00:00+09:00", "kst_noon", "2026-10-07T12:00:00Z"),
+                                    ("2026-10-07T13:00:00Z", "after_noon", "2026-10-07T13:00:00Z")):
+            ok, text = self.export("--since", since, "--window", "hour", out=out)
+            self.assertTrue(ok, text)
+            for hop in ("hop_source", "hop_outbox", "hop_mongo"):
+                self.assertEqual(self.lines(hop, out=out)[1]["checkpoint"]["since"], written, (since, hop))
+        latest = AuditLog.objects.filter(action="events.hop_manifests_exported").order_by("-created_at", "-log_id").first().detail
+        self.assertEqual(latest["since"], "2026-10-07T13:00:00Z")
+        noon = self.lines("hop_source", out="noon")[0]
+        self.assertTrue(noon)
+        self.assertEqual({l["window_start"] for l in noon}, {"2026-10-07T12:00:00Z"})  # 결정·반응·판정이 모두 12시 창
+        self.assertEqual(self.lines("hop_source", out="kst_noon")[0], noon)
+        self.assertEqual(self.lines("hop_source", out="after_noon")[0], [])  # 정시 하나 뒤부터는 없다
+        for bad in ("2026-10-07T12:30:00Z", "2026-10-07T12:00:00", "2026-10-07T12:00:00+05:30"):  # 분이 있음 · 시간대 없음 · UTC 정시가 아님(06:30Z)
+            ok, text = self.export("--since", bad, out="bad")
+            self.assertFalse(ok, bad)
+            self.assertIn("--since", text)
+        self.assertFalse((self.dir / "bad").exists())
 
     def test_event_hops_export_hop_manifests(self):
         self.run_cases()

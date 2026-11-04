@@ -31,8 +31,8 @@ def line(count=1, ids="i", content="c", unsent=None, window=W, name="ad.decision
     return base
 
 
-def hop(name, *lines, open_windows=(), not_comparable=()):
-    checkpoint = {"open_windows": list(open_windows), "not_comparable_windows": list(not_comparable)}
+def hop(name, *lines, open_windows=(), not_comparable=(), since=None):
+    checkpoint = {"open_windows": list(open_windows), "not_comparable_windows": list(not_comparable), "since": since}
     return hopcheck.Hop(name, {"checkpoint": checkpoint}, {(l["window_start"], l["event_name"]): l for l in lines})
 
 
@@ -87,6 +87,16 @@ class ClassificationTests(Cases, SimpleTestCase):
         # 줄이 없는 열린 창도 기록으로 남는다
         rows = hopcheck.compare(hop("hop_source"), hop("hop_mongo", open_windows=["2026-10-10T00:00:00Z"]))
         self.assertEqual([(r["status"], r["window_start"]) for r in rows], [("open_window", "2026-10-10T00:00:00Z")])
+
+    def case_only_manifests_with_the_same_range_start_are_compared(self):
+        """설계 01 S1 (가): 범위 시작(checkpoint.since)이 다르면 한쪽의 옛 창이 모두 '빠짐'으로 보이므로 대조하지 않고 실패한다. 같으면 그 앞 창은 보지 않는다."""
+        later, kept = "2026-10-07T05:00:00Z", "2026-10-07T06:00:00Z"
+        for a_since, b_since in ((None, later), (later, None), (later, "2026-10-07T06:00:00Z")):
+            with self.subTest(a=a_since, b=b_since), self.assertRaises(hopcheck.HopInputError):
+                hopcheck.compare(hop("hop_outbox", line(unsent=0), since=a_since), hop("hop_mongo", line(), since=b_since))
+        a = hop("hop_outbox", line(unsent=0), line(unsent=0, window=kept), open_windows=["2026-10-07T01:00:00Z", "2026-10-07T07:00:00Z"], since=later)  # W(00시) 줄·01시 열린 창은 범위 앞
+        b = hop("hop_mongo", line(window=kept), since=later)
+        self.assertEqual([(r["window_start"], r["status"]) for r in hopcheck.compare(a, b)], [(kept, "match"), ("2026-10-07T07:00:00Z", "open_window")])
 
     def test_classification(self):
         self.run_cases()
@@ -143,6 +153,8 @@ class InputValidationTests(Cases, SimpleTestCase):
             checkpoint["hop"] = hop_field
         if "unresolved" in extra:
             checkpoint["unresolved_charges"] = extra["unresolved"]
+        if "since" in extra:
+            checkpoint["since"] = extra["since"]
         if "hidden" in extra:
             checkpoint |= {"not_comparable_windows": extra["not_comparable"], "not_comparable_unsent": extra["hidden"]}
         ndjson.write(directory, "h", lines, kind, schema_version, checkpoint=checkpoint)
@@ -203,6 +215,14 @@ class InputValidationTests(Cases, SimpleTestCase):
         for hidden in broken:
             with self.subTest(hidden=hidden), self.assertRaises(hopcheck.HopInputError):
                 self.load(self.publish([], kind="hop_outbox", not_comparable=[W], hidden=hidden), "hop_outbox")
+
+    def case_the_range_start_must_be_a_utc_hour_or_null(self):
+        """DRD §5.6: checkpoint.since 는 UTC 정시(YYYY-MM-DDTHH:00:00Z) 또는 null — 날짜만 쓴 옛 형식·분이 있는 시각·다른 표기·문자열이 아닌 값은 입력 실패다."""
+        for since in (None, "2026-10-07T05:00:00Z"):
+            self.assertEqual(self.load(self.publish([self.day()], since=since)).since, since)
+        for since in ("2026-10-07", "2026-10-07T05:30:00Z", "2026-10-07T05:00:00+00:00", "2026-10-7T5:00:00Z", 5, ["2026-10-07T05:00:00Z"]):  # 0 을 채우지 않은 표기도
+            with self.subTest(since=since), self.assertRaises(hopcheck.HopInputError):
+                self.load(self.publish([self.day()], since=since))
 
     def case_malformed_checkpoints_are_refused_not_raised(self):
         """리팩터 감사 D3: checkpoint 가 객체가 아니거나 창 크기가 문자열이 아니거나 창 목록·과금 예시가 문자열 목록이 아니면 날것의 예외(대조 전체가 멈춘다)가 아니라 `HopInputError` 다."""
@@ -373,6 +393,17 @@ class VerifyHopsCommandTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.assertFalse(ok)
         self.assertIn("hop_mongo->pipeline", text)
         self.assertIn("content_sha256", text)
+
+    def case_a_pipeline_manifest_with_another_range_start_is_not_compared(self):
+        """설계 01 S1 (가): 파이프라인 manifest 의 범위 시작이 광고 서버 manifest 와 다르면 그 쌍은 대조하지 않고 실패한다(옛 창이 '빠짐'으로 쏟아지지 않게)."""
+        relay_batch()
+        self.export()
+        pipeline_dir = self.dir / "pipeline"
+        ndjson.write(pipeline_dir, "pipeline", self.lines("hop_mongo"), "hop_pipeline", 1, checkpoint={"open_windows": [], "window": "utc-day", "since": "2026-10-07T00:00:00Z"})
+        ok, text = self.verify("--pipeline", str(ndjson.manifest_path(pipeline_dir, "pipeline")))
+        self.assertFalse(ok)
+        self.assertIn("FAIL pipeline: 범위(checkpoint.since)가 다른 manifest 는 대조하지 않는다: hop_mongo=None, pipeline=2026-10-07T00:00:00Z", text)
+        self.assertNotIn("hop_mongo->pipeline", text)  # 줄 대조를 하지 않았다
 
     def case_a_pipeline_shortfall_is_not_excused_by_unsent_outbox_rows(self):
         """버그 탐색 B4: outbox 미전송은 MongoDB 에도 아직 없으므로 파이프라인이 MongoDB 보다 적은 이유가 될 수 없다 — 확정 불일치."""

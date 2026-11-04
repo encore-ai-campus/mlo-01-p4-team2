@@ -31,6 +31,7 @@ class Hop:
         self.name, self.manifest, self.lines = name, manifest, lines
         checkpoint = manifest.get("checkpoint") or {}
         self.window = checkpoint.get("window")
+        self.since = checkpoint.get("since")  # 범위 시작(UTC 정시 문자열 또는 None, 설계 01 S1) — 같은 값끼리만 대조한다
         self.open_windows = set(checkpoint.get("open_windows", []))
         self.not_comparable = set(checkpoint.get("not_comparable_windows", []))
         self.unresolved_charges = checkpoint.get("unresolved_charges", 0)  # 원본 구간: 창에 놓을 수 없는 과금 원장 줄(대조할 줄이 없으므로 따로 실패)
@@ -68,7 +69,7 @@ def load_hop(manifest_path, name=None, expected_kind=None):
     """manifest 와 데이터 파일을 검증하고(SHA-256·행 수·형식) 줄을 읽는다. 검증에 실패하면 `HopInputError`.
 
     파일 checksum 이 맞는 것과 **집계 범위가 같은 것은 별개**라서 대조 전에 계약을 확인한다: 계약 버전, 구간 종류(`expected_kind` 가 있으면 그것과 같아야 한다),
-    창 크기 선언(`checkpoint.window`), 줄마다 창 시작·끝·크기·경계 정렬, 건수·해시 형식, (창, 이벤트 이름) 중복 없음.
+    창 크기 선언(`checkpoint.window`), 범위 시작(`checkpoint.since` — UTC 정시 문자열 또는 null), 줄마다 창 시작·끝·크기·경계 정렬, 건수·해시 형식, (창, 이벤트 이름) 중복 없음.
     """
     manifest_path = Path(manifest_path)
     try:
@@ -96,6 +97,11 @@ def load_hop(manifest_path, name=None, expected_kind=None):
     size = hops.WINDOW_SIZES.get(window) if isinstance(window, str) else None  # 목록·객체는 사전 키가 될 수 없다
     if size is None:
         raise HopInputError(f"{manifest_path.name}: 창 크기 선언(checkpoint.window)이 없거나 알 수 없다: {window!r}")
+    since = checkpoint.get("since")
+    if since is not None:
+        moment = _time(since, f"{manifest_path.name}: checkpoint.since") if isinstance(since, str) else None
+        if moment is None or hops.format_time(moment) != since or hops.window_start(moment, hops.HOUR) != moment:  # 왕복이 같아야 표기(0 채움)까지 계약대로다
+            raise HopInputError(f"{manifest_path.name}: checkpoint.since 는 UTC 정시(YYYY-MM-DDTHH:00:00Z) 문자열이거나 null 이어야 한다: {since!r}")
     unresolved = checkpoint.get("unresolved_charges", 0)
     if isinstance(unresolved, bool) or not isinstance(unresolved, int) or unresolved < 0:
         raise HopInputError(f"{manifest_path.name}: unresolved_charges 는 0 이상의 정수여야 한다: {unresolved!r}")
@@ -129,16 +135,19 @@ def compare(a, b, unsent_from=None):
     반환: 줄(dict) 목록 — `{"pair", "window_start", "event_name", "status", "fields", "a", "b"}`."""
     if a.window != b.window:
         raise HopInputError(f"창 크기가 다른 manifest 는 대조하지 않는다: {a.name}={a.window}, {b.name}={b.window}")
+    if a.since != b.since:  # 한쪽에만 있는 옛 창이 모두 '빠짐'으로 보이지 않게, 범위가 다르면 조용히 좁히지 않고 실패한다(설계 01 S1 (가))
+        raise HopInputError(f"범위(checkpoint.since)가 다른 manifest 는 대조하지 않는다: {a.name}={a.since}, {b.name}={b.since}")
+    keys = {k for k in a.lines.keys() | b.lines.keys() if a.since is None or k[0] >= a.since}  # since 앞 창은 보지 않는다(같은 형식의 UTC 문자열이라 사전순 = 시간순)
     out = []
     pair = f"{a.name}->{b.name}"
-    for key in sorted(a.lines.keys() | b.lines.keys()):
+    for key in sorted(keys):
         window, name = key
         la, lb = a.lines.get(key), b.lines.get(key)
         status, fields = _classify(a, b, key, la, lb, unsent_from)
         out.append({"pair": pair, "window_start": window, "event_name": name, "status": status, "fields": fields,
                     "a": _summary(la), "b": _summary(lb)})
     # 줄이 하나도 없는 열린 창·비교 불가 창도 기록으로 남긴다(조용히 사라지지 않게)
-    for window in sorted((a.open_windows | b.open_windows) - {k[0] for k in a.lines.keys() | b.lines.keys()}):
+    for window in sorted(w for w in (a.open_windows | b.open_windows) - {k[0] for k in keys} if a.since is None or w >= a.since):
         out.append({"pair": pair, "window_start": window, "event_name": None, "status": OPEN, "fields": [], "a": None, "b": None})
     return out
 

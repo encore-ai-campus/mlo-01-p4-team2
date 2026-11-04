@@ -31,6 +31,12 @@ SLOTS = E("MONITOR_SLOTS", "ads_outbox_slot,ads_e2e_slot").split(",")
 REPLICA_LAG_BYTES = int(E("MONITOR_REPLICA_LAG_BYTES", str(64 * 1024 * 1024)))  # 임시 기준
 SLOT_INACTIVE_S = int(E("MONITOR_SLOT_INACTIVE_S", "600"))  # 설계 M1: 10분 넘게 쉼(R2 재시도 약 3분 + R3 재배치 60초보다 넉넉히)
 UNLISTED_S, UNLISTED_EVERY_S = 10, 2  # 설계 M2: 복제 중인데 synchronized_standby_slots 에 없음이 10초 넘게(갱신 주기 2초 × 5)
+# 설계 M2(§20): standby 허용 목록 슬롯이 synced=f(또는 없음·temporary)로 2분 넘게 — slotsync 가 새 사본을 만드는 동안(약 1분)은 경보가 아니다
+SYNCED_GRACE_S = int(E("MONITOR_SYNCED_GRACE_S", "120"))
+# 설계 M2(§20): primary physical slot 의 catalog_xmin 이 10분 넘게 그대로인데 그 사이 primary xid 가 50개 넘게 늘었음(옛 슬롯이 카탈로그 VACUUM 을 막음).
+# 실측(2026-11-04): 정상이면 xmax 보다 2~4 뒤에서 약 20초마다 따라 움직인다. 트랜잭션 heartbeat 하나만으로 10분에 약 60개 는다
+CXMIN_STALL_S = int(E("MONITOR_CATALOG_XMIN_STALL_S", "600"))
+CXMIN_STALL_XIDS = int(E("MONITOR_CATALOG_XMIN_STALL_XIDS", "50"))
 CONNECT = E("MONITOR_CONNECT_REST", "http://127.0.0.1:8083")
 KAFKA = E("MONITOR_KAFKA", "127.0.0.1:9092,127.0.0.1:9192,127.0.0.1:9292")
 KAFKA_BIN = Path(E("MONITOR_KAFKA_BIN", "/opt/kafka/current/bin"))
@@ -56,7 +62,7 @@ def pg(port):
                            connect_timeout=5, autocommit=True)
 
 
-def m1_m2():
+def m1_m2(state):
     """M1 슬롯(무효·오래 쉼·붙잡은 WAL), M2 대기 서버(복제 지연·동기 후보·보호 목록 양쪽·failover·synced)."""
     out = []
     with pg(PG_PORT) as c:
@@ -80,8 +86,8 @@ def m1_m2():
                          "where pid not in (select active_pid from pg_replication_slots where slot_type = 'logical' and active_pid is not null)").fetchall()
         candidates = [r for r in reps if r[1] == "streaming" and r[2] in ("sync", "quorum", "potential")]
         out.append(finding("M2", "sync_candidates", "ok" if candidates else "alert", f"동기 후보 {len(candidates)}개 {[(r[0], r[2]) for r in reps]}"))
-        for name, state, _sync, lag in reps:
-            out.append(finding("M2", f"replica_lag:{name}", "alert" if state != "streaming" or (lag or 0) > REPLICA_LAG_BYTES else "ok", f"{state}, 재생 지연 {lag}B"))
+        for name, rep_state, _sync, lag in reps:  # rep_state: 이 함수의 state(상태 파일)와 이름을 나눈다
+            out.append(finding("M2", f"replica_lag:{name}", "alert" if rep_state != "streaming" or (lag or 0) > REPLICA_LAG_BYTES else "ok", f"{rep_state}, 재생 지연 {lag}B"))
         listed, attached, streaming = standby_slots(c)
         missing = [s for s in listed if s not in attached]
         out.append(finding("M2", "synchronized_standby_slots", "alert" if missing else "ok",
@@ -94,6 +100,7 @@ def m1_m2():
             unlisted &= now_streaming - set(now_listed)
         out.append(finding("M2", "synchronized_standby_slots_unlisted", "alert" if unlisted else "ok",
                            f"복제 중인데 목록에 없는 물리 슬롯 {sorted(unlisted)}" + (f" — {UNLISTED_S}초 넘게 이어짐(갱신 스크립트가 멈춤, 승격되면 그 대기 서버의 보호가 빠진다)" if unlisted else "")))
+        out += catalog_xmin_stall(c, state)
     for port in NODE_PORTS:
         try:
             with pg(port) as c:
@@ -103,12 +110,46 @@ def m1_m2():
             out += [finding("M2", f"synced:{port}:{name}", "alert", f"노드 접속 실패 {type(error).__name__}") for name in SLOTS]
             continue
         if not recovery:
+            for name in SLOTS:
+                state.setdefault("first_bad", {}).pop(f"synced:{port}:{name}", None)
             out += [finding("M2", f"synced:{port}:{name}", "ok", "이 노드는 지금 primary(대기 아님)") for name in SLOTS]
             continue
         for name in SLOTS:
             synced, temporary = rows.get(name, (None, None))
-            ok = synced is True and temporary is False
-            out.append(finding("M2", f"synced:{port}:{name}", "ok" if ok else "alert", f"synced={synced}, temporary={temporary}"))
+            key, detail = f"synced:{port}:{name}", f"synced={synced}, temporary={temporary}"
+            if synced is True and temporary is False:
+                state.setdefault("first_bad", {}).pop(key, None)
+                out.append(finding("M2", key, "ok", detail))
+                continue
+            since = state.setdefault("first_bad", {}).setdefault(key, time.time())
+            age = int(time.time() - since)
+            late = age > SYNCED_GRACE_S
+            out.append(finding("M2", key, "alert" if late else "ok", detail + (f" — {age}초째(강등된 노드의 옛 슬롯이면 자동 정리가 멈춘 것)" if late
+                                                                               else f" — {age}초째, {SYNCED_GRACE_S}초 넘으면 경보")))
+    return out
+
+
+def catalog_xmin_stall(c, state):
+    """primary physical slot 마다 catalog_xmin 이 바뀐 때와 그때의 xid 끝을 상태에 두고, 오래 그대로인데 xid 는 늘었으면 경보.
+    대기 서버가 primary 의 어느 논리 슬롯보다 **오래된** 값을 쥘 때만 센다(강등된 노드의 옛 슬롯, 또는 그 대기 서버의 slotsync 멈춤). physical 값은 평소
+    가장 오래된 논리 슬롯을 그대로 따르므로, 커넥터를 멈춘 정상 작업(RB-1·RB-2 등)에서는 논리 슬롯과 같은 값에 함께 멈춘다 — 그것은 M1(10분 넘게 쉼)이 잡는다.
+    primary 에 논리 슬롯이 하나도 없으면(슬롯을 지운 사이) coalesce 로 0 과 견주므로 NULL 이 아닌 physical 값은 모두 "오래됨"으로 센다.
+    정상 지연: synced 사본은 primary 보다 조금 늦게 따라가 잠깐 "오래됨"이 된다(실측 최대 12초 연속, 값은 약 20초마다 바뀜) — 600초 조건이 거른다."""
+    xmax = int(c.execute("select pg_snapshot_xmax(pg_current_snapshot())::text").fetchone()[0])  # xid 를 쓰지 않고 읽는다
+    rows = c.execute("select slot_name, catalog_xmin::text, age(catalog_xmin) > coalesce((select max(age(catalog_xmin)) from pg_replication_slots "
+                     "where slot_type = 'logical'), 0) from pg_replication_slots where slot_type = 'physical'").fetchall()  # age(): xid 감김에도 안전
+    seen, out, now = state.setdefault("catalog_xmin", {}), [], time.time()
+    for name, cx, older in rows:
+        last = seen.get(name)
+        if last is None or last["value"] != cx:
+            seen[name] = last = {"value": cx, "since": now, "xmax": xmax}
+        still, grew = int(now - last["since"]), xmax - last["xmax"]
+        stalled = cx is not None and bool(older) and still > CXMIN_STALL_S and grew > CXMIN_STALL_XIDS
+        out.append(finding("M2", f"catalog_xmin:{name}", "alert" if stalled else "ok",
+                           f"catalog_xmin={cx}{'(primary 논리 슬롯보다 오래됨)' if older else ''}, {still}초째 그대로, 그사이 xid +{grew}"
+                           + (" — primary 카탈로그 VACUUM 을 막는다(강등된 노드의 옛 슬롯 또는 그 대기 서버의 슬롯 동기화 멈춤 확인)" if stalled else "")))
+    for gone in set(seen) - {r[0] for r in rows}:
+        seen.pop(gone)
     return out
 
 
@@ -279,7 +320,7 @@ def main():
         sys.exit(2)
     state, state_reset = load_state()
     findings, failed_checks = [], set()
-    for name, fn in (("M1·M2", m1_m2), ("M3", m3), ("M4", m4), ("M5", m5), ("S7", s7)):
+    for name, fn in (("M1·M2", lambda: m1_m2(state)), ("M3", m3), ("M4", m4), ("M5", m5), ("S7", s7)):
         try:
             findings += fn()
         except Exception as error:  # noqa: BLE001 — 점검 하나가 실패해도 나머지는 본다(실패 자체를 결과로)

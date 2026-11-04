@@ -7,7 +7,7 @@
 | # | 보는 것 | 경보 |
 |---|---|---|
 | M1 | 슬롯(`MONITOR_SLOTS`)의 `wal_status`·`inactive_since`·붙잡은 WAL | `unreserved`·`lost`, `inactive_since` 기준 `MONITOR_SLOT_INACTIVE_S`(600초)보다 오래 쉼(재시작·재배치 순간은 경보가 아니다), 붙잡은 WAL ≥ `max_slot_wal_keep_size`의 50%, 슬롯 없음. `lost`면 `restart_lsn`이 NULL이라 붙잡은 WAL은 `held=None`으로 적는다 |
-| M2 | 대기 서버 복제 지연·동기 후보 수, 논리 슬롯 `failover`, `synchronized_standby_slots` 목록과 붙어 있는 물리 슬롯의 차이, 대기 서버마다 논리 슬롯 `synced`·`temporary` | 동기 후보 0, 지연 > `MONITOR_REPLICA_LAG_BYTES`(임시 64MB), `failover=false`, 목록에 있는데 안 붙은 슬롯(CDC가 기다림), 복제 중(streaming)인데 목록에 없는 슬롯이 10초 넘게(2초마다 다시 봄 — 갱신 스크립트 D12-2가 멈춤, 승격되면 그 대기 서버의 보호가 빠짐), `synced` 아님·`temporary` |
+| M2 | 대기 서버 복제 지연·동기 후보 수, 논리 슬롯 `failover`, `synchronized_standby_slots` 목록과 붙어 있는 물리 슬롯의 차이, 대기 서버마다 논리 슬롯 `synced`·`temporary` | 동기 후보 0, 지연 > `MONITOR_REPLICA_LAG_BYTES`(임시 64MB), `failover=false`, 목록에 있는데 안 붙은 슬롯(CDC가 기다림), 복제 중(streaming)인데 목록에 없는 슬롯이 10초 넘게(2초마다 다시 봄 — 갱신 스크립트 D12-2가 멈춤, 승격되면 그 대기 서버의 보호가 빠짐), 대기 서버의 허용 목록 슬롯(`MONITOR_SLOTS`)이 `synced` 아님·`temporary`·없음으로 `MONITOR_SYNCED_GRACE_S`(120초) 넘게(slotsync가 새 사본을 만드는 약 1분은 경보가 아님 — 강등된 노드의 옛 슬롯을 자동 정리가 못 지운 경우), primary physical slot의 `catalog_xmin`이 primary의 어느 논리 슬롯보다 오래된 채(`age()` 비교) `MONITOR_CATALOG_XMIN_STALL_S`(600초) 넘게 그대로인데 그사이 primary xid가 `MONITOR_CATALOG_XMIN_STALL_XIDS`(50)개 넘게 늘었음(강등된 노드의 옛 논리 슬롯, 또는 그 대기 서버의 슬롯 동기화 멈춤이 primary 카탈로그 VACUUM을 막음. primary에 논리 슬롯이 없으면 NULL이 아닌 physical 값은 모두 "오래됨"으로 센다. 정상은 가장 오래된 논리 슬롯 값을 따라 xmax보다 2~4 뒤에서 약 20초마다 움직이고, synced 사본이 조금 늦어 "오래됨"이 되는 것은 최대 12초 연속 — 2026-11-04 실측(2초 간격 120초). 커넥터를 멈춰 논리 슬롯과 함께 멈춘 것은 M1이 잡는다. **50은 heartbeat 10초 기준**(트랜잭션 heartbeat 하나로 10분에 약 60개) — heartbeat 주기를 늘리면 함께 줄인다) |
 | M3 | Connect 커넥터·Task 상태 | FAILED |
 | M4 | Kafka 최소 ISR 미달·오프라인 파티션 | 하나라도 |
 | M5 | Bronze(`MONITOR_BRONZE`) checkpoint 의 마지막 확정 배치 시각·위치와 Kafka 끝 offset | 지연 > `MONITOR_BRONZE_LAG_MIN`(EOS 표식 여유) 이고 마지막 배치가 `MONITOR_BRONZE_STALE_S`(300초)보다 오래됨 |
@@ -26,7 +26,7 @@ R7(FAILED Task 자동 재시작)은 **넣지 않았다.** M3는 FAILED 경보만
 
 ## 설정(환경 변수, 기본값은 로컬 시험대)
 
-`MONITOR_PG_HOST`·`MONITOR_PG_PORT`(5010 = HAProxy rw), `MONITOR_PG_NODE_PORTS`(5432,5433,5434 — 노드마다 직접 물어 대기 서버면 synced를 본다. 승격 뒤에도 고칠 필요 없음), `MONITOR_PG_PASSWORD_FILE`, `MONITOR_SLOTS`, `MONITOR_SLOT_INACTIVE_S`(600), `MONITOR_CONNECT_REST`, `MONITOR_KAFKA`, `MONITOR_KAFKA_BIN`, `MONITOR_JAVA_HOME`, `MONITOR_BRONZE`(`이름|토픽|checkpoint s3a 경로`를 쉼표로), `S3_ENDPOINT`·`S3_ACCESS_KEY_FILE`·`S3_SECRET_KEY_FILE`, `MONITOR_STATE`(상태 파일, 기본 `~/.local/state/pipeline_monitor/state.json` — 운영 systemd는 `StateDirectory=`가 만든 폴더를 주면 된다), `MONITOR_WEBHOOK_URL` 또는 `MONITOR_WEBHOOK_FILE`.
+`MONITOR_PG_HOST`·`MONITOR_PG_PORT`(5010 = HAProxy rw), `MONITOR_PG_NODE_PORTS`(5432,5433,5434 — 노드마다 직접 물어 대기 서버면 synced를 본다. 승격 뒤에도 고칠 필요 없음), `MONITOR_PG_PASSWORD_FILE`, `MONITOR_SLOTS`, `MONITOR_SLOT_INACTIVE_S`(600), `MONITOR_SYNCED_GRACE_S`(120), `MONITOR_CATALOG_XMIN_STALL_S`(600)·`MONITOR_CATALOG_XMIN_STALL_XIDS`(50), `MONITOR_CONNECT_REST`, `MONITOR_KAFKA`, `MONITOR_KAFKA_BIN`, `MONITOR_JAVA_HOME`, `MONITOR_BRONZE`(`이름|토픽|checkpoint s3a 경로`를 쉼표로), `S3_ENDPOINT`·`S3_ACCESS_KEY_FILE`·`S3_SECRET_KEY_FILE`, `MONITOR_STATE`(상태 파일, 기본 `~/.local/state/pipeline_monitor/state.json` — 운영 systemd는 `StateDirectory=`가 만든 폴더를 주면 된다), `MONITOR_WEBHOOK_URL` 또는 `MONITOR_WEBHOOK_FILE`.
 
 비밀값(DB 비밀번호·RustFS 키·웹훅 주소)은 저장소에 두지 않는다. 파일 경로나 환경 변수로만 받고 출력하지 않는다.
 

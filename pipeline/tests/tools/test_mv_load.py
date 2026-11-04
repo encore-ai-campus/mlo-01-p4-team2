@@ -1,7 +1,9 @@
 """메타버스 더미 도구(mv_load·mv_simclock)의 순수 시험 — 앱·DB 없이 돈다(계획 MD-1 §6)."""
 import copy
+import os
 import random
 import sys
+import tempfile
 import unittest
 from collections import Counter
 from datetime import date, datetime, timezone
@@ -107,6 +109,12 @@ class PlanTest(unittest.TestCase):
         self.assertGreater(kinds["movement_observed"], 100)
         self.assertGreater(kinds["session_started"], 100)
         self.assertEqual(kinds["post_created"], 100)  # 글·댓글은 처음 세션에서만
+
+    def test_crossings_reject_configs_where_j0_would_fail(self):
+        utc, kst = m.crossings(m.plan_spans(make()["actions"]))
+        self.assertGreaterEqual(min(utc, kst), 3)  # 하루마다 두 자정
+        self.assertGreaterEqual(min(m.crossings(m.plan_spans(make(6, 2)["actions"]))), 1)
+        self.assertEqual(m.crossings(m.plan_spans(make(6, 1)["actions"]))[1], 0)  # 하루 24명 미만·1일이면 한국 자정이 없다 → main 이 시드 전에 거부
 
     def test_needs_two_users_a_day(self):
         with self.assertRaises(ValueError):
@@ -379,6 +387,24 @@ class JudgeTest(unittest.TestCase):
         self.assertFalse(m.judge_j0(rows, 2, 2, True, 30, ["raw.chat"], {})["ok"])
         self.assertFalse(m.judge_j0(rows, 2, 2, True, 30, None, {})["ok"])  # 토픽 확인 못함
         self.assertFalse(m.judge_j0([dict(rows[0], published=True)] + rows[1:], 2, 2, True, 30, [], {})["ok"])
+
+
+class RawTopicsTest(unittest.TestCase):
+    def run_with(self, script):
+        with tempfile.TemporaryDirectory() as d:
+            cmd = os.path.join(d, "topics")
+            with open(cmd, "w") as f:
+                f.write("#!/bin/sh\n" + script + "\n")
+            os.chmod(cmd, 0o700)
+            return m.raw_topics(cmd, "x:1")
+
+    def test_listing_must_include_the_cdc_topic(self):
+        self.assertEqual(self.run_with("echo metaverse.outbox.events; echo raw.chat"), ["raw.chat"])
+        self.assertEqual(self.run_with("echo metaverse.outbox.events"), [])
+        self.assertIsNone(self.run_with("echo ads.outbox.events; echo raw.chat"))  # 목록은 있지만 CDC 토픽이 없음
+        self.assertIsNone(self.run_with("true"))  # 빈 출력은 조회 실패로 본다
+        self.assertIsNone(self.run_with("exit 1"))
+        self.assertIsNone(m.raw_topics("/없는/경로", "x:1"))
 
 
 class SimClockTest(unittest.TestCase):

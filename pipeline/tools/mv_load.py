@@ -3,7 +3,7 @@
 사용: <메타버스 가상환경 python> mv_load.py --run <이름> [--users 100] [--days 3] [--seed 1] [--speed 120] [--out <폴더>]
       [--distribution --confirmed-by <사용자 확인 기록>]
 - 앱 경로는 환경 변수 MV_BACKEND(메타버스 저장소의 backend 폴더)로 받는다. 앱 저장소는 바꾸지 않는다. DB 설정(DATABASE_ENGINE·POSTGRES_*·PGPASSFILE)도 환경에서 받는다.
-  로컬 DB(POSTGRES_HOST 127.0.0.1·localhost)가 아니면 시작하지 않는다.
+  로컬 DB(POSTGRES_HOST 127.0.0.1·localhost, POSTGRES_DB = --expect-db 기본 metaverse_lab)가 아니면 시작하지 않는다.
 - 발행기·Redis를 끈다: KAFKA_BOOTSTRAP_SERVERS·CAMPUS_REDIS_URL·CAMPUS_MOVEMENT_REDIS_URL·CAMPUS_SERVICE_REDIS_URL 이 비어 있지 않으면 시작하지 않고,
   없으면 빈 값으로 둔다(앱의 .env 는 override=False 라 빈 값을 덮지 않는다). Django 설정에서 다시 확인한다.
 - 시드: 계정 `mvload_<run>_NNN`(비밀번호는 0600 문맥 파일에만), 프로필 설정 끝, 기수 6개에 고르게 + 미지정 10%, 문제은행(예제 20 + 초기 은행 100).
@@ -311,6 +311,23 @@ def problems(rows, strict, lim):
 
 # ---------------------------------------------------------------- 판정(순수)
 
+def crossings(spans):
+    """(시작, 끝) 시각 쌍 가운데 UTC 자정을 넘는 수와 한국 자정을 넘는 수."""
+    utc = sum(datetime.fromtimestamp(a, timezone.utc).date() != datetime.fromtimestamp(b, timezone.utc).date() for a, b in spans)
+    kst = sum(datetime.fromtimestamp(a, KST).date() != datetime.fromtimestamp(b, KST).date() for a, b in spans)
+    return utc, kst
+
+
+def plan_spans(actions):
+    """일정표(시각 순)의 세션마다 (로그인, 끝) 시각."""
+    first, last = {}, {}
+    for a in actions:
+        key = (a["user"], a["session"])
+        first.setdefault(key, a["t"])
+        last[key] = a["t"]
+    return [(first[k], last[k]) for k in first]
+
+
 def match_outbox(ledger, outbox, eps=1.0):
     """J2: (사용자, 종류)별 건수가 같고, k번째 outbox 행의 created_at 이 k번째 장부 동작의 [t0, t1] 안이며, 세션 UUID·참조 값이 같은지."""
     want, got, out = defaultdict(list), defaultdict(list), []
@@ -346,9 +363,7 @@ def judge_j0(outbox, n_users, days, strict, ledger_total, raw_topics, settings_b
     for o in outbox:
         if o["event_type"] in ("session_started", "session_ended"):
             span[o["raw_data"].get("session_uuid")][o["event_type"]] = o["created_at"]
-    ends = [(s["session_started"], s["session_ended"]) for s in span.values() if len(s) == 2]
-    cross_utc = sum(datetime.fromtimestamp(a, timezone.utc).date() != datetime.fromtimestamp(b, timezone.utc).date() for a, b in ends)
-    cross_kst = sum(datetime.fromtimestamp(a, KST).date() != datetime.fromtimestamp(b, KST).date() for a, b in ends)
+    cross_utc, cross_kst = crossings([(s["session_started"], s["session_ended"]) for s in span.values() if len(s) == 2])
     published = sum(o["published"] for o in outbox)
     payload_null = sum(o["payload_null"] for o in outbox)
     ok = (len(users) == n_users and each and len(outbox) == total and {"LOGOUT", "SESSION_EXPIRED"} <= set(reasons)
@@ -824,12 +839,13 @@ class Backend:
         return self.proc.returncode
 
 
-def raw_topics(cmd, bootstrap):
+def raw_topics(cmd, bootstrap, expect="metaverse.outbox.events"):
+    """raw.* 토픽 목록. 조회가 안 되거나 목록에 메타버스 CDC 토픽(expect)이 없으면 None(확인 못함)."""
     try:
-        listed = subprocess.run([cmd, "--bootstrap-server", bootstrap, "--list"], capture_output=True, text=True, timeout=120, check=True).stdout
+        listed = subprocess.run([cmd, "--bootstrap-server", bootstrap, "--list"], capture_output=True, text=True, timeout=120, check=True).stdout.split()
     except (OSError, subprocess.SubprocessError):
         return None
-    return sorted(t for t in listed.split() if t.startswith("raw."))
+    return sorted(t for t in listed if t.startswith("raw.")) if expect in listed else None
 
 
 ENV_OFF = ("KAFKA_BOOTSTRAP_SERVERS", "CAMPUS_REDIS_URL", "CAMPUS_MOVEMENT_REDIS_URL", "CAMPUS_SERVICE_REDIS_URL")
@@ -848,6 +864,7 @@ def main():
     ap.add_argument("--distribution", action="store_true", help="분포 모드(오답·여러 이동 표본·다른 날 세션). --confirmed-by 가 있어야 돈다")
     ap.add_argument("--confirmed-by", default="", help="분포 모드 사용자 확인 기록")
     ap.add_argument("--out", default=str(Path(tempfile.gettempdir()) / "mvload"), help="결과 폴더의 부모(기본 $TMPDIR/mvload)")
+    ap.add_argument("--expect-db", default="metaverse_lab", help="POSTGRES_DB 가 이 이름일 때만 돈다(같은 클러스터의 다른 DB 에 잘못 쓰지 않게)")
     ap.add_argument("--kafka-topics", default="/opt/kafka/current/bin/kafka-topics.sh")
     ap.add_argument("--kafka-bootstrap", default="127.0.0.1:9092")
     a = ap.parse_args()
@@ -860,6 +877,8 @@ def main():
         raise SystemExit("MV_BACKEND 에 메타버스 backend 폴더를 준다")
     if os.environ.get("DATABASE_ENGINE") != "postgresql" or os.environ.get("POSTGRES_HOST") not in ("127.0.0.1", "localhost"):
         raise SystemExit("로컬 PostgreSQL(DATABASE_ENGINE=postgresql, POSTGRES_HOST=127.0.0.1)에서만 돈다")
+    if os.environ.get("POSTGRES_DB") != a.expect_db:
+        raise SystemExit(f"POSTGRES_DB 가 {a.expect_db} 가 아니다(--expect-db)")
     for key in ENV_OFF:
         if os.environ.setdefault(key, "").strip():
             raise SystemExit(f"{key} 가 비어 있지 않다(발행기·Redis 는 꺼야 한다)")
@@ -883,8 +902,11 @@ def main():
     found = problems(p["actions"], not a.distribution, PLAN)
     if found:
         raise SystemExit(f"일정표가 규칙을 어긴다(도구 결함): {found[:5]}")
+    cross = crossings(plan_spans(p["actions"]))
+    if min(cross) < 1:  # 데이터를 쓴 뒤 J0 가 늘 실패하는 구성(예: --days 1 에 하루 24명 미만)
+        raise SystemExit(f"일정표에 UTC 자정·한국 자정을 넘는 세션이 둘 다 있어야 한다(J0) — 지금 {cross}. --days 2 이상이나 하루 24명 이상으로")
     if p["end"] > time.time() - 600:
-        raise SystemExit("일정표 끝이 지금보다 늦다(어제 밤 세션이 오늘 새벽까지 간다) — 한국 시간 01:30 뒤에 돌린다")
+        raise SystemExit(f"일정표 끝이 지금보다 늦다(마지막 날 밤 세션이 오늘까지 간다) — {datetime.fromtimestamp(p['end'] + 600, KST):%Y-%m-%d %H:%M} KST 뒤에 돌린다")
     users = db.seed(a.run, p["users"])
     s0, speed = p["start"] - 60, a.speed
     r0 = time.time() + 15  # 백엔드가 뜰 동안. 그 전의 시험 시각은 S0 보다 앞이라 과거다

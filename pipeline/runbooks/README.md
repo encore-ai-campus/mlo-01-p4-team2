@@ -24,7 +24,7 @@
 |---|---|---|
 | 1 | `mismatch` 창 목록을 얻는다(D11 규칙 — `unsent`를 지연 근거로 쓰지 않음) | `c4_reconcile` 보고 → 창 목록 |
 | 2 | 창마다 `created_at`이 그 창 안인 outbox 행을 D13 수단(Kafka signal 증분 스냅샷)으로 다시 보낸다. 앞뒤 1창 여유는 더해도 된다(중복은 무해) | 창 목록 → signal 메시지 |
-| 3 | 다음 대사에서 그 창이 `match`인지 본다. 중복은 `duplicates`로 따로 나오고 `match`를 막지 않는다 | 대사 보고 → `match` |
+| 3 | 다음 대사에서 그 창이 `match`인지 본다. 중복은 `duplicates`로 따로 나오고 `match`를 막지 않는다. **끝났는지는 이 대사로만 판정한다** — Debezium의 "incremental snapshotting … finished" 로그로 판정하지 않는다(스냅샷 중 오류가 나면 Debezium이 "skipping and continuing streaming"으로 남은 청크를 버리고 RUNNING인 채로 갈 수 있다 — E-R1 C 관찰) | 대사 보고 → `match` |
 | 4 | 감사 로그에 남긴다 | 창 목록·건수·사유 RB 번호 |
 
 재발행 도구는 아직 없다. 요청·감사 기록은 광고 서버 `request_resend`(계획 02 P1-9), signal 쓰기는 파이프라인 쪽 스크립트(P2-3)로 생긴다. 그 전까지는 이 표가 절차다.

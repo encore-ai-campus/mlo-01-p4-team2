@@ -3,7 +3,8 @@
 사용: c4_reconcile.py <bronze_dump.ndjson> <out_dir> [--as-of ISO] [--window hour|day] [--since ISO]
 - --since: 이 시각(창 경계로 줌) 이후의 창만 양쪽에서 요약한다(덤프도 같은 --since 로 만든다). 덤프는 줄 단위로 읽는다.
 - hop_outbox: 광고 서버 outbox_streams(한 읽기 스냅샷). hop_pipeline: Bronze value → after → 정규화 문서, event_id 로 중복을 가려 요약.
-- 같은 event_id 가 여러 번이면 '중복'으로 따로 세고, 내용이 다르면 '충돌'로 센다(줄에는 한 번만).
+- op 는 c(스트리밍)·r(증분 스냅샷 재발행)를 같은 문서로 센다. 그 밖의 op 는 문제(not_insert)로 센다.
+- 같은 event_id 가 여러 번이면 '중복'으로 따로 세고, after 6열(event_id·event_name·schema_version·aggregate_id·payload·created_at, sent_at 은 뺌)이 다르면 '충돌'로 센다(줄에는 한 번만).
 - 대조는 hopcheck.compare 두 번: ① CDC 규칙(outbox 의 unsent 로 부족분을 지연으로 보지 않음) ② 지금 코드 그대로(구간 이름 hop_outbox → unsent 를 지연 근거로 씀).
 """
 import argparse
@@ -51,7 +52,8 @@ for line in o_lines:
     line["unsent"] = unsent.get((line["window_start"], line["event_name"]), 0)
 
 # ④ Bronze — 원본 봉투를 풀어 정규화 문서로
-docs, seen_at, dup, conflict, problems = {}, {}, Counter(), [], Counter()
+docs, content, seen_at, dup, conflict, problems = {}, {}, {}, Counter(), [], Counter()
+CONTENT_COLUMNS = ("event_id", "event_name", "schema_version", "aggregate_id", "payload", "created_at")  # after 의 sent_at 은 뺀다(재발행 op=r 은 보낸 뒤 값을 읽을 수 있다)
 rows_read = 0
 with (CWD / a.dump).open(encoding="utf-8") as dump_file:  # 줄 단위로 읽는다(덤프 전체를 메모리에 두지 않는다)
     for line in dump_file:
@@ -62,19 +64,20 @@ with (CWD / a.dump).open(encoding="utf-8") as dump_file:  # 줄 단위로 읽는
         if (s["db"], s["schema"], s["table"]) != (os.environ["DB_NAME"], "public", "events_outbox"):
             problems["foreign_source"] += 1
             continue
-        if v["op"] != "c" or af is None:
+        if v["op"] not in ("c", "r") or af is None:  # r = 증분 스냅샷 재발행(RB-0·D13) — outbox 는 INSERT 만이라 c 와 같은 문서다(같은 event_id 면 중복으로 센다)
             problems["not_insert"] += 1
             continue
         doc = hops.normal_document(af["event_id"], af["event_name"], af["schema_version"], datetime.fromisoformat(af["created_at"]), json.loads(af["payload"]))
         pos = f'{r["partition"]}:{r["offset"]}'
         eid = doc["event_id"]
+        same = hops.canonical_json({k: json.loads(af[k]) if k == "payload" else af.get(k) for k in CONTENT_COLUMNS})  # 원문 그대로(시각을 줄이지 않는다)
         if eid in docs:
             dup[eid] += 1
-            if hops.canonical_json(doc) != hops.canonical_json(docs[eid]):
+            if same != content[eid]:  # 같은 event_id 인데 내용이 다르면 중복이 아니라 충돌(실패)
                 conflict.append(eid)
             seen_at[eid].append(pos)
             continue
-        docs[eid], seen_at[eid] = doc, [pos]
+        docs[eid], content[eid], seen_at[eid] = doc, same, [pos]
 b_lines, b_open = hops.summarize(list(docs.values()), now, grace, since, size)
 
 common = {"window": label, "grace_seconds": grace, "started_at": now.isoformat(), "since": since.isoformat() if since else None}

@@ -64,5 +64,9 @@ def change(actor, paused, message, expected_revision):
                 raise RevisionConflict
             FreezeChange.objects.create(actor=actor, paused=paused,
                                         revision=expected_revision + 1, message=message)
+    if paused:
+        from event_story.interrupt import interrupt_running
+        with transaction.atomic():
+            interrupt_running()
     invalidate()
     return read_state(force=True)

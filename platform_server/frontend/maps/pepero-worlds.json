@@ -2383,7 +2383,7 @@
         {
           "id": "campus-guide-kkuwang",
           "type": "guide-npc",
-          "name": "메타버스 가이드 꾸왕이",
+          "name": "탐정 꾸왕이 · 메인 미션",
           "action": "guide",
           "x": 1226.25,
           "y": 120,
@@ -2391,56 +2391,9 @@
           "h": 40,
           "solid": true,
           "renderHeight": 60,
-          "description": "클릭하거나 가까이에서 E를 누르면 이벤트맵 이용 안내를 볼 수 있어요.",
-          "roomId": "class3-4"
-        },
-        {
-          "id": "story-evidence-table",
-          "type": "story-evidence",
-          "x": 565,
-          "y": 355,
-          "w": 170,
-          "h": 80,
-          "roomId": "lounge2",
-          "solid": true,
-          "info": false,
-          "renderHeight": 90
-        },
-        {
-          "id": "story-wrapper",
-          "type": "booth-interaction",
-          "x": 576,
-          "y": 432,
-          "w": 28,
-          "h": 20,
-          "roomId": "lounge2",
-          "solid": false,
-          "info": true,
-          "name": "빈 포장지 조사",
-          "action": "story",
-          "interactionPoint": [
-            590,
-            445
-          ],
-          "interactionRadius": 50
-        },
-        {
-          "id": "story-count",
-          "type": "booth-interaction",
-          "x": 686,
-          "y": 432,
-          "w": 28,
-          "h": 20,
-          "roomId": "lounge2",
-          "solid": false,
-          "info": true,
-          "name": "선물 수량 확인표 · 행사 기록",
-          "action": "story",
-          "interactionPoint": [
-            700,
-            445
-          ],
-          "interactionRadius": 50
+          "description": "가까이서 상호작용하면 메인 미션을 시작하거나 현재 단계의 대화와 선물 전달을 진행합니다.",
+          "roomId": "class3-4",
+          "interactionRadius": 70
         }
       ],
       "entrance": {

@@ -934,6 +934,7 @@
       const r=footprint(o),area=o,corners=[[area.x-12,area.y-12],[area.x+area.w+12,area.y-12],[area.x+area.w+12,area.y+area.h+12],[area.x-12,area.y+area.h+12]].map(([x,y])=>p(x,y));
       const b={x:Math.floor(Math.min(...corners.map(q=>q.x))-7),y:Math.floor(Math.min(...corners.map(q=>q.y))-groundHeight(o.x+o.w/2,o.y+o.h/2)-(o.renderHeight||110))};
       b.w=Math.ceil(Math.max(...corners.map(q=>q.x))-b.x+7);b.h=Math.ceil(Math.max(...corners.map(q=>q.y))-b.y+10+(o.renderDepth||0));
+      if(o.type==='mission-manager'){const q=projectGround(o.x+o.w/2,o.y+o.h/2);Object.assign(b,{x:Math.floor(q.x-75),y:Math.floor(q.y-90),w:150,h:110});}
       if(o.type==='plaza-display') {
         const q=projectGround(o.x+o.w/2,o.y+o.h/2),sw=o.screenWidth||250,v=o.displayAxis==='y'?P.vector(0,-1):{x:1,y:0};
         const half=(sw/2+16),spreadX=Math.abs(v.x)*half,spreadY=Math.abs(v.y)*half;
@@ -1000,8 +1001,8 @@
           const fx=alongX?0:5,fy=alongX?5:0,forward=ux+uy>0,first=forward?a===0:b===1,last=forward?b===1:a===0;
           const o={type:'wall',x:Math.min(X1,X2)-fx,y:Math.min(Y1,Y2)-fy,w:Math.abs(X2-X1)+fx*2,h:Math.abs(Y2-Y1)+fy*2,renderHeight:h+14,occludes:wall.occludes};
           const ends=[first&&reach[forward?0:1]>0,last&&reach[forward?1:0]>0],trim=first?0:.5,foot={x:o.x+(alongX?trim:0),y:o.y+(alongX?0:trim),w:o.w-(alongX?trim+(last?0:3.5):0),h:o.h-(alongX?0:trim+(last?0:4.5))};
-          const body=peperoSeason?(h>=170?['#75504a','#513039','#3c252e']:[wall.color||'#f4e3c6','#d8bb95','#bd9679']):[wall.color||D.wallColor||'#eee5d0',D.wallColor?'#cad5ca':'#c8b99a',D.wallColor?'#b5c3b5':'#b4a387'];
-          const cap=peperoSeason?['#8e5236','#6a3829','#47221e']:[D.wallColor?'#e7eee3':'#8d775b',D.wallColor?'#c9d4c3':'#917656',D.wallColor?'#b2c2ab':'#786449'];
+          const body=peperoSeason?(h>=170?['#75504a','#513039','#3c252e']:[wall.color||'#f4e3c6','#d8bb95','#bd9679']):D.wallPalette?.body||[wall.color||D.wallColor||'#eee5d0',D.wallColor?'#cad5ca':'#c8b99a',D.wallColor?'#b5c3b5':'#b4a387'];
+          const cap=peperoSeason?['#8e5236','#6a3829','#47221e']:D.wallPalette?.cap||[D.wallColor?'#e7eee3':'#8d775b',D.wallColor?'#c9d4c3':'#917656',D.wallColor?'#b2c2ab':'#786449'];
           sprites.push(cacheSprite(o,()=>{if(D.wallShadows!==false)shadow(foot,z);wallBox(o.x,o.y,o.w,o.h,z,h,body,alongX,...ends);wallBox(o.x,o.y,o.w,o.h,z+h,4,cap,alongX,...ends);},true));
         }
       }
@@ -1119,6 +1120,10 @@
     function drawSprite(ctx,s,alpha=1){ctx.save();ctx.globalAlpha=alpha;if(s.o.type==='story-evidence'){g=ctx;furniture(s.o,groundHeight(s.o.x+s.o.w/2,s.o.y+s.o.h/2));}else if(s.o.type==='sliding-door'&&doorStates.has(s.o.id)){const progress=doorProgress(doorStates.get(s.o.id),performance.now());g=ctx;furniture({...s.o,x:s.o.x-s.o.w*progress,closed:true},0);}else ctx.drawImage(s.canvas,s.b.x,s.b.y,s.b.w,s.b.h);ctx.restore();}
     const scene=makeCanvas(P.width*resolution,P.height*resolution),sg=scene.getContext('2d');
     function repaintScene(){sg.setTransform(1,0,0,1,0,0);sg.clearRect(0,0,scene.width,scene.height);sg.setTransform(resolution,0,0,resolution,0,0);city?.draw(sg);sg.drawImage(floorCanvas,0,0,P.width,P.height);for(const s of sprites){drawSprite(sg,s);if(s.o.type==='fountain'){g=sg;fountainWater(s.o,0);}if(s.o.type==='floor-portal'){g=sg;if(s.o.portalStyle==='compact')compactPortalEnergy(s.o);else portalEnergy(s.o,groundHeight(s.o.x+s.o.w/2,s.o.y+s.o.h/2));}else if(s.o.type==='stair-portal'||(s.o.type==='fire-extinguisher'&&s.o.portalGlow)){g=sg;compactPortalEnergy(s.o);}}for(const sprite of sprites.filter(sprite=>sprite.o.type==='wall-sign'||(sprite.o.type==='wall-poster'&&sprite.o.inFrontOfWalls)))drawSprite(sg,sprite);drawLabels(sg);}
+    window.addEventListener('campus-mission-assets-ready',()=>{
+      for(const sprite of sprites.filter(s=>s.o.type?.startsWith('mission-'))){const depth=sprite.depth;Object.assign(sprite,cacheSprite(sprite.o,()=>furniture(sprite.o,groundHeight(sprite.o.x+sprite.o.w/2,sprite.o.y+sprite.o.h/2))));sprite.depth=depth;}
+      repaintScene();
+    });
     let seasonRepaintPending=false;
     window.addEventListener?.('campus-seasonal-assets-ready',event=>{
       if(!peperoSeason)return;

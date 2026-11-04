@@ -1,0 +1,141 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:8px;background:#fff7e8}button{cursor:pointer}</style></head><body><div id="sql-memory-demo">
+  <style>
+    #sql-memory-demo {--sm-bg:light-dark(#fcf8ef,#18251f);--sm-panel:light-dark(#ffffff,#21352b);--sm-text:light-dark(#243d32,#eef4ec);--sm-sub:light-dark(#52695e,#b4c7ba);--sm-line:light-dark(#d8e2d6,#456151);--sm-green:light-dark(#12614c,#9be7b8);--sm-on:light-dark(#ffffff,#123124);--sm-soft:light-dark(#e7f1e8,#2d4939);--sm-code:light-dark(#f2f5ef,#192b22);--sm-error:light-dark(#9f3d25,#ffb39a);color:var(--sm-text);font-family:system-ui,sans-serif;background:var(--sm-bg);border:1px solid var(--sm-line);border-radius:22px;padding:24px;box-sizing:border-box;}
+    #sql-memory-demo * {box-sizing:border-box;}
+    #sql-memory-demo h2 {font-size:25px;line-height:1.3;margin:4px 0 8px;font-weight:700;letter-spacing:-.7px;}
+    #sql-memory-demo h3 {font-size:16px;line-height:1.4;margin:0 0 12px;}
+    #sql-memory-demo p {margin:0;}
+    #sql-memory-demo .sm-eyebrow {font-size:11px;letter-spacing:2px;color:var(--sm-green);font-weight:700;}
+    #sql-memory-demo .sm-sub {color:var(--sm-sub);font-size:13px;line-height:1.6;}
+    #sql-memory-demo .sm-top {padding-right:65px;}
+    #sql-memory-demo .sm-controls {display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin:20px 0;}
+    #sql-memory-demo label {font-size:12px;display:grid;gap:6px;color:var(--sm-sub);}
+    #sql-memory-demo select {font:inherit;font-size:13px;max-width:100%;padding:9px;border-radius:8px;color:var(--sm-text);background:var(--sm-panel);border:1px solid var(--sm-line);}
+    #sql-memory-demo .sm-problem-label {flex:1;min-width:160px;}
+    #sql-memory-demo .sm-layout {display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.9fr);gap:22px;align-items:start;}
+    #sql-memory-demo .sm-query {background:var(--sm-code);border-radius:12px;padding:14px 10px;min-width:0;}
+    #sql-memory-demo .sm-line {font:12px/1.75 ui-monospace,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;padding:0 6px;border-left:3px solid transparent;min-height:21px;}
+    #sql-memory-demo .sm-line.sm-lit {background:var(--sm-soft);border-left-color:var(--sm-green);font-weight:700;}
+    #sql-memory-demo .sm-status {display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--sm-sub);margin-bottom:12px;}
+    #sql-memory-demo .sm-progress {height:5px;background:var(--sm-line);border-radius:5px;overflow:hidden;margin-bottom:18px;}
+    #sql-memory-demo .sm-progress > div {height:100%;background:var(--sm-green);transition:width .2s;}
+    #sql-memory-demo .sm-stage {min-height:82px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-align:center;margin-bottom:16px;}
+    #sql-memory-demo .sm-stage strong {font-size:20px;letter-spacing:-.4px;}
+    #sql-memory-demo .sm-stage span {font-size:12px;color:var(--sm-sub);}
+    #sql-memory-demo .sm-pad {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+    #sql-memory-demo .sm-pad button {min-height:76px;font:700 12px/1.35 ui-monospace,Consolas,monospace;border:1px solid var(--sm-line);background:var(--sm-panel);color:var(--sm-text);border-radius:12px;padding:8px 3px;touch-action:manipulation;transition:background .08s,transform .08s;}
+    #sql-memory-demo button {cursor:pointer;}
+    #sql-memory-demo button:disabled {cursor:default;}
+    #sql-memory-demo .sm-pad button:disabled {opacity:.75;}
+    #sql-memory-demo .sm-pad button[aria-pressed="true"] {background:var(--sm-green);color:var(--sm-on);opacity:1;transform:scale(.97);border-color:var(--sm-green);}
+    #sql-memory-demo .sm-pad button:not(:disabled):hover {background:var(--sm-soft);}
+    #sql-memory-demo .sm-actions {display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+    #sql-memory-demo .sm-button {font:600 13px/1.4 system-ui;padding:10px 14px;border-radius:9px;background:var(--sm-panel);border:1px solid var(--sm-line);color:var(--sm-text);min-height:40px;}
+    #sql-memory-demo .sm-button.sm-main {background:var(--sm-green);color:var(--sm-on);border-color:var(--sm-green);}
+    #sql-memory-demo .sm-button:disabled {opacity:.4;}
+    #sql-memory-demo .sm-feedback {margin-top:14px;min-height:43px;font-size:13px;line-height:1.6;color:var(--sm-sub);overflow-wrap:anywhere;}
+    #sql-memory-demo .sm-feedback.sm-wrong {color:var(--sm-error);}
+    #sql-memory-demo details {margin-top:18px;font-size:12px;line-height:1.7;}
+    #sql-memory-demo summary {cursor:pointer;font-weight:600;}
+    #sql-memory-demo .sm-answer {margin:10px 0 0;padding-left:24px;color:var(--sm-sub);}
+    #sql-memory-demo .sm-answer li {padding:4px 0;}
+    #sql-memory-demo .sm-answer b {color:var(--sm-text);}
+    #sql-memory-demo .sm-note {margin-top:18px;padding-top:14px;border-top:1px solid var(--sm-line);font-size:11px;line-height:1.6;color:var(--sm-sub);}
+    #sql-memory-demo [hidden] {display:none!important;}
+    @media(max-width:620px) {#sql-memory-demo {padding:16px;}#sql-memory-demo .sm-layout {grid-template-columns:1fr;}#sql-memory-demo .sm-query-panel {order:2;}#sql-memory-demo .sm-pad button {min-height:70px;}#sql-memory-demo .sm-top {padding-right:30px;}}
+    @media(prefers-reduced-motion:reduce) {#sql-memory-demo * {transition:none!important;}}
+  </style>
+  <div class="sm-top"><div class="sm-eyebrow">EVIDENCE LAB · 11.11</div><h2>쿼리의 순서를 기억해</h2><p class="sm-sub">빛나는 SQL 패드를 기억하고 그대로 눌러봐. 성공할 때마다 한 단계씩 길어져.</p></div>
+  <div class="sm-controls">
+    <label class="sm-problem-label">문제 · 무작위 8종<select id="sm-problem" aria-label="문제 선택"></select></label>
+    <label>재생 속도<select id="sm-speed"><option value="850">천천히</option><option value="550" selected>보통</option><option value="320">빠르게</option></select></label>
+    <button class="sm-button" id="sm-random" type="button">다른 문제 뽑기</button>
+  </div>
+  <div class="sm-layout">
+    <section class="sm-query-panel" aria-label="현재 문제 SQL"><h3 id="sm-question"></h3><div class="sm-query" id="sm-code"></div><p class="sm-sub" id="sm-goal" style="margin-top:10px"></p></section>
+    <section aria-label="SQL 기억력 게임">
+      <div class="sm-status"><span id="sm-round">라운드 1</span><span id="sm-count">기억할 순서 1개</span></div>
+      <div class="sm-progress" role="progressbar" aria-label="전체 순서 완성도" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="sm-progress-fill" style="width:0%"></div></div>
+      <div class="sm-stage" role="status" aria-live="polite"><strong id="sm-state">준비됐어?</strong><span id="sm-context">시작하면 첫 번째 패드가 빛나요</span></div>
+      <div class="sm-pad" id="sm-pad" aria-label="SQL 명령어 9칸 패드"></div>
+      <div class="sm-actions"><button class="sm-button sm-main" id="sm-start" type="button">기억하기 시작</button><button class="sm-button" id="sm-replay" type="button" disabled>같은 순서 다시 보기</button></div>
+      <div class="sm-feedback" id="sm-feedback" aria-live="polite">꾸왕이: 먼저 패드가 빛나는 순서를 보고, “네 차례!”가 나오면 눌러줘.</div>
+    </section>
+  </div>
+  <details id="sm-explanation"><summary>이 문제의 전체 순서와 해설 보기</summary><ol class="sm-answer" id="sm-answer"></ol></details>
+  <p class="sm-note">학습 기준: FROM 안의 비상관 서브쿼리를 안쪽부터 완성하고 바깥 쿼리로 이동해요. JOIN은 FROM 단계 안의 결합을 별도 패드로 나눈 것이에요. 이 데모는 논리 처리 순서 학습용이며, DB의 실제 실행 계획을 재현하지 않아요.</p>
+  <script>
+  (() => {
+    const root=document.getElementById('sql-memory-demo');
+    const $=s=>root.querySelector(s);
+    const pads=['FROM','JOIN','WHERE','GROUP BY','HAVING','SELECT','DISTINCT','ORDER BY','LIMIT'];
+    const explain={FROM:'데이터를 가져올 테이블 또는 서브쿼리 결과를 정해요.',JOIN:'연결 조건으로 테이블을 결합해요.',WHERE:'조건에 맞는 행만 남겨요.','GROUP BY':'같은 값을 가진 행들을 그룹으로 묶고 집계해요.',HAVING:'집계 결과 조건에 맞는 그룹만 남겨요.',SELECT:'결과로 보여줄 열과 계산식을 선택해요.',DISTINCT:'결과의 중복 행을 제거해요.','ORDER BY':'결과를 지정한 기준으로 정렬해요.',LIMIT:'정렬된 결과에서 필요한 개수만 남겨요.'};
+    // 각 행은 SQL 텍스트, 쿼리 블록, 패드 이름. 블록의 논리 순서로 문제를 생성한다.
+    const block=(id,name,rows)=>({id,name,rows});
+    const problem=(title,goal,blocks,lines)=>({title,goal,blocks,lines});
+    const questions=[
+      problem('고객별 주문 TOP 3','완료된 주문을 집계하고 주문이 3건 이상인 고객을 골라요.',[
+        block('i','안쪽 · 고객별 집계',['FROM','WHERE','GROUP BY','SELECT']),block('o','바깥 · 상위 고객',['FROM','WHERE','SELECT','ORDER BY','LIMIT'])
+      ],[
+        ['SELECT customer_id, order_count','o','SELECT'],['FROM (','o','FROM'],['  SELECT customer_id, COUNT(*) AS order_count','i','SELECT'],['  FROM orders','i','FROM'],["  WHERE status = 'completed'",'i','WHERE'],['  GROUP BY customer_id','i','GROUP BY'],[') AS summary'],['WHERE order_count >= 3','o','WHERE'],['ORDER BY order_count DESC, customer_id','o','ORDER BY'],['LIMIT 3;','o','LIMIT']]),
+      problem('학습 참가 지역 찾기','활동 중인 학습자의 중복 지역을 제거하고 이름순으로 정렬해요.',[
+        block('i','안쪽 · 중복 지역 제거',['FROM','WHERE','SELECT','DISTINCT']),block('o','바깥 · 지역 정렬',['FROM','SELECT','ORDER BY'])
+      ],[
+        ['SELECT region','o','SELECT'],['FROM (','o','FROM'],['  SELECT DISTINCT region','i','SELECT'],['  FROM learners','i','FROM'],['  WHERE active = TRUE','i','WHERE'],[') AS regions'],['ORDER BY region;','o','ORDER BY']]),
+      problem('상품별 매출 분석','주문과 상품을 연결하고 매출 기준을 통과한 상품을 뽑아요.',[
+        block('i','안쪽 · 상품 매출 집계',['FROM','JOIN','WHERE','GROUP BY','HAVING','SELECT']),block('o','바깥 · 매출 순위',['FROM','WHERE','SELECT','ORDER BY','LIMIT'])
+      ],[
+        ['SELECT product_id, revenue','o','SELECT'],['FROM (','o','FROM'],['  SELECT p.id AS product_id,','i','SELECT'],['         SUM(oi.qty * p.price) AS revenue'],['  FROM order_items AS oi','i','FROM'],['  JOIN products AS p ON p.id = oi.product_id','i','JOIN'],['  WHERE oi.qty > 0','i','WHERE'],['  GROUP BY p.id','i','GROUP BY'],['  HAVING SUM(oi.qty * p.price) >= 10000','i','HAVING'],[') AS sales'],['WHERE revenue >= 20000','o','WHERE'],['ORDER BY revenue DESC, product_id','o','ORDER BY'],['LIMIT 5;','o','LIMIT']]),
+      problem('3중 쿼리 · 우수 학습자','통과한 제출만 모아 학습자별 평균을 계산하고 우수자를 골라요.',[
+        block('i','가장 안쪽 · 제출 필터',['FROM','WHERE','SELECT']),block('m','중간 · 평균 점수',['FROM','GROUP BY','HAVING','SELECT']),block('o','바깥 · 우수자 순위',['FROM','WHERE','SELECT','ORDER BY','LIMIT'])
+      ],[
+        ['SELECT learner_id, avg_score','o','SELECT'],['FROM (','o','FROM'],['  SELECT learner_id, AVG(score) AS avg_score','m','SELECT'],['  FROM (','m','FROM'],['    SELECT learner_id, score','i','SELECT'],['    FROM submissions','i','FROM'],['    WHERE passed = TRUE','i','WHERE'],['  ) AS passed_rows'],['  GROUP BY learner_id','m','GROUP BY'],['  HAVING COUNT(*) >= 3','m','HAVING'],[') AS learner_scores'],['WHERE avg_score >= 80','o','WHERE'],['ORDER BY avg_score DESC, learner_id','o','ORDER BY'],['LIMIT 5;','o','LIMIT']]),
+      problem('참여한 강좌 수 집계','중복 수강 신청을 제거하고 강좌가 2개 이상인 학습자를 골라요.',[
+        block('i','안쪽 · 수강 중복 제거',['FROM','JOIN','WHERE','SELECT','DISTINCT']),block('o','바깥 · 강좌 수 집계',['FROM','GROUP BY','HAVING','SELECT','ORDER BY','LIMIT'])
+      ],[
+        ['SELECT learner_id, COUNT(*) AS course_count','o','SELECT'],['FROM (','o','FROM'],['  SELECT DISTINCT e.learner_id, e.course_id','i','SELECT'],['  FROM enrollments AS e','i','FROM'],['  JOIN courses AS c ON c.id = e.course_id','i','JOIN'],["  WHERE c.category = 'SQL'",'i','WHERE'],[') AS unique_enrollments'],['GROUP BY learner_id','o','GROUP BY'],['HAVING COUNT(*) >= 2','o','HAVING'],['ORDER BY course_count DESC, learner_id','o','ORDER BY'],['LIMIT 5;','o','LIMIT']]),
+      problem('인기 상품 안에서 재선택','판매량 TOP 10을 먼저 구한 뒤 기준에 맞는 상품만 다시 정렬해요.',[
+        block('i','안쪽 · 판매량 TOP 10',['FROM','GROUP BY','SELECT','ORDER BY','LIMIT']),block('o','바깥 · 기준 상품 필터',['FROM','WHERE','SELECT','ORDER BY'])
+      ],[
+        ['SELECT product_id, total_qty','o','SELECT'],['FROM (','o','FROM'],['  SELECT product_id, SUM(qty) AS total_qty','i','SELECT'],['  FROM order_items','i','FROM'],['  GROUP BY product_id','i','GROUP BY'],['  ORDER BY total_qty DESC, product_id','i','ORDER BY'],['  LIMIT 10','i','LIMIT'],[') AS popular'],['WHERE total_qty >= 50','o','WHERE'],['ORDER BY product_id;','o','ORDER BY']]),
+      problem('활성 고객이 있는 지역','고객별 완료 주문 수를 구하고 기준을 만족하는 지역을 중복 없이 골라요.',[
+        block('i','안쪽 · 지역별 고객 집계',['FROM','WHERE','GROUP BY','HAVING','SELECT']),block('o','바깥 · 지역 추출',['FROM','SELECT','DISTINCT','ORDER BY','LIMIT'])
+      ],[
+        ['SELECT DISTINCT region','o','SELECT'],['FROM (','o','FROM'],['  SELECT region, customer_id, COUNT(*) AS n','i','SELECT'],['  FROM orders','i','FROM'],["  WHERE status = 'completed'",'i','WHERE'],['  GROUP BY region, customer_id','i','GROUP BY'],['  HAVING COUNT(*) >= 3','i','HAVING'],[') AS active_customers'],['ORDER BY region','o','ORDER BY'],['LIMIT 5;','o','LIMIT']]),
+      problem('3중 쿼리 · 팀별 성과','학습자 점수를 집계하고 소속 팀을 연결해 팀 평균을 비교해요.',[
+        block('i','가장 안쪽 · 개인 점수',['FROM','WHERE','GROUP BY','SELECT']),block('m','중간 · 소속 팀 연결',['FROM','JOIN','WHERE','SELECT']),block('o','바깥 · 팀 평균 순위',['FROM','GROUP BY','HAVING','SELECT','ORDER BY','LIMIT'])
+      ],[
+        ['SELECT team_id, AVG(total_score) AS team_avg','o','SELECT'],['FROM (','o','FROM'],['  SELECT l.team_id, scores.total_score','m','SELECT'],['  FROM (','m','FROM'],['    SELECT learner_id, SUM(score) AS total_score','i','SELECT'],['    FROM submissions','i','FROM'],['    WHERE passed = TRUE','i','WHERE'],['    GROUP BY learner_id','i','GROUP BY'],['  ) AS scores'],['  JOIN learners AS l ON l.id = scores.learner_id','m','JOIN'],['  WHERE l.active = TRUE','m','WHERE'],[') AS team_scores'],['GROUP BY team_id','o','GROUP BY'],['HAVING AVG(total_score) >= 150','o','HAVING'],['ORDER BY team_avg DESC, team_id','o','ORDER BY'],['LIMIT 3;','o','LIMIT']])
+    ];
+    questions.forEach(q=>q.sequence=q.blocks.flatMap(b=>b.rows.map(op=>({op,block:b.id,scope:b.name}))));
+    const selector=$('#sm-problem'),speed=$('#sm-speed'),start=$('#sm-start'),replay=$('#sm-replay'),feedback=$('#sm-feedback');
+    questions.forEach((q,i)=>{const o=document.createElement('option');o.value=i;o.textContent=q.title;selector.append(o);});
+    const buttons=new Map();pads.forEach(op=>{const b=document.createElement('button');b.type='button';b.textContent=op;b.disabled=true;b.setAttribute('aria-pressed','false');b.setAttribute('aria-label',op+' 패드');b.className='cursor-interaction';b.addEventListener('click',()=>input(op));$('#sm-pad').append(b);buttons.set(op,b);});
+    let questRounds=[];let index=0,round=1,position=0,phase='ready',token=0,completed=0,helps=0,bag=[],pressTimer;
+    const wait=ms=>new Promise(r=>setTimeout(r,ms));
+    const q=()=>questions[index];
+    function setState(main,sub){$('#sm-state').textContent=main;$('#sm-context').textContent=sub;}
+    function message(text,error=false){feedback.textContent=text;feedback.classList.toggle('sm-wrong',error);}
+    function clearLights(){buttons.forEach(b=>b.setAttribute('aria-pressed','false'));root.querySelectorAll('.sm-line').forEach(l=>l.classList.remove('sm-lit'));}
+    function highlight(step){clearLights();buttons.get(step.op).setAttribute('aria-pressed','true');root.querySelectorAll('.sm-line').forEach(l=>{if(l.dataset.block===step.block&&(l.dataset.op===step.op||(step.op==='DISTINCT'&&l.dataset.op==='SELECT')))l.classList.add('sm-lit');});}
+    function controls(){buttons.forEach(b=>b.disabled=phase!=='input');start.hidden=phase==='show'||phase==='input'||phase==='pass';start.textContent=phase==='failed'?'이 라운드 재도전':phase==='finished'?'같은 문제 처음부터':'기억하기 시작';replay.disabled=phase!=='input';speed.disabled=phase==='show'||phase==='pass';}
+    function progress(){const n=Math.round(completed/q().sequence.length*100);$('#sm-round').textContent='라운드 '+round+' / '+q().sequence.length;$('#sm-count').textContent=phase==='input'?'입력 '+position+' / '+round:'기억할 순서 '+round+'개';$('.sm-progress').setAttribute('aria-valuenow',n);$('#sm-progress-fill').style.width=n+'%';}
+    function save(){try{const r=window.openai?.setWidgetState?.({modelContent:{problem:q().title,completedSteps:completed,totalSteps:q().sequence.length},privateContent:{index,completed,round,helps,speed:speed.value}});r?.catch(()=>{});}catch(e){}}
+    function load(i,restored){questRounds=[];token++;clearTimeout(pressTimer);index=i;round=restored?.round||1;completed=restored?.completed||0;helps=restored?.helps||0;round=Math.max(1,Math.min(q().sequence.length,round));completed=Math.max(0,Math.min(round,completed));position=0;phase='ready';selector.value=i;$('#sm-question').textContent=q().title;$('#sm-goal').textContent=q().goal;$('#sm-code').replaceChildren();q().lines.forEach(([text,bl,op])=>{const l=document.createElement('div');l.className='sm-line';l.textContent=text;if(bl)l.dataset.block=bl;if(op)l.dataset.op=op;$('#sm-code').append(l);});$('#sm-answer').replaceChildren();q().sequence.forEach((s,n)=>{const li=document.createElement('li'),b=document.createElement('b');b.textContent=s.scope+' → '+s.op;li.append(b,document.createElement('br'),document.createTextNode(explain[s.op]));$('#sm-answer').append(li);});$('#sm-explanation').open=false;clearLights();setState('준비됐어?',completed?'저장된 라운드부터 이어서 시작해요':'시작하면 첫 번째 패드가 빛나요');message('꾸왕이: 먼저 패드가 빛나는 순서를 보고, “네 차례!”가 나오면 눌러줘.');controls();progress();}
+    function randomQuestion(){if(!bag.length){bag=questions.map((_,i)=>i).filter(i=>i!==index);for(let j=bag.length-1;j>0;j--){const k=Math.floor(Math.random()*(j+1));[bag[j],bag[k]]=[bag[k],bag[j]];}}load(bag.pop());save();}
+    async function show(){const mine=++token;clearTimeout(pressTimer);position=0;phase='show';$('#sm-explanation').open=false;clearLights();controls();progress();message('꾸왕이: 순서를 잘 봐! 이번에는 '+round+'개를 기억하면 돼.');setState('기억하는 중…','잠시 후 시작해요');await wait(600);if(mine!==token)return;for(let i=0;i<round;i++){const step=q().sequence[i];setState(step.op,step.scope+' · '+(i+1)+' / '+round);highlight(step);await wait(Number(speed.value));if(mine!==token)return;clearLights();setState('· · ·','다음 패드');await wait(220);if(mine!==token)return;}phase='input';setState('네 차례!','처음부터 순서대로 눌러줘');message('꾸왕이: '+round+'개를 같은 순서로 눌러봐.');controls();progress();}
+    function input(op){if(phase!=='input')return;const expected=q().sequence[position];clearTimeout(pressTimer);clearLights();buttons.get(op).setAttribute('aria-pressed','true');const mine=token;pressTimer=setTimeout(()=>{if(mine===token)clearLights();},160);if(op!==expected.op){phase='failed';setState('한 번 더 도전해볼까?',(position+1)+'번째 순서에서 달라졌어요');message('꾸왕이: '+expected.scope+'의 '+expected.op+' 차례였어. 입력한 패드는 '+op+'야. '+explain[expected.op],true);controls();save();return;}position++;progress();if(position<round){setState('좋아, 계속!','입력 '+position+' / '+round);return;}questRounds[round-1]=q().sequence.slice(0,round).map(s=>s.op);completed=round;progress();save();if(round===q().sequence.length){phase='finished';parent.postMessage({type:'quest:result',proof:{success:true,rounds:questRounds}},parent.location.origin);setState('전체 순서 완성!','총 '+completed+'단계 · 다시 보기 '+helps+'회');message('꾸왕이: 성공! 안쪽 쿼리부터 바깥 쿼리까지 모두 기억했어. 전체 해설도 확인해봐!');controls();return;}phase='pass';controls();setState('라운드 성공!','다음에는 '+(round+1)+'개를 기억해요');message('꾸왕이: 잘했어! 방금 순서 뒤에 한 단계가 더 붙을 거야.');const passToken=token;setTimeout(()=>{if(passToken!==token)return;round++;show();},1000);}
+    start.addEventListener('click',()=>{if(phase==='finished'){round=1;completed=0;helps=0;}show();save();});
+    replay.addEventListener('click',()=>{if(phase!=='input')return;helps++;show();save();});
+    selector.addEventListener('change',()=>{load(Number(selector.value));save();});
+    $('#sm-random').addEventListener('click',randomQuestion);
+    speed.addEventListener('change',save);
+    const restore=state=>{const s=state?.privateContent;if(s&&Number.isInteger(s.index)&&questions[s.index]){if(['850','550','320'].includes(s.speed))speed.value=s.speed;load(s.index,s);}else load(Math.floor(Math.random()*questions.length));};
+    restore(window.openai?.widgetState);
+    window.addEventListener('message',e=>{if(e.source!==parent||e.origin!==parent.location.origin||e.data?.type!=='quest:init')return;load(e.data.challenge.problem);selector.disabled=true;$('#sm-random').hidden=true;});
+    window.addEventListener('openai:set_globals',e=>{const s=e.detail?.globals?.widgetState;if(s&&phase==='ready')restore(s);});
+  })();
+  </script>
+</div>
+
+<style>#sql-memory-demo{--sm-bg:#fff7e8;--sm-panel:#fffdf5;--sm-text:#553440;--sm-sub:#8a6670;--sm-line:#d9bc98;--sm-green:#895365;--sm-on:#fff1cb;--sm-soft:#efd9c5;--sm-code:#f3e8d5;--sm-error:#a53f4e}</style></body></html>

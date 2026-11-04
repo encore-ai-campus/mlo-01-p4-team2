@@ -72,7 +72,7 @@
   restorePosition(initialPosition,false);
   function applyControlState(state){
     if(state.main.floor!==D.id)restorePosition(state.main);
-    serverHints=state.hints||{};classroom.applyState(state.interior);
+    serverHints=state.hints||{};const mission=state.interior?.subject?.startsWith('mission');classroom.applyState(mission?null:state.interior);window.CampusStory?.applyMissionState(mission?state.interior:null);
     if(Number.isInteger(state.main.peperoRemaining))poke.receive({type:"pepero_status",remaining:state.main.peperoRemaining});
   }
   function applyControlEvent(event){
@@ -131,11 +131,11 @@
   function update(t){
     if(!frameDue(t)){requestAnimationFrame(update);return;}
     const dt=Math.min((t-lastTime)/1000,.04)||.016;lastTime=t;
-    if(!classroom.blocking)presence.setInput(!isDialogOpen()?[...keys]:[]);
+    if(!classroom.blocking&&!window.CampusStory?.missionActive)presence.setInput(!isDialogOpen()?[...keys]:[]);
     // Keep the local visual immediate and continuous while Ctrl is physically
     // down; the server remains authoritative for everyone else.
     if(!classroom.blocking&&keys.has('control'))player.guarding=true;
-    jump.tick(t);classroom.tick(t,dt);poke.tick(t);checkExit();
+    jump.tick(t);classroom.tick(t,dt);if(!window.CampusStory?.missionActive)poke.tick(t);checkExit();
     presence.tick(t,dt);
     for(const actor of visibleActors()){
       actor.walkTime=actor.moving?(actor.walkTime||0)+dt:0;

@@ -1108,61 +1108,15 @@
         {
           "id": "campus-guide-kkuwang",
           "type": "guide-npc",
-          "name": "메타버스 가이드 꾸왕이",
+          "name": "탐정 꾸왕이 · 메인 미션",
           "action": "guide",
           "confirmTransfer": false,
+          "interactionRadius": 70,
           "footprint": {
             "x": 1226.25,
             "y": 120,
             "w": 48,
             "h": 40
-          }
-        },
-        {
-          "id": "story-evidence-table",
-          "type": "story-evidence",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 565,
-            "y": 355,
-            "w": 170,
-            "h": 80
-          }
-        },
-        {
-          "id": "story-wrapper",
-          "type": "booth-interaction",
-          "name": "빈 포장지 조사",
-          "action": "story",
-          "confirmTransfer": false,
-          "interactionPoint": [
-            590,
-            445
-          ],
-          "interactionRadius": 50,
-          "footprint": {
-            "x": 576,
-            "y": 432,
-            "w": 28,
-            "h": 20
-          }
-        },
-        {
-          "id": "story-count",
-          "type": "booth-interaction",
-          "name": "선물 수량 확인표 · 행사 기록",
-          "action": "story",
-          "confirmTransfer": false,
-          "interactionPoint": [
-            700,
-            445
-          ],
-          "interactionRadius": 50,
-          "footprint": {
-            "x": 686,
-            "y": 432,
-            "w": 28,
-            "h": 20
           }
         }
       ],
@@ -2657,14 +2611,6 @@
           "h": 40,
           "pad": 0,
           "objectId": "campus-guide-kkuwang"
-        },
-        {
-          "x": 565,
-          "y": 355,
-          "w": 170,
-          "h": 80,
-          "pad": 0,
-          "objectId": "story-evidence-table"
         }
       ]
     },

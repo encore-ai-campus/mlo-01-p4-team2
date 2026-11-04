@@ -105,6 +105,8 @@ def act(user, data, session_uuid=None):
 
 
 def learning_started(session):
+    from . import main
+    main.learning_started(session)
     """Only eligible sessions started after the two clues can advance the story."""
     if window()['phase'] != 'open' or session.difficulty != 'beginner':
         return
@@ -114,6 +116,8 @@ def learning_started(session):
 
 
 def learning_completed(session):
+    from . import main
+    main.learning_completed(session)
     """Observe the existing server-graded pass/fail result; do not change grading."""
     if window()['phase'] != 'open' or session.difficulty != 'beginner' or session.total_questions != 10 or not session.completed_at:
         return

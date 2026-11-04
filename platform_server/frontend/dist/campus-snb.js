@@ -47,27 +47,22 @@
   if(logoutForm){logoutForm.classList.add('snb-logout');accountActions.append(logoutForm);}
   if(accountActions.childElementCount)content.append(accountActions);
   const playerTools=footer?.querySelector('.map-player-tools');if(playerTools&&!playerTools.childElementCount)playerTools.remove();
-  const toggle=document.createElement('button');toggle.type='button';toggle.className='campus-snb-toggle';toggle.id='campusSnbToggle';toggle.setAttribute('aria-controls',panel.id);
+  const toggle=document.createElement('div');toggle.tabIndex=-1;toggle.setAttribute('aria-keyshortcuts','Tab');toggle.className='campus-snb-toggle';toggle.id='campusSnbToggle';toggle.setAttribute('aria-controls',panel.id);
   toggle.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="m14 6-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  shell.prepend(panel,toggle);
+  const tabHint=document.createElement('kbd');tabHint.textContent='Tab';toggle.append(tabHint);shell.prepend(panel,toggle);
   let open=true;
   try{const saved=localStorage.getItem('campus.snb.open');if(saved!==null)open=saved==='true';else open=innerWidth>700;}catch(_){open=innerWidth>700;}
   function setOpen(next){
-    open=next;shell.dataset.snbOpen=String(open);toggle.setAttribute('aria-expanded',String(open));toggle.setAttribute('aria-label',open?'사이드 메뉴 왼쪽으로 접기':'사이드 메뉴 오른쪽으로 펼치기');toggle.title=open?'사이드 메뉴 접기':'사이드 메뉴 펼치기';
+    open=next;shell.dataset.snbOpen=String(open);toggle.setAttribute('aria-expanded',String(open));toggle.setAttribute('aria-label',open?'사이드 메뉴 왼쪽으로 접기':'사이드 메뉴 오른쪽으로 펼치기');toggle.title=open?'Tab · 사이드 메뉴 접기':'Tab · 사이드 메뉴 펼치기';
     panel.inert=!open;panel.setAttribute('aria-hidden',String(!open));if(!open)window.CampusApp?.quickTravelMenu?.close();
     try{localStorage.setItem('campus.snb.open',String(open));}catch(_){}
   }
-  toggle.addEventListener('click',()=>setOpen(!open));
   document.addEventListener('keydown',event=>{
     if(event.key!=='Tab'||event.shiftKey||event.ctrlKey||event.altKey||event.metaKey||event.defaultPrevented)return;
     const target=event.target;
     if(target instanceof Element&&(target.closest('input,textarea,select,[contenteditable="true"],[role="textbox"]')||document.querySelector('dialog[open]')))return;
     event.preventDefault();
-    if(!event.repeat){setOpen(!open);toggle.focus({preventScroll:true});}
-  });
-  toggle.addEventListener('keydown',event=>{
-    if(['ArrowLeft','ArrowRight','Enter',' '].includes(event.key))event.stopPropagation();
-    if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();setOpen(event.key==='ArrowRight');}
+    if(!event.repeat){setOpen(!open);document.getElementById('mapCanvas')?.focus({preventScroll:true});}
   });
   setOpen(open);
 })();

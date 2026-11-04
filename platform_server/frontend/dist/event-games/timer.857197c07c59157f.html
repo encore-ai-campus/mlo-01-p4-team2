@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f7f2">
+  <meta name="description" content="흐르는 시간을 느끼고, 정확한 순간에 멈추세요. 브라우저 타이밍 미니게임 ON TIME.">
+  <title>ON TIME — 순간을 맞추는 게임</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2048%22%20fill%3D%22none%22%3E%3Crect%20width%3D%2248%22%20height%3D%2248%22%20rx%3D%2215%22%20fill%3D%22%23e65b35%22%2F%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2226%22%20r%3D%2212%22%20stroke%3D%22%23fff9ee%22%20stroke-width%3D%222.5%22%2F%3E%3Cpath%20d%3D%22M24%2019v7l4%203M20%208h8M24%208v6M34%2015l3-3%22%20stroke%3D%22%23fff9ee%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fsvg%3E%0A" type="image/svg+xml">
+  <style>@charset "UTF-8";
+:root{color-scheme:light;--paper:#f7f7f2;--card:#fff;--ink:#252d2a;--muted:#848880;--line:#e8e9e1;--orange:#e65b35;--orange-light:#fff1e8;--green:#3b7759;--mono:"SFMono-Regular",Consolas,"Liberation Mono",monospace;--sans:Inter,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;font-family:var(--sans);color:var(--ink);background:var(--paper);font-synthesis:none}
+*{box-sizing:border-box}body{margin:0}button,input{font:inherit}button,a,input,summary{-webkit-tap-highlight-color:transparent}button,summary{touch-action:manipulation}button{cursor:pointer}button:disabled{cursor:default}button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid var(--orange);outline-offset:5px}button,input,summary{border-radius:8px}button{border:0}a{color:inherit;text-decoration:none}[hidden]{display:none!important}.app-shell{max-width:1160px;padding:0 48px;margin:0 auto}.site-header{height:104px;display:flex;align-items:center;border-bottom:1px solid #dddfd5;gap:24px}.brand{display:flex;align-items:center;gap:10px;font-size:23px;font-weight:850;letter-spacing:-1.1px;white-space:nowrap}.brand img{width:36px;height:36px;border-radius:11px}.brand-dot{color:var(--orange)}.header-label{margin-left:24px;color:#93968e;font-size:9px;letter-spacing:1.65px;font-weight:600}.demo-badge{margin-left:auto;font-size:9px;letter-spacing:1.2px;display:flex;align-items:center;gap:7px;border:1px solid #dfe2d6;border-radius:30px;padding:8px 10px;color:#6d7765;font-weight:650;white-space:nowrap}.demo-badge>span{height:5px;width:5px;background:#8d9b76;border-radius:50%}main{padding-top:49px}.intro{display:flex;align-items:center;justify-content:space-between;margin-bottom:34px}.eyebrow{font-size:10px;letter-spacing:1.8px;font-weight:650;color:#8a8d82;margin:0 0 14px}.tiny-cross{font-size:17px;vertical-align:-1px;margin-right:5px;color:var(--orange)}h1{font-size:48px;font-weight:800;line-height:1.2;letter-spacing:-2.9px;margin:0 0 14px}.accent{color:var(--orange)}.intro-copy{color:#7a7f75;font-size:13px;line-height:1.8;margin:0;letter-spacing:-.25px}.mobile-break{display:none}.intro-stamp{margin-right:10px;display:flex;align-items:center;flex-direction:column;gap:8px;color:#afb3a1;transform:rotate(11deg)}.intro-stamp span{font-size:8px;letter-spacing:2px;font-weight:650}.intro-stamp svg{width:42px;height:42px;margin:2px}.game-layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(270px,1fr);gap:24px;align-items:start}.game-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:26px 36px 22px;position:relative;overflow:hidden;box-shadow:0 5px 18px #29332603}.game-topline{display:flex;align-items:center;justify-content:space-between}.section-label{display:flex;align-items:center;gap:7px;font-size:9px;letter-spacing:1.6px;font-weight:650;color:#747d70}.live-dot{height:5px;width:5px;border-radius:50%;background:#94a17e}.round-label{font-family:var(--mono);font-size:10px;color:#a0a497;letter-spacing:1px}.status-pill{display:flex;align-items:center;gap:6px;width:fit-content;margin:23px auto 0;padding:6px 10px;background:#f4f5ef;border-radius:20px;font-size:10px;color:#858c7a;min-height:25px}.status-pill>span:first-child{height:5px;width:5px;background:currentColor;border-radius:50%}.status-pill[data-state=running]{background:var(--orange-light);color:var(--orange)}.status-pill[data-state=success]{background:#eef6ef;color:var(--green)}.status-pill[data-state=failure]{background:#f5f1ed;color:#94725e}.dial{width:min(100%,330px);aspect-ratio:1;margin:8px auto 0;position:relative}.dial-svg{width:100%;height:100%;overflow:visible}.dial-track{stroke:#f0f1e9;stroke-width:3;fill:none}.dial-tick{stroke:#d9ddd0;stroke-width:1}.dial-tick.major{stroke:#aeb6a2;stroke-width:1.5}.dial-progress{stroke:var(--orange);stroke-width:3;fill:none;stroke-dasharray:100;stroke-dashoffset:100;transform:rotate(-90deg);transform-origin:180px 180px;stroke-linecap:round}.dial-target{fill:var(--orange)}.dial-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;padding-top:3px}.timer-overline{font-size:8px;letter-spacing:2px;color:#939a8a;margin-bottom:17px}.time-reading{font-family:var(--mono);font-size:57px;line-height:1;letter-spacing:-4.5px;font-variant-numeric:tabular-nums;font-weight:450;white-space:nowrap}.time-dot{color:#b7bdad}.time-unit{font-size:8px;letter-spacing:2px;color:#a4aa99;margin-top:11px}.dial-target-label{margin-top:24px;font-size:10px;color:#939b87;display:flex;align-items:center;gap:5px}.dial-target-label strong{font-family:var(--mono);font-size:12px;font-weight:500;color:#6d785d}.dial-target-label>span{margin-left:-3px}.dial[data-outcome=success] .time-reading{color:var(--green)}.dial[data-outcome=success] .dial-progress{stroke:var(--green)}.dial[data-outcome=failure] .time-reading{color:var(--orange)}.result-copy{text-align:center;min-height:66px;margin-top:3px}.result-copy h2{font-size:16px;letter-spacing:-.6px;font-weight:650;margin:0 0 9px;line-height:1.4}.result-copy p{font-size:11px;color:#8c9384;margin:0;line-height:1.7}.action-button{width:100%;display:flex;align-items:center;justify-content:center;gap:9px;background:var(--orange);color:#fff9f3;padding:17px 20px;font-size:14px;font-weight:600;border-radius:9px;position:relative;transition:background .18s,transform .18s;min-height:54px}.action-button>svg{height:17px;width:17px}.action-button:hover{background:#d34f2b;transform:translateY(-1px)}.action-button:active{transform:translateY(1px)}.action-button[data-state=running]{background:#2c3830}.action-button[data-state=running]:hover{background:#1d2b23}.button-arrow{position:absolute;right:20px;font-size:20px;opacity:.7;font-weight:400}.keyboard-hint{text-align:center;font-size:10px;color:#9a9f92;margin:14px 0 0;line-height:1.5}kbd{background:#f5f6f1;border:1px solid #e8ebe0;padding:2px 5px;border-radius:4px;font-family:var(--mono);font-size:9px;color:#939b85;margin-right:3px}.side-panel{display:flex;flex-direction:column;gap:16px}.mission-card{padding:25px 25px 22px;border-radius:18px;background:#eceddf;border:1px solid #e3e5d6}.card-heading{display:flex;justify-content:space-between;align-items:center}.card-heading h2,.howto-card h2{font-size:13px;letter-spacing:-.3px;margin:0;font-weight:650}.small-tag{font-size:8px;letter-spacing:1.6px;color:#8d967c}.target-metric{margin-top:27px}.target-metric>span{font-size:11px;color:#858d76}.target-metric p{margin:6px 0 21px;display:flex;align-items:baseline;gap:8px}.target-metric strong{font-family:var(--mono);font-size:43px;font-weight:450;letter-spacing:-2px}.target-metric p>span{font-size:13px;color:#7b866b}.tolerance-row{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #dce0cc;padding-top:17px;font-size:11px;color:#7c866b}.tolerance-row strong{color:#5f6e4d;font-family:var(--mono);font-size:12px;font-weight:500}.range-visual{position:relative;height:22px;margin-top:22px}.range-line{height:1px;position:absolute;top:10px;left:0;right:0;background:#ced4bd}.range-zone{position:absolute;left:25%;right:25%;height:12px;top:5px;background:#bcc9a0;border-left:1px solid #7d9361;border-right:1px solid #7d9361;border-radius:2px}.range-marker{height:22px;width:2px;background:#6f8259;position:absolute;left:50%;top:0}.range-marker:before{content:"";position:absolute;top:-3px;left:-2px;border-top:4px solid #6f8259;border-left:3px solid transparent;border-right:3px solid transparent}.range-labels{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:9px;color:#869174;margin-top:5px}.range-center{font-family:var(--sans);font-size:9px;color:#71845c}.mission-note{font-size:10px;color:#8b947c;margin:17px 0 0;display:flex;gap:6px}.mission-note>span{color:#7e8b67;font-size:12px}.howto-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px}.howto-card ol{padding:0;margin:22px 0 0;list-style:none;display:flex;flex-direction:column;gap:20px}.howto-card li{display:flex;gap:12px}.step-number{flex-shrink:0;display:grid;place-items:center;width:25px;height:25px;background:#f5f5f0;border-radius:50%;color:#8b957d;font-family:var(--mono);font-size:9px}.howto-card strong{font-size:11px;font-weight:600;letter-spacing:-.25px;line-height:1.6}.howto-card li p{color:#9b9f92;font-size:10px;line-height:1.7;letter-spacing:-.1px;margin:3px 0 0}.settings-card{border:1px solid #dfe2d5;border-radius:12px;overflow:hidden}summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:17px 20px;list-style:none;font-size:11px;color:#7a846d;user-select:none}summary::-webkit-details-marker{display:none}summary>span:first-child{display:flex;align-items:center;gap:8px}summary svg{width:16px;height:16px}.summary-plus{font-size:18px;line-height:1;font-weight:300}details[open] .summary-plus{transform:rotate(45deg)}#settings-form{padding:0 20px 19px}.settings-note{font-size:10px;color:#929b85;margin:0 0 17px}.setting-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}.setting-fields label{font-size:10px;color:#69765b}.setting-fields label>span{color:#a0a88f}.setting-fields input{display:block;width:100%;margin-top:7px;border:1px solid #dce1d1;background:#fff;padding:10px;color:var(--ink);font-size:13px;font-family:var(--mono)}input:focus{outline:2px solid #b0bc9a;outline-offset:1px}input:disabled{opacity:.55}.apply-button{padding:11px 12px;display:flex;width:100%;justify-content:space-between;background:#e8ecdf;color:#5e7050;font-size:11px;margin-top:12px}.apply-button:hover{background:#dce3ce}.apply-button:disabled{opacity:.5}.settings-error{font-size:10px;color:#b94d30;line-height:1.6;margin:10px 0 0}.settings-error:empty{display:none}.history-card{margin-top:24px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:26px 28px 0;overflow:hidden}.history-heading{display:flex;align-items:center;justify-content:space-between}.history-heading .eyebrow{font-size:8px;letter-spacing:1.7px;margin:0 0 8px;color:#98a08a}.history-heading h2{font-size:14px;letter-spacing:-.4px;margin:0;font-weight:650}.history-heading h2>span{font-family:var(--mono);font-size:10px;vertical-align:2px;background:#f1f3eb;color:#8b9977;padding:3px 6px;border-radius:5px;margin-left:5px}.text-button{background:none;color:#9aa38d;font-size:10px;padding:8px 0 8px 8px;display:flex;gap:7px;align-items:center}.text-button:disabled{color:#c2c8b8}.text-button>span{font-size:15px}.history-empty{min-height:104px;display:flex;align-items:center;justify-content:center;gap:13px;color:#a0a793}.empty-icon{border:1px solid #e8ecdf;background:#fafbf7;width:32px;height:32px;display:grid;place-items:center;border-radius:10px;font-size:18px}.history-empty p{font-size:11px;line-height:1.9}.history-empty p>span{display:block;color:#bcc2b1;font-size:10px}.history-list{list-style:none;padding:0;margin:16px 0 0}.history-list:empty{margin:0}.history-item{display:grid;grid-template-columns:60px 1fr 1fr 1fr 70px;align-items:center;gap:10px;padding:15px 0;border-top:1px solid #f0f2e9;font-size:11px}.history-round{font-family:var(--mono);font-size:10px;color:#a2ab96}.history-time{font-family:var(--mono);font-size:14px;color:#4e5f40}.history-time small{font-size:9px;color:#a0a990;margin-left:3px}.history-target{font-size:9px;color:#9da68f}.history-error{font-family:var(--mono);font-size:10px;color:#909b80;text-align:right}.history-result{border-radius:20px;background:#f7eee9;color:#bc8060;text-align:center;font-size:10px;padding:5px 8px}.history-result.success{background:#edf5eb;color:#5e8251}.session-stats{display:flex;gap:20px;font-size:10px;color:#8c977b;margin-top:20px;padding-top:17px;border-top:1px solid #f0f2e9}.session-stats strong{font-family:var(--mono);font-weight:500;color:#5f7350;margin:0 3px}.history-scope{margin-left:auto;font-size:9px;color:#aeb7a0}.site-footer{display:flex;align-items:center;justify-content:space-between;color:#a4ac97;font-size:10px;letter-spacing:-.1px;padding:28px 0 30px}.site-footer>span:last-child{font-size:8px;letter-spacing:1px;display:flex;gap:12px;align-items:center}.footer-spark{color:#9ca889;font-size:17px}.noscript{padding:20px;background:#fff1e8;text-align:center;color:#b34f2f}.host-shell{max-width:1280px;margin:auto;padding:36px 28px}.host-top{display:flex;align-items:center;gap:20px;justify-content:space-between;margin-bottom:24px}.host-top h1{font-size:24px;letter-spacing:-1px;margin:0}.host-top a{font-size:12px;color:var(--orange)}.host-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:20px;align-items:start}.host-frame{width:100%;height:1150px;border:1px solid var(--line);border-radius:16px;background:var(--paper)}.host-results{padding:24px;background:#fff;border:1px solid var(--line);border-radius:16px}.host-results h2{font-size:15px;margin:0 0 12px}.host-results p{font-size:12px;color:#89917e;line-height:1.8}.host-results pre{padding:14px;background:#f3f5ee;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;line-height:1.8}.host-log{list-style:none;margin:16px 0 0;padding:0}.host-log li{font-size:11px;padding:10px 0;border-top:1px solid var(--line);line-height:1.7;color:#71845c}
+@media(min-width:1400px){.app-shell{max-width:1200px;padding:0 60px}main{padding-top:55px}.intro{margin-bottom:40px}.game-card{padding-left:44px;padding-right:44px}.dial{width:350px}.result-copy{margin-top:8px;min-height:72px}.mission-card{padding:28px}.howto-card{padding:27px}.howto-card ol{gap:22px}}
+@media(max-width:850px){.app-shell{padding:0 28px}.header-label{display:none}.site-header{height:84px}main{padding-top:38px}.game-layout{grid-template-columns:minmax(0,1.45fr) minmax(230px,1fr);gap:16px}.game-card{padding:24px 22px 20px}.dial{width:290px;max-width:100%}.time-reading{font-size:48px}.mission-card{padding:23px 20px}.howto-card{padding:23px 20px}.howto-card li{gap:9px}.howto-card li p{font-size:9px}.howto-card ol{gap:17px}.intro-stamp{margin-right:0}.history-target{display:none}.history-item{grid-template-columns:50px 1fr 1fr 65px}.host-layout{grid-template-columns:1fr}.host-frame{height:1330px}.host-results{order:-1}}
+@media(max-width:600px){.app-shell{padding:0 20px}.site-header{height:76px;gap:12px}.brand{font-size:21px;gap:8px}.brand img{height:32px;width:32px}.demo-badge{font-size:7px;letter-spacing:.9px;padding:7px 8px;gap:5px}main{padding-top:33px}.intro{margin-bottom:25px}.eyebrow{font-size:8px;letter-spacing:1.5px;margin-bottom:12px}.tiny-cross{font-size:14px}h1{font-size:38px;letter-spacing:-2.3px;margin-bottom:11px}.intro-copy{font-size:11px;line-height:1.9}.mobile-break{display:block}.intro-stamp{gap:5px;margin-right:3px}.intro-stamp span{font-size:6px;letter-spacing:1px}.intro-stamp svg{height:30px;width:30px}.game-layout{grid-template-columns:minmax(0,1fr);gap:18px}.game-card{border-radius:17px;padding:22px 23px 21px}.section-label{font-size:8px;letter-spacing:1.4px}.status-pill{margin-top:20px}.dial{width:300px;margin-top:5px}.time-reading{font-size:54px}.result-copy{margin-top:5px;min-height:68px}.result-copy h2{font-size:15px}.action-button{font-size:13px;padding:16px}.side-panel{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}.mission-card{padding:24px}.target-metric{margin-top:22px}.target-metric strong{font-size:40px}.range-visual{margin-top:20px}.howto-card{padding:23px}.howto-card li p{font-size:10px}.howto-card ol{gap:17px}.settings-card{border-radius:11px}.history-card{margin-top:18px;padding:23px 20px 0;border-radius:14px}.history-heading h2{font-size:13px}.text-button{font-size:9px}.session-stats{gap:14px;font-size:9px;flex-wrap:wrap}.history-scope{width:100%;margin-left:0;font-size:8px}.history-item{grid-template-columns:35px 1fr 1fr 53px;gap:6px;padding:14px 0}.history-time{font-size:12px}.history-round{font-size:9px}.history-error{font-size:9px}.history-result{font-size:9px;padding:5px}.history-empty{min-height:106px}.site-footer{font-size:9px;padding:25px 0;gap:10px}.site-footer>span:last-child{font-size:6px;letter-spacing:.5px;gap:5px}.footer-spark{font-size:14px}.host-shell{padding:24px 14px}.host-top h1{font-size:18px}.host-top a{font-size:10px}.host-frame{height:1900px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+<script>// Inlined in each trusted, self-contained game bundle by the root build.
+(() => {
+  const gameId = 'timer';
+  const sessionId = window.frameElement?.dataset.sessionId;
+  if (window.parent === window || !sessionId) return;
+  // srcdoc Location.origin is "null"; its security origin is inherited.
+  const origin = window.parent.location.origin;
+  let initialized = false, finished = false, onStart;
+  const send = data => window.parent.postMessage(data, origin);
+  window.addEventListener('message', event => {
+    if (event.origin !== origin || event.source !== window.parent) return;
+    const d = event.data;
+    if (!d || d.type !== 'minigame:init' || d.version !== 1 || d.gameId !== gameId || d.sessionId !== sessionId
+      || initialized || !onStart || !d.config || typeof d.config !== 'object' || Array.isArray(d.config)) return;
+    try { onStart(d.config, sessionId); initialized = true; }
+    catch { send({type:'minigame:error', version:1, gameId, sessionId}); }
+  });
+  window.minigameChannel = Object.freeze({
+    start(callback) {
+      onStart = callback;
+      send({type:'minigame:ready', version:1, gameId, sessionId});
+    },
+    complete(success) {
+      if (!initialized || finished || typeof success !== 'boolean') return;
+      finished = true;
+      send(Object.freeze({type:'minigame:result', version:1, gameId, sessionId, success}));
+    },
+    exit() { send({type:'minigame:exit',version:1,gameId,sessionId}); },
+  });
+})();
+</script></head>
+<body>
+  <div class="app-shell">
+    <header class="site-header">
+      <a href="#page-title" class="brand" aria-label="ON TIME 홈"><img src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2048%22%20fill%3D%22none%22%3E%3Crect%20width%3D%2248%22%20height%3D%2248%22%20rx%3D%2215%22%20fill%3D%22%23e65b35%22%2F%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2226%22%20r%3D%2212%22%20stroke%3D%22%23fff9ee%22%20stroke-width%3D%222.5%22%2F%3E%3Cpath%20d%3D%22M24%2019v7l4%203M20%208h8M24%208v6M34%2015l3-3%22%20stroke%3D%22%23fff9ee%22%20stroke-width%3D%222.5%22%20stroke-linecap%3D%22round%22%2F%3E%3C%2Fsvg%3E%0A" width="36" height="36" alt=""><span>ON TIME<span class="brand-dot">.</span></span></a>
+      <span class="header-label">A LITTLE BREAK. A PERFECT MOMENT.</span>
+      <span class="demo-badge"><span></span> PLAYABLE DEMO</span>
+    </header>
+
+    <main>
+      <section class="intro" aria-labelledby="page-title">
+        <div><p class="eyebrow"><span class="tiny-cross">✳</span> THE TIMING CHALLENGE</p><h1 id="page-title">딱, 그 순간에<span class="accent">.</span></h1><p class="intro-copy">시간을 느끼고, 목표에 맞춰 멈추세요.<br class="mobile-break"> 당신의 타이밍은 얼마나 정확할까요?</p></div>
+        <div class="intro-stamp" aria-hidden="true"><span>TRUST YOUR</span><svg viewBox="0 0 52 52" fill="none"><path d="M26 5v42M5 26h42M11 11l30 30M11 41l30-30" stroke="currentColor" stroke-width="3"/></svg><span>INNER CLOCK</span></div>
+      </section>
+
+      <div class="game-layout">
+        <section class="game-card" aria-label="타이머 게임">
+          <div class="game-topline"><span class="section-label"><span class="live-dot"></span> TIME TO FOCUS</span><span id="round-label" class="round-label">ROUND 01</span></div>
+          <div id="game-status" class="status-pill" data-state="idle"><span></span><span id="status-text">준비되셨나요?</span></div>
+
+          <div class="dial" id="dial">
+            <svg class="dial-svg" viewBox="0 0 360 360" aria-hidden="true">
+              <circle class="dial-track" cx="180" cy="180" r="153"/>
+              <g id="dial-ticks"></g>
+              <circle class="dial-progress" id="dial-progress" cx="180" cy="180" r="153" pathLength="100"/>
+              <circle class="dial-target" cx="180" cy="27" r="5"/>
+            </svg>
+            <div class="dial-center"><span class="timer-overline" id="timer-overline">ELAPSED TIME</span><div class="time-reading" role="timer" aria-label="경과 시간"><span id="time-seconds">00</span><span class="time-dot">.</span><span id="time-fraction">000</span></div><span class="time-unit">SECONDS</span><div class="dial-target-label">목표 <strong id="dial-target-value">5.000</strong><span>초</span></div></div>
+          </div>
+
+          <div class="result-copy" role="status" aria-live="polite" aria-atomic="true"><h2 id="result-title">당신의 감각을 믿어보세요.</h2><p id="result-description">시작한 뒤, 목표 시간에 맞춰 멈추면 성공!</p></div>
+          <button type="button" id="action-button" class="action-button"><svg id="action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l11 7-11 7V5Z" fill="currentColor"/></svg><span id="action-label">도전 시작</span><span class="button-arrow" aria-hidden="true">↗</span></button>
+          <p class="keyboard-hint"><kbd>Space</kbd> 키 또는 버튼으로 시작 · 멈추기</p>
+        </section>
+
+        <aside class="side-panel">
+          <section class="mission-card" aria-labelledby="mission-heading"><div class="card-heading"><h2 id="mission-heading">이번 도전</h2><span class="small-tag">MISSION</span></div>
+            <div class="target-metric"><span>목표 시간</span><p><strong id="target-value">5.000</strong><span>초</span></p></div>
+            <div class="tolerance-row"><span>허용 오차</span><strong id="tolerance-value">± 0.200초</strong></div>
+            <div class="range-visual" aria-hidden="true"><div class="range-line"></div><div class="range-zone"></div><div class="range-marker"></div></div>
+            <div class="range-labels"><span id="range-min">4.800초</span><span class="range-center">성공 구간</span><span id="range-max">5.200초</span></div>
+            <p class="mission-note"><span aria-hidden="true">↳</span> 이 구간 안에 멈추면 성공이에요.</p>
+          </section>
+
+          <section class="howto-card" aria-labelledby="howto-heading"><h2 id="howto-heading">플레이 방법</h2><ol><li><span class="step-number">01</span><div><strong>목표를 확인하고</strong><p>목표 시간과 성공 구간을 기억하세요.</p></div></li><li><span class="step-number">02</span><div><strong>흐르는 시간에 집중하고</strong><p>시작 버튼을 누르면 시간이 흘러요.</p></div></li><li><span class="step-number">03</span><div><strong>바로 그 순간, 멈추세요</strong><p>멈추기 버튼이나 Space 키를 누르세요.</p></div></li></ol></section>
+
+          <section class="settings-card" id="settings-card"><details id="settings-details"><summary><span><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14M7 3v4M13 8v4M8 13v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>데모 설정</span><span class="summary-plus" aria-hidden="true">+</span></summary><form id="settings-form"><p class="settings-note">다음 도전의 난이도를 바꿔보세요.</p><div class="setting-fields"><label>목표 시간 <span>(초)</span><input id="target-input" name="target" type="number" min="0.1" max="300" step="0.001" value="5" required></label><label>허용 오차 <span>(초)</span><input id="tolerance-input" name="tolerance" type="number" min="0" step="0.001" value="0.2" required></label></div><p id="settings-error" class="settings-error" role="alert"></p><button type="submit" class="apply-button">설정 적용 <span aria-hidden="true">↗</span></button></form></details></section>
+        </aside>
+      </div>
+
+      <footer class="site-footer"><span>작은 도전, 기분 좋은 몰입.</span><span>MADE FOR YOUR IN-BETWEEN MOMENTS <span class="footer-spark">✳</span></span></footer>
+    </main>
+  </div>
+  <noscript><p class="noscript">이 게임을 실행하려면 브라우저의 JavaScript를 활성화하세요.</p></noscript>
+<script>(() => {
+// 개발자 설정. 모든 시간의 단위는 밀리초(ms)입니다.
+const GAME_CONFIG = Object.freeze({
+  targetMs: 5000,
+  toleranceMs: 200,
+  // 목표 + 허용 오차를 넘긴 뒤 결과를 보여 주기까지의 여유 시간.
+  overtimeMs: 2000,
+  // 배포 시 false로 설정하면 화면의 데모 설정을 숨깁니다.
+  showSettings: true,
+  // iframe 결과를 받을 메타버스의 정확한 origin을 지정하세요.
+  // 예: 'https://campus.example.com'. null이면 부모에게 전송하지 않습니다.
+  parentOrigin: null,
+  // URL의 ?parentOrigin= 값을 허용할 추가 origin. 같은 origin은 자동 허용.
+  allowedParentOrigins: [],
+});
+
+function validateConfig(config) {
+  const { targetMs, toleranceMs, overtimeMs } = config;
+  if (!Number.isFinite(targetMs) || targetMs < 100 || targetMs > 300000) {
+    throw new RangeError('목표 시간은 0.1초 이상 300초 이하여야 합니다.');
+  }
+  if (!Number.isFinite(toleranceMs) || toleranceMs < 0 || toleranceMs >= targetMs) {
+    throw new RangeError('허용 오차는 0 이상, 목표 시간 미만이어야 합니다.');
+  }
+  if (!Number.isFinite(overtimeMs) || overtimeMs < 0 || overtimeMs > 60000) {
+    throw new RangeError('초과 대기 시간은 0초 이상 60초 이하여야 합니다.');
+  }
+  return Object.freeze({ targetMs, toleranceMs, overtimeMs });
+}
+
+function evaluate(elapsedMs, config) {
+  if (!Number.isFinite(elapsedMs) || elapsedMs < 0) {
+    throw new RangeError('경과 시간은 0 이상의 유한한 값이어야 합니다.');
+  }
+  // 표시용 반올림 이전의 실제 측정값으로 양 끝 경계를 포함해 판정합니다.
+  const errorMs = elapsedMs - config.targetMs;
+  const success = elapsedMs >= config.targetMs - config.toleranceMs
+    && elapsedMs <= config.targetMs + config.toleranceMs;
+  return Object.freeze({ elapsedMs, errorMs, success });
+}
+
+function createRoundId() {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  // 사설 IP의 HTTP에서는 randomUUID가 없지만 getRandomValues는 사용할 수 있습니다.
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+class TimerGame {
+  constructor(config, { now = () => performance.now(), id = createRoundId } = {}) {
+    this.now = now;
+    this.id = id;
+    this.configure(config);
+  }
+
+  configure(config) {
+    if (this.state === 'running') throw new Error('진행 중에는 설정을 변경할 수 없습니다.');
+    this.config = validateConfig(config);
+    this.state = 'idle';
+    this.result = null;
+  }
+
+  start() {
+    if (this.state === 'running') return false;
+    this.roundId = this.id();
+    this.startedAt = this.now();
+    this.state = 'running';
+    this.result = null;
+    return true;
+  }
+
+  elapsed() {
+    return this.state === 'running'
+      ? Math.max(0, this.now() - this.startedAt)
+      : (this.result?.elapsedMs ?? 0);
+  }
+
+  finish(reason = 'stopped') {
+    if (this.state !== 'running') return null;
+    const timing = evaluate(this.elapsed(), this.config);
+    this.state = 'finished';
+    this.result = Object.freeze({
+      ...timing,
+      success: reason === 'stopped' && timing.success,
+      reason,
+      roundId: this.roundId,
+      targetMs: this.config.targetMs,
+      toleranceMs: this.config.toleranceMs,
+    });
+    return this.result;
+  }
+
+  checkTimeout() {
+    if (this.state !== 'running') return null;
+    if (this.elapsed() > this.config.targetMs + this.config.toleranceMs + this.config.overtimeMs) {
+      return this.finish('timeout');
+    }
+    return null;
+  }
+}
+
+function resultMessage(result) {
+  return Object.freeze({
+    type: 'timer-game:result',
+    version: 1,
+    roundId: result.roundId,
+    success: result.success,
+  });
+}
+
+function resolveParentOrigin(config, requested, ownOrigin) {
+  const exactOrigin = (value) => {
+    if (typeof value !== 'string') return null;
+    try {
+      const url = new URL(value);
+      return ['http:', 'https:'].includes(url.protocol) && url.origin === value ? value : null;
+    } catch { return null; }
+  };
+  if (config.parentOrigin != null) {
+    const origin = exactOrigin(config.parentOrigin);
+    if (!origin) throw new Error('parentOrigin에는 http(s)의 정확한 origin을 지정하세요.');
+    return origin;
+  }
+  const origin = exactOrigin(requested);
+  const allowed = [ownOrigin, ...(config.allowedParentOrigins ?? [])];
+  return origin && allowed.includes(origin) ? origin : null;
+}
+
+
+const $ = (id) => document.getElementById(id);
+const action = $('action-button');
+const fields = [...$('settings-form').elements];
+const formatSeconds = (ms) => (ms / 1000).toFixed(3);
+const signedSeconds = (ms) => `${ms < 0 ? '−' : '+'}${formatSeconds(Math.abs(ms))}초`;
+let game;
+let parentOrigin;
+try {
+  game = new TimerGame(GAME_CONFIG);
+  parentOrigin = resolveParentOrigin(GAME_CONFIG, new URLSearchParams(location.search).get('parentOrigin'), location.origin);
+} catch (error) {
+  $('result-title').textContent = '게임 설정을 확인해주세요.';
+  $('result-description').textContent = error.message;
+  action.disabled = true;
+  fields.forEach((field) => { field.disabled = true; });
+  throw error;
+}
+
+let animationFrame;
+let deadlineTimer;
+let roundNumber = 0;
+
+// 눈금과 아이콘도 로컬에서 생성하므로 외부 에셋 요청이 없습니다.
+for (let tick = 0; tick < 60; tick += 1) {
+  const angle = (tick * 6 - 90) * Math.PI / 180;
+  const major = tick % 5 === 0;
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  for (const [name, value] of Object.entries({
+    x1: 180 + Math.cos(angle) * (major ? 129 : 134),
+    y1: 180 + Math.sin(angle) * (major ? 129 : 134),
+    x2: 180 + Math.cos(angle) * 141,
+    y2: 180 + Math.sin(angle) * 141,
+    class: `dial-tick${major ? ' major' : ''}`,
+  })) line.setAttribute(name, value);
+  $('dial-ticks').append(line);
+}
+
+function updateMission() {
+  const { targetMs, toleranceMs } = game.config;
+  $('target-value').textContent = formatSeconds(targetMs);
+  $('dial-target-value').textContent = formatSeconds(targetMs);
+  $('tolerance-value').textContent = `± ${formatSeconds(toleranceMs)}초`;
+  $('range-min').textContent = `${formatSeconds(targetMs - toleranceMs)}초`;
+  $('range-max').textContent = `${formatSeconds(targetMs + toleranceMs)}초`;
+  $('target-input').value = targetMs / 1000;
+  $('tolerance-input').value = toleranceMs / 1000;
+}
+
+function setStatus(state, text) {
+  $('game-status').dataset.state = state;
+  $('status-text').textContent = text;
+}
+
+function paintTime(elapsedMs) {
+  // 최대 목표(300초)와 초과 대기 시간에도 맞도록 크기를 조절합니다.
+  const [seconds, fraction] = formatSeconds(elapsedMs).split('.');
+  $('time-seconds').textContent = seconds.padStart(2, '0');
+  $('time-fraction').textContent = fraction;
+  $('time-seconds').parentElement.style.fontSize = seconds.length > 2 ? 'clamp(32px, 7vw, 45px)' : '';
+  $('dial-progress').style.strokeDashoffset = 100 - Math.min(100, elapsedMs / game.config.targetMs * 100);
+}
+
+function setAction(running, replay = false) {
+  action.dataset.state = running ? 'running' : 'idle';
+  $('action-label').textContent = running ? '지금 멈추기' : replay ? '다시 도전하기' : '도전 시작';
+  $('action-icon').innerHTML = running
+    ? '<rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/>'
+    : replay
+      ? '<path d="M5 9a7 7 0 1 1-1 5M5 4v5h5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+      : '<path d="M9 5l11 7-11 7V5Z" fill="currentColor"/>';
+}
+
+function complete(result) {
+  if (!result) return;
+  cancelAnimationFrame(animationFrame);
+  clearTimeout(deadlineTimer);
+  paintTime(result.elapsedMs);
+  $('dial').dataset.outcome = result.success ? 'success' : 'failure';
+  $('timer-overline').textContent = 'YOUR TIMING';
+  setAction(false, true);
+  fields.forEach((field) => { field.disabled = false; });
+  setStatus(result.success ? 'success' : 'failure', result.success ? '멋진 타이밍!' : result.reason === 'hidden' ? '도전 중단' : '조금 아쉬워요');
+  if (result.success) {
+    $('result-title').textContent = '정확한 순간을 잡았어요!';
+    $('result-description').textContent = `목표와의 차이 ${signedSeconds(result.errorMs)} · 성공 구간 안에 멈췄어요.`;
+  } else if (result.reason === 'hidden') {
+    $('result-title').textContent = '화면을 벗어나 도전이 종료됐어요.';
+    $('result-description').textContent = '다시 시작하고, 이번에는 끝까지 집중해보세요.';
+  } else if (result.reason === 'timeout') {
+    $('result-title').textContent = '멈출 타이밍을 놓쳤어요.';
+    $('result-description').textContent = '제한 시간이 지났어요. 다시 도전해보세요!';
+  } else {
+    $('result-title').textContent = result.errorMs < 0 ? '조금만 더 기다렸다면!' : '조금만 더 빨랐다면!';
+    $('result-description').textContent = `목표보다 ${formatSeconds(Math.abs(result.errorMs))}초 ${result.errorMs < 0 ? '빨랐어요' : '늦었어요'}. 다시 도전해볼까요?`;
+  }
+
+  // 경과 시간/프레임을 보내지 않고 라운드마다 판정 결과 한 건만 전달합니다.
+  const message = resultMessage(result);
+  if (window.minigameChannel) {
+    window.minigameChannel.complete(result.success);
+    action.disabled = true;
+  } else if (parentOrigin && window.parent !== window) window.parent.postMessage(message, parentOrigin);
+  window.dispatchEvent(new CustomEvent('timer-game:result', { detail: message }));
+}
+
+function frame() {
+  if (game.state !== 'running') return;
+  const timeout = game.checkTimeout();
+  if (timeout) { complete(timeout); return; }
+  paintTime(game.elapsed());
+  animationFrame = requestAnimationFrame(frame);
+}
+
+function watchDeadline() {
+  if (game.state !== 'running') return;
+  const timeout = game.checkTimeout();
+  if (timeout) { complete(timeout); return; }
+  const remaining = game.config.targetMs + game.config.toleranceMs + game.config.overtimeMs - game.elapsed();
+  deadlineTimer = setTimeout(watchDeadline, Math.max(1, remaining + 1));
+}
+
+function activate() {
+  if (window.minigameChannel && action.disabled) return;
+  if (game.state === 'running') {
+    complete(game.checkTimeout() ?? game.finish());
+    return;
+  }
+  if (!game.start()) return;
+  roundNumber += 1;
+  $('round-label').textContent = `ROUND ${String(roundNumber).padStart(2, '0')}`;
+  $('dial').removeAttribute('data-outcome');
+  $('timer-overline').textContent = 'ELAPSED TIME';
+  $('result-title').textContent = '시간이 흐르고 있어요.';
+  $('result-description').textContent = '목표에 맞춰, 바로 그 순간에 멈추세요.';
+  $('settings-error').textContent = '';
+  $('settings-details').open = false;
+  fields.forEach((field) => { field.disabled = true; });
+  setAction(true);
+  setStatus('running', '타이밍에 집중하세요');
+  paintTime(0);
+  animationFrame = requestAnimationFrame(frame);
+  watchDeadline();
+}
+
+action.addEventListener('click', activate);
+document.addEventListener('keydown', (event) => {
+  if (event.code !== 'Space' || event.ctrlKey || event.altKey || event.metaKey || event.isComposing) return;
+  if (event.target.closest('input, textarea, select, summary, a, [contenteditable], button:not(#action-button)')) return;
+  event.preventDefault();
+  if (!event.repeat) activate();
+});
+
+// 비활성 탭에서 rAF가 멈추더라도 라운드를 일시 정지하거나 계속할 수 없습니다.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && game.state === 'running') complete(game.finish('hidden'));
+});
+
+function configure(next) {
+  game.configure({ ...game.config, ...next });
+  $('dial').removeAttribute('data-outcome');
+  $('timer-overline').textContent = 'ELAPSED TIME';
+  $('result-title').textContent = '새로운 목표가 준비됐어요.';
+  $('result-description').textContent = '성공 구간을 확인하고, 도전을 시작하세요.';
+  $('settings-error').textContent = '';
+  paintTime(0);
+  setAction(false);
+  setStatus('idle', '준비되셨나요?');
+  updateMission();
+}
+
+$('settings-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  try {
+    configure({ targetMs: $('target-input').valueAsNumber * 1000, toleranceMs: $('tolerance-input').valueAsNumber * 1000 });
+    $('settings-details').open = false;
+  } catch (error) { $('settings-error').textContent = error.message; }
+});
+
+
+// 같은 페이지에 직접 삽입할 때 사용할 API. 상태를 직접 변경하는 객체는 노출하지 않습니다.
+window.timerGame = Object.freeze({
+  start: () => { if (game.state !== 'running') activate(); },
+  stop: () => { if (game.state === 'running') activate(); },
+  configure,
+  getState: () => Object.freeze({ state: game.state, config: game.config, result: game.result }),
+});
+$('settings-card').hidden = !GAME_CONFIG.showSettings;
+updateMission();
+if (window.minigameChannel) {
+  action.disabled = true;
+  window.minigameChannel.start((config) => {
+    configure(config);
+    action.disabled = false;
+  });
+}
+
+})();</script>
+</body>
+</html>

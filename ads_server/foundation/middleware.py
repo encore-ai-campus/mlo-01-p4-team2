@@ -74,7 +74,7 @@ class CsrfExemptPrefixesMiddleware:
 
 
 class ApiErrorMiddleware:
-    """뷰가 던진 ApiError 를 problem+json 으로 바꾼다. 교착·잠금 대기 초과는 503 + `Retry-After`(화면은 오류 화면의 화면 데이터, API 는 problem+json).
+    """뷰가 던진 ApiError 를 problem+json 으로 바꾼다. 교착·잠금 대기 초과·읽기 전용 트랜잭션(25006)은 503 + `Retry-After`(화면은 오류 화면의 화면 데이터, API 는 problem+json).
     (다른 예외는 Django 핸들러가 처리한다.)"""
 
     def __init__(self, get_response):
@@ -88,7 +88,7 @@ class ApiErrorMiddleware:
             return problem_response(request, exception)
         if is_transient_lock_error(exception):
             # 원인을 한 줄로 남긴다(트레이스백 없음 — 원인이 정해져 있고, 장애 중에 요청마다 트레이스백이 쌓이지 않게, 6-3b)
-            logger.warning("교착·잠금 초과로 503(되돌림, 다시 시도하면 된다) path=%s %s %s", request.path, type(exception).__name__, cause_text(exception))
+            logger.warning("교착·잠금 초과·읽기 전용으로 503(되돌림, 다시 시도하면 된다) path=%s %s %s", request.path, type(exception).__name__, cause_text(exception))
             return transient_db_error(request)
         return None
 

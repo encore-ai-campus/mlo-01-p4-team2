@@ -5,7 +5,7 @@
 | 키 없음·형식 오류·모르는 키·폐기·만료 | 401 + `WWW-Authenticate: MediaKey realm="ads-media-api"` |
 | 유효한 키지만 매체가 비활성 | 403 |
 | 매체·경로군의 버킷 소진 | 429 + `Retry-After` |
-| 저장소(DB)가 잠기거나 끊김 — 키 조회·뷰 안의 저장 모두 | 503 + `Retry-After` (`OperationalError` 만 변환한다. 다른 예외를 가리지 않는다) |
+| 저장소(DB)가 잠기거나 끊김·읽기 전용(25006 — 장애 전환 틈에 대기 서버에 닿음) — 키 조회·뷰 안의 저장 모두 | 503 + `Retry-After` (`OperationalError` 와 읽기 전용 `InternalError` 만 변환한다. 다른 예외를 가리지 않는다) |
 
 401 에서는 키가 틀린 이유(없는 키/틀린 비밀/폐기/만료)를 구분해 알리지 않는다. 이 데코레이터는 CSRF 예외 접두사(`/api/media/`)와 함께
 쓰이며, 세션을 쓰지 않으므로 쿠키를 만들지 않는다.
@@ -17,9 +17,9 @@ from functools import wraps
 from django.conf import settings
 from django.contrib.auth.decorators import login_not_required
 from django.core.exceptions import ImproperlyConfigured
-from django.db import OperationalError
+from django.db import InternalError, OperationalError
 
-from foundation.api import errors
+from foundation.api import errors, is_transient_lock_error
 from masters import api as masters
 
 logger = logging.getLogger(__name__)
@@ -57,7 +57,9 @@ def media_endpoint(group):
                     raise errors.RateLimited("요청이 너무 많습니다.", retry_after=wait)
                 request.media = identity
                 return view(request, *args, **kwargs)
-            except OperationalError:  # 잠금·디스크·연결 장애: 복구되면 다시 보내면 된다. 뷰의 트랜잭션은 되돌려졌거나, 커밋 응답이 끊겼다면 이미 커밋됐을 수 있다(그래서 503 = 성공 미확인)
+            except (OperationalError, InternalError) as error:  # 잠금·디스크·연결 장애·읽기 전용: 복구되면 다시 보내면 된다. 뷰의 트랜잭션은 되돌려졌거나, 커밋 응답이 끊겼다면 이미 커밋됐을 수 있다(그래서 503 = 성공 미확인)
+                if isinstance(error, InternalError) and not is_transient_lock_error(error):
+                    raise  # 읽기 전용(25006) 밖의 내부 오류(중단된 트랜잭션 등)는 가리지 않는다(500)
                 logger.exception("저장소 일시 장애 group=%s", group)
                 raise errors.Unavailable("일시적으로 처리할 수 없습니다. 잠시 뒤에 다시 시도하세요.")
 

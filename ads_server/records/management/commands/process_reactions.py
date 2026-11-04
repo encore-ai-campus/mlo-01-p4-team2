@@ -3,10 +3,10 @@ import signal
 import time
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db import InterfaceError, OperationalError, close_old_connections, connection
+from django.db import InterfaceError, InternalError, OperationalError, close_old_connections, connection
 from django.utils import timezone
 
-from foundation.api import db_cause_text
+from foundation.api import db_cause_text, is_transient_lock_error
 from records.api import inbox_status, process_pending, reset_stuck, stuck_count
 
 HEARTBEAT_SECONDS = 60  # 한가할 때도 이 간격으로 처리 현황을 찍는다 — 아무 출력이 없으면 멈춘 것이다(설계 §10 "반응 처리 현황 노출", 6-3c)
@@ -32,7 +32,7 @@ class Command(BaseCommand):
         parser.add_argument("--retry-stuck", action="store_true", help="실패가 반복돼 빠진 반응의 실패 횟수를 0 으로 되돌려 다시 처리 대상으로")
 
     def drain(self, batch, should_stop):
-        # locked = 더 고를 것이 없을 때 다른 처리기(또는 멈춘 연결)가 쥐고 있던 대상 수, transient = 교착·잠금 초과로 되돌려져 다음 주기에 다시 하는 것,
+        # locked = 더 고를 것이 없을 때 다른 처리기(또는 멈춘 연결)가 쥐고 있던 대상 수, transient = 교착·잠금 초과·읽기 전용으로 되돌려져 다음 주기에 다시 하는 것,
         # contended = 같은 사람·유형의 인정이 겹쳐 유일 제약이 막은 것(다음 처리에서 거부, 설계 D13)
         total = {"accepted": 0, "rejected": 0, "pending": 0, "locked": 0, "failed": 0, "transient": 0, "contended": 0}
         while not should_stop():
@@ -76,12 +76,12 @@ class Command(BaseCommand):
                         if status["stuck"] != reported_stuck or time.monotonic() - reported_at >= HEARTBEAT_SECONDS:
                             self.stdout.write(stamped(f"idle {status}"))
                             reported_at, reported_stuck = time.monotonic(), status["stuck"]
-                except (OperationalError, InterfaceError) as error:
-                    if options["once"]:
-                        raise  # 한 번 실행은 실패를 그대로 알린다
-                    # 상시 처리는 DB 가 잠시 끊겨도(재시작·전환·장애) 죽지 않는다: 연결을 버리고 주기마다 다시 시도한다. 죽으면 복구된 뒤에도 아무도 처리하지 않는다.
-                    # 처리하던 반응은 트랜잭션이 되돌려져 RECEIVED 로 남아 있다(유실·이중 과금 없음).
-                    self.stderr.write(stamped(f"DB 연결 문제로 이번 주기를 건너뛴다(다음 주기에 다시): {db_cause_text(error)}"))
+                except (OperationalError, InterfaceError, InternalError) as error:
+                    if options["once"] or (isinstance(error, InternalError) and not is_transient_lock_error(error)):
+                        raise  # 한 번 실행은 실패를 그대로 알린다. 읽기 전용(25006) 밖의 내부 오류는 일시 장애가 아니다
+                    # 상시 처리는 DB 가 잠시 끊기거나 읽기 전용 서버에 닿아도(재시작·전환·장애, 설계 01 D21) 죽지 않는다: 연결을 버리고 주기마다 다시 시도한다.
+                    # 죽으면 복구된 뒤에도 아무도 처리하지 않는다. 처리하던 반응은 트랜잭션이 되돌려져 RECEIVED 로 남아 있다(유실·이중 과금 없음).
+                    self.stderr.write(stamped(f"DB 연결 문제(끊김·읽기 전용)로 이번 주기를 건너뛴다(다음 주기에 다시): {db_cause_text(error)}"))
                     if not connection.in_atomic_block:  # 상시 처리는 트랜잭션 밖에서 돈다(단위 시험의 열린 트랜잭션을 닫지 않는다)
                         close_old_connections()  # 끊긴 연결을 버린다 — 다음 질의가 새로 연다
                 if options["once"] or stop:

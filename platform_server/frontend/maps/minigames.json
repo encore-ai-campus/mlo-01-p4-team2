@@ -4,13 +4,13 @@
     "gameCode": "timer",
     "name": "타이머 게임",
     "floor": "campus",
-    "x": 2211.5,
-    "y": 180,
+    "x": 2226.5,
+    "y": 67,
     "w": 54,
     "h": 74,
     "interactionPoint": [
-      2293.5,
-      217.0
+      2308.5,
+      104
     ],
     "renderHeight": 170,
     "seasonalArt": "timer-station-east",
@@ -18,21 +18,20 @@
     "artHeight": 136,
     "artAnchor": 0.99,
     "facing": "east",
-    "artGroundOffsetX": -4,
-    "wallContactX": 2209.5
+    "artGroundOffsetX": 0
   },
   {
     "id": "minigame-typing",
     "gameCode": "typing",
     "name": "코드 타이핑 게임",
     "floor": "campus",
-    "x": 2211.5,
-    "y": 340,
+    "x": 2226.5,
+    "y": 202,
     "w": 54,
     "h": 74,
     "interactionPoint": [
-      2293.5,
-      377.0
+      2308.5,
+      239
     ],
     "renderHeight": 170,
     "seasonalArt": "typing-station-east",
@@ -40,29 +39,27 @@
     "artHeight": 136,
     "artAnchor": 0.99,
     "facing": "east",
-    "artGroundOffsetX": -4,
-    "wallContactX": 2209.5
+    "artGroundOffsetX": 0
   },
   {
     "id": "minigame-term-match",
     "gameCode": "term_match",
-    "name": "IT 용어 카드 뒤집기",
+    "name": "페어링 정원",
     "floor": "campus",
-    "x": 2211.5,
-    "y": 500,
+    "x": 2226.5,
+    "y": 337,
     "w": 54,
     "h": 74,
     "interactionPoint": [
-      2293.5,
-      537.0
+      2308.5,
+      374
     ],
     "renderHeight": 170,
-    "seasonalArt": "typing-station-east",
-    "artWidth": 100,
-    "artHeight": 136,
+    "seasonalArt": "pairing-garden-east",
+    "artWidth": 112,
+    "artHeight": 146,
     "artAnchor": 0.99,
     "facing": "east",
-    "artGroundOffsetX": -4,
-    "wallContactX": 2209.5
+    "artGroundOffsetX": 0
   }
 ]

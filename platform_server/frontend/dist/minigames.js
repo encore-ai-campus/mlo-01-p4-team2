@@ -62,8 +62,8 @@
     if(previous&&active!==previous){await save({duration_ms:null,status:'INTERRUPTED'},data);return;}
     if(previous)clearTimeout(previous.loadTimer);
     active={...data,objectId:item.id,initialized:false,saved:false,payload:null};
-    const run=active,frame=document.createElement('iframe');run.frame=frame;frame.title=data.game_name;frame.dataset.sessionId=data.play_uuid;
-    $('minigameTitle').textContent=data.game_name;status.textContent='게임을 불러오는 중이에요.';retry.hidden=true;
+    const run=active,frame=document.createElement('iframe');run.frame=frame;frame.title=data.game_code==='term_match'?'페어링 정원':data.game_name;frame.dataset.sessionId=data.play_uuid;
+    $('minigameTitle').textContent=frame.title;status.textContent='게임을 불러오는 중이에요.';retry.hidden=true;
     frame.src='/static/campus/minigames/'+data.game_code+'.html?v=20261104-replay-v1';slot.replaceChildren(frame);dialog.showModal();
     run.loadTimer=setTimeout(()=>{if(active===run&&!run.initialized){status.textContent='게임을 불러오지 못했어요. 닫은 뒤 다시 시도해 주세요.';retry.hidden=!!run.terminal;}},15000);
    }catch(error){if(active){status.textContent=error.message;retry.hidden=false;}else{onClose();throw error;}}

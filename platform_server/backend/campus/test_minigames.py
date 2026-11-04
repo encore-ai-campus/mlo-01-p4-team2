@@ -36,8 +36,10 @@ class MinigameControlTests(SimpleTestCase):
     def test_station_fronts_are_walkable_and_reachable_from_screenshot_and_entrance(self):
         world = self.consumer.controller.world
         starts = [{"x": 2232.9, "y": 297.97}, {"x": 2180, "y": 457.5}]
-        for code in ("timer", "typing"):
-            point = world.objects["minigame-"+code]["interactionPoint"]
+        for obj in world.objects.values():
+            if obj.get('action') != 'minigame':
+                continue
+            point = obj['interactionPoint']
             self.assertTrue(world.walkable(*point))
             for player in starts:
                 self.assertTrue(world.walkable(player["x"], player["y"]))
@@ -47,3 +49,10 @@ class MinigameControlTests(SimpleTestCase):
         with patch.object(self.consumer, "session_user", return_value=None), patch.object(consumers, "start_game") as start:
             self.assertIsNone(self.consumer.start_minigame_now("timer"))
             start.assert_not_called()
+
+    def test_office_entrance_has_a_clear_straight_corridor(self):
+        world = self.consumer.controller.world
+        self.assertNotIn('reference-campus-108', world.objects)
+        self.assertIn('reference-campus-110', world.objects)
+        for y in (448, 457.5, 467):
+            self.assertTrue(world.clear({'x':2180, 'y':y}, {'x':2360, 'y':y}))

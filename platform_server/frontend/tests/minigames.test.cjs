@@ -113,17 +113,23 @@ test('typing draws only beginner problems and each problem remains completable',
  assert.doesNotMatch(html,/id="(?:difficulty|problem)"/);
 });
 
-test('stations face the long office wall with reachable east-facing interaction points',()=>{
+test('stations leave room at the office wall with reachable east-facing interaction points',()=>{
  const world=require('../tools/build-event-map.cjs').build().campus;
  const games=require('../maps/minigames.json');
- assert.equal(games[1].y-games[0].y-games[0].h,86);
+ assert.equal(games[1].y-games[0].y-games[0].h,61);
  assert.ok(!world.objects.some(o=>o.id==='reference-campus-109'));
+ assert.ok(!world.objects.some(o=>o.id==='reference-campus-108'));
+ assert.ok(world.objects.some(o=>o.id==='reference-campus-110'));
  for(const game of games){
   assert.equal(game.interactionPoint[0]-(game.x+game.w),28);
   assert.equal(game.interactionPoint[1],game.y+game.h/2);
   assert.equal(game.facing,'east');
   assert.ok(game.renderHeight>=170);
  }
+ const pairing=games.find(game=>game.gameCode==='term_match');
+ assert.equal(pairing.name,'페어링 정원');assert.equal(pairing.seasonalArt,'pairing-garden-east');
+ assert.notEqual(pairing.seasonalArt,games.find(game=>game.gameCode==='typing').seasonalArt);
+ assert.ok(fs.existsSync(root+'/dist/assets/minigames/pairing-garden-east-v1.png'));
 });
 
 test('a confirmed freeze closes the standalone frame without retrying a forbidden result',async()=>{
@@ -157,6 +163,7 @@ test('replay never skips a failed result save',async()=>{
 
 test('term pairing forwards only the active play and its bounded card proof',async()=>{
  const f=fixture('term_match');await f.api.open({id:'minigame-term-match'});f.message({type:'minigame:ready'});
+ assert.equal(f.get('minigameTitle').textContent,'페어링 정원');
  assert.match(f.frame().src,/term_match.html/);
  f.message({type:'minigame:result',result:{status:'SUCCESS',duration_ms:8000}});assert.equal(f.requests.length,0);
  const result={status:'SUCCESS',duration_ms:8000,picks:[[0,8,8000]]};

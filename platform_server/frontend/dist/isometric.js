@@ -661,8 +661,8 @@
         g.beginPath();g.roundRect(sign.x-85,sign.y-25,170,50,7);g.fill();g.stroke();
         g.fillStyle=accent;g.fillRect(sign.x-77,sign.y-18,4,36);
         g.font=`700 15px ${font}`;g.fillStyle=ink;g.textAlign='center';g.textBaseline='middle';
-        g.fillText(timer?'◷ 타이머 게임':'⌨ 코드 타이핑',sign.x+3,sign.y-8);
-        g.font=`600 11px ${font}`;g.fillStyle='#8e6258';g.fillText(timer?'11.11초 맞추기':'정확도 95% 도전',sign.x+3,sign.y+12);g.restore();
+        g.fillText(timer?'◷ 타이머 게임':o.gameCode==='term_match'?'페어링 정원':'⌨ 코드 타이핑',sign.x+3,sign.y-8);
+        g.font=`600 11px ${font}`;g.fillStyle='#8e6258';g.fillText(timer?'11.11초 맞추기':o.gameCode==='term_match'?'11.11초 안에 짝 찾기':'정확도 95% 도전',sign.x+3,sign.y+12);g.restore();
         label('E 키로 시작',x+w/2,y+h+12,10,ink,'#fff6e8ee',base+5);
       } else if(type==='game-pc-station') {
         for(const [dx,dy] of [[4,4],[w-8,4],[4,h-8],[w-8,h-8]])box(x+dx,y+dy,4,4,base,32,'#7996b9','#527296','#3a5276');

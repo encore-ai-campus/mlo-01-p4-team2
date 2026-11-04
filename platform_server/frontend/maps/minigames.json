@@ -42,5 +42,27 @@
     "facing": "east",
     "artGroundOffsetX": -4,
     "wallContactX": 2209.5
+  },
+  {
+    "id": "minigame-term-match",
+    "gameCode": "term_match",
+    "name": "IT 용어 카드 뒤집기",
+    "floor": "campus",
+    "x": 2211.5,
+    "y": 500,
+    "w": 54,
+    "h": 74,
+    "interactionPoint": [
+      2293.5,
+      537.0
+    ],
+    "renderHeight": 170,
+    "seasonalArt": "typing-station-east",
+    "artWidth": 100,
+    "artHeight": 136,
+    "artAnchor": 0.99,
+    "facing": "east",
+    "artGroundOffsetX": -4,
+    "wallContactX": 2209.5
   }
 ]

@@ -41,8 +41,10 @@
     status.textContent='게임을 진행해 주세요.';run.frame.focus();
    }else if(d.type==='minigame:result'&&run.initialized&&!run.payload){
     const r=d.result;
-    if(!r||!['SUCCESS','FAILED'].includes(r.status)||!Number.isSafeInteger(r.duration_ms)||r.duration_ms<0||Object.keys(r).length!==2||!Object.hasOwn(r,'status')||!Object.hasOwn(r,'duration_ms'))return;
-    run.payload={duration_ms:r.duration_ms,status:r.status};save(run.payload);
+    const cards=run.game_code==='term_match';
+    if(!r||!['SUCCESS','FAILED'].includes(r.status)||!Number.isSafeInteger(r.duration_ms)||r.duration_ms<0||Object.keys(r).length!==(cards?3:2)||!Object.hasOwn(r,'status')||!Object.hasOwn(r,'duration_ms'))return;
+    if(cards&&(!Array.isArray(r.picks)||r.picks.length>64||r.picks.some(p=>!Array.isArray(p)||p.length!==3||p.some(v=>!Number.isSafeInteger(v)))))return;
+    run.payload={duration_ms:r.duration_ms,status:r.status,...(cards?{picks:r.picks.map(p=>[...p])}:{})};save(run.payload);
    }else if(d.type==='minigame:restart'&&run.initialized&&run.payload&&!run.terminal){
     run.restartRequested=true;if(run.saved)open({id:run.objectId},run);
    }else if(d.type==='minigame:exit')close();
@@ -56,7 +58,7 @@
    if(starting||(previous?active!==previous||!previous.saved:active||isBlocked()))return;starting=true;if(!previous)onOpen();
    try{
     const data=await start(item.id);
-    if(!['timer','typing'].includes(data.game_code)||typeof data.play_uuid!=='string')throw new Error('게임 정보를 확인해 주세요.');
+    if(!['timer','typing','term_match'].includes(data.game_code)||typeof data.play_uuid!=='string')throw new Error('게임 정보를 확인해 주세요.');
     if(previous&&active!==previous){await save({duration_ms:null,status:'INTERRUPTED'},data);return;}
     if(previous)clearTimeout(previous.loadTimer);
     active={...data,objectId:item.id,initialized:false,saved:false,payload:null};

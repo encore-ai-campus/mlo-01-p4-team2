@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f7f2">
+  <meta name="description" content="카드를 뒤집어 Python과 SQL 용어의 짝을 찾는 가벼운 기억력 게임">
+  <title>페어링 · PLAYDATA</title>
+  <link rel="icon" href="./assets/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="site-header"><div class="header-inner">
+    <a class="brand" href="#page-title" aria-label="PLAYDATA 페어링 제목으로"><span class="brand-mark" aria-hidden="true">✳</span>PLAYDATA<span class="brand-divider"></span><span class="brand-sub">작은 배움, 즐거운 쉼</span></a>
+    <span class="header-tag"><i></i> LEARNING PLAYGROUND</span>
+  </div></header>
+  <main class="shell">
+    <div class="breadcrumb"><span>플레이그라운드</span><span aria-hidden="true">/</span><strong>페어링</strong><span class="tiny-tag">MEMORY GAME</span></div>
+    <section class="intro" aria-labelledby="page-title">
+      <div><p class="eyebrow"><span></span> FLIP. MATCH. LEARN.</p><h1 id="page-title">기억을 뒤집어,<br>지식을 <span>연결해요.</span><i aria-hidden="true">✳</i></h1><p class="intro-description">같은 용어를 찾아 한 쌍으로. 가볍게 즐기며 쌓이는 Python & SQL.</p></div>
+      <button id="how-button" class="outline-button"><span aria-hidden="true">ⓘ</span> 플레이 방법</button>
+    </section>
+    <div class="workspace">
+      <section class="game-panel" aria-label="카드 짝 맞추기">
+        <div class="game-heading"><div class="game-name"><span class="mini-flower" aria-hidden="true">✳</span><h2>페어링</h2><span class="pill" id="topic-tag">Python + SQL</span></div><span class="round-label" id="round-label">ROUND 01 <span>/ 03</span></span></div>
+        <div class="metrics">
+          <div class="metric"><span class="metric-label"><span aria-hidden="true">◷</span> 남은 시간</span><strong id="time-value">01:00<small>s</small></strong><div class="time-track"><span id="time-progress"></span></div></div>
+          <div class="metric"><span class="metric-label"><span aria-hidden="true">▧</span> 찾은 짝</span><strong id="pairs-value">0 <small>/ 8</small></strong><span class="metric-hint">하나씩, 차근차근</span></div>
+          <div class="metric"><span class="metric-label"><span aria-hidden="true">♡</span> 남은 기회</span><div id="lives" class="lives" aria-label="남은 오답 기회"></div><span class="metric-hint" id="mistake-hint">5번까지 도전할 수 있어요</span></div>
+        </div>
+        <div class="board-status"><span class="status-dot"></span><p id="phase-label" role="status">준비됐나요? 카드 속 용어를 만나보세요.</p><span id="grid-label">4 × 4</span></div>
+        <div class="board-container">
+          <div class="board-scroll" tabindex="0" aria-label="카드 보드. 넓은 보드는 가로로 스크롤할 수 있습니다."><div id="board" class="board"></div></div>
+          <div id="board-overlay" class="board-overlay"><div class="overlay-card"><span class="overlay-icon" aria-hidden="true">✦</span><h3 id="overlay-title">잠깐의 기억, 작은 배움.</h3><p id="overlay-description">처음에 카드를 모두 보여드릴게요.<br>용어의 위치를 기억하고 같은 짝을 찾아보세요.</p><button id="start-button" class="primary-button">게임 시작하기 <span aria-hidden="true">↗</span></button><p id="start-note" class="start-note">미리보기 4초 · 총 3라운드</p></div></div>
+        </div>
+        <div class="board-bottom"><span><kbd>Tab</kbd> 카드 이동 <kbd>Enter</kbd> 뒤집기</span><span id="board-bottom-note">같은 용어 두 장을 찾아주세요.</span></div>
+      </section>
+      <aside class="companion-panel" aria-label="학습 도우미와 진행 상황">
+        <section class="companion-card">
+          <div class="companion-heading"><span class="eyebrow">YOUR STUDY BUDDY</span><span class="online-dot"></span></div>
+          <div class="mascot-scene" aria-hidden="true"><span class="scene-spark spark-one">✦</span><span class="scene-spark spark-two">+</span><span class="scene-orbit"></span>
+            <svg class="mascot" viewBox="0 0 220 210" fill="none"><ellipse cx="112" cy="190" rx="53" ry="8" fill="#dde3ce"/><path d="M76 157L65 182Q64 190 77 187L91 173M132 167L143 186Q153 191 157 182L147 158" fill="#e89b44" stroke="#314b3b" stroke-width="2.5" stroke-linejoin="round"/><path d="M59 109Q34 114 35 139Q41 147 50 136L65 125M161 109Q188 112 189 135Q182 145 175 131L158 126" fill="#f9d56b" stroke="#314b3b" stroke-width="2.5"/><path d="M111 29Q59 26 54 86L58 142Q65 179 110 179Q158 179 164 143L166 86Q162 27 111 29Z" fill="#f9d56b" stroke="#314b3b" stroke-width="2.5"/><path d="M108 29Q90 15 96 7Q112 4 116 25Q127 8 137 14Q139 25 119 31" fill="#75967b" stroke="#314b3b" stroke-width="2.5" stroke-linejoin="round"/><path d="M74 58Q87 43 105 43" stroke="#fff1ae" stroke-width="7" stroke-linecap="round"/><ellipse cx="77" cy="108" rx="12" ry="7" fill="#eea46c"/><ellipse cx="144" cy="108" rx="12" ry="7" fill="#eea46c"/><circle cx="89" cy="93" r="4" fill="#314b3b"/><circle cx="133" cy="93" r="4" fill="#314b3b"/><path d="M103 107Q111 115 120 107" stroke="#314b3b" stroke-width="3" stroke-linecap="round"/><rect x="77" y="133" width="69" height="34" rx="5" fill="#fff8e9" stroke="#314b3b" stroke-width="2.5"/><path d="M111 135V164M85 143H102M85 150H98M119 143H137M119 150H133" stroke="#b6bc9d" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <div class="buddy-name">배움 메이트, <strong>모아</strong><span>MOA</span></div>
+          <div class="speech-bubble" aria-live="polite" aria-atomic="true"><span id="buddy-tag" class="buddy-tag">반가워요!</span><h3 id="buddy-term">우리, 한 쌍씩 찾아볼까요?</h3><p id="buddy-description">짝을 맞추면 그 용어가 어떤 뜻인지 제가 짧게 알려드릴게요.</p></div>
+          <div class="buddy-bottom"><span aria-hidden="true">✧</span> 기억에 남는 한 줄의 지식</div>
+        </section>
+        <section class="journey-card"><div class="section-heading"><h3>오늘의 챌린지</h3><span id="challenge-count">0 / 3</span></div><div id="round-dots" class="round-dots"></div><div class="goal-row"><span>통과 목표</span><strong id="goal-text">3라운드 중 2회 성공</strong></div><p id="journey-description">모든 라운드를 마치면 결과를 알려드려요.</p></section>
+      </aside>
+    </div>
+    <section class="learning-strip"><div class="strip-icon" aria-hidden="true">{ }</div><div><h2>놀이가 끝나도, 배움은 남도록.</h2><p>오늘 만난 용어와 모아의 한 줄 설명을 다시 살펴보세요.</p></div><button id="terms-button" class="text-button">용어 모아보기 <span aria-hidden="true">↗</span></button></section>
+    <details id="settings" class="settings"><summary><span>⚙ <span>데모 설정</span><small>나에게 맞는 챌린지로</small></span><span class="details-plus">+</span></summary><form id="settings-form"><p class="settings-caption">설정은 게임 시작 전에 적용할 수 있어요. 진행 중인 게임은 끝까지 함께해요.</p><div class="settings-grid">
+      <label>라운드 제한 시간 (초)<input id="setting-time" name="time" type="number" min="1" max="3600" required value="60"></label>
+      <label>전체 라운드 N<input id="setting-rounds" name="rounds" type="number" min="1" max="100" required value="3"></label>
+      <label>통과에 필요한 성공 M<input id="setting-wins" name="wins" type="number" min="1" max="100" required value="2"></label>
+      <label>라운드별 오답 한도<input id="setting-mistakes" name="mistakes" type="number" min="1" max="1000" required value="5"></label>
+      <label>보드 크기<select id="setting-columns" name="columns"><option value="4">4 × 4 · 16장</option><option value="5">4 × 5 · 20장</option><option value="6">4 × 6 · 24장</option><option value="7">4 × 7 · 28장</option><option value="8">4 × 8 · 32장</option><option value="9">4 × 9 · 36장</option><option value="10">4 × 10 · 40장</option><option value="11">4 × 11 · 44장</option><option value="12">4 × 12 · 48장</option></select></label>
+      <label>용어 주제<select id="setting-topic" name="topic"><option value="mixed">Python + SQL</option><option value="python">Python</option><option value="sql">SQL</option></select></label>
+      <label>전체 미리보기 (초)<input id="setting-preview" name="preview" type="number" min="0" max="60" step="0.1" required value="4"></label>
+    </div><div class="settings-actions"><p id="settings-error" role="alert"></p><button class="outline-button" type="submit">설정 적용 <span aria-hidden="true">↗</span></button></div></form></details>
+    <footer class="site-footer"><span>잠깐의 쉼표가, 다음 배움의 시작이 되도록.</span><span>PLAYDATA <span class="footer-flower" aria-hidden="true">✳</span> PLAY & GROW</span></footer>
+  </main>
+  <dialog id="round-dialog" class="round-dialog" aria-labelledby="round-result-title" aria-describedby="round-result-description round-confirm-hint">
+    <p class="eyebrow">ROUND COMPLETE</p><span id="round-result-icon" class="round-result-icon" aria-hidden="true">✓</span>
+    <h2 id="round-result-title">라운드 결과</h2><p id="round-result-description" class="round-result-description"></p>
+    <div class="round-result-stats"><div><span>찾은 짝</span><strong id="round-result-pairs"></strong></div><div><span>오답 횟수</span><strong id="round-result-mistakes"></strong></div><div><span>플레이 시간</span><strong id="round-result-time"></strong></div></div>
+    <div id="round-result-term" class="round-result-term" hidden><span id="round-result-term-label"></span><p id="round-result-term-description"></p></div>
+    <p id="round-result-progress" class="round-result-progress"></p><button id="round-confirm" class="primary-button" autofocus>확인 · 다음 라운드 <span aria-hidden="true">→</span></button>
+    <p id="round-confirm-hint" class="round-confirm-hint"><kbd>Enter</kbd> 또는 <kbd>Space</kbd>를 눌러도 진행할 수 있어요.<br>확인하기 전에는 다음 라운드가 시작되지 않아요.</p>
+  </dialog>
+  <dialog id="info-dialog" aria-labelledby="dialog-title"><div class="dialog-heading"><div><p class="eyebrow" id="dialog-eyebrow">HOW TO PLAY</p><h2 id="dialog-title">플레이 방법</h2></div><button id="dialog-close" class="icon-button" aria-label="닫기">×</button></div><div id="dialog-content"></div></dialog>
+  <noscript><p class="noscript">이 게임을 플레이하려면 JavaScript를 켜 주세요.</p></noscript>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

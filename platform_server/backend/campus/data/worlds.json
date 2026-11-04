@@ -1210,6 +1210,24 @@
             "w": 54,
             "h": 74
           }
+        },
+        {
+          "id": "minigame-term-match",
+          "type": "game-pc-station",
+          "name": "IT 용어 카드 뒤집기",
+          "action": "minigame",
+          "gameCode": "term_match",
+          "confirmTransfer": false,
+          "interactionPoint": [
+            2293.5,
+            537
+          ],
+          "footprint": {
+            "x": 2211.5,
+            "y": 500,
+            "w": 54,
+            "h": 74
+          }
         }
       ],
       "colliders": [
@@ -2645,6 +2663,14 @@
           "h": 74,
           "pad": 0,
           "objectId": "minigame-typing"
+        },
+        {
+          "x": 2211.5,
+          "y": 500,
+          "w": 54,
+          "h": 74,
+          "pad": 0,
+          "objectId": "minigame-term-match"
         }
       ]
     },

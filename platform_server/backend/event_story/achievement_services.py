@@ -23,6 +23,7 @@ TIMER_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd108")
 TYPING_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd109")
 RECIPE_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd103")
 AD_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd104")
+MEMORY_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd110")
 ACHIEVEMENT_IMAGES = {
     GREETING_ID: "/static/campus/assets/achievements/manager-greeting.png",
     POKING_ID: "/static/campus/assets/achievements/manager-poking.png",
@@ -34,6 +35,7 @@ ACHIEVEMENT_IMAGES = {
     CS_ID: "/static/campus/assets/achievements/cs-intermediate.png",
     RECIPE_ID: "/static/campus/assets/achievements/secret-recipe.png",
     AD_ID: "/static/campus/assets/achievements/ad-impression.png",
+    MEMORY_ID: "/static/campus/assets/achievements/term-match.png",
 }
 
 

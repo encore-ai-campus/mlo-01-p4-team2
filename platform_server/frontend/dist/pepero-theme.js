@@ -25,7 +25,7 @@
     g.save();g.fillStyle='#51333ff2';g.strokeStyle='#dfbc83';g.lineWidth=1;
     g.beginPath();g.roundRect(q.x-54,top,108,20,6);g.fill();g.stroke();
     g.textAlign='center';g.textBaseline='middle';g.fillStyle='#fff0cf';g.font='600 10px sans-serif';
-    g.fillText(o.gameCode==='timer'?'11.11초 타이머':'코드 타이핑',q.x,top+10);g.restore();
+    g.fillText(({timer:'11.11초 타이머',typing:'코드 타이핑',term_match:'IT 용어 카드'})[o.gameCode],q.x,top+10);g.restore();
   }
   function heart(g,x,y,s,color) {
     g.save();g.translate(x,y);g.scale(s,s);g.beginPath();g.moveTo(0,.75);

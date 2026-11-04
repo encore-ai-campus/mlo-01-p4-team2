@@ -37,7 +37,9 @@
     window.addEventListener('campus:achievement-earned',event=>enqueueNotices(event.detail?.newly_completed));
     function accept(rows){
       if(!Array.isArray(rows))throw new Error('Invalid achievements');
-      const expected=rows.some(row=>row?.name==='시선 강탈 사건')?[...names,'시선 강탈 사건']:names;
+      const expected=[...names];
+      if(rows.some(row=>row?.name==='시선 강탈 사건'))expected.push('시선 강탈 사건');
+      if(rows.some(row=>row?.name==='기억력 도둑'))expected.push('기억력 도둑');
       const next=expected.map(name=>{
         const item=rows.find(row=>row?.name===name);
         if(!item||typeof item.event_uuid!=='string'||!item.event_uuid||typeof item.achieved!=='boolean'||

@@ -70,7 +70,7 @@ class LearningAchievementTests(TestCase):
         self.assertEqual(second.achievement_update['newly_completed'],[])
         self.assertEqual(first.completed_at,second.completed_at)
         self.assertEqual(EventProgress.objects.get(user=self.user,event_id=PYTHON_ID).completed_at,stamp)
-        self.assertEqual(len(second.achievement_update['achievements']),10)
+        self.assertEqual(len(second.achievement_update['achievements']),11)
 
     def test_wrong_owner_and_forged_score_do_not_unlock(self):
         session=lesson(self.user,correct=6)
@@ -97,7 +97,7 @@ class LearningAchievementTests(TestCase):
         self.assertEqual(first.json()['newly_completed'],[str(SQL_ID)])
         self.assertEqual(first.json()['correct_count'],7)
         self.assertEqual(self.client.post(url).json()['newly_completed'],[])
-        self.assertEqual(len(self.client.get('/api/event-story/achievements/').json()['achievements']),10)
+        self.assertEqual(len(self.client.get('/api/event-story/achievements/').json()['achievements']),11)
 
     def test_three_subjects_require_separate_passes_and_allow_mixed_levels_and_types(self):
         for subject,level,kind in [('python','beginner','multiple_choice'),('python','beginner','fill_blank'),('sql','advanced','fill_blank')]:
@@ -132,7 +132,7 @@ class LearningAchievementTests(TestCase):
         stamps=list(EventProgress.objects.filter(user=self.user).order_by('event_id').values_list('event_id','completed_at'))
         self.assertEqual(services.complete_session(self.user,session.pk).achievement_update['newly_completed'],[])
         self.assertEqual(list(EventProgress.objects.filter(user=self.user).order_by('event_id').values_list('event_id','completed_at')),stamps)
-        self.assertEqual(len(done.achievement_update['achievements']),10)
+        self.assertEqual(len(done.achievement_update['achievements']),11)
 
     def test_existing_completed_lessons_restore_without_changing_lesson_or_reward_records(self):
         from importlib import import_module

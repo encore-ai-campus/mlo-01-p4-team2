@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const bridge=await readFile(root+'minigames/channel.js','utf8');
 await mkdir(root+'dist/minigames',{recursive:true});
-for(const game of ['timer','typing']){
+for(const game of ['timer','typing','term_match']){
  const result=spawnSync(process.execPath,['scripts/build.mjs'],{cwd:root+'minigames/'+game,stdio:'inherit'});
  if(result.status!==0)process.exit(result.status??1);
  let html=await readFile(root+'minigames/'+game+'/dist/standalone.html','utf8');

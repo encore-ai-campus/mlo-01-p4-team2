@@ -56,12 +56,17 @@ ERROR_EXTRA_FIELDS = (
     ("silver_release", "string", False), ("detected_at", "timestamp", False), ("batch_id", "bigint", False),
 )
 ADAPTER_ERROR_FIELDS = BRONZE_FIELDS + (("error_code", "string", False), ("reason", "string", False), ("event_id", "string", True))  # D1
+WRITE_FIELDS = ("silver_written_at", "silver_release")  # 쓸 때 채운다(SL-3c)
+MERGE_SOURCE_FIELDS = tuple(field for field in SILVER_FIELDS if field[0] not in WRITE_FIELDS)  # 배치 판정의 MERGE 원본(SL-3b)
+JUDGED_ERROR_FIELDS = ADAPTER_ERROR_FIELDS + ERROR_EXTRA_FIELDS[:5]  # 배치 판정의 오류·진단 행 = 오류 표 열 가운데 배치마다 하나인 셋을 뺀 것
 
 BRONZE_SCHEMA = _schema(*BRONZE_FIELDS)
 SILVER_SCHEMA = _schema(*SILVER_FIELDS)
 OK_SCHEMA = _schema(*BRONZE_FIELDS, *ADAPTER_FIELDS)  # 어댑터 정상 결과 = Bronze 열 + 어댑터 열(접기·충돌 오류 행이 Bronze 원본을 쓴다)
 ADAPTER_ERROR_SCHEMA = _schema(*ADAPTER_ERROR_FIELDS)  # 어댑터 오류 결과
 ERROR_SCHEMA = _schema(*ADAPTER_ERROR_FIELDS, *ERROR_EXTRA_FIELDS)  # 오류 표
+MERGE_SOURCE_SCHEMA = _schema(*MERGE_SOURCE_FIELDS)
+JUDGED_ERROR_SCHEMA = _schema(*JUDGED_ERROR_FIELDS)
 
 UUID_RE = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z"  # 소문자 하이픈 표기만. Java 의 $ 는 끝 줄바꿈 앞에서도 맞으므로 \z
 SHA256_RE = r"^[0-9a-f]{64}\z"
@@ -135,7 +140,7 @@ def error_rows(errors, *, silver_release, detected_at, batch_id):
     값이 조용히 밀린다(리뷰 실측: KST 프로세스에서 05:55:37 → 전날 20:55:37 UTC)."""
     if getattr(detected_at, "tzinfo", None) is None:
         raise ValueError(f"detected_at 은 시간대가 있는 datetime 이어야 한다: {detected_at!r}")
-    given ={"silver_release": F.lit(silver_release), "detected_at": F.lit(detected_at), "batch_id": F.lit(batch_id)}
+    given = {"silver_release": F.lit(silver_release), "detected_at": F.lit(detected_at), "batch_id": F.lit(batch_id)}
     defaults = {"acknowledged": F.lit(False)}
     columns = [F.col(name) for name, _, _ in ADAPTER_ERROR_FIELDS]
     for name, kind, _ in ERROR_EXTRA_FIELDS:

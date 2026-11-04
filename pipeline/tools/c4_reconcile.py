@@ -1,11 +1,11 @@
-"""C4 대사: outbox ↔ Bronze 구간 manifest(DRD §5.6 계약, 규칙은 광고 서버 events/hops.py 그대로).
+"""C4 대사: outbox ↔ Bronze 구간 manifest(DRD §5.6 계약). 규칙은 광고 서버 공용 요약 규칙 `events/hop_rules.py` 그대로 쓴다(P2-1 Bronze manifest 잡이 생기기 전 J4 판정용).
 
 사용: c4_reconcile.py <bronze_dump.ndjson> <out_dir> [--as-of ISO] [--window hour|day] [--since ISO]
-- --since: 이 시각(창 경계로 줌) 이후의 창만 양쪽에서 요약한다(덤프도 같은 --since 로 만든다). 덤프는 줄 단위로 읽는다.
-- hop_outbox: 광고 서버 outbox_streams(한 읽기 스냅샷). hop_pipeline: Bronze value → after → 정규화 문서, event_id 로 중복을 가려 요약.
-- op 는 c(스트리밍)·r(증분 스냅샷 재발행)를 같은 문서로 센다. 그 밖의 op 는 문제(not_insert)로 센다.
-- 같은 event_id 가 여러 번이면 '중복'으로 따로 세고, after 6열(event_id·event_name·schema_version·aggregate_id·payload·created_at, sent_at 은 뺌)이 다르면 '충돌'로 센다(줄에는 한 번만).
-- 대조는 hopcheck.compare 두 번: ① CDC 규칙(outbox 의 unsent 로 부족분을 지연으로 보지 않음) ② 지금 코드 그대로(구간 이름 hop_outbox → unsent 를 지연 근거로 씀).
+- --since: 이 시각(UTC 정시) 이후의 창만 양쪽에서 요약한다(덤프도 같은 --since 로 만든다). 덤프는 줄 단위로 읽는다.
+- hop_outbox: 광고 서버 outbox_streams(한 읽기 스냅샷). hop_pipeline: 덤프 행(key·value·partition·offset)을 `summarize_changes` 로 요약한다 —
+  op c·r 를 같은 문서로 고유 event_id 로 세고, 같은 내용의 남는 행은 duplicates, after 6열이 다른 사본이 있으면 그 event_id 는 conflicts(건수·해시에서 뺌),
+  c·r 가 아닌 행은 not_insert, 놓을 수 없는 행(DELETE·tombstone·TRUNCATE)·다른 출처 행은 checkpoint 에 싣고 0 보다 크면 대조가 실패한다.
+- 대조는 hopcheck.compare(outbox, pipeline, use_unsent=False) — outbox 의 미전송을 지연 근거로 쓰지 않는다(CDC 는 sent_at 을 채우지 않음).
 """
 import argparse
 import json
@@ -30,7 +30,7 @@ django.setup()
 from django.conf import settings  # noqa: E402
 
 from billing.api import consistent_read  # noqa: E402
-from events import hopcheck, hops, ndjson  # noqa: E402
+from events import hop_rules, hopcheck, hops, ndjson  # noqa: E402
 
 p = argparse.ArgumentParser()
 p.add_argument("dump")
@@ -51,58 +51,38 @@ with consistent_read():
 for line in o_lines:
     line["unsent"] = unsent.get((line["window_start"], line["event_name"]), 0)
 
-# ④ Bronze — 원본 봉투를 풀어 정규화 문서로
-docs, content, seen_at, dup, conflict, problems = {}, {}, {}, Counter(), [], Counter()
-CONTENT_COLUMNS = ("event_id", "event_name", "schema_version", "aggregate_id", "payload", "created_at")  # after 의 sent_at 은 뺀다(재발행 op=r 은 보낸 뒤 값을 읽을 수 있다)
+# ④ Bronze — 덤프 행을 공용 요약 규칙으로(파이프라인 잡과 같은 함수)
 rows_read = 0
-with (CWD / a.dump).open(encoding="utf-8") as dump_file:  # 줄 단위로 읽는다(덤프 전체를 메모리에 두지 않는다)
-    for line in dump_file:
-        rows_read += 1
-        r = json.loads(line)
-        v = json.loads(r["value"])
-        s, af = v["source"], v["after"]
-        if (s["db"], s["schema"], s["table"]) != (os.environ["DB_NAME"], "public", "events_outbox"):
-            problems["foreign_source"] += 1
-            continue
-        if v["op"] not in ("c", "r") or af is None:  # r = 증분 스냅샷 재발행(RB-0·D13) — outbox 는 INSERT 만이라 c 와 같은 문서다(같은 event_id 면 중복으로 센다)
-            problems["not_insert"] += 1
-            continue
-        doc = hops.normal_document(af["event_id"], af["event_name"], af["schema_version"], datetime.fromisoformat(af["created_at"]), json.loads(af["payload"]))
-        pos = f'{r["partition"]}:{r["offset"]}'
-        eid = doc["event_id"]
-        same = hops.canonical_json({k: json.loads(af[k]) if k == "payload" else af.get(k) for k in CONTENT_COLUMNS})  # 원문 그대로(시각을 줄이지 않는다)
-        if eid in docs:
-            dup[eid] += 1
-            if same != content[eid]:  # 같은 event_id 인데 내용이 다르면 중복이 아니라 충돌(실패)
-                conflict.append(eid)
-            seen_at[eid].append(pos)
-            continue
-        docs[eid], content[eid], seen_at[eid] = doc, same, [pos]
-b_lines, b_open = hops.summarize(list(docs.values()), now, grace, since, size)
+
+
+def dump_rows(path):
+    global rows_read
+    with path.open(encoding="utf-8") as dump_file:  # 줄 단위로 읽는다(덤프 전체를 메모리에 두지 않는다 — event_id 별 사본만 모은다)
+        for line in dump_file:
+            rows_read += 1
+            r = json.loads(line)
+            yield r.get("key"), r["value"], r["partition"], r["offset"]
+
+
+b_lines, b_open, b_extra = hop_rules.summarize_changes(dump_rows(CWD / a.dump), os.environ["DB_NAME"], now, grace, since, size)
 
 common = {"window": label, "grace_seconds": grace, "started_at": now.isoformat(), "since": hops.format_time(since) if since else None}  # UTC 정시 문자열(hopcheck 가 검증·대조, 설계 01 S1)
 mo = ndjson.write(out / "outbox", "outbox", o_lines, "hop_outbox", hops.HOP_SCHEMA_VERSION,
                   checkpoint={"scope": "postgresql-repeatable-read-snapshot", "hop": "hop_outbox", **common,
                               "open_windows": [hops.format_time(w) for w in o_open], "scanned_events": o_read})
 mb = ndjson.write(out / "pipeline", "pipeline", b_lines, "hop_pipeline", hops.HOP_SCHEMA_VERSION,
-                  checkpoint={"scope": "bronze-delta-snapshot", "hop": "hop_pipeline", **common,
-                              "open_windows": [hops.format_time(w) for w in b_open], "scanned_rows": rows_read, "distinct_events": len(docs),
-                              "duplicate_rows": sum(dup.values()), "duplicate_event_ids": sorted(dup), "content_conflicts": sorted(conflict)})
-ob, pb = out / "outbox" / "outbox.manifest.json", out / "pipeline" / "pipeline.manifest.json"
-rule_cdc = hopcheck.compare(hopcheck.load_hop(ob, name="outbox", expected_kind="hop_outbox"), hopcheck.load_hop(pb, expected_kind="hop_pipeline"))
-rule_now = hopcheck.compare(hopcheck.load_hop(ob, expected_kind="hop_outbox"), hopcheck.load_hop(pb, expected_kind="hop_pipeline"))
+                  checkpoint={"scope": "bronze-delta-snapshot", "hop": "hop_pipeline", **common, "rule_sha256": hop_rules.rule_sha256(),
+                              "open_windows": [hops.format_time(w) for w in b_open], "scanned_rows": rows_read, **b_extra})
+rows = hopcheck.compare(hopcheck.load_hop(out / "outbox" / "outbox.manifest.json", expected_kind="hop_outbox"),
+                        hopcheck.load_hop(out / "pipeline" / "pipeline.manifest.json", name="pipeline", expected_kind="hop_pipeline"), use_unsent=False)
+total = {field: sum(line[field] for line in b_lines) for field in ("count", *hop_rules.PIPELINE_COUNTS)}
 report = {
-    "as_of": now.isoformat(), "window": label, "grace_seconds": grace,
+    "as_of": now.isoformat(), "window": label, "grace_seconds": grace, "since": hops.format_time(since) if since else None,
     "outbox": {"scanned_events": o_read, "lines": len(o_lines), "open_windows": [hops.format_time(w) for w in o_open], "manifest_sha256": ndjson.manifest_digest(mo)},
-    "since": hops.format_time(since) if since else None,
-    "bronze": {"rows": rows_read, "distinct_events": len(docs), "duplicate_rows": sum(dup.values()), "content_conflicts": conflict, "problems": dict(problems),
-               "duplicates": {e: seen_at[e] for e in sorted(dup)}, "lines": len(b_lines), "open_windows": [hops.format_time(w) for w in b_open],
-               "manifest_sha256": ndjson.manifest_digest(mb)},
-    "status_cdc_rule": dict(Counter(x["status"] for x in rule_cdc)),
-    "status_current_rule": dict(Counter(x["status"] for x in rule_now)),
-    "rows_cdc_rule": rule_cdc,
-    "current_rule_differs": [{"window_start": x["window_start"], "event_name": x["event_name"], "cdc": y["status"], "current": x["status"]}
-                             for x, y in zip(rule_now, rule_cdc) if x["status"] != y["status"]],
+    "bronze": {"rows": rows_read, "distinct_events": total["count"], **{f: total[f] for f in hop_rules.PIPELINE_COUNTS}, **b_extra,
+               "lines": len(b_lines), "open_windows": [hops.format_time(w) for w in b_open], "manifest_sha256": ndjson.manifest_digest(mb)},
+    "status": dict(Counter(x["status"] for x in rows)),
+    "rows": rows,
 }
 (out / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=1))
-print("C4_REPORT " + json.dumps({k: report[k] for k in ("as_of", "outbox", "bronze", "status_cdc_rule", "status_current_rule")}, ensure_ascii=False))
+print("C4_REPORT " + json.dumps({k: report[k] for k in ("as_of", "since", "outbox", "bronze", "status")}, ensure_ascii=False))

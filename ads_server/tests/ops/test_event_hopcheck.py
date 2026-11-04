@@ -7,14 +7,16 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from random import Random
+from unittest import mock
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.test import SimpleTestCase, TransactionTestCase, tag
+from django.test import SimpleTestCase, TransactionTestCase, override_settings, tag
 
 from events import hop_rules, hopcheck, ndjson, store
 from events.models import EventOutbox
 from events.relay import relay_batch
+from foundation.models import AuditLog
 from records import api as records
 from tests.support.factories import NOW, SUBJECT, World
 from tests.support.mongo_support import MongoDatabaseMixin
@@ -280,6 +282,31 @@ class PipelinePairTests(Cases, SimpleTestCase):
         short_with_update = pipeline_hop([change(after(1)), change(after(2), op="u")])  # 부족 1 + not_insert 1 — 기본값으로 불러도 원인이 지연 후보로 가려지지 않는다
         self.assertEqual(pair(outbox_hop(afters, unsent=1), short_with_update), [("05", "ad.decision", "mismatch", ["count", "ids_sha256", "content_sha256", "not_insert"])])
 
+    def case_a_window_is_confirmed_only_when_every_line_of_it_matches(self):
+        """설계 01 D8 구현 규칙 1: outbox → 파이프라인 줄이 모두 match 인 닫힌 창만 확정. 병행 기간에는 같은 창의 outbox → MongoDB 도 match 여야 한다."""
+        def row(pair, hour, status, name="ad.decision"):
+            return {"pair": pair, "window_start": f"2026-10-07T{hour}:00:00Z", "event_name": name, "status": status}
+        p, m = hopcheck.PIPELINE_PAIR, hopcheck.MONGO_PAIR
+        rows = [row(p, "05", "match"), row(p, "05", "match", "ad.charge"),  # 05시: 모두 match
+                row(p, "06", "match"), row(p, "06", "mismatch", "ad.charge"),  # 06시: 한 줄 불일치
+                row(p, "07", "open_window"), row(p, "07", "open_window", None),  # 07시: 열린 창 — 판정하지 않음
+                row(p, "08", "match"), row(m, "08", "relay_lag_candidate"),  # 08시: 파이프라인은 match, MongoDB 는 지연 후보
+                row(m, "09", "mismatch"),  # 09시: outbox → 파이프라인 줄이 없다 — 판정하지 않음
+                row("hop_source->hop_outbox", "10", "mismatch")]  # 다른 쌍은 보지 않는다
+        self.assertEqual(hopcheck.judge_windows(rows, with_mongo=True), (["2026-10-07T05:00:00Z"], ["2026-10-07T06:00:00Z", "2026-10-07T08:00:00Z"]))
+        self.assertEqual(hopcheck.judge_windows(rows, with_mongo=False), (["2026-10-07T05:00:00Z", "2026-10-07T08:00:00Z"], ["2026-10-07T06:00:00Z"]))
+
+    def case_verdict_windows_are_offset_ranges_that_fit_the_audit_limit(self):
+        """감사 detail 은 4,000자를 넘으면 통째로 잘린다 — 창 목록은 가장 이른 창에서 센 오프셋 구간으로 적는다(매일 대사의 8일치 시간 창 192개도 몇 구간)."""
+        hours = [f"2026-10-07T{h:02d}:00:00Z" for h in (0, 1, 2, 5)]
+        detail = hopcheck.verdict_detail("utc-hour", None, hours, ["2026-10-07T03:00:00Z"], {"hop_outbox": "a" * 64, "pipeline": "b" * 64}, True)
+        self.assertEqual((detail["base"], detail["confirmed"], detail["unconfirmed"]), ("2026-10-07T00:00:00Z", [[0, 2], [5, 5]], [[3, 3]]))
+        week = [hop_rules.format_time(T5.replace(minute=0, second=0, microsecond=0) + timedelta(hours=k)) for k in range(192)]
+        big = hopcheck.verdict_detail("utc-hour", "2026-10-07T05:00:00Z", week[::2], week[1::2], {"hop_outbox": "a" * 64, "hop_mongo": "c" * 64, "pipeline": "b" * 64}, True,
+                                      reason="r" * 500)  # 확정·미확정이 번갈아도(가장 나쁜 모양)
+        self.assertLess(len(json.dumps(big, ensure_ascii=False)), 4000)
+        self.assertEqual(hopcheck.span(["2026-10-07T05:00:00Z", "2026-10-07T08:00:00Z"], "utc-hour"), [f"2026-10-07T0{h}:00:00Z" for h in (5, 6, 7, 8)])
+
     def test_pipeline_pair(self):
         self.run_cases()
 
@@ -444,21 +471,21 @@ class VerifyHopsCommandTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         view, _ = records.receive_reaction(w.slot.media_id, decision.decision_id, uuid.uuid4(), "IMPRESSION", NOW, {"type": "IMPRESSION"}, now=NOW)
         records.process_reaction(view.inbox_id, now=NOW + timedelta(seconds=7))
 
-    def export(self):
+    def export(self, folder="hops", window="day"):
         # 시험 데이터의 날짜는 고정(2026-10-07)이다 — 실제 지금으로 내보내면 보존 기준(지금 − 7일)이 그 창을 넘는 날부터 대조 제외가 된다(6-14d)
-        call_command("export_hop_manifests", "--out", str(self.dir / "hops"), "--as-of", (NOW + timedelta(days=3)).isoformat(), stdout=io.StringIO())
+        call_command("export_hop_manifests", "--out", str(self.dir / folder), "--window", window, "--as-of", (NOW + timedelta(days=3)).isoformat(), stdout=io.StringIO())
 
-    def verify(self, *flags):
+    def verify(self, *flags, folder="hops"):
         out = io.StringIO()
         try:
-            call_command("verify_hops", "--dir", str(self.dir / "hops"), *flags, stdout=out)
+            call_command("verify_hops", "--dir", str(self.dir / folder), *flags, stdout=out)
             return True, out.getvalue()
         except CommandError as error:
             return False, out.getvalue() + str(error)
 
-    def lines(self, hop_name):
-        manifest = ndjson.read_manifest(ndjson.manifest_path(self.dir / "hops", hop_name))
-        return [json.loads(l) for l in (self.dir / "hops" / manifest["file"]).read_text().splitlines()]
+    def lines(self, hop_name, folder="hops"):
+        manifest = ndjson.read_manifest(ndjson.manifest_path(self.dir / folder, hop_name))
+        return [json.loads(l) for l in (self.dir / folder / manifest["file"]).read_text().splitlines()]
 
     def pipeline(self, lines, **checkpoint):
         """계약 모양의 파이프라인 manifest(DRD §5.6 [P1-3] — 줄의 세 건수·checkpoint 필수 필드·이 광고 서버의 rule_sha256)를 쓰고 경로를 돌려준다."""
@@ -603,6 +630,95 @@ class VerifyHopsCommandTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.assertFalse(ok)
         self.assertIn("FAIL hop_mongo->pipeline", text)
         self.assertIn("FAIL hop_outbox->pipeline", text)  # outbox → 파이프라인도 미전송을 지연 근거로 쓰지 않는다(CDC 는 sent_at 을 채우지 않는다, D11)
+
+    def case_a_late_row_after_a_confirmed_window_undoes_the_confirmation(self):
+        """설계 01 S3 (가)·계획 02 P1-4 끝 조건: 한 번 확정된 창에 늦은 행이 생기면 다음 판정이 미확정으로 남기고, 마지막 판정이 이긴다."""
+        relay_batch()
+        self.export()
+        pipeline = self.pipeline(self.lines("hop_mongo"))
+        ok, text = self.verify("--pipeline", pipeline)
+        self.assertTrue(ok, text)
+        self.assertIn("판정 기록: 확정 1창 · 미확정 0창(창 utc-day, MongoDB 쌍 포함)", text)
+        self.assertEqual(hopcheck.window_verdicts("utc-day"), {"2026-10-07T00:00:00Z": True})
+        late = World()  # 같은 창(10-07)에 늦게 커밋된 행 — MongoDB 로는 갔지만 파이프라인 manifest 에는 아직 없다
+        records.decide(late.slot.media_id, late.slot.slot_id, subject_id=SUBJECT, now=NOW, rng=Random(2))
+        relay_batch()
+        self.export()
+        ok, text = self.verify("--pipeline", pipeline)
+        self.assertFalse(ok)
+        self.assertIn("FAIL hop_outbox->pipeline 2026-10-07T00:00:00Z ad.decision", text)
+        self.assertIn("판정 기록: 확정 0창 · 미확정 1창", text)
+        self.assertEqual(hopcheck.window_verdicts("utc-day"), {"2026-10-07T00:00:00Z": False})
+        first, second = AuditLog.objects.filter(action=hopcheck.CONFIRM_ACTION).order_by("log_id").values_list("detail", flat=True)
+        self.assertEqual((first["confirmed"], first["unconfirmed"], second["confirmed"], second["unconfirmed"]), ([[0, 0]], [], [], [[0, 0]]))
+        self.assertEqual((second["base"], second["since"], second["with_mongo"], sorted(second["inputs"])), ("2026-10-07T00:00:00Z", None, True, ["hop_mongo", "hop_outbox", "pipeline"]))
+        self.assertEqual(second["inputs"]["pipeline"], ndjson.manifest_sha256(pipeline))
+
+    def case_a_pipeline_that_cannot_be_judged_leaves_every_outbox_window_unconfirmed(self):
+        """파이프라인 쪽을 판정할 수 없으면(놓을 수 없는 행 등) 앞의 확정이 남지 않게 outbox 범위의 모든 창을 미확정으로, 이유와 함께 남긴다(확정 전에는 지우지 않는다 — D8)."""
+        relay_batch()
+        self.export()
+        self.assertTrue(self.verify("--pipeline", self.pipeline(self.lines("hop_mongo")))[0])
+        ok, text = self.verify("--pipeline", self.pipeline(self.lines("hop_mongo"), not_insert_unplaced=1))
+        self.assertFalse(ok)
+        self.assertIn("판정 기록: 확정 0창 · 미확정 1창", text)
+        detail = AuditLog.objects.filter(action=hopcheck.CONFIRM_ACTION).order_by("-log_id").values_list("detail", flat=True).first()
+        self.assertEqual((detail["confirmed"], detail["unconfirmed"], "pipeline" in detail["inputs"]), ([], [[0, 0]], False))
+        self.assertIn("파이프라인 쪽을 판정할 수 없다: pipeline 은 대조하지 않는다: not_insert_unplaced 1건", detail["reason"])
+        self.assertEqual(hopcheck.window_verdicts("utc-day"), {"2026-10-07T00:00:00Z": False})
+
+    def case_unverified_outbox_inputs_record_no_verdict_but_say_so(self):
+        """이 DB 의 내보내기와 이어지지 않는 판정은 정리 근거가 될 수 없다 — 고정점이 다르면 기록하지 않고 실패하며, --no-anchor 면 기록하지 않았다고 적는다(조용히 넘어가지 않음)."""
+        relay_batch()
+        self.export()
+        pipeline = self.pipeline(self.lines("hop_mongo"))
+        ok, text = self.verify("--pipeline", pipeline, "--no-anchor")
+        self.assertTrue(ok, text)
+        self.assertIn("판정 기록: 남기지 않음 — --no-anchor", text)
+        ndjson.write(self.dir / "hops", "hop_source", [], "hop_source", 1, checkpoint={"hop": "hop_source", "window": "utc-day", "open_windows": []}, chain=True)  # 내보내기 밖 게시
+        ok, text = self.verify("--pipeline", pipeline)
+        self.assertFalse(ok)
+        self.assertIn("고정점", text)
+        self.assertIn("판정 기록: 남기지 않음 — 광고 서버 쪽 입력 오류 1건(위 FAIL)", text)
+        self.assertFalse(AuditLog.objects.filter(action=hopcheck.CONFIRM_ACTION).exists())
+
+    def case_the_mongodb_condition_follows_the_setting(self):
+        """설계 01 D17: 로컬 병행 기간(설정 켬)에는 같은 창의 outbox → MongoDB 도 match 여야 확정이다 — 중계가 밀린 창(지연 후보)은 미확정, 운영(끔)은 파이프라인 쌍만 본다."""
+        self.export()  # 중계 전: MongoDB 는 비어 outbox → MongoDB 가 지연 후보
+        pipeline = self.pipeline([{k: v for k, v in l.items() if k != "unsent"} for l in self.lines("hop_outbox")])
+        _ok, text = self.verify("--pipeline", pipeline)  # MongoDB → 파이프라인은 불일치로 실패한다(그대로) — 여기서는 판정 기록만 본다
+        self.assertIn("LAG  hop_outbox->hop_mongo 2026-10-07T00:00:00Z", text)
+        self.assertNotIn("FAIL hop_outbox->pipeline", text)  # 파이프라인 쌍은 모두 match
+        self.assertIn("판정 기록: 확정 0창 · 미확정 1창(창 utc-day, MongoDB 쌍 포함)", text)
+        with override_settings(EVENTS_HOP_CONFIRM_WITH_MONGO=False):
+            _ok, text = self.verify("--pipeline", pipeline)
+        self.assertIn("판정 기록: 확정 1창 · 미확정 0창(창 utc-day)", text)
+        last = AuditLog.objects.filter(action=hopcheck.CONFIRM_ACTION).order_by("-log_id").values_list("detail", flat=True).first()
+        self.assertEqual((last["with_mongo"], sorted(last["inputs"])), (False, ["hop_outbox", "pipeline"]))
+        self.assertEqual(hopcheck.window_verdicts("utc-day"), {"2026-10-07T00:00:00Z": True})
+
+    def case_a_verdict_too_large_for_the_audit_is_replaced_by_an_unconfirmed_span(self):
+        """감사 detail 은 크기 한도를 넘으면 통째로 잘린다 — 판정이 사라져 앞의 확정이 남지 않게, 전 범위를 미확정 한 구간으로 다시 남기고 실패한다."""
+        relay_batch()
+        self.export()
+        with mock.patch("foundation.audit._MAX_DETAIL_JSON", 380):  # 판정 기록(입력 해시 셋 포함)은 넘고, 대신 남기는 기록(해시 없음)은 들어가는 크기
+            ok, text = self.verify("--pipeline", self.pipeline(self.lines("hop_mongo")))
+        self.assertFalse(ok)
+        self.assertIn("판정 기록이 감사 detail 크기 한도를 넘어 전 범위를 미확정으로 남겼다", text)
+        self.assertEqual(list(AuditLog.objects.filter(action=hopcheck.CONFIRM_ACTION).order_by("log_id").values_list("detail__truncated", flat=True)), [True, None])
+        self.assertEqual(hopcheck.window_verdicts("utc-day"), {"2026-10-07T00:00:00Z": False})
+
+    def case_verdicts_are_read_per_window_size(self):
+        """같은 시각이라도 시간 창과 하루 창은 다른 창이다 — 마지막 판정은 창 크기마다 따로 읽는다(P1-6 정리가 자기 창 크기의 판정만 본다)."""
+        relay_batch()
+        self.export()
+        self.export(folder="hours", window="hour")
+        self.assertTrue(self.verify("--pipeline", self.pipeline(self.lines("hop_mongo")))[0])
+        hour_lines = self.lines("hop_mongo", folder="hours")
+        ok, text = self.verify("--pipeline", self.pipeline([dict(l, count=l["count"] + 1) for l in hour_lines], window="utc-hour"), folder="hours")  # 시간 창은 불일치
+        self.assertFalse(ok)
+        self.assertEqual(hopcheck.window_verdicts("utc-day"), {"2026-10-07T00:00:00Z": True})  # 뒤에 남은 시간 창 기록이 하루 창의 판정을 바꾸지 않는다
+        self.assertEqual(hopcheck.window_verdicts("utc-hour"), {"2026-10-07T12:00:00Z": False})
 
     def case_a_missing_hop_manifest_fails(self):
         self.export()

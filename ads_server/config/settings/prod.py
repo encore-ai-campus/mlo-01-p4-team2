@@ -54,3 +54,4 @@ EVENT_STORE = mongo_config(
     env_str("MONGO_AUTH_SOURCE", default="admin"),
     env_str("MONGO_REPLICA_SET"),
 ) if env_list("MONGO_HOSTS") else None
+EVENTS_HOP_CONFIRM_WITH_MONGO = False  # 운영에는 MongoDB 가 없다 — 창 확정은 outbox → 파이프라인만으로 한다(설계 01 D17)

@@ -16,6 +16,8 @@ import json
 import re
 from pathlib import Path
 
+from foundation.api import audit_details_in_order
+
 from . import hop_rules, hops, ndjson
 
 MATCH, MISMATCH, LAG, OPEN, NOT_COMPARABLE = "match", "mismatch", "relay_lag_candidate", "open_window", "not_comparable"
@@ -223,3 +225,69 @@ def _is_lag(a, b, key, la, lb, unsent_from):
         return False
     line = holder.lines.get(key)
     return shortfall <= (line.get("unsent", 0) if line else holder.not_comparable_unsent.get(key, 0))
+
+
+# ---------------------------------------------------------------- 창 확정 판정(설계 01 D8 구현 규칙 1·S3 (가)·D17, 계획 02 P1-4)
+
+CONFIRM_ACTION = "events.hop_windows_confirmed"  # 판정 한 번에 한 건: 확정한 창과 확정하지 않은 창을 함께 남긴다 — 정리(P1-6)는 창마다 마지막 기록을 본다
+PIPELINE_PAIR = "hop_outbox->pipeline"
+MONGO_PAIR = "hop_outbox->hop_mongo"
+
+
+def judge_windows(rows, with_mongo):
+    """outbox → 파이프라인 줄이 있는 (닫혀 있고 비교할 수 있는) 창마다, 그 창의 줄이 모두 `match` 이면 확정(충돌·not_insert·유령은 mismatch 라 확정이 아니다).
+    `with_mongo`(로컬 병행 기간): 같은 창의 outbox → MongoDB 줄도 모두 `match` 여야 한다(지연 후보도 미확정). 반환: (확정 창, 미확정 창) — 창 시작 문자열, 정렬."""
+    judged, bad = set(), set()
+    for row in rows:
+        if row["status"] in (OPEN, NOT_COMPARABLE) or row["event_name"] is None:
+            continue
+        if row["pair"] == PIPELINE_PAIR:
+            judged.add(row["window_start"])
+            if row["status"] != MATCH:
+                bad.add(row["window_start"])
+        elif with_mongo and row["pair"] == MONGO_PAIR and row["status"] != MATCH:
+            bad.add(row["window_start"])
+    return sorted(judged - bad), sorted(judged & bad)
+
+
+def outbox_windows(outbox):
+    """판정할 수 없을 때 미확정으로 남길 창: outbox 구간에 줄이 있는 닫힌·비교 가능 창(since 뒤 — 우리 내보내기는 그 앞 줄을 만들지 않는다)."""
+    return sorted({w for w, _ in outbox.lines if w not in outbox.open_windows and w not in outbox.not_comparable})
+
+
+def span(starts, window):
+    """가장 이른 창부터 가장 늦은 창까지의 모든 창 시작(사이의 빈 창 포함) — 판정 기록이 잘릴 때 전 범위를 미확정 한 구간으로 남기는 데 쓴다."""
+    size, first, last = hops.WINDOW_SIZES[window], hops.parse_time(min(starts)), hops.parse_time(max(starts))
+    return [hops.format_time(first + k * size) for k in range((last - first) // size + 1)]
+
+
+def _ranges(starts, base, size):
+    """창 시작 목록 → 기준 창 `base` 에서 센 창 단위 오프셋의 [첫, 끝] 구간 — 감사 detail 의 크기 한도(4,000자) 안에 들게 한다(시간 창 8일치 192개도 몇 구간)."""
+    out = []
+    for k in sorted((hops.parse_time(s) - base) // size for s in starts):
+        if out and out[-1][1] == k - 1:
+            out[-1][1] = k
+        else:
+            out.append([k, k])
+    return out
+
+
+def verdict_detail(window, since, confirmed, unconfirmed, inputs, with_mongo, reason=None):
+    """`events.hop_windows_confirmed` 의 detail. 창 목록은 `base`(가장 이른 창)에서 센 오프셋 구간이다(`window_verdicts` 가 푼다)."""
+    size, base = hops.WINDOW_SIZES[window], hops.parse_time(min(confirmed + unconfirmed))
+    return {"pair": PIPELINE_PAIR, "window": window, "since": since, "base": hops.format_time(base),
+            "confirmed": _ranges(confirmed, base, size), "unconfirmed": _ranges(unconfirmed, base, size),
+            "inputs": inputs, "with_mongo": with_mongo, **({"reason": reason} if reason else {})}
+
+
+def window_verdicts(window):
+    """창 크기 `window`(`utc-hour`·`utc-day`)의 창마다 **마지막 판정**(확정이면 True) — 감사 기록 순서(PK)대로 덮어쓴다(설계 01 S3 (가)).
+    다른 창 크기의 기록은 보지 않는다(같은 시각이라도 시간 창과 하루 창의 판정은 서로 다른 창이다)."""
+    size, verdicts = hops.WINDOW_SIZES[window], {}
+    for detail in audit_details_in_order(CONFIRM_ACTION, pair=PIPELINE_PAIR, window=window):
+        base = hops.parse_time(detail["base"])
+        for field, value in (("confirmed", True), ("unconfirmed", False)):
+            for first, last in detail[field]:
+                for k in range(first, last + 1):
+                    verdicts[hops.format_time(base + k * size)] = value
+    return verdicts

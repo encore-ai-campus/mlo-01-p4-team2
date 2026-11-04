@@ -6,7 +6,7 @@ from .accounts import (
 )
 from .admin_site import ReadOnlyAdmin
 from .dberrors import cause_text as db_cause_text, is_transient_lock_error, is_unique_violation, violated_constraint
-from .audit import latest_detail as latest_audit_detail, record_audit
+from .audit import details_in_order as audit_details_in_order, latest_detail as latest_audit_detail, record_audit
 from . import errors
 from .http import json_depth, parse_json
 from .models import AppendOnlyError, AppendOnlyModel, Role, User
@@ -18,5 +18,5 @@ __all__ = [
     "create_advertiser", "ProfileView", "update_profile", "change_password", "profiles", "AdvertiserAccount", "list_advertisers", "get_advertiser",
     "set_advertiser_active", "lock_user", "Role", "User",
     "owned_or_404", "require_admin", "require_advertiser", "is_unique_violation", "is_transient_lock_error", "violated_constraint", "db_cause_text", "json_depth", "parse_json",
-    "errors", "record_audit", "latest_audit_detail", "MAX_AMOUNT", "AppendOnlyModel", "AppendOnlyError", "clean_text", "clean_request_key", "is_int", "is_request_key", "parse_uuid", "parse_uuids", "ReadOnlyAdmin",
+    "errors", "record_audit", "latest_audit_detail", "audit_details_in_order", "MAX_AMOUNT", "AppendOnlyModel", "AppendOnlyError", "clean_text", "clean_request_key", "is_int", "is_request_key", "parse_uuid", "parse_uuids", "ReadOnlyAdmin",
 ]

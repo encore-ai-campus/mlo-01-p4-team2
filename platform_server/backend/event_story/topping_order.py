@@ -6,12 +6,12 @@ def challenge(seed):
     rng=random.Random(seed)
     drops=[]
     kinds=['strawberry','burnt','almond','sprinkle','burnt','strawberry','almond','burnt']
-    for i in range(52):
-        spawn=300+i*350
-        travel=max(900,1500-(i//13)*200)
+    for i in range(96):
+        spawn=300+i*280
+        travel=max(900,1500-(i//24)*200)
         x=rng.randrange(110,691)
         drops.append(dict(id=i,kind=kinds[i%len(kinds)],x=x,startX=max(50,min(750,x+rng.choice([-100,-65,65,100]))),atMs=spawn,travelMs=travel,landTick=math.ceil((spawn+travel)/50)))
-    return dict(rulesVersion=4,durationMs=20000,tickMs=50,stepPx=20,catchRadius=44,order={'strawberry':5,'almond':5},burnLimit=3,drops=drops)
+    return dict(rulesVersion=5,durationMs=30000,tickMs=50,stepPx=20,catchRadius=44,shrinkPx=11,order={'strawberry':10,'almond':10},burnLimit=3,drops=drops)
 
 def replay(c,proof,elapsed):
     positions=proof.get('positions')
@@ -25,7 +25,8 @@ def replay(c,proof,elapsed):
     for d in c['drops']:by_tick.setdefault(d['landTick'],[]).append(d)
     for tick,x in enumerate(positions[1:],1):
         for d in by_tick.get(tick,[]):
-            if abs(d['x']-x)>c['catchRadius']:
+            radius=max(22,c['catchRadius']-burnt*c.get('shrinkPx',0))
+            if abs(d['x']-x)>radius:
                 if d['kind'] in counts and counts[d['kind']]<c['order'][d['kind']]:combo=0
                 continue
             caught.append(d['id'])

@@ -4,29 +4,43 @@
     "gameCode": "timer",
     "name": "타이머 게임",
     "floor": "campus",
-    "x": 2280,
+    "x": 2211.5,
     "y": 180,
-    "w": 74,
-    "h": 54,
+    "w": 54,
+    "h": 74,
     "interactionPoint": [
-      2317,
-      262
+      2293.5,
+      217.0
     ],
-    "renderHeight": 170
+    "renderHeight": 170,
+    "seasonalArt": "timer-station-east",
+    "artWidth": 100,
+    "artHeight": 136,
+    "artAnchor": 0.99,
+    "facing": "east",
+    "artGroundOffsetX": -4,
+    "wallContactX": 2209.5
   },
   {
     "id": "minigame-typing",
     "gameCode": "typing",
     "name": "코드 타이핑 게임",
     "floor": "campus",
-    "x": 2280,
+    "x": 2211.5,
     "y": 340,
-    "w": 74,
-    "h": 54,
+    "w": 54,
+    "h": 74,
     "interactionPoint": [
-      2317,
-      422
+      2293.5,
+      377.0
     ],
-    "renderHeight": 170
+    "renderHeight": 170,
+    "seasonalArt": "typing-station-east",
+    "artWidth": 100,
+    "artHeight": 136,
+    "artAnchor": 0.99,
+    "facing": "east",
+    "artGroundOffsetX": -4,
+    "wallContactX": 2209.5
   }
 ]

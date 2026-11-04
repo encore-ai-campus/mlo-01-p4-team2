@@ -5,16 +5,27 @@
   if(window.CAMPUS_SEASON!=='pepero')return;
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const art = {};
-  for (const key of ['monument','cart','gifts','stall','workbench','flowerbox','hero','gate','pedestal','cafe','refill-chest']) {
+  for (const key of ['monument','cart','gifts','stall','workbench','flowerbox','hero','gate','pedestal','cafe','refill-chest','timer-station-east','typing-station-east']) {
     const image = new Image(); image.decoding = 'async';
     image.onload = () => window.dispatchEvent(new CustomEvent('campus-seasonal-assets-ready',{detail:{key}}));
-    image.src = `assets/seasonal/pepero/${['monument','cart','gifts','refill-chest'].includes(key)?'':'reference/'}${key}.png`; art[key] = image;
+    image.src = ['timer-station-east','typing-station-east'].includes(key)?`assets/minigames/${key}-v1.webp`:`assets/seasonal/pepero/${['monument','cart','gifts','refill-chest'].includes(key)?'':'reference/'}${key}.png`; art[key] = image;
   }
   function drawAsset(g,image,q,w,h) {
     if (!image.complete || !image.naturalWidth) return;
     const s=Math.min(w/image.naturalWidth,h/image.naturalHeight),sw=image.naturalWidth*s,sh=image.naturalHeight*s;
     g.save();g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
     g.drawImage(image,q.x-sw/2,q.y-sh*.88,sw,sh);g.restore();
+  }
+  // Draw names after the world geometry so walls cannot cover the game labels.
+  function paintGameLabel(o,{g,p},base=0){
+    if(o.action!=='minigame'||!o.seasonalArt)return;
+    const image=art[o.seasonalArt];if(!image?.complete||!image.naturalWidth)return;
+    const scale=Math.min(o.artWidth/image.naturalWidth,o.artHeight/image.naturalHeight),h=image.naturalHeight*scale;
+    const q=p(o.x+o.w/2+(o.artGroundOffsetX||0),o.y+o.h/2,base),top=q.y-h*(o.artAnchor??.92)-28;
+    g.save();g.fillStyle='#51333ff2';g.strokeStyle='#dfbc83';g.lineWidth=1;
+    g.beginPath();g.roundRect(q.x-54,top,108,20,6);g.fill();g.stroke();
+    g.textAlign='center';g.textBaseline='middle';g.fillStyle='#fff0cf';g.font='600 10px sans-serif';
+    g.fillText(o.gameCode==='timer'?'11.11초 타이머':'코드 타이핑',q.x,top+10);g.restore();
   }
   function heart(g,x,y,s,color) {
     g.save();g.translate(x,y);g.scale(s,s);g.beginPath();g.moveTo(0,.75);
@@ -25,7 +36,13 @@
     if(window.CAMPUS_SEASON!=='pepero')return false;
     if(o.seasonalArt){
       const image=art[o.seasonalArt];if(!image?.complete||!image.naturalWidth)return true;
-      const q=p(o.x+o.w/2,o.y+o.h/2,base),s=Math.min(o.artWidth/image.naturalWidth,o.artHeight/image.naturalHeight),w=image.naturalWidth*s,h=image.naturalHeight*s;
+      const q=p(o.x+o.w/2+(o.artGroundOffsetX||0),o.y+o.h/2,base),s=Math.min(o.artWidth/image.naturalWidth,o.artHeight/image.naturalHeight),w=image.naturalWidth*s,h=image.naturalHeight*s;
+      if(o.action==='minigame'&&Number.isFinite(o.wallContactX)){
+        // A small contact shadow joins the furniture back to the inner wall face.
+        const x=o.wallContactX,y=o.y+7,end=o.y+o.h-7;
+        const corners=[p(x,y,base+2),p(x,end,base+2),p(x,end,base+30),p(x,y,base+30)];
+        g.save();g.fillStyle='#412a3623';g.beginPath();corners.forEach((v,i)=>i?g.lineTo(v.x,v.y):g.moveTo(v.x,v.y));g.closePath();g.fill();g.restore();
+      }
       g.save();g.translate(q.x,q.y);if(o.flip)g.scale(-1,1);g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
       g.drawImage(image,-w/2,-h*(o.artAnchor??.92),w,h);
       if(o.refillBox){
@@ -151,7 +168,7 @@
     }
 
     if(!o.type.startsWith('pepero-'))return false;
-    const q=p(o.x+o.w/2,o.y+o.h/2,base);
+    const q=p(o.x+o.w/2+(o.artGroundOffsetX||0),o.y+o.h/2,base);
     if(o.type==='pepero-monument'||o.type==='pepero-cart'||o.type==='pepero-gift-art') {
       drawAsset(g,art[o.type==='pepero-monument'?'monument':o.type==='pepero-cart'?'cart':'gifts'],q,o.artWidth,o.artHeight);
     } else if(o.type==='pepero-table-gift') {
@@ -259,5 +276,5 @@
     }
     ctx.restore();
   }
-  window.CampusSeasonal={paint,paintFloor,drawAtmosphere,art};
+  window.CampusSeasonal={paint,paintGameLabel,paintFloor,drawAtmosphere,art};
 })();

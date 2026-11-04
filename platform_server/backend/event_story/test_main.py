@@ -102,10 +102,10 @@ class MainFlowTests(TestCase):
         for code in ('1','2','3','4','card_match'):main.complete(self.user,code)
         with self.assertRaises(LearningError):self.send('game_start',game='topping',ticket=self.ticket('room2'))
         started=self.send('game_start',game='coating',ticket=self.ticket('room2'))
-        c=started['challenge'];trials=[{'startMs':i*4000,'stopMs':int(i*4000+c['leadInMs']+v['fillMs']*v['targetPct']/100)+30} for i,v in enumerate(c['rounds'])]
+        c=started['challenge'];trials=[{'startMs':i*4000,'stopMs':int(i*4000+c['leadInMs']+v['fillMs']*v['targetPct']/100)+5} for i,v in enumerate(c['rounds'])]
         GamePlay.objects.filter(pk=started['play']).update(started_at=timezone.now()-timedelta(seconds=20))
         result=self.send('game_finish',play=started['play'],token=started['token'],proof={'success':True,'trials':trials})
-        self.assertTrue(result['success']);self.assertEqual(result['coatingTiming']['averageMs'],30)
+        self.assertTrue(result['success']);self.assertEqual(result['coatingTiming']['averageMs'],5)
         c=main.topping_order.challenge(1234)
         c['order']={'strawberry':3,'almond':3}
         c['drops']=[dict(id=i,kind='strawberry' if i%2==0 else 'almond',x=400,atMs=0,travelMs=(i+1)*500,landTick=(i+1)*10) for i in range(10)]
@@ -211,7 +211,7 @@ class MainFlowTests(TestCase):
     def test_coating_v3_average_boundary_and_server_calculation(self):
         c=main.coating_challenge(1234)
         self.assertEqual(c['maxAverageMs'],200)
-        self.assertTrue(all(v['targetPct']==75 and v['zoneLeftPct']==70 and v['zoneRightPct']==80 for v in c['rounds']))
+        self.assertTrue(all(v['targetPct']==75 and v['zoneLeftPct']==74 and v['zoneRightPct']==76 for v in c['rounds']))
         # Existing signed games with no explicit bounds keep their average-only policy.
         for v in c['rounds']:v.pop('zoneLeftPct');v.pop('zoneRightPct')
         def proof(errors):return {'success':False,'averageMs':0,'trials':[{'startMs':i*4000,'stopMs':int(i*4000+c['leadInMs']+v['fillMs']*v['targetPct']/100)+e} for i,(v,e) in enumerate(zip(c['rounds'],errors))]}
@@ -233,11 +233,11 @@ class MainFlowTests(TestCase):
     def test_coating_timing_is_saved_and_retry_is_idempotent(self):
         for code in ('1','2','3','4','card_match'):main.complete(self.user,code)
         p=self.send('game_start',game='coating',ticket=self.ticket('room2'));c=p['challenge']
-        proof={'success':True,'trials':[{'startMs':i*4000,'stopMs':int(i*4000+c['leadInMs']+v['fillMs']*v['targetPct']/100)+30} for i,v in enumerate(c['rounds'])]}
+        proof={'success':True,'trials':[{'startMs':i*4000,'stopMs':int(i*4000+c['leadInMs']+v['fillMs']*v['targetPct']/100)+5} for i,v in enumerate(c['rounds'])]}
         GamePlay.objects.filter(pk=p['play']).update(started_at=timezone.now()-timedelta(seconds=20))
         r=self.send('game_finish',play=p['play'],token=p['token'],proof=proof)
         self.assertTrue(r['success']);self.assertTrue(main.done(self.user,'coating'))
-        self.assertEqual(GamePlay.objects.get(pk=p['play']).evidence['coatingTiming']['averageMs'],30)
+        self.assertEqual(GamePlay.objects.get(pk=p['play']).evidence['coatingTiming']['averageMs'],5)
         replay=self.send('game_finish',play=p['play'],token=p['token'],proof=proof)
         self.assertEqual(replay['coatingTiming'],r['coatingTiming'])
 
@@ -260,7 +260,7 @@ class MainFlowTests(TestCase):
         r=main.topping_order.replay(c,{'positions':[400]*31},1600)
         self.assertEqual(r['burnt'],3);self.assertFalse(r['success'])
         c['drops']=[]
-        self.assertFalse(main.topping_order.replay(c,{'positions':[400]*401},20000)['success'])
+        self.assertFalse(main.topping_order.replay(c,{'positions':[400]*601},30000)['success'])
         kinds=['strawberry']*4+['sprinkle']+['almond']*3
         c['drops']=[dict(id=i,kind=k,x=400,landTick=(i+1)*10) for i,k in enumerate(kinds)]
         r=main.topping_order.replay(c,{'positions':[400]*81},4100)
@@ -270,17 +270,36 @@ class MainFlowTests(TestCase):
     def test_coating_drawn_success_zone_is_enforced(self):
         c=main.coating_challenge(22)
         def proof(fill):return {'success':True,'trials':[{'startMs':i*3000,'stopMs':int(i*3000+c['leadInMs']+v['fillMs']*fill/100)} for i,v in enumerate(c['rounds'])]}
-        for fill in (70,75,80):self.assertTrue(main.judge('coating',c,proof(fill),12000))
-        for fill in (69,81):
+        for fill in (74,75,76):self.assertTrue(main.judge('coating',c,proof(fill),12000))
+        for fill in (73,77):
             timing=main.coating_timing(c,proof(fill),12000)
             self.assertLess(timing['averageMs'],200)
             self.assertFalse(timing['success'])
 
     def test_topping_new_balance_has_narrower_faster_diagonal_drops(self):
         c=main.topping_order.challenge(55)
-        self.assertEqual(c['rulesVersion'],4)
+        self.assertEqual(c['rulesVersion'],5)
         self.assertEqual(c['catchRadius'],44)
-        self.assertEqual(c['order'],{'strawberry':5,'almond':5})
-        self.assertEqual(len(c['drops']),52)
-        self.assertTrue(all(900<=d['travelMs']<=1500 and d['startX']!=d['x'] and d['landTick']*50<=20000 for d in c['drops']))
+        self.assertEqual(c['order'],{'strawberry':10,'almond':10})
+        self.assertEqual(len(c['drops']),96)
+        self.assertTrue(all(900<=d['travelMs']<=1500 and d['startX']!=d['x'] and d['landTick']*50<=30000 for d in c['drops']))
         self.assertGreater(sum(d['kind']=='burnt' for d in c['drops']),15)
+
+    def test_topping_shrink_changes_actual_collision_radius_and_keeps_old_games(self):
+        c=main.topping_order.challenge(123)
+        c['order']={'strawberry':1,'almond':1}
+        c['drops']=[dict(id=0,kind='burnt',x=400,landTick=10),dict(id=1,kind='strawberry',x=435,landTick=20),dict(id=2,kind='almond',x=400,landTick=30)]
+        old={**c,'shrinkPx':0}
+        self.assertTrue(main.topping_order.replay(old,{'positions':[400]*31},1600)['success'])
+        self.assertIsNone(main.topping_order.replay(c,{'positions':[400]*31},1600))
+        c['drops'].append(dict(id=3,kind='strawberry',x=430,landTick=40))
+        r=main.topping_order.replay(c,{'positions':[400]*41},2100)
+        self.assertTrue(r['success']);self.assertEqual(r['burnt'],1)
+        self.assertEqual(r['caught'],[0,2,3])
+
+    def test_topping_ten_each_is_required(self):
+        c=main.topping_order.challenge(44)
+        c['drops']=[dict(id=i,kind='strawberry' if i%2==0 else 'almond',x=400,landTick=(i+1)*10) for i in range(20)]
+        self.assertIsNone(main.topping_order.replay(c,{'positions':[400]*101},6000))
+        r=main.topping_order.replay(c,{'positions':[400]*201},11000)
+        self.assertTrue(r['success']);self.assertEqual(r['counts'],{'strawberry':10,'almond':10})

@@ -113,13 +113,15 @@ test('typing draws only beginner problems and each problem remains completable',
  assert.doesNotMatch(html,/id="(?:difficulty|problem)"/);
 });
 
-test('stations have an open entrance, 106 units between booths, and full-height signs',()=>{
+test('stations face the long office wall with reachable east-facing interaction points',()=>{
  const world=require('../tools/build-event-map.cjs').build().campus;
  const games=require('../maps/minigames.json');
- assert.equal(games[1].y-games[0].y-games[0].h,106);
+ assert.equal(games[1].y-games[0].y-games[0].h,86);
  assert.ok(!world.objects.some(o=>o.id==='reference-campus-109'));
  for(const game of games){
-  assert.equal(game.interactionPoint[1]-(game.y+game.h),28);
+  assert.equal(game.interactionPoint[0]-(game.x+game.w),28);
+  assert.equal(game.interactionPoint[1],game.y+game.h/2);
+  assert.equal(game.facing,'east');
   assert.ok(game.renderHeight>=170);
  }
 });

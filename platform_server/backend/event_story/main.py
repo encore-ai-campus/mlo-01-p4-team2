@@ -29,7 +29,7 @@ def uid(code):
 
 def coating_challenge(seed):
     rng=random.Random(seed)
-    return dict(rulesVersion=3,leadInMs=300,lateWindowMs=500,maxAverageMs=200,rounds=[dict(fillMs=rng.choice([1000,1200,1400]),targetPct=75,zoneLeftPct=70,zoneRightPct=80) for _ in range(3)])
+    return dict(rulesVersion=3,leadInMs=300,lateWindowMs=500,maxAverageMs=200,rounds=[dict(fillMs=rng.choice([1000,1200,1400]),targetPct=75,zoneLeftPct=74,zoneRightPct=76) for _ in range(3)])
 
 
 def coating_timing(c,result,elapsed):

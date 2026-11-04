@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- Bronze manifest 잡(P2-1, 창 hour) 매시 :05 — 로컬 시험대용 사용자 LaunchAgent 견본. 운영은 같은 잡을 ScheduledSparkApplication(concurrencyPolicy: Forbid)으로.
+<!-- Bronze manifest 잡(P2-1, 창 hour) 매시 :05 — 로컬 시험대용 사용자 LaunchAgent 견본. 운영은 같은 잡을 ScheduledSparkApplication(concurrencyPolicy: Forbid, schedule 은 UTC)으로.
      설치는 사용자 승인 뒤: 자리 표시 두 가지(__REPO__ = 저장소 경로, __HOME__ = 홈 폴더)를 이 장치에 맞게 바꿔 ~/Library/LaunchAgents/ 에 두고
      launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.pipeline.hop-manifest-hour.plist
      제거: launchctl bootout gui/$(id -u)/local.pipeline.hop-manifest-hour 뒤 파일 삭제. 상태: launchctl print gui/$(id -u)/local.pipeline.hop-manifest-hour

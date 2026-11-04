@@ -11,7 +11,8 @@
 | `bronze/spark-submit-ads.sh` | Spark 제출(Standalone client 모드). 의존 jar는 미리 둔 세트를 `extraClassPath`로 쓴다 |
 | `bronze/run-bronze.sh` | Bronze 상시 실행(로컬). 운영 `restartPolicy: OnFailure`(최초 1회 + 재시도 3회)를 흉내 내고 잠듦을 막는다 |
 | `bronze/hop_manifest_job.py` | Bronze manifest 잡(P2-1): Bronze 한 판을 공용 요약 규칙으로 창마다 요약해 S3 `manifests/hop_pipeline/`에 불변 파일 + 포인터로 게시. 광고 서버 `fetch_hop_manifest`가 받는다. 설정은 모두 환경변수(기본값 없음) |
-| `bronze/run-hop-manifest.sh`, `bronze/local.pipeline.hop-manifest-{hour,day}.plist` | 그 잡의 로컬 실행(창 크기마다 잠금 하나, 1코어)과 LaunchAgent 견본(매시 :05 · 매일 00:35, 설치는 사용자 승인 뒤) |
+| `bronze/run-hop-manifest.sh`, `bronze/local.pipeline.hop-manifest-{hour,day}.plist` | 그 잡의 로컬 실행(창 크기마다 잠금 하나, 1코어)과 LaunchAgent 견본(매시 :05 · 매일 00:35Z, 설치는 사용자 승인 뒤) |
+| `reconcile/run-reconcile.sh`, `reconcile/local.pipeline.hop-reconcile-{hour,day}.plist` | 창 대사(P2-2, 광고 서버 `reconcile_hops`: 받기 → 같은 since로 outbox manifest → 대조·확정 기록 → 상태 파일)의 로컬 실행과 LaunchAgent 견본(매시 :07 · 매일 00:50Z) |
 | `common/hop_rules.py`, `common/ndjson.py` | 광고 서버 `ads_server/events/`의 같은 이름 파일과 **바이트가 같은 사본**(요약 규칙·manifest 바이트 규칙). 원본을 바꾸는 커밋에서 함께 바꾼다(`tests/common/`이 확인) |
 | `tools/` | 검증 도구(아래) |
 | `monitor/` | 점검·경보(**임시 D18** — 점검 스크립트 + 1분 주기 + 웹훅). `monitor/README.md` |
@@ -67,6 +68,15 @@ pipeline/bronze/run-hop-manifest.sh hour                 # 지금 창에서 48�
 pipeline/bronze/run-hop-manifest.sh day                  # 오늘에서 8일 앞부터, 이름 hop_pipeline_day
 HOP_MANIFEST_URI=s3a://ads-lake/tmp/<시험>/manifests/hop_pipeline/ pipeline/bronze/run-hop-manifest.sh hour --since 2026-11-02T13:00:00Z --as-of 2026-11-02T15:02:00Z   # 시험·다시 요약
 ```
+
+창 대사(P2-2 — 창 크기마다 동시에 하나만, 종료 코드 0 정상·1 확정 불일치·2 입력 실패·3 늦음·75 건너뜀, 상태 파일 `$HOP_RECONCILE_DIR/reconcile-<창>.json`):
+
+```bash
+pipeline/reconcile/run-reconcile.sh hour      # lab DB ↔ manifests/hop_pipeline/hop_pipeline_hour, MongoDB 구간 없음(운영 모양)
+pipeline/reconcile/run-reconcile.sh day
+```
+
+하루 주기는 UTC로 정의한다(하루 잡 00:35Z, 하루 대사 00:50Z). LaunchAgent `StartCalendarInterval`은 이 Mac의 현지 시각이라 견본은 Asia/Seoul(UTC+9) 기준 09:35·09:50으로 두었다. 시간대가 다르면 Hour를 바꾼다. 운영 예약(ScheduledSparkApplication·systemd 타이머)은 UTC로 둔다.
 
 잡의 설정(제출 스크립트가 넘긴다 — 잡 본문에는 기본값이 없다): `HOP_BRONZE_TABLE`, `HOP_MANIFEST_URI`(`/`로 끝나는 `s3a://` 접두사), `HOP_SOURCE_DB`(Debezium `source.db`), `HOP_GRACE_SECONDS`(광고 서버 `EVENTS_HOP_GRACE_SECONDS`와 같게), 선택 `HOP_MAX_PARTITION_BYTES`(기본 16m). 로컬 래퍼의 기본값은 lab 표·운영 접두사·`ads_pipeline_lab`·120초이고, 잠금 폴더는 `HOP_LOCK_DIR`(기본 `~/Library/Caches/ads-pipeline`). 시험은 Spark 없이 `python -m unittest discover -s pipeline/tests/common -t pipeline/tests`·`… -s pipeline/tests/bronze …`.
 

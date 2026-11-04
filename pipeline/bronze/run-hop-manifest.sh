@@ -4,7 +4,7 @@
 #   포인터를 쓰는 쪽이 하나라는 전제가 이 잠금이다(S3A create 는 확인 후 쓰기라 원자적이지 않다).
 # - 이 장치에서만 맞는 값(RustFS 주소·키 파일·Bronze 경로·원천 DB 이름·잠금 폴더)은 여기에만 둔다. 잡 본문(hop_manifest_job.py)에는 기본값이 없다.
 #   환경변수로 덮을 수 있다(시험 접두사: HOP_MANIFEST_URI=s3a://ads-lake/tmp/p2-1-test/manifests/hop_pipeline/).
-# - Spark 1코어(SPARK_CORES_MAX=1): 상시 Bronze 셋이 쓰고 남는 1코어를 예약 잡이 시각을 나눠 쓴다(:05 시간 잡, 00:35 하루 잡).
+# - Spark 1코어(SPARK_CORES_MAX=1): 상시 Bronze 셋이 쓰고 남는 1코어를 예약 잡이 시각을 나눠 쓴다(매시 :05 시간 잡, 매일 00:35Z 하루 잡 — 하루 주기는 UTC).
 set -euo pipefail
 window="${1:?사용: run-hop-manifest.sh hour|day [잡 인자...]}"
 shift

@@ -14,14 +14,14 @@ HOP_FILES = ("hop_source", "hop_outbox", "hop_mongo")
 class Command(BaseCommand):
     help = (
         "구간별 정합 manifest(export_hop_manifests 가 낸 폴더)를 대조한다: 원본→outbox, outbox→MongoDB, 원본→MongoDB. 각 manifest 의 SHA-256·행 수와 세대 사슬을 검증하고, "
-        "최신 manifest 가 감사 로그의 고정점과 같은지 본다. --pipeline 으로 파이프라인 쪽이 같은 규칙으로 낸 manifest 를 MongoDB 구간과도 대조한다. "
+        "최신 manifest 가 감사 로그의 고정점과 같은지 본다. --pipeline 으로 파이프라인 쪽이 같은 규칙(hop_rules.py)으로 낸 manifest 를 outbox 구간과(로컬 병행 기간에는 MongoDB 구간과도) 대조한다. "
         "확정 불일치·사슬 오류·고정점 불일치가 있으면 비정상 종료한다(중계 지연 후보는 보고만 하고 다시 확인한다)."
     )
 
     def add_arguments(self, parser):
         parser.add_argument("--dir", required=True, help="export_hop_manifests 의 출력 폴더")
         parser.add_argument("--out", help="대조 결과(NDJSON + manifest)를 낼 폴더")
-        parser.add_argument("--pipeline", help="파이프라인 쪽 구간 manifest 경로(MongoDB 구간과 대조)")
+        parser.add_argument("--pipeline", help="파이프라인 쪽 구간 manifest 경로(outbox 구간과, 로컬 병행 기간에는 MongoDB 구간과도 대조)")
         parser.add_argument("--no-anchor", action="store_true", help="감사 로그의 고정점과 대조하지 않는다(다른 환경에서 받은 폴더를 볼 때)")
 
     def handle(self, *args, **options):
@@ -59,11 +59,15 @@ class Command(BaseCommand):
             except hopcheck.HopInputError as error:
                 errors.append(f"pipeline: {error}")
             else:
-                if "hop_mongo" in hops:
-                    try:
-                        rows += hopcheck.compare(hops["hop_mongo"], pipeline)  # outbox 미전송은 MongoDB 에도 없어 파이프라인의 부족을 설명하지 못한다(지연 후보 없음)
-                    except hopcheck.HopInputError as error:
-                        errors.append(f"pipeline: {error}")
+                # outbox → 파이프라인이 본 쌍(DRD §5.6, 설계 01 D11): CDC 는 sent_at 을 채우지 않으므로 미전송을 지연 근거로 쓰지 않는다.
+                # MongoDB → 파이프라인도 지연 후보가 없다(outbox 미전송은 MongoDB 에도 없다). 파이프라인 쪽 입력 실패는 두 쌍에 같으므로 한 번만 적는다
+                for upstream in ("hop_outbox", "hop_mongo"):
+                    if upstream in hops:
+                        try:
+                            rows += hopcheck.compare(hops[upstream], pipeline, use_unsent=False)
+                        except hopcheck.HopInputError as error:
+                            errors.append(f"pipeline: {error}")
+                            break
         counts = dict(Counter(row["status"] for row in rows))
         for line in errors:
             self.stdout.write(f"FAIL {line}")

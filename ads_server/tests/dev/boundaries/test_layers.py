@@ -69,6 +69,7 @@ class LayerRuleTests(Cases, SimpleTestCase):
         self.assertIn("hashlib", names)  # 공회전이 아님
         self.assertEqual([n for n in names if n.startswith(".") or n.split(".")[0] not in sys.stdlib_module_names], [])
         self.assertEqual(hop_rules.rule_sha256(), hashlib.sha256(path.read_bytes()).hexdigest())  # manifest 의 rule_sha256(설계 01 S5)
+        self.assertNotIn(b"\r", path.read_bytes())  # .gitattributes `text eol=lf` — 어느 OS 의 checkout 에서도 바이트(=rule_sha256)가 같다
 
     def case_foreign_keys_use_label_strings(self):
         for module in LAYERS:

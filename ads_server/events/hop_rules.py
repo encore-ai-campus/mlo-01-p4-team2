@@ -15,6 +15,7 @@
 import hashlib
 import json
 import math
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -139,6 +140,115 @@ def summarize(documents, now, grace_seconds, since=None, size=DAY):
             "content_sha256": hashlib.sha256("\n".join(canonical_json(d) for d in docs).encode("utf-8")).hexdigest(),
         })
     return lines, sorted(open_windows)
+
+
+# ---------------------------------------------------------------- 파이프라인 구간: Bronze 행(Debezium 원본 봉투) → hop_pipeline 줄 (DRD §5.6, 구현 P1-3·P2-1)
+
+CONTENT_COLUMNS = ("event_id", "event_name", "schema_version", "aggregate_id", "payload", "created_at")  # 사본이 같은지 가르는 after 6열(sent_at 은 뺀다)
+PIPELINE_COUNTS = ("duplicates", "conflicts", "not_insert")  # hop_pipeline 줄에만 있는 필수 필드
+EXAMPLE_FIELDS = ("duplicate_examples", "conflict_examples", "not_insert_examples", "not_insert_unplaced_examples")  # checkpoint 의 위치 예시(각 최대 EXAMPLES 개)
+EXAMPLES = 10
+EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
+
+
+def after_identity(after):
+    """두 사본이 같은 내용인지 가르는 값(DRD §5.6 (5)): 6열 객체 — payload 는 JSON 으로 해석한 값, 나머지는 원문 값(created_at 마이크로초 문자열·schema_version 정수 그대로) — 의 JCS.
+    payload 의 공백·키 순서·`1` 과 `1.0` 차이는 같은 내용이다. 한계: content_sha256 은 5개 필드라, 사본이 하나뿐인 행의 aggregate_id 만 바뀐 경우는 hop 대조로 잡지 못한다
+    (두 사본이 서로 다를 때만 충돌로 잡힌다)."""
+    return canonical_json({c: json.loads(after["payload"]) if c == "payload" else after.get(c) for c in CONTENT_COLUMNS})
+
+
+def _key_event_id(key):
+    """메시지 키(JsonConverter — 스키마를 담으면 `payload` 안)의 event_id. 키가 없거나(TRUNCATE) 모양이 다르면 None."""
+    try:
+        data = json.loads(key) if key is not None else None
+    except ValueError:
+        return None
+    data = data.get("payload", data) if isinstance(data, dict) else None
+    return str(data["event_id"]).lower() if isinstance(data, dict) and data.get("event_id") is not None else None
+
+
+def summarize_changes(rows, db_name, now, grace_seconds, since=None, size=DAY):
+    """Bronze 행을 `hop_pipeline` 줄로 요약한다(DRD §5.6 "한 줄"·`checkpoint` [P1-3·P2-1]). 판정은 창마다가 아니라 **읽은 범위 전체에서 event_id 로 먼저 모아** 한다.
+
+    `rows`: (key, value, partition, offset) — key·value 는 메시지의 JSON 문자열(또는 바이트), value 가 None 이면 tombstone. `db_name`: 이 파이프라인의 원천 DB 이름.
+    - op `c`·`r` 행: 고유 event_id 로 `count`·두 해시를 낸다. 같은 event_id·같은 내용(`after_identity`)의 남는 행은 그 줄의 `duplicates`.
+      내용이 다른 사본이 있으면 그 event_id 는 통째로 충돌 — `count`·해시·`duplicates` 에 넣지 않고, 사본이 놓인 모든 (창, 이벤트 이름) 줄의 `conflicts` 에 1씩.
+    - op 가 `c`·`r` 가 아니고 after 가 있는 행(`u`): 자기 after 의 줄에 `not_insert` 1(같은 event_id 의 c·r 행은 위대로 센다).
+    - value 가 None 이거나 after 가 없는 행(DELETE·tombstone·TRUNCATE): `not_insert_unplaced`. source 가 `<db_name>.public.events_outbox` 가 아닌 행: `foreign_source_rows`.
+      둘은 어느 줄에도 놓을 수 없으므로 checkpoint 에 싣고, 0 보다 크면 대조 쪽이 그 쌍을 입력 실패로 본다.
+    반환: (줄 목록, 열린 창 시작 목록, checkpoint 필드). `count` 가 0 이어도 세 건수 중 하나가 0 보다 크면 줄을 낸다. 열린 창·since 앞 창은 줄에 넣지 않는다.
+    """
+    # ponytail: 읽은 범위의 event_id 마다 첫 문서·내용 해시를 메모리에 둔다(사본 수가 아니라 고유 이벤트 수에 비례). 범위가 아주 크면 Spark 쪽에서 event_id 로 묶어 같은 판정을 한다(P2-1)
+    groups, not_insert, unplaced, foreign = {}, Counter(), 0, 0
+    examples = {field: [] for field in EXAMPLE_FIELDS}
+
+    def note(field, event_id, partition, offset):
+        if len(examples[field]) < EXAMPLES:
+            examples[field].append({"event_id": event_id, "partition": partition, "offset": offset})
+
+    for key, value, partition, offset in rows:
+        envelope = None if value is None else json.loads(value)
+        if envelope is None:  # tombstone(DELETE 뒤)
+            unplaced += 1
+            note("not_insert_unplaced_examples", _key_event_id(key), partition, offset)
+            continue
+        source = envelope.get("source") or {}
+        if (source.get("db"), source.get("schema"), source.get("table")) != (db_name, "public", "events_outbox"):
+            foreign += 1
+            continue
+        after = envelope.get("after")
+        if after is None:  # DELETE(op d)·TRUNCATE(op t)
+            unplaced += 1
+            note("not_insert_unplaced_examples", _key_event_id(key), partition, offset)
+            continue
+        created = datetime.fromisoformat(after["created_at"])
+        if created.tzinfo is None:  # 지역 시각으로 읽혀 창이 조용히 어긋나지 않게 — Debezium 은 늘 Z 를 붙인다(형식이 깨진 after 는 멈춘다)
+            raise ValueError(f"after.created_at 에 시간대가 없다: {after['created_at']!r}")
+        place = (window_start(created, size), after["event_name"])
+        event_id = str(after["event_id"]).lower()
+        if envelope.get("op") not in ("c", "r"):  # r = 재발행(증분 스냅샷) — outbox 는 INSERT 만이라 c 와 같은 문서다
+            not_insert[place] += 1
+            note("not_insert_examples", event_id, partition, offset)
+            continue
+        identity = hashlib.sha256(after_identity(after).encode("utf-8")).digest()
+        group = groups.get(event_id)
+        if group is None:  # [첫 사본의 내용 해시, 첫 사본의 정규화 문서, 사본이 놓인 줄, 사본 위치(예시용, 최대 EXAMPLES), 사본 수, 충돌]
+            groups[event_id] = [identity, normal_document(after["event_id"], after["event_name"], after["schema_version"], created, json.loads(after["payload"])),
+                                {place}, [(partition, offset)], 1, False]
+            continue
+        group[2].add(place)
+        if len(group[3]) < EXAMPLES:
+            group[3].append((partition, offset))
+        group[4] += 1
+        group[5] = group[5] or identity != group[0]
+
+    docs, duplicates, conflicts = [], Counter(), Counter()
+    for event_id, (_identity, doc, places, positions, copies, conflict) in groups.items():
+        if conflict:  # 통째로 충돌 — 사본이 놓인 모든 줄에 1씩, 건수·해시·duplicates 에는 넣지 않는다
+            for place in places:
+                conflicts[place] += 1
+            for partition, offset in positions:
+                note("conflict_examples", event_id, partition, offset)
+            continue
+        docs.append(doc)
+        duplicates[next(iter(places))] += copies - 1  # 같은 내용이면 created_at·event_name 도 같아 줄은 하나다
+        for partition, offset in positions[1:]:
+            note("duplicate_examples", event_id, partition, offset)
+
+    lines, open_windows = summarize(docs, now, grace_seconds, since, size)
+    by_key = {(parse_time(line["window_start"]), line["event_name"]): line for line in lines}
+    open_windows = set(open_windows)
+    for start, name in {k for counter in (duplicates, conflicts, not_insert) for k, n in counter.items() if n}:
+        if since is not None and start < since:
+            continue
+        if not is_closed(start, now, grace_seconds, size):
+            open_windows.add(start)
+            continue
+        by_key.setdefault((start, name), {"window_start": format_time(start), "window_end": format_time(start + size), "event_name": name, "count": 0,
+                                          "ids_sha256": EMPTY_SHA256, "content_sha256": EMPTY_SHA256})
+    out = [line | {"duplicates": duplicates[key], "conflicts": conflicts[key], "not_insert": not_insert[key]} for key, line in sorted(by_key.items())]
+    return out, sorted(open_windows), {"not_insert_unplaced": unplaced, "foreign_source_rows": foreign, **examples}
 
 
 def rule_sha256():

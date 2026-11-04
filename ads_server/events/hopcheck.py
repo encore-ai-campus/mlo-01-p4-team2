@@ -7,12 +7,16 @@
   MongoDB → 파이프라인에는 쓰지 않는다 — 미전송은 MongoDB 에도 아직 없으므로 파이프라인이 적은 이유가 될 수 없다.
 - `open_window`: 한쪽에서 아직 열려 있는 창이라 비교하지 않는다.
 - `not_comparable`: outbox 가 보존 정리로 비교할 수 없는 창.
+
+파이프라인 구간(`hop_pipeline`, DRD §5.6 [P1-3]): 줄의 `duplicates` 는 `match` 를 막지 않는다. `conflicts`·`not_insert` 가 0 보다 크면 건수·해시가 같아도 `mismatch` 이고
+`fields` 에 그 원인을 적어 유실과 구별한다. `checkpoint` 의 `not_insert_unplaced`·`foreign_source_rows` 가 0 보다 크거나 `rule_sha256` 이 이 광고 서버의 공용 요약 규칙
+(`hop_rules.py`)과 다르면 그 쌍은 대조하지 않고 실패한다. outbox → 파이프라인은 지연 후보가 없다(`use_unsent=False` — CDC 는 `sent_at` 을 채우지 않는다).
 """
 import json
 import re
 from pathlib import Path
 
-from . import hops, ndjson
+from . import hop_rules, hops, ndjson
 
 MATCH, MISMATCH, LAG, OPEN, NOT_COMPARABLE = "match", "mismatch", "relay_lag_candidate", "open_window", "not_comparable"
 FIELDS = ("count", "ids_sha256", "content_sha256")
@@ -37,6 +41,7 @@ class Hop:
         self.unresolved_charges = checkpoint.get("unresolved_charges", 0)  # 원본 구간: 창에 놓을 수 없는 과금 원장 줄(대조할 줄이 없으므로 따로 실패)
         # outbox 구간: 비교 불가 창은 줄을 빼므로 그 창의 미전송 건수는 checkpoint 에 따로 싣는다(원본 → MongoDB 의 지연 후보 근거)
         self.not_comparable_unsent = {(u["window_start"], u["event_name"]): u["unsent"] for u in checkpoint.get("not_comparable_unsent", [])}
+        self.pipeline = manifest.get("source_kind") == "hop_pipeline"
 
 
 def _time(text, what):
@@ -46,9 +51,13 @@ def _time(text, what):
         raise HopInputError(f"{what} 시각이 올바르지 않다: {text!r}")
 
 
-def _check_line(number, line, size):
-    """한 줄이 계약 모양인지 본다: 필수 필드, 창 시작·끝이 UTC 경계에 맞고 끝 - 시작 = 선언한 창 크기, 건수·해시 형식."""
-    for field in ("window_start", "window_end", "event_name", "count", "ids_sha256", "content_sha256"):
+def _count(value):
+    return not isinstance(value, bool) and isinstance(value, int) and value >= 0
+
+
+def _check_line(number, line, size, pipeline=False):
+    """한 줄이 계약 모양인지 본다: 필수 필드, 창 시작·끝이 UTC 경계에 맞고 끝 - 시작 = 선언한 창 크기, 건수·해시 형식. 파이프라인 구간은 세 건수(필수)도."""
+    for field in ("window_start", "window_end", "event_name", "count", "ids_sha256", "content_sha256", *(hop_rules.PIPELINE_COUNTS if pipeline else ())):
         if field not in line:
             raise HopInputError(f"{number}번째 줄에 {field} 가 없다")
     start, end = _time(line["window_start"], f"{number}번째 줄 window_start"), _time(line["window_end"], f"{number}번째 줄 window_end")
@@ -58,8 +67,9 @@ def _check_line(number, line, size):
         raise HopInputError(f"{number}번째 줄의 창 시작 {line['window_start']} 이 UTC 경계(자정·정시)에 맞지 않는다")
     if not isinstance(line["event_name"], str) or not line["event_name"]:
         raise HopInputError(f"{number}번째 줄의 event_name 이 올바르지 않다")
-    if isinstance(line["count"], bool) or not isinstance(line["count"], int) or line["count"] < 0:
-        raise HopInputError(f"{number}번째 줄의 count 는 0 이상의 정수여야 한다")
+    for field in ("count", *(hop_rules.PIPELINE_COUNTS if pipeline else ())):
+        if not _count(line[field]):
+            raise HopInputError(f"{number}번째 줄의 {field} 는 0 이상의 정수여야 한다")
     for field in ("ids_sha256", "content_sha256"):
         if not isinstance(line[field], str) or not HEX64.fullmatch(line[field]):
             raise HopInputError(f"{number}번째 줄의 {field} 는 소문자 16진 SHA-256 이어야 한다")
@@ -117,12 +127,14 @@ def load_hop(manifest_path, name=None, expected_kind=None):
         seen.add((item["window_start"], item["event_name"]))
     if checkpoint.get("hop", kind) != kind:
         raise HopInputError(f"{manifest_path.name}: checkpoint 의 구간({checkpoint.get('hop')})이 source_kind({kind})와 다르다")
+    if kind == "hop_pipeline":
+        _check_pipeline_checkpoint(manifest_path.name, checkpoint)
     lines = {}
     for number, text in enumerate((manifest_path.parent / manifest["file"]).read_text(encoding="utf-8").splitlines(), 1):
         line = json.loads(text)
         if not isinstance(line, dict):
             raise HopInputError(f"{number}번째 줄이 객체가 아니다")
-        _check_line(number, line, size)
+        _check_line(number, line, size, pipeline=kind == "hop_pipeline")
         key = (line["window_start"], line["event_name"])
         if key in lines:
             raise HopInputError(f"{number}번째 줄: (창, 이벤트 이름) {key} 가 중복이다 — 마지막 줄로 덮어쓰지 않고 거부한다")
@@ -130,20 +142,49 @@ def load_hop(manifest_path, name=None, expected_kind=None):
     return Hop(name or kind, manifest, lines)
 
 
-def compare(a, b, unsent_from=None):
+def _check_pipeline_checkpoint(name, checkpoint):
+    """파이프라인 구간의 checkpoint 필수 필드(DRD §5.6 "입력 검증" [P1-3]): 놓을 수 없는 행·다른 출처 행 건수, 위치 예시 넷, 규칙 판."""
+    for field in ("not_insert_unplaced", "foreign_source_rows"):
+        if not _count(checkpoint.get(field)):
+            raise HopInputError(f"{name}: checkpoint.{field} 는 필수이고 0 이상의 정수여야 한다: {checkpoint.get(field)!r}")
+    for field in hop_rules.EXAMPLE_FIELDS:
+        items = checkpoint.get(field)
+        well_formed = isinstance(items, list) and len(items) <= hop_rules.EXAMPLES and all(
+            isinstance(i, dict) and set(i) == {"event_id", "partition", "offset"} and (i["event_id"] is None or isinstance(i["event_id"], str)) and _count(i["partition"]) and _count(i["offset"])
+            for i in items)
+        if not well_formed:
+            raise HopInputError(f"{name}: checkpoint.{field} 는 {{event_id, partition, offset}} 객체 목록(최대 {hop_rules.EXAMPLES}개)이어야 한다: {items!r}")
+    if not isinstance(checkpoint.get("rule_sha256"), str) or not HEX64.fullmatch(checkpoint["rule_sha256"]):
+        raise HopInputError(f"{name}: checkpoint.rule_sha256 는 필수이고 소문자 16진 SHA-256 이어야 한다: {checkpoint.get('rule_sha256')!r}")
+
+
+def _pipeline_problems(hop):
+    """그 쌍을 대조하지 않을 파이프라인 구간의 사정(DRD §5.6): 커넥터 설정 이상(놓을 수 없는 행·다른 출처 행)이나 규칙 판이 다름(설계 01 S5)."""
+    checkpoint = hop.manifest.get("checkpoint") or {}
+    problems = [f"{field} {checkpoint[field]}건(커넥터 설정 이상 — 어느 창에도 놓을 수 없다)" for field in ("not_insert_unplaced", "foreign_source_rows") if checkpoint.get(field)]
+    if checkpoint.get("rule_sha256") != hop_rules.rule_sha256():
+        problems.append(f"rule_sha256 {checkpoint.get('rule_sha256')} 이 이 광고 서버의 공용 요약 규칙(hop_rules.py {hop_rules.rule_sha256()})과 다르다")
+    return problems
+
+
+def compare(a, b, unsent_from=None, use_unsent=True):
     """두 구간을 대조한다. `a` 가 상류, `b` 가 하류다. `unsent_from`: 미전송 건수(`unsent`)를 가진 outbox 구간 — 원본 → MongoDB 의 지연 후보를 가리는 데 쓴다.
+    `use_unsent=False`: outbox 의 미전송을 지연 근거로 쓰지 않는다(outbox → 파이프라인 — CDC 는 `sent_at` 을 채우지 않는다).
     반환: 줄(dict) 목록 — `{"pair", "window_start", "event_name", "status", "fields", "a", "b"}`."""
     if a.window != b.window:
         raise HopInputError(f"창 크기가 다른 manifest 는 대조하지 않는다: {a.name}={a.window}, {b.name}={b.window}")
     if a.since != b.since:  # 한쪽에만 있는 옛 창이 모두 '빠짐'으로 보이지 않게, 범위가 다르면 조용히 좁히지 않고 실패한다(설계 01 S1 (가))
         raise HopInputError(f"범위(checkpoint.since)가 다른 manifest 는 대조하지 않는다: {a.name}={a.since}, {b.name}={b.since}")
+    for hop in (a, b):
+        if hop.pipeline and (problems := _pipeline_problems(hop)):
+            raise HopInputError(f"{hop.name} 은 대조하지 않는다: " + "; ".join(problems))
     keys = {k for k in a.lines.keys() | b.lines.keys() if a.since is None or k[0] >= a.since}  # since 앞 창은 보지 않는다(같은 형식의 UTC 문자열이라 사전순 = 시간순)
     out = []
     pair = f"{a.name}->{b.name}"
     for key in sorted(keys):
         window, name = key
         la, lb = a.lines.get(key), b.lines.get(key)
-        status, fields = _classify(a, b, key, la, lb, unsent_from)
+        status, fields = _classify(a, b, key, la, lb, unsent_from if use_unsent else None, use_unsent)
         out.append({"pair": pair, "window_start": window, "event_name": name, "status": status, "fields": fields,
                     "a": _summary(la), "b": _summary(lb)})
     # 줄이 하나도 없는 열린 창·비교 불가 창도 기록으로 남긴다(조용히 사라지지 않게)
@@ -153,21 +194,22 @@ def compare(a, b, unsent_from=None):
 
 
 def _summary(line):
-    return None if line is None else {f: line[f] for f in FIELDS} | ({"unsent": line["unsent"]} if "unsent" in line else {})
+    return None if line is None else {f: line[f] for f in (*FIELDS, "unsent", *hop_rules.PIPELINE_COUNTS) if f in line}
 
 
-def _classify(a, b, key, la, lb, unsent_from):
+def _classify(a, b, key, la, lb, unsent_from, use_unsent=True):
     window = key[0]
     if window in a.open_windows or window in b.open_windows:
         return OPEN, []
     if window in a.not_comparable or window in b.not_comparable:
         return NOT_COMPARABLE, []
-    if la is not None and lb is not None and all(la[f] == lb[f] for f in FIELDS):
+    causes = list(dict.fromkeys(f for line in (la, lb) if line for f in ("conflicts", "not_insert") if line.get(f)))  # 파이프라인 줄: 유실과 구별할 원인
+    if la is not None and lb is not None and all(la[f] == lb[f] for f in FIELDS) and not causes:
         return MATCH, []
     fields = [f for f in FIELDS if (la or {}).get(f) != (lb or {}).get(f)] if la and lb else ["line_missing_in_" + ("b" if lb is None else "a")]
-    if _is_lag(a, b, key, la, lb, unsent_from):
+    if not causes and use_unsent and _is_lag(a, b, key, la, lb, unsent_from):
         return LAG, fields
-    return MISMATCH, fields
+    return MISMATCH, fields + causes
 
 
 def _is_lag(a, b, key, la, lb, unsent_from):

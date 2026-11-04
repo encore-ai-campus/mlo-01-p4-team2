@@ -4,7 +4,7 @@ import json
 import shutil
 import tempfile
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from random import Random
 
@@ -12,7 +12,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import SimpleTestCase, TransactionTestCase, tag
 
-from events import hopcheck, ndjson, store
+from events import hop_rules, hopcheck, ndjson, store
 from events.models import EventOutbox
 from events.relay import relay_batch
 from records import api as records
@@ -133,6 +133,157 @@ class LagExplanationTests(Cases, SimpleTestCase):
         self.run_cases()
 
 
+UTC = timezone.utc
+SOURCE_DB = "ads_test_source"  # 파이프라인 잡에 설정한 원천 DB 이름
+T5 = datetime(2026, 10, 7, 5, 10, 0, 123456, tzinfo=UTC)  # 05시 창(마이크로초까지 — Debezium created_at)
+LATER = datetime(2026, 10, 8, tzinfo=UTC)  # 아래 창이 모두 닫힌 '지금'
+
+
+def after(i, at=T5, name="ad.decision", payload=None, aggregate="agg-1"):
+    """outbox 봉투 6열(Debezium after — payload 는 DB 의 JSON 원문 문자열, created_at 은 마이크로초 UTC 문자열)."""
+    return {"event_id": str(uuid.UUID(int=i)), "event_name": name, "schema_version": 1, "aggregate_id": aggregate,
+            "payload": json.dumps({"n": i}) if payload is None else payload, "created_at": at.strftime("%Y-%m-%dT%H:%M:%S.%fZ")}
+
+
+def change(af, op="c", db=SOURCE_DB, tombstone=False, keyless=False):
+    """Bronze 행 하나의 (key, value): 키는 스키마를 담은 JsonConverter 모양, value 는 Debezium 원본 봉투(DELETE·TRUNCATE 는 after 없음, tombstone 은 value 없음)."""
+    key = None if keyless else json.dumps({"schema": {"type": "struct"}, "payload": {"event_id": af["event_id"]}})
+    if tombstone:
+        return key, None
+    return key, json.dumps({"before": None, "after": None if op in ("d", "t") else af, "op": op, "source": {"db": db, "schema": "public", "table": "events_outbox"}})
+
+
+def outbox_hop(afters, unsent=0):
+    docs = [hop_rules.normal_document(a["event_id"], a["event_name"], a["schema_version"], datetime.fromisoformat(a["created_at"]), json.loads(a["payload"])) for a in afters]
+    lines, open_windows = hop_rules.summarize(docs, LATER, 120, size=hop_rules.HOUR)
+    checkpoint = {"window": "utc-hour", "open_windows": [hop_rules.format_time(w) for w in open_windows]}
+    return hopcheck.Hop("hop_outbox", {"source_kind": "hop_outbox", "checkpoint": checkpoint}, {(l["window_start"], l["event_name"]): l | {"unsent": unsent} for l in lines})
+
+
+def fold(changes):
+    """Bronze 행 목록(offset 0, 1, …)을 공용 규칙으로 요약한다. 반환: (줄 사전, 열린 창, checkpoint 필드)."""
+    lines, open_windows, extra = hop_rules.summarize_changes([(k, v, 0, offset) for offset, (k, v) in enumerate(changes)], SOURCE_DB, LATER, 120, size=hop_rules.HOUR)
+    return {(l["window_start"][11:13], l["event_name"]): l for l in lines}, [hop_rules.format_time(w) for w in open_windows], extra
+
+
+def pipeline_hop(changes, **checkpoint):
+    lines, open_windows, extra = hop_rules.summarize_changes([(k, v, 0, offset) for offset, (k, v) in enumerate(changes)], SOURCE_DB, LATER, 120, size=hop_rules.HOUR)
+    manifest = {"source_kind": "hop_pipeline", "checkpoint": {"window": "utc-hour", "open_windows": [hop_rules.format_time(w) for w in open_windows],
+                                                              "rule_sha256": hop_rules.rule_sha256(), **extra, **checkpoint}}
+    return hopcheck.Hop("pipeline", manifest, {(l["window_start"], l["event_name"]): l for l in lines})
+
+
+def pair(outbox, pipeline, **kw):
+    return [(r["window_start"][11:13], r["event_name"], r["status"], r["fields"]) for r in hopcheck.compare(outbox, pipeline, **kw)]
+
+
+@tag("security")
+class PipelinePairTests(Cases, SimpleTestCase):
+    """DRD §5.6 [P1-3·P2-1]: Bronze 행 → hop_pipeline 줄(공용 규칙 `summarize_changes`)과 outbox → 파이프라인 대조. C4 탐지(누락·내용 변경·중복)와 DRD 0.67 의 경우들."""
+
+    def case_the_same_events_match_with_zero_counts(self):
+        afters = [after(1), after(2), after(3, name="ad.charge")]
+        lines, open_windows, extra = fold([change(a) for a in afters])
+        self.assertEqual({k: (l["count"], l["duplicates"], l["conflicts"], l["not_insert"]) for k, l in lines.items()},
+                         {("05", "ad.decision"): (2, 0, 0, 0), ("05", "ad.charge"): (1, 0, 0, 0)})
+        self.assertEqual((open_windows, extra["not_insert_unplaced"], extra["foreign_source_rows"]), ([], 0, 0))
+        self.assertEqual(pair(outbox_hop(afters), pipeline_hop([change(a) for a in afters])), [("05", "ad.charge", "match", []), ("05", "ad.decision", "match", [])])
+
+    def case_c4_detection_loss_content_change_and_duplicates(self):
+        afters = [after(1), after(2)]
+        lost = pair(outbox_hop(afters), pipeline_hop([change(after(1))]))
+        self.assertEqual(lost, [("05", "ad.decision", "mismatch", ["count", "ids_sha256", "content_sha256"])])
+        changed = pair(outbox_hop(afters), pipeline_hop([change(after(1)), change(after(2, payload='{"n": 99}'))]))
+        self.assertEqual(changed, [("05", "ad.decision", "mismatch", ["content_sha256"])])
+        replay = [change(after(1)), change(after(2)), change(after(2), op="r")]  # 재발행 op=r 은 c 와 같은 문서 — 중복은 match 를 막지 않는다
+        lines, _, extra = fold(replay)
+        self.assertEqual(lines[("05", "ad.decision")]["duplicates"], 1)
+        self.assertEqual(extra["duplicate_examples"], [{"event_id": after(2)["event_id"], "partition": 0, "offset": 2}])
+        self.assertEqual(pair(outbox_hop(afters), pipeline_hop(replay)), [("05", "ad.decision", "match", [])])
+
+    def case_payload_notation_is_not_a_conflict(self):
+        """payload 는 해석한 값으로 비교한다 — 공백·키 순서·1 과 1.0 은 같은 내용이다(DRD §5.6 (5))."""
+        lines, _, _ = fold([change(after(2, payload='{"n": 2, "m": "x"}')), change(after(2, payload='{ "m":"x","n":2.0 }'), op="r")])
+        self.assertEqual((lines[("05", "ad.decision")]["duplicates"], lines[("05", "ad.decision")]["conflicts"]), (1, 0))
+
+    def case_conflicting_copies_count_on_every_line_they_land_on(self):
+        """충돌 열에 created_at 이 있어 사본이 다른 창에 놓인다 — 그 event_id 는 건수·해시에서 빠지고 사본이 놓인 두 줄 모두 conflicts 1, count 0 줄도 낸다."""
+        afters = [after(1), after(2)]
+        copies = [change(after(1)), change(after(2)), change(after(2, at=T5 + timedelta(hours=1)), op="r")]
+        lines, _, extra = fold(copies)
+        self.assertEqual({k: (l["count"], l["conflicts"], l["duplicates"]) for k, l in lines.items()}, {("05", "ad.decision"): (1, 1, 0), ("06", "ad.decision"): (0, 1, 0)})
+        self.assertEqual(lines[("06", "ad.decision")]["ids_sha256"], hop_rules.EMPTY_SHA256)
+        self.assertEqual([(e["event_id"], e["offset"]) for e in extra["conflict_examples"]], [(after(2)["event_id"], 1), (after(2)["event_id"], 2)])
+        self.assertEqual(pair(outbox_hop(afters), pipeline_hop(copies)),
+                         [("05", "ad.decision", "mismatch", ["count", "ids_sha256", "content_sha256", "conflicts"]), ("06", "ad.decision", "mismatch", ["line_missing_in_a", "conflicts"])])
+
+    def case_three_copies_with_one_different_are_a_conflict_not_a_duplicate(self):
+        same, other = change(after(2), op="r"), change(after(2, aggregate="agg-2"), op="r")  # 둘은 같고 하나만 aggregate_id 가 다름
+        for copies in ([change(after(2)), same, other], [change(after(2)), other, same]):  # 다른 사본이 끝에 와도, 가운데 와도(뒤의 같은 사본이 충돌을 지우지 않는다)
+            with self.subTest(order=[json.loads(v)["after"]["aggregate_id"] for _, v in copies]):
+                lines, _, _ = fold(copies)
+                self.assertEqual({k: (l["count"], l["duplicates"], l["conflicts"]) for k, l in lines.items()}, {("05", "ad.decision"): (0, 0, 1)})
+
+    def case_not_insert_counts_on_the_line_of_its_after(self):
+        """op 가 c·r 가 아닌 행(u)은 자기 after 의 줄에 not_insert — 같은 event_id 의 c 행은 그대로 센다. 다른 줄이면 count 0 줄, 열린 창이면 줄에 넣지 않는다."""
+        afters = [after(1), after(2)]
+        same_line = [change(after(1)), change(after(2)), change(after(2), op="u")]
+        lines, _, extra = fold(same_line)
+        self.assertEqual((lines[("05", "ad.decision")]["count"], lines[("05", "ad.decision")]["not_insert"]), (2, 1))
+        self.assertEqual(extra["not_insert_examples"], [{"event_id": after(2)["event_id"], "partition": 0, "offset": 2}])
+        self.assertEqual(pair(outbox_hop(afters), pipeline_hop(same_line)), [("05", "ad.decision", "mismatch", ["not_insert"])])  # 건수·해시가 같아도
+        other_line = same_line[:2] + [change(after(9, at=T5 + timedelta(hours=2)), op="u"), change(after(10, at=LATER - timedelta(seconds=30)), op="u")]
+        lines, open_windows, _ = fold(other_line)
+        self.assertEqual((lines[("07", "ad.decision")]["count"], lines[("07", "ad.decision")]["not_insert"]), (0, 1))
+        self.assertEqual(open_windows, ["2026-10-07T23:00:00Z"])  # 아직 열린 창의 행은 줄에 넣지 않는다
+        self.assertEqual(pair(outbox_hop(afters), pipeline_hop(other_line))[1:2], [("07", "ad.decision", "mismatch", ["line_missing_in_a", "not_insert"])])
+
+    def case_since_drops_older_windows_of_every_count(self):
+        """since 앞 창은 줄에 넣지 않는다 — 문서뿐 아니라 duplicates·conflicts·not_insert 만 남는 줄도(DRD §5.6 (6), 설계 01 S1)."""
+        six = T5 + timedelta(hours=1)
+        rows = [change(after(1)), change(after(1), op="r"), change(after(2)), change(after(2, aggregate="x"), op="r"), change(after(3), op="u"),  # 05시: 중복·충돌·not_insert
+                change(after(4, at=six)), change(after(4, at=six), op="r"), change(after(5, at=six), op="u")]  # 06시: 문서 하나·중복·not_insert
+        lines, open_windows, _ = hop_rules.summarize_changes([(k, v, 0, offset) for offset, (k, v) in enumerate(rows)], SOURCE_DB, LATER, 120,
+                                                             since=datetime(2026, 10, 7, 6, tzinfo=UTC), size=hop_rules.HOUR)
+        self.assertEqual([(l["window_start"], l["count"], l["duplicates"], l["conflicts"], l["not_insert"]) for l in lines], [("2026-10-07T06:00:00Z", 1, 1, 0, 1)])
+        self.assertEqual(open_windows, [])
+
+    def case_a_created_at_without_time_zone_stops_the_summary(self):
+        """시간대 없는 created_at 은 지역 시각으로 읽혀 창이 조용히 어긋나므로, 형식이 깨진 after 로 보고 멈춘다(Debezium 은 늘 Z 를 붙인다)."""
+        with self.assertRaisesRegex(ValueError, "시간대가 없다"):
+            fold([change(after(1) | {"created_at": "2026-10-07T05:10:00.123456"})])
+
+    def case_rows_that_cannot_be_placed_or_come_from_elsewhere_fail_the_pair(self):
+        """DELETE(op d)·tombstone(value null)·TRUNCATE(op t, 키 없음)는 어느 줄에도 놓을 수 없고, 다른 DB 의 행은 다른 출처다 — checkpoint 에 세고 그 쌍은 대조하지 않는다."""
+        base = [change(after(1))]
+        for bad, field, event_id in ((change(after(2), op="d"), "not_insert_unplaced", after(2)["event_id"]), (change(after(2), tombstone=True), "not_insert_unplaced", after(2)["event_id"]),
+                                     (change(after(2), op="t", keyless=True), "not_insert_unplaced", None), (change(after(2), db="other_db"), "foreign_source_rows", None)):
+            with self.subTest(field=field, event_id=event_id):
+                lines, _, extra = fold(base + [bad])
+                self.assertEqual((extra["not_insert_unplaced"] + extra["foreign_source_rows"], extra[field]), (1, 1))
+                self.assertEqual(lines[("05", "ad.decision")]["count"], 1)  # 정상 행은 그대로 센다
+                if field == "not_insert_unplaced":
+                    self.assertEqual(extra["not_insert_unplaced_examples"], [{"event_id": event_id, "partition": 0, "offset": 1}])
+                with self.assertRaisesRegex(hopcheck.HopInputError, f"pipeline 은 대조하지 않는다: {field} 1건"):
+                    hopcheck.compare(outbox_hop([after(1)]), pipeline_hop(base + [bad]), use_unsent=False)
+
+    def case_a_different_rule_version_is_not_compared(self):
+        """설계 01 S5: 파이프라인 사본의 규칙 파일이 광고 서버의 hop_rules.py 와 다르면 대조하지 않는다."""
+        with self.assertRaisesRegex(hopcheck.HopInputError, "rule_sha256 0{64} 이 이 광고 서버의 공용 요약 규칙"):
+            hopcheck.compare(outbox_hop([after(1)]), pipeline_hop([change(after(1))], rule_sha256="0" * 64), use_unsent=False)
+
+    def case_unsent_rows_do_not_excuse_a_pipeline_shortfall(self):
+        """설계 01 D11: CDC 는 sent_at 을 채우지 않으므로 outbox → 파이프라인은 미전송을 지연 근거로 쓰지 않는다(인자로 끈다)."""
+        afters = [after(1), after(2)]
+        self.assertEqual(pair(outbox_hop(afters, unsent=1), pipeline_hop([change(after(1))]))[0][2], "relay_lag_candidate")  # 끄지 않으면(기본) 지연으로 보인다
+        self.assertEqual(pair(outbox_hop(afters, unsent=1), pipeline_hop([change(after(1))]), use_unsent=False)[0][2], "mismatch")
+        short_with_update = pipeline_hop([change(after(1)), change(after(2), op="u")])  # 부족 1 + not_insert 1 — 기본값으로 불러도 원인이 지연 후보로 가려지지 않는다
+        self.assertEqual(pair(outbox_hop(afters, unsent=1), short_with_update), [("05", "ad.decision", "mismatch", ["count", "ids_sha256", "content_sha256", "not_insert"])])
+
+    def test_pipeline_pair(self):
+        self.run_cases()
+
+
 A64, B64 = "a" * 64, "b" * 64  # 형식이 맞는 해시
 
 
@@ -224,6 +375,27 @@ class InputValidationTests(Cases, SimpleTestCase):
             with self.subTest(since=since), self.assertRaises(hopcheck.HopInputError):
                 self.load(self.publish([self.day()], since=since))
 
+    def case_a_pipeline_manifest_must_carry_its_counts_examples_and_rule_version(self):
+        """DRD §5.6 "입력 검증" [P1-3]: hop_pipeline 의 줄마다 duplicates·conflicts·not_insert, checkpoint 의 두 건수·예시 넷·rule_sha256 은 필수다."""
+        lines, open_windows, extra = hop_rules.summarize_changes([(*change(after(1)), 0, 0), (*change(after(1), op="r"), 0, 1)], SOURCE_DB, LATER, 120, size=hop_rules.HOUR)
+
+        def publish(lines=lines, **checkpoint):
+            directory = Path(tempfile.mkdtemp())
+            self.addCleanup(shutil.rmtree, directory, True)
+            full = {"window": "utc-hour", "open_windows": [], "rule_sha256": hop_rules.rule_sha256(), **extra, **checkpoint}
+            ndjson.write(directory, "h", lines, "hop_pipeline", 1, checkpoint={k: v for k, v in full.items() if v is not ...})
+            return ndjson.manifest_path(directory, "h")
+        loaded = self.load(publish(), "pipeline")
+        self.assertEqual(next(iter(loaded.lines.values()))["duplicates"], 1)  # 공용 규칙의 출력이 계약 검사를 통과한다
+        bad_lines = [[{k: v for k, v in lines[0].items() if k != field}] for field in hop_rules.PIPELINE_COUNTS] + [[lines[0] | {"conflicts": True}], [lines[0] | {"not_insert": -1}]]
+        bad_checkpoints = [{"not_insert_unplaced": ...}, {"foreign_source_rows": "0"}, {"rule_sha256": ...}, {"rule_sha256": "A" * 64}, {"duplicate_examples": ...},
+                           {"conflict_examples": [{"event_id": 1, "partition": 0, "offset": 0}]}, {"not_insert_examples": [{"event_id": None, "partition": -1, "offset": 0}]},
+                           {"not_insert_unplaced_examples": [{"event_id": None, "partition": 0, "offset": 0}] * 11},
+                           {"duplicate_examples": [{"partition": 0, "offset": 0}]}, {"conflict_examples": [{"event_id": None, "partition": 0, "offset": 0, "topic": "t"}]}]  # 키는 정확히 셋
+        for kw in [{"lines": l} for l in bad_lines] + bad_checkpoints:
+            with self.subTest(kw=kw), self.assertRaises(hopcheck.HopInputError):
+                self.load(publish(**kw), "pipeline")
+
     def case_malformed_checkpoints_are_refused_not_raised(self):
         """리팩터 감사 D3: checkpoint 가 객체가 아니거나 창 크기가 문자열이 아니거나 창 목록·과금 예시가 문자열 목록이 아니면 날것의 예외(대조 전체가 멈춘다)가 아니라 `HopInputError` 다."""
         for checkpoint in ([1], {"window": "utc-day", "open_windows": 5}, {"window": "utc-day", "open_windows": [[1]]}, {"window": "utc-day", "not_comparable_windows": "W"},
@@ -287,6 +459,13 @@ class VerifyHopsCommandTests(Cases, MongoDatabaseMixin, TransactionTestCase):
     def lines(self, hop_name):
         manifest = ndjson.read_manifest(ndjson.manifest_path(self.dir / "hops", hop_name))
         return [json.loads(l) for l in (self.dir / "hops" / manifest["file"]).read_text().splitlines()]
+
+    def pipeline(self, lines, **checkpoint):
+        """계약 모양의 파이프라인 manifest(DRD §5.6 [P1-3] — 줄의 세 건수·checkpoint 필수 필드·이 광고 서버의 rule_sha256)를 쓰고 경로를 돌려준다."""
+        full = {"open_windows": [], "window": "utc-day", "rule_sha256": hop_rules.rule_sha256(), "not_insert_unplaced": 0, "foreign_source_rows": 0,
+                **{field: [] for field in hop_rules.EXAMPLE_FIELDS}, **checkpoint}
+        ndjson.write(self.dir / "pipeline", "pipeline", [{"duplicates": 0, "conflicts": 0, "not_insert": 0} | l for l in lines], "hop_pipeline", 1, checkpoint=full)
+        return str(ndjson.manifest_path(self.dir / "pipeline", "pipeline"))
 
     def case_everything_matches_after_the_relay(self):
         relay_batch()
@@ -378,32 +557,40 @@ class VerifyHopsCommandTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.assertIn("hop_mongo", text)
         self.assertIn("검증 실패", text)
 
-    def case_a_pipeline_manifest_is_compared_with_the_mongodb_hop(self):
+    def case_a_pipeline_manifest_is_compared_with_the_outbox_and_mongodb_hops(self):
+        """DRD §5.6 [P1-3]: 파이프라인 manifest 는 outbox 구간과 대조하고, 로컬 병행 기간에는 MongoDB 구간과도 대조한다."""
         relay_batch()
         self.export()
-        pipeline_dir = self.dir / "pipeline"
         mongo_lines = self.lines("hop_mongo")
-        ndjson.write(pipeline_dir, "pipeline", mongo_lines, "hop_pipeline", 1, checkpoint={"open_windows": [], "window": "utc-day"})
-        ok, text = self.verify("--pipeline", str(ndjson.manifest_path(pipeline_dir, "pipeline")))
+        ok, text = self.verify("--pipeline", self.pipeline(mongo_lines))
         self.assertTrue(ok, text)
-        self.assertIn("'match': 32", text)  # 네 쌍 × 8줄
+        self.assertIn("'match': 40", text)  # 다섯 쌍 × 8줄
         bad = [dict(l, content_sha256="0" * 64) if l["event_name"] == "ad.charge" else l for l in mongo_lines]
-        ndjson.write(pipeline_dir, "pipeline", bad, "hop_pipeline", 1, checkpoint={"open_windows": [], "window": "utc-day"})
-        ok, text = self.verify("--pipeline", str(ndjson.manifest_path(pipeline_dir, "pipeline")))
+        ok, text = self.verify("--pipeline", self.pipeline(bad))
         self.assertFalse(ok)
-        self.assertIn("hop_mongo->pipeline", text)
+        for pair in ("hop_outbox->pipeline", "hop_mongo->pipeline"):
+            self.assertIn(f"FAIL {pair} ", text)
         self.assertIn("content_sha256", text)
 
     def case_a_pipeline_manifest_with_another_range_start_is_not_compared(self):
         """설계 01 S1 (가): 파이프라인 manifest 의 범위 시작이 광고 서버 manifest 와 다르면 그 쌍은 대조하지 않고 실패한다(옛 창이 '빠짐'으로 쏟아지지 않게)."""
         relay_batch()
         self.export()
-        pipeline_dir = self.dir / "pipeline"
-        ndjson.write(pipeline_dir, "pipeline", self.lines("hop_mongo"), "hop_pipeline", 1, checkpoint={"open_windows": [], "window": "utc-day", "since": "2026-10-07T00:00:00Z"})
-        ok, text = self.verify("--pipeline", str(ndjson.manifest_path(pipeline_dir, "pipeline")))
+        ok, text = self.verify("--pipeline", self.pipeline(self.lines("hop_mongo"), since="2026-10-07T00:00:00Z"))
         self.assertFalse(ok)
-        self.assertIn("FAIL pipeline: 범위(checkpoint.since)가 다른 manifest 는 대조하지 않는다: hop_mongo=None, pipeline=2026-10-07T00:00:00Z", text)
-        self.assertNotIn("hop_mongo->pipeline", text)  # 줄 대조를 하지 않았다
+        self.assertIn("FAIL pipeline: 범위(checkpoint.since)가 다른 manifest 는 대조하지 않는다: hop_outbox=None, pipeline=2026-10-07T00:00:00Z", text)
+        self.assertEqual(text.count("FAIL pipeline:"), 1)  # 두 쌍에 같은 실패라 한 번만
+        self.assertNotIn("->pipeline", text)  # 줄 대조를 하지 않았다
+
+    def case_rows_the_pipeline_could_not_place_fail_the_pair(self):
+        """DRD §5.6 [P1-3]: 놓을 수 없는 행(DELETE·tombstone·TRUNCATE)이나 다른 출처 행이 있으면 커넥터 설정 이상이라 그 쌍은 대조하지 않고 실패한다."""
+        relay_batch()
+        self.export()
+        for field in ("not_insert_unplaced", "foreign_source_rows"):
+            ok, text = self.verify("--pipeline", self.pipeline(self.lines("hop_mongo"), **{field: 1}))
+            self.assertFalse(ok, field)
+            self.assertIn(f"FAIL pipeline: pipeline 은 대조하지 않는다: {field} 1건(커넥터 설정 이상", text)
+            self.assertNotIn("->pipeline", text)
 
     def case_a_pipeline_shortfall_is_not_excused_by_unsent_outbox_rows(self):
         """버그 탐색 B4: outbox 미전송은 MongoDB 에도 아직 없으므로 파이프라인이 MongoDB 보다 적은 이유가 될 수 없다 — 확정 불일치."""
@@ -411,12 +598,11 @@ class VerifyHopsCommandTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         row = EventOutbox.objects.filter(event_name="ad.decision").first()
         EventOutbox.objects.filter(pk=row.pk).update(sent_at=None)  # MongoDB 에는 이미 있지만 outbox 로는 미전송 1
         self.export()
-        pipeline_dir = self.dir / "pipeline"
         short = [dict(l, count=l["count"] - 1, ids_sha256="0" * 64) if l["event_name"] == "ad.decision" else l for l in self.lines("hop_mongo")]
-        ndjson.write(pipeline_dir, "pipeline", short, "hop_pipeline", 1, checkpoint={"open_windows": [], "window": "utc-day"})
-        ok, text = self.verify("--pipeline", str(ndjson.manifest_path(pipeline_dir, "pipeline")))
+        ok, text = self.verify("--pipeline", self.pipeline(short))
         self.assertFalse(ok)
         self.assertIn("FAIL hop_mongo->pipeline", text)
+        self.assertIn("FAIL hop_outbox->pipeline", text)  # outbox → 파이프라인도 미전송을 지연 근거로 쓰지 않는다(CDC 는 sent_at 을 채우지 않는다, D11)
 
     def case_a_missing_hop_manifest_fails(self):
         self.export()

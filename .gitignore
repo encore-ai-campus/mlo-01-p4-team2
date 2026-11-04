@@ -25,6 +25,7 @@ node_modules/
 # 저장소에 넣지 않는 작업 폴더
 /demo/
 /temp/
+/send/
 
 # 로컬 도구 설정
 /CLAUDE.md

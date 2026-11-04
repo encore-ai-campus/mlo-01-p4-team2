@@ -11,6 +11,7 @@
 import json
 import os
 import re
+import socket
 import stat
 import subprocess
 import sys
@@ -44,13 +45,14 @@ JAVA_HOME = E("MONITOR_JAVA_HOME", "/opt/homebrew/opt/openjdk@21/libexec/openjdk
 # Bronze: "이름|토픽|checkpoint s3a 경로" 를 쉼표로
 BRONZE = [b.split("|") for b in E("MONITOR_BRONZE", "lab|ads.outbox.events|s3a://ads-lake/checkpoints/bronze_ads_outbox,"
                                                      "e2e|ads.e2e.outbox.events|s3a://ads-lake/checkpoints/bronze_e2e_ads_outbox").split(",") if b]
-BRONZE_STALE_S = int(E("MONITOR_BRONZE_STALE_S", "300"))   # 설계 M5: 유입이 있는데 5분 넘게 배치 없음
-BRONZE_LAG_MIN = int(E("MONITOR_BRONZE_LAG_MIN", "10"))    # EOS 트랜잭션 표식만큼의 차이는 지연으로 보지 않는다
+# 설계 M5: 아직 읽지 않은 첫 데이터 레코드가 5분 넘게 기다림. 시각은 그 레코드의 Kafka 타임스탬프 — 두 토픽 모두 message.timestamp.type=CreateTime(기본),
+# Connect 생산자가 보낸 시각이다(재발행 op=r 도 다시 보낸 시각, 원래 created_at 아님 — 2026-11-04 확인). read_committed 로 읽어 EOS 표식·중단된 레코드는 빠진다
+BRONZE_STALE_S = int(E("MONITOR_BRONZE_STALE_S", "300"))
 S3_ENDPOINT = E("S3_ENDPOINT", "http://127.0.0.1:9000")
 S3_KEY_FILES = (E("S3_ACCESS_KEY_FILE", "/opt/rustfs/config/access-key"), E("S3_SECRET_KEY_FILE", "/opt/rustfs/config/secret-key"))
 # 상태 파일은 이 사용자만 쓰는 폴더에(공용 /tmp 이면 다른 사용자가 미리 만든 폴더·파일·링크로 경보를 막을 수 있다)
 STATE = Path(E("MONITOR_STATE", str(Path(E("XDG_STATE_HOME") or Path.home() / ".local" / "state") / "pipeline_monitor" / "state.json")))
-KAFKA_TIMEOUT_S = 30  # Kafka 가 멈추면 명령이 오래 걸린다 — 명령마다 30초에서 끊는다(M4 2번 + M5 토픽마다 1번 = 한 번에 최대 약 2분)
+KAFKA_TIMEOUT_S = 30  # Kafka 가 멈추면 명령이 오래 걸린다 — 명령마다 30초에서 끊는다. M4 2번, M5 는 Bronze 마다 get-offsets 1번(차이가 있으면 --time -2 1번 + 파티션마다 consumer 1번 더). 시간 초과가 나면 그 Bronze 는 거기서 멈춘다(브로커 0대면 명령을 아예 돌리지 않는다)
 
 
 def finding(check, key, level, detail):
@@ -178,15 +180,43 @@ def m3():
     return out
 
 
-def kafka(*args):
-    return subprocess.run([str(KAFKA_BIN / args[0]), "--bootstrap-server", KAFKA, *args[1:]], env=dict(os.environ, JAVA_HOME=JAVA_HOME),
-                          capture_output=True, text=True, timeout=KAFKA_TIMEOUT_S)
+class KafkaTimeout(Exception):
+    pass
+
+
+def kafka(*args, timeout=None):
+    try:
+        return subprocess.run([str(KAFKA_BIN / args[0]), "--bootstrap-server", KAFKA, *args[1:]], env=dict(os.environ, JAVA_HOME=JAVA_HOME),
+                              capture_output=True, text=True, timeout=timeout or KAFKA_TIMEOUT_S)
+    except subprocess.TimeoutExpired as error:
+        raise KafkaTimeout(f"Kafka 명령 시간 초과({args[0]}, {int(error.timeout)}초)") from None
+
+
+def brokers_up():
+    """(응답한 브로커 수, 전체 수) — 포트만 본다(명령보다 빨리, 시간 초과 없이)."""
+    hosts = [h.rsplit(":", 1) for h in KAFKA.split(",") if h]
+    up = 0
+    for host, port in hosts:
+        try:
+            with socket.create_connection((host, int(port)), timeout=1):
+                up += 1
+        except OSError:
+            pass
+    return up, len(hosts)
 
 
 def m4():
-    out = []
+    up, total = brokers_up()
+    out = [finding("M4", "kafka_unreachable", "alert" if up == 0 else "ok", f"Kafka 응답 없음(브로커 {total}대 중 0대 응답)" if up == 0 else f"브로커 {total}대 중 {up}대 응답")]
     for flag in ("--under-min-isr-partitions", "--unavailable-partitions"):
-        r = kafka("kafka-topics.sh", "--describe", flag)
+        if up == 0:  # 키를 그대로 두고 error 로 — 못 본 것을 해소로 알리지 않는다
+            out.append(finding("M4", flag, "error", f"Kafka 응답 없음(브로커 {total}대 중 0대 응답) — 볼 수 없음"))
+            continue
+        try:
+            r = kafka("kafka-topics.sh", "--describe", flag)
+        except KafkaTimeout as error:
+            out.append(finding("M4", flag, "error", f"{error}(브로커 {total}대 중 {up}대 응답)"))
+            continue
         if r.returncode:
             out.append(finding("M4", flag, "error", r.stderr.strip()[-200:]))
             continue
@@ -195,9 +225,22 @@ def m4():
     return out
 
 
-def kafka_end(topic):
-    r = kafka("kafka-get-offsets.sh", "--topic", topic)
+def kafka_offsets(topic, time_spec=None):
+    """파티션 → offset. time_spec None 은 끝(latest = LEO), -2 는 가장 이른 offset."""
+    r = kafka("kafka-get-offsets.sh", "--topic", topic, *(["--time", str(time_spec)] if time_spec is not None else []))
     return {p: int(o) for _t, p, o in (ln.split(":") for ln in r.stdout.split())} if r.returncode == 0 else None
+
+
+def first_unread(topic, partition, offset):
+    """그 파티션의 offset 부터 read_committed 로 첫 데이터 레코드 하나: (offset, Kafka 타임스탬프 ms) 또는 None(표식·중단된 레코드뿐)."""
+    r = kafka("kafka-console-consumer.sh", "--topic", topic, "--partition", str(partition), "--offset", str(offset), "--max-messages", "1",
+              "--isolation-level", "read_committed", "--timeout-ms", "3000", "--formatter-property", "print.timestamp=true",
+              "--formatter-property", "print.offset=true", "--formatter-property", "print.value=false")
+    for line in r.stdout.splitlines():
+        m = re.match(r"(?:CreateTime|LogAppendTime):(\d+)\s+Offset:(\d+)", line)
+        if m:
+            return int(m.group(2)), int(m.group(1))
+    return None
 
 
 def m5():
@@ -206,8 +249,11 @@ def m5():
 
     keys = [Path(f).read_text().strip() for f in S3_KEY_FILES]
     s3 = boto3.client("s3", endpoint_url=S3_ENDPOINT, aws_access_key_id=keys[0], aws_secret_access_key=keys[1], region_name=E("S3_REGION", "ap-northeast-2"))
-    out = []
+    out, (up, total) = [], brokers_up()
     for name, topic, uri in BRONZE:
+        if up == 0:  # 같은 키에 error — 못 본 것을 해소로 알리지 않는다
+            out.append(finding("M5", f"bronze:{name}", "error", f"Kafka 응답 없음(브로커 {total}대 중 0대 응답) — 지연을 볼 수 없음"))
+            continue
         bucket, prefix = uri.removeprefix("s3a://").split("/", 1)
         commits = s3.list_objects_v2(Bucket=bucket, Prefix=f"{prefix}/commits/").get("Contents", [])
         batches = [(int(o["Key"].rsplit("/", 1)[1]), o["LastModified"]) for o in commits if o["Key"].rsplit("/", 1)[1].isdigit()]
@@ -217,14 +263,30 @@ def m5():
         batch, at = max(batches)
         body = s3.get_object(Bucket=bucket, Key=f"{prefix}/offsets/{batch}")["Body"].read().decode().splitlines()
         done = json.loads(body[2]).get(topic, {})
-        end = kafka_end(topic)
-        if end is None:
-            out.append(finding("M5", f"bronze:{name}", "error", "Kafka 끝 offset 을 못 읽음"))
+        try:
+            end = kafka_offsets(topic)
+            behind = {p: int(done.get(p, 0)) for p in (end or {}) if end[p] > int(done.get(p, 0))}
+            earliest = kafka_offsets(topic, -2) if behind else {}
+            if end is None or earliest is None:
+                out.append(finding("M5", f"bronze:{name}", "error", "Kafka offset 을 못 읽음"))
+                continue
+            expired = {p: (o, earliest[p]) for p, o in behind.items() if earliest.get(p, 0) > o}
+            waits = [first_unread(topic, p, o) for p, o in behind.items() if p not in expired]
+        except KafkaTimeout as error:
+            out.append(finding("M5", f"bronze:{name}", "error", f"{error}(브로커 {total}대 중 {up}대 응답)"))
             continue
-        lag = sum(max(0, end.get(p, 0) - int(done.get(p, 0))) for p in end)
-        age = (datetime.now(UTC) - at).total_seconds()
-        stale = lag > BRONZE_LAG_MIN and age > BRONZE_STALE_S
-        out.append(finding("M5", f"bronze:{name}", "alert" if stale else "ok", f"마지막 확정 배치 {batch}({int(age)}초 전), Kafka 지연 {lag} offset"))
+        now_ms = time.time() * 1000
+        oldest = max((now_ms - ts for _o, ts in filter(None, waits)), default=0) / 1000  # 가장 오래 기다린 데이터 레코드(초)
+        since = int((datetime.now(UTC) - at).total_seconds())
+        lag = sum(end[p] - o for p, o in behind.items())
+        if expired:  # 읽어야 할 offset 이 Kafka 에서 이미 지워짐(보존 만료 K5) — 첫 레코드 시각으로는 볼 수 없다
+            out.append(finding("M5", f"bronze:{name}", "alert", f"마지막 확정 배치 {batch}({since}초 전), 읽을 offset 이 Kafka 에 없음 {expired}(보존 만료 — RB-5)"))
+            continue
+        stale = oldest > BRONZE_STALE_S
+        out.append(finding("M5", f"bronze:{name}", "alert" if stale else "ok",
+                           f"마지막 확정 배치 {batch}({since}초 전), 읽지 않은 offset {lag}"
+                           + ((f", 가장 오래 기다린 데이터 레코드 {int(oldest)}초(CreateTime)" if any(waits) else ", 3초 안에 읽은 데이터 레코드 없음(EOS 표식·중단된 레코드뿐이거나 Kafka 응답이 느림)") if lag else "")
+                           + (f" > {BRONZE_STALE_S}초" if stale else "")))
     out.append(finding("M5", "bronze_app_failed", "unimplemented", "운영은 Spark Operator 앱 상태(FAILED·재시도 소진). 로컬은 run-bronze.sh 로그의 'retries exhausted'"))
     return out
 

@@ -27,6 +27,8 @@
 | 3 | 다음 대사에서 그 창이 `match`인지 본다. 중복은 `duplicates`로 따로 나오고 `match`를 막지 않는다. **끝났는지는 이 대사로만 판정한다** — Debezium의 "incremental snapshotting … finished" 로그로 판정하지 않는다(스냅샷 중 오류가 나면 Debezium이 "skipping and continuing streaming"으로 남은 청크를 버리고 RUNNING인 채로 갈 수 있다 — E-R1 C 관찰) | 대사 보고 → `match` |
 | 4 | 감사 로그에 남긴다 | 창 목록·건수·사유 RB 번호 |
 
+재발행 중에는 Bronze가 재발행분을 다 읽을 때까지 감시 M5(읽지 않은 첫 데이터 레코드가 300초 넘게 기다림)가 울릴 수 있다. 기다리는 시간은 대략 재발행 행 × (1/Bronze 따라잡기 속도 − 1/Debezium 재발행 속도) + 트리거 1분이다(Bronze 따라잡기 속도 = 분당 240,000 − 분당 유입). 그래서 Debezium이 빨리 낼수록 작은 창에서도 울리고, Debezium이 Bronze보다 느리면 울리지 않는다. 초당 40쌍의 1시간 창은 울리지 않는다. 울리면 예상된 경보이므로 사건 기록에 "예상"으로 적고, 끝은 3단계의 대사 `match`로 판정한다.
+
 재발행 도구는 아직 없다. 요청·감사 기록은 광고 서버 `request_resend`(계획 02 P1-9), signal 쓰기는 파이프라인 쪽 스크립트(P2-3)로 생긴다. 그 전까지는 이 표가 절차다.
 
 ## RB-1 슬롯·offset 불일치(P5·K3·C4 둘 다 유실)

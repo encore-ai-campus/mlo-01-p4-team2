@@ -9,7 +9,7 @@ from .models import GameDefinition, GamePlay
 from .achievement_services import TIMER_ID, TYPING_ID, MEMORY_ID, achievement_snapshot, complete_achievement
 
 CONFIGS = {"timer": {"targetMs": 11110, "toleranceMs": 0, "overtimeMs": 2000},
-           "typing": {"minimumAccuracy": 95},
+           "typing": {"minimumAccuracy": 95, "timeLimitMs": 11110},
            "term_match": {"timeLimitMs": 11110, "totalRounds": 1, "requiredWins": 1,
                           "maxMistakes": 5, "rows": 4, "columns": 4, "topic": "mixed",
                           "previewMs": 4000, "flipStaggerMs": 35, "flipDurationMs": 250,
@@ -133,6 +133,8 @@ def finish_game(user, play_id, session_id, data):
                      or play.evidence.get('picks') == data['picks'])):
             return {**receipt(play), "achievements": achievement_snapshot(user), "newly_completed": []}
         raise GameError("이미 다른 결과로 종료된 게임이에요.", 409)
+    if play.game.game_code == "typing" and status == "SUCCESS" and duration > CONFIGS["typing"]["timeLimitMs"]:
+        raise GameError("타이핑은 11.11초 안에 완료해야 해요.")
     now = timezone.now()
     if play.game.game_code == 'term_match' and status == 'SUCCESS':
         # Preview and covering animations must finish before the timed round can complete.

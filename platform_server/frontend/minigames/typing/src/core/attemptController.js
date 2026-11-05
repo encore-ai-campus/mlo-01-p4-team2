@@ -20,6 +20,8 @@ export class AttemptController {
     endedAt = null;
     terminalSent = false;
     startedSent = false;
+    expired = false;
+    timeLimitMs;
     sink;
     context;
     sessionId;
@@ -29,6 +31,7 @@ export class AttemptController {
         this.state = createTypingState(mode);
         this.sink = sink;
         this.context = { ...context };
+        this.timeLimitMs = context.timeLimitMs ?? Infinity;
         this.sessionId = context.sessionId ?? sessionId;
         this.clock = clock;
     }
@@ -40,8 +43,15 @@ export class AttemptController {
     notify() { for (const listener of this.listeners)
         listener(); }
     metrics = () => calculateMetrics(this.state, this.problem.code.length, this.startedAt === null ? 0 : (this.endedAt ?? this.clock.monotonic()) - this.startedAt);
+    expire = () => {
+        if (this.state.status === 'running' && this.metrics().elapsed_ms > this.timeLimitMs) {
+            this.expired = true;
+            this.abandon('timeout');
+        }
+        return this.expired;
+    };
     input = (action) => {
-        if (this.state.status === 'completed' || this.state.status === 'abandoned')
+        if (this.state.status === 'completed' || this.state.status === 'abandoned' || this.expire())
             return;
         if (action.type === 'append' && action.text && !this.startedSent) {
             this.startedAt = this.clock.monotonic();

@@ -16,14 +16,6 @@
     "sprite": "yebin"
   },
   {
-    "id": "manager-yuhyeong",
-    "floor": "campus",
-    "x": 1930,
-    "y": 760,
-    "name": "유형 매니저님",
-    "sprite": "yuhyeong"
-  },
-  {
     "id": "manager-songhee",
     "floor": "campus",
     "x": 685,

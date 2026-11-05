@@ -140,8 +140,9 @@ test('a confirmed freeze closes the standalone frame without retrying a forbidde
  assert.equal(f.requests.length,0);assert.equal(f.closes,1);
 });
 
-test('replay waits for confirmed storage, starts a new play, and ignores the old frame',async()=>{
- const f=fixture();await f.api.open({id:'terminal'});f.message({type:'minigame:ready'});
+for(const game of ['timer','typing']){
+test(game+' replay waits for confirmed storage, starts a new play, and ignores the old frame',async()=>{
+ const f=fixture(game);await f.api.open({id:'terminal'});f.message({type:'minigame:ready'});
  const oldFrame=f.frame();f.message({type:'minigame:result',result:{status:'FAILED',duration_ms:10}});
  f.message({type:'minigame:restart'});f.message({type:'minigame:restart'});
  assert.equal(f.starts.length,1);
@@ -154,14 +155,14 @@ test('replay waits for confirmed storage, starts a new play, and ignores the old
  assert.equal(f.requests.length,2);assert.match(f.requests[1].url,/play-2/);
 });
 
-test('replay never skips a failed result save',async()=>{
- const f=fixture();await f.api.open({id:'terminal'});f.message({type:'minigame:ready'});
+test(game+' replay never skips a failed result save',async()=>{
+ const f=fixture(game);await f.api.open({id:'terminal'});f.message({type:'minigame:ready'});
  f.message({type:'minigame:result',result:{status:'FAILED',duration_ms:10}});f.message({type:'minigame:restart'});
  await f.respond({error:'저장 실패'},0,false);assert.equal(f.starts.length,1);
  f.get('minigameRetry').onclick();await f.respond({status:'FAILED'});
  assert.equal(f.starts.length,2);
 });
-
+}
 
 test('term pairing forwards only the active play and its bounded card proof',async()=>{
  const f=fixture('term_match');await f.api.open({id:'minigame-term-match'});f.message({type:'minigame:ready'});

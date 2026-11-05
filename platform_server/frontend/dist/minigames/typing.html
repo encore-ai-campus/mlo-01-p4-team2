@@ -603,7 +603,7 @@ function showResult(state) {
   }
   $('mistake-rank').hidden=false;
   $('mistake-rank').textContent=[...mistakes.values()].sort((a,b)=>b.count-a.count).slice(0,5).map(e=>`${e.key.label} ${e.count}회`).join(' · ')||'모든 키를 정확하게 입력했어요!';
-  if(channel){locked=true;channel.complete({duration_ms:Math.ceil(m.elapsed_ms),status:success?'SUCCESS':'FAILED'});for(const id of ['mode','minimum-accuracy','restart'])$(id).disabled=true;}
+  if(channel){locked=true;channel.complete({duration_ms:Math.ceil(m.elapsed_ms),status:success?'SUCCESS':'FAILED'});for(const id of ['mode','minimum-accuracy'])$(id).disabled=true;}
 }
 function start(problem) {
   if(locked)return;
@@ -631,7 +631,7 @@ $('minimum-accuracy').addEventListener('change',()=>{
   $('pass-rule').textContent=`첫 글자를 입력한 뒤 ${(timeLimitMs/1000).toFixed(2)}초 안에 정확도 ${minimumAccuracy}% 이상으로 끝까지 입력하면 성공해요.`;
   start(controller.problem);
 });
-for(const id of ['restart','repeat'])$(id).addEventListener('click',()=>{start(controller.problem);$('input').focus();});
+for(const id of ['restart','repeat'])$(id).addEventListener('click',()=>{if(channel&&locked){channel.restart();return;}start(controller.problem);$('input').focus();});
 $('next').addEventListener('click',()=>{start(pickBeginnerProblem(all));$('input').focus();});
 $('exit').addEventListener('click',()=>{controller?.abandon('exit');clearInterval(clock);clock=null;if(channel)channel.exit();else{start(controller.problem);$('feedback').textContent='좋은 연습이었어요. 준비되면 다시 시작해요.';}});
 $('typing-surface').addEventListener('click',()=>$('input').focus({preventScroll:true}));
@@ -639,7 +639,7 @@ $('whitespace').addEventListener('click',()=>{whitespace=!whitespace;$('whitespa
 $('toggle-guide').addEventListener('click',()=>{const hidden=!$('guide-body').hidden;$('guide-body').hidden=hidden;$('toggle-guide').setAttribute('aria-expanded',!hidden);$('toggle-guide').textContent=hidden?'가이드 보기 +':'가이드 숨기기 −';});
 window.addEventListener('pagehide',()=>{controller?.abandon('pagehide');clearInterval(clock);detach?.();});
 if(channel){
-  $('input').disabled=true;$('repeat-actions').hidden=true;
+  $('input').disabled=true;$('next').hidden=true;
   channel.start((config,id)=>{
     if(!Number.isFinite(config.minimumAccuracy)||config.minimumAccuracy<0||config.minimumAccuracy>100)throw new Error('정확도 설정 오류');
     if(!Number.isSafeInteger(config.timeLimitMs)||config.timeLimitMs<=0)throw new Error('제한 시간 설정 오류');

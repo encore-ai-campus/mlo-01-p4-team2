@@ -82,7 +82,7 @@ def action(user, data, session_uuid=None):
     result = {'state': status(user, progress)}
     if action == 'finish':
         newly_completed = []
-        if complete_achievement(user, RECIPE_ID, progress.completed_at):
+        if complete_achievement(user, RECIPE_ID, progress.completed_at, session_uuid=session_uuid):
             newly_completed.append(str(RECIPE_ID))
         result.update(achievements=achievement_snapshot(user), newly_completed=newly_completed)
     return result

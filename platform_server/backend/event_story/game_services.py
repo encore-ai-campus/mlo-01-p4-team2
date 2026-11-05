@@ -148,6 +148,6 @@ def finish_game(user, play_id, session_id, data):
     newly_completed = []
     if play.status == GamePlay.Status.SUCCESS:
         event_id = {"timer": TIMER_ID, "typing": TYPING_ID, "term_match": MEMORY_ID}[play.game.game_code]
-        if complete_achievement(user, event_id, play.ended_at, started_at=play.started_at):
+        if complete_achievement(user, event_id, play.ended_at, started_at=play.started_at, session_uuid=session.pk):
             newly_completed.append(str(event_id))
     return {**receipt(play), "achievements": achievement_snapshot(user), "newly_completed": newly_completed}

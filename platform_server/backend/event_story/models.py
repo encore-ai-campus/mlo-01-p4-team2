@@ -62,6 +62,7 @@ class EventProgress(models.Model):
     progress_uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     event = models.ForeignKey(EventDefinition, on_delete=models.PROTECT)
+    session = models.ForeignKey('eventing.PlatformSession', db_column='session_uuid', null=True, blank=True, on_delete=models.PROTECT)
     status = models.CharField(max_length=16, default='IN_PROGRESS')
     started_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True)

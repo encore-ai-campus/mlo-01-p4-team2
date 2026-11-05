@@ -246,7 +246,7 @@ def submit_answer(user, session_id, order, answer, submission_request_uuid=None,
 
 
 @learning_write_transaction
-def complete_session(user, session_id):
+def complete_session(user, session_id, platform_session_uuid=None):
     from event_story.achievement_services import record_learning_completion
     # Keep the same owner -> lesson lock order as answer submission.
     get_user_model().objects.select_for_update().get(pk=user.pk)
@@ -258,7 +258,7 @@ def complete_session(user, session_id):
         session.correct_count = stats['correct_count']
         session.completed_at = timezone.now()
         session.save(update_fields=['correct_count', 'completed_at'])
-    session.achievement_update = record_learning_completion(user, session)
+    session.achievement_update = record_learning_completion(user, session, platform_session_uuid)
     from event_story.services import learning_completed
     learning_completed(session)
     return session

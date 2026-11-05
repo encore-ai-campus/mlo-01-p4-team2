@@ -11,7 +11,7 @@ from django.db import transaction
 from django.db.models import Max
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from learning.services import LearningError, learning_write_transaction
+from learning.services import LearningError, learning_write_transaction, active_platform_session
 from eventing.models import PlatformSession
 from .models import EventDefinition, EventProgress, GameDefinition, GamePlay, StoryProgress, StoryRecord
 from .access import verify
@@ -109,10 +109,12 @@ def ensure_open():
 def done(user, code):
     return EventProgress.objects.filter(user=user,event_id=uid(code),status='COMPLETED').exists()
 
-def complete(user, code):
+def complete(user, code, session_uuid=None):
     p, _=EventProgress.objects.get_or_create(user=user,event_id=uid(code))
     if p.status!='COMPLETED':
-        p.status='COMPLETED';p.completed_at=timezone.now();p.save()
+        p.status='COMPLETED';p.completed_at=timezone.now()
+        p.session=active_platform_session(user,session_uuid) if session_uuid is not None else None
+        p.save()
     return p
 
 def require(user, code):
@@ -128,7 +130,8 @@ def recover_finished_challenge(user):
     play=GamePlay.objects.filter(user=user,game__game_code='kkuwang_touch',event_id=uid('4'),status='FINISHED',ended_at__isnull=False,duration_ms__gte=TOUCH_DURATION_MS-100).order_by('ended_at').first()
     if play:
         progress=complete(user,'4')
-        progress.completed_at=play.ended_at;progress.save(update_fields=['completed_at'])
+        progress.completed_at=play.ended_at;progress.session_id=play.session_id
+        progress.save(update_fields=['completed_at','session'])
 
 
 def status(user):
@@ -168,7 +171,7 @@ def action(user, data, session_uuid):
     ensure_open()
     if a=='investigate':
         verify(user,data.get('ticket'),'investigate')
-        first=not done(user,'1');complete(user,'1')
+        first=not done(user,'1');complete(user,'1',session_uuid)
         return dict(state=status(user),first=first,correct=True)
     elif a=='room1_briefing':
         verify(user,data.get('ticket'),'room1')
@@ -179,7 +182,7 @@ def action(user, data, session_uuid):
         require(user,'sql_memory')
         verify(user,data.get('ticket'),'room1')
         if data.get('answer')!='C':return dict(state=status(user),correct=False)
-        complete(user,'3')
+        complete(user,'3',session_uuid)
     elif a=='confession':
         require(user,'3');verify(user,data.get('ticket'),'roof-guide')
         return dict(state=status(user),correct=True)
@@ -229,20 +232,20 @@ def action(user, data, session_uuid):
                 raise LearningError('터치 기록을 확인할 수 없습니다. 다시 시도해 주세요.')
             if play.event_id is not None:require(user,'3')
             play.status='FINISHED';play.ended_at=timezone.now();play.duration_ms=elapsed;play.evidence={**play.evidence,'result':result,'score':len(taps)};play.save()
-            if play.event_id is not None:complete(user,'4')
+            if play.event_id is not None:complete(user,'4',session_uuid)
             return dict(state=status(user),success=None,score=len(taps))
         success=False if a=='game_interrupt' else judge(play.game.game_code,signed['challenge'],result,elapsed)
         play.status='INTERRUPTED' if a=='game_interrupt' else 'SUCCESS' if success else 'FAILED'
         timing=coating_timing(signed['challenge'],result,elapsed) if play.game.game_code=='coating' and signed['challenge'].get('rulesVersion')==3 else None
         play.ended_at=timezone.now();play.duration_ms=elapsed;play.evidence={**play.evidence,'result':result,**({'coatingTiming':timing} if timing is not None else {})};play.save()
         if success and play.event_id is not None:
-            check_game(user,play.game.game_code);complete(user,play.game.game_code)
-            if all(done(user,c) for c,_ in GAMES[1:]):complete(user,'5')
+            check_game(user,play.game.game_code);complete(user,play.game.game_code,session_uuid)
+            if all(done(user,c) for c,_ in GAMES[1:]):complete(user,'5',session_uuid)
         return dict(state=status(user),success=success,coatingTiming=timing)
     elif a=='deliver':
         require(user,'5');verify(user,data.get('ticket'),'final-guide')
         EventDefinition.objects.select_for_update().get(pk=uid('6'))
-        p=complete(user,'6')
+        p=complete(user,'6',session_uuid)
         if p.completion_order is None:
             p.completion_order=(EventProgress.objects.filter(event_id=uid('6')).aggregate(n=Max('completion_order'))['n'] or 0)+1;p.save()
     else: raise LearningError('지원하지 않는 이벤트 요청입니다.')

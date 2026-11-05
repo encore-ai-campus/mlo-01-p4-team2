@@ -37,3 +37,11 @@ EVENT_STORE = mongo_config(
     env_str("MONGO_AUTH_SOURCE", default="admin"),
     env_str("MONGO_REPLICA_SET"),
 )
+EVENTS_HOP_WITH_MONGO = env_bool("EVENTS_HOP_WITH_MONGO", True)  # 로컬 병행 기간은 MongoDB 구간도 본다. 운영 모양(MongoDB 없음)으로 돌릴 때 false(P2-2 시험)
+
+# 파이프라인 manifest 저장소(S3·RustFS — fetch_hop_manifest, 설계 01 D14·S5). `manifests/hop_pipeline/` 만 읽는 키를 쓴다. HOP_S3_BUCKET 이 없으면 None(명령이 설정 없음으로 멈춘다).
+HOP_PIPELINE_S3 = {
+    "ENDPOINT": env_str("HOP_S3_ENDPOINT"), "BUCKET": env_str("HOP_S3_BUCKET"), "REGION": env_str("HOP_S3_REGION", default="us-east-1"),
+    "PREFIX": env_str("HOP_S3_PREFIX", default="manifests/hop_pipeline/"),  # 게시 접두사(시험은 다른 접두사 — 형식은 명령이 확인한다)
+    "ACCESS_KEY_ID": env_str("HOP_S3_ACCESS_KEY_ID"), "SECRET_ACCESS_KEY": env_str("HOP_S3_SECRET_ACCESS_KEY"),
+} if env_str("HOP_S3_BUCKET") else None

@@ -12,6 +12,8 @@ django-axes~=8.3.1       # 로그인 5회 실패 시 5분 잠금 (0-2). Django 6
 argon2-cffi~=25.1.0      # Argon2 비밀번호 해시 (Django Argon2PasswordHasher 가 요구)
 Pillow~=13.0.0           # 이미지 판별·재인코딩 (assets, 0-5)
 whitenoise~=6.12.0       # 운영에서 Django 가 정적 파일(/static/)을 서빙 (설계 §10 "정적 파일 서빙", 6-5e). Django 6.1 호환 게이트(설계 §9)
+boto3~=1.43.120          # 파이프라인 manifest 받기(S3·RustFS, fetch_hop_manifest — 파이프라인 계획 P1-8). manifests/hop_pipeline/ 만 읽는 키
+botocore~=1.43.123       # boto3 의 설정·예외 클래스(Config·ClientError·BotoCoreError)를 직접 import(fetch_hop_manifest). boto3 1.43.120 의 요구 >=1.43.120,<1.44.0 안
 gunicorn~=26.2.0         # 운영 WSGI 서버 (설계 §10 "운영 서버 실행 환경", 6-20). 분류자에 3.14 가 없어 Python 3.14 로 띄워 확인(계획 §8.4.21)
 
 # ---- 개발·시험 ----

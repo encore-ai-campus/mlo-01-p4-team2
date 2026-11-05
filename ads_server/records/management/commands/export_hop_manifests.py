@@ -66,7 +66,8 @@ class Command(BaseCommand):
                            "hop_outbox": events.summarize_windows(events.outbox_streams(), now, grace, since, size)}
                 unsent = events.unsent_counts(size)
                 unresolved, examples = unresolved_charges()  # 창에 놓을 수 없는 과금 원장 줄 — 원본 구간에서 빠지므로 따로 센다(외부 검토 e781f20 P2)
-            results["hop_mongo"] = events.summarize_windows(events.mongo_streams(), now, grace, since, size)  # ③ 은 스냅샷 밖이다 — 중계가 진행 중이면 그 창이 잠시 어긋날 수 있다(verify_hops 가 구분한다)
+            if settings.EVENTS_HOP_WITH_MONGO:  # 운영은 MongoDB 가 없다 — ③ 을 내지 않는다(P2-2 결정 A)
+                results["hop_mongo"] = events.summarize_windows(events.mongo_streams(), now, grace, since, size)  # ③ 은 스냅샷 밖이다 — 중계가 진행 중이면 그 창이 잠시 어긋날 수 있다(verify_hops 가 구분한다)
         except (PyMongoError, events.NotConfigured) as error:
             raise CommandError(f"MongoDB 를 읽지 못했습니다: {events.mongo_error_text(error)}")
         # 보존 정리는 보낸 지 EVENTS_OUTBOX_RETENTION_DAYS 가 지난 행을 지운다. 시작이 이 기준 시각 이후인 창의 행은 (생성 ≤ 전송 이므로) 한 줄도 지워지지 않았다.

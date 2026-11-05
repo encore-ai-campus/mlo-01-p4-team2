@@ -59,6 +59,11 @@ def _publish(path, write):
         raise
 
 
+def publish_bytes(path, body):
+    """바이트를 `path` 에 원자적으로 게시한다(임시 파일 → fsync → 이름 바꾸기 → 폴더 fsync). 받아 온 불변 파일·포인터를 로컬에 둘 때 쓴다."""
+    _publish(path, lambda handle: handle.write(body))
+
+
 def manifest_sha256(path):
     """manifest 파일(포인터) 바이트의 SHA-256. 세대 연결(`previous_sha256`)과 폴더 밖 고정점(감사 로그)이 이 값을 쓴다."""
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -93,8 +98,13 @@ def _flock(path):
             fcntl.flock(handle, fcntl.LOCK_UN)
 
 
+def generation_copy_name(name, digest):
+    """세대 manifest 사본의 파일 이름(`<이름>.manifest.<해시 앞 16자>.json`)."""
+    return f"{name}.manifest.{digest[:16]}.json"
+
+
 def _generation_copy(directory, name, digest):
-    return Path(directory) / f"{name}.manifest.{digest[:16]}.json"
+    return Path(directory) / generation_copy_name(name, digest)
 
 
 def write(directory, name, records, source_kind, schema_version, checkpoint=None, now=None, chain=False):
@@ -163,7 +173,19 @@ def read_manifest(path):
 def verify(path):
     """manifest 와 그것이 가리키는 데이터 파일이 맞는지 확인한다. `path` 는 manifest 경로다. 반환: 어긋난 곳의 설명 목록(맞으면 빈 목록)."""
     path = Path(path)
-    manifest = read_manifest(path)
+
+    def read(file):
+        try:
+            return (path.parent / file).read_bytes()
+        except FileNotFoundError:
+            return None
+
+    return check(read_manifest(path), path.name.removesuffix(".manifest.json"), read)
+
+
+def check(manifest, name, read):
+    """`verify` 의 본문: manifest(dict)와 `read(데이터 파일 이름)` 이 돌려주는 바이트(없으면 None)를 대조한다. `name` 은 포인터의 이름(`<이름>.manifest.json` 의 앞).
+    `read` 는 파일 이름이 데이터 파일 형식(경로 구분자 없음)이고 해시·행 수 형식이 맞을 때만 불린다 — 받는 쪽(S3)도 이 함수로 폴더 밖 파일을 묻지 않는다."""
     problems = [f"manifest 에 {key} 가 없다" for key in ("file", "sha256", "rows", "schema_version", "source_kind", "created_at") if key not in manifest]
     if problems:
         return problems
@@ -173,11 +195,10 @@ def verify(path):
         return [f"manifest 의 sha256 이 소문자 16진 64자가 아니다: {manifest['sha256']!r}"]
     if isinstance(manifest["rows"], bool) or not isinstance(manifest["rows"], int) or manifest["rows"] < 0:
         return [f"manifest 의 rows 가 0 이상의 정수가 아니다: {manifest['rows']!r}"]
-    if not str(manifest["file"]).startswith(path.name.removesuffix(".manifest.json") + "."):
-        problems.append(f"manifest {path.name} 가 다른 이름의 데이터 파일을 가리킨다: {manifest['file']}")
-    try:
-        content = (path.parent / manifest["file"]).read_bytes()
-    except FileNotFoundError:
+    if not str(manifest["file"]).startswith(name + "."):
+        problems.append(f"manifest {name}.manifest.json 가 다른 이름의 데이터 파일을 가리킨다: {manifest['file']}")
+    content = read(manifest["file"])
+    if content is None:
         return problems + [f"가리키는 데이터 파일이 없다: {manifest['file']}"]
     digest = hashlib.sha256(content).hexdigest()
     if digest != manifest["sha256"]:
@@ -204,9 +225,19 @@ def verify_chain(path):
     """세대 사슬 확인: 포인터 manifest 에서 `previous_sha256` 을 따라 처음까지 거슬러 올라가며, 직전 세대 manifest 사본이 있고 SHA-256 이 맞는지 본다.
     반환: 어긋난 곳의 설명 목록. 사슬 전체를 다시 쓰는 것은 막지 못한다 — 그 고정점은 폴더 밖(감사 로그)에 있다(설계 §10 H12)."""
     path = Path(path)
-    name = path.name.removesuffix(".manifest.json")
+
+    def read(copy_name):
+        try:
+            return (path.parent / copy_name).read_bytes()
+        except FileNotFoundError:
+            return None
+
+    return check_chain(path.read_bytes(), path.name.removesuffix(".manifest.json"), read)
+
+
+def check_chain(current, name, read):
+    """`verify_chain` 의 본문: 포인터 manifest 바이트 `current` 에서 시작해, `read(세대 사본 이름)` 이 돌려주는 바이트(없으면 None)로 사슬을 처음까지 확인한다."""
     seen = set()
-    current = path.read_bytes()
     while True:
         try:
             manifest = json.loads(current)
@@ -222,10 +253,10 @@ def verify_chain(path):
         if previous in seen:
             return ["세대 사슬이 순환한다"]
         seen.add(previous)
-        copy = _generation_copy(path.parent, name, previous)
-        if not copy.exists():
-            return [f"직전 세대 manifest 가 없다: {copy.name}"]
-        data = copy.read_bytes()
+        copy_name = generation_copy_name(name, previous)
+        data = read(copy_name)
+        if data is None:
+            return [f"직전 세대 manifest 가 없다: {copy_name}"]
         if hashlib.sha256(data).hexdigest() != previous:
-            return [f"직전 세대 manifest 가 바뀌었다: {copy.name}"]
+            return [f"직전 세대 manifest 가 바뀌었다: {copy_name}"]
         current = data

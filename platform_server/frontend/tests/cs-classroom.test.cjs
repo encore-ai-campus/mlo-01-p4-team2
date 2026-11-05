@@ -22,3 +22,15 @@ test('CS reuses the complete interior while keeping all subject labels and monit
  assert.equal(base.objects.find(o=>o.type==='board').text,'11.11 PYTHON CLASS');
  assert.throws(()=>c.window.CampusClassroomMap.forSubject('unknown'));
 });
+
+test('all three learning signs are centered on their left walls and remain passable',()=>{
+ for(const roomId of ['class2','class-cs','class1']){
+  const room=source.rooms.find(r=>r.id===roomId);
+  const signs=source.objects.filter(o=>o.roomId===roomId&&o.type==='wall-sign');
+  assert.equal(signs.length,1);
+  const sign=signs[0];assert.equal(sign.text,room.name);assert.equal(sign.solid,false);
+  assert.equal(sign.x,room.x+5);assert.equal(sign.w,3);assert.equal(sign.h,235.5);
+  assert.equal(sign.y+sign.h/2,room.y+room.h/2);
+  assert.ok(sign.y>room.y&&sign.y+sign.h<room.y+room.h);
+ }
+});

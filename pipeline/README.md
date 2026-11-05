@@ -10,6 +10,10 @@
 | `bronze/bronze_ads_outbox.py` | Bronze 앱(Kafka → Delta, key·value 바이트·헤더·위치만 — 해석·중복 제거는 Silver) |
 | `bronze/spark-submit-ads.sh` | Spark 제출(Standalone client 모드). 의존 jar는 미리 둔 세트를 `extraClassPath`로 쓴다 |
 | `bronze/run-bronze.sh` | Bronze 상시 실행(로컬). 운영 `restartPolicy: OnFailure`(최초 1회 + 재시도 3회)를 흉내 내고 잠듦을 막는다 |
+| `bronze/hop_manifest_job.py` | Bronze manifest 잡(P2-1): Bronze 한 판을 공용 요약 규칙으로 창마다 요약해 S3 `manifests/hop_pipeline/`에 불변 파일 + 포인터로 게시. 광고 서버 `fetch_hop_manifest`가 받는다. 설정은 모두 환경변수(기본값 없음) |
+| `bronze/run-hop-manifest.sh`, `bronze/local.pipeline.hop-manifest-{hour,day}.plist` | 그 잡의 로컬 실행(창 크기마다 잠금 하나, 1코어)과 LaunchAgent 견본(매시 :05 · 매일 00:35Z, 설치는 사용자 승인 뒤) |
+| `reconcile/run-reconcile.sh`, `reconcile/local.pipeline.hop-reconcile-{hour,day}.plist` | 창 대사(P2-2, 광고 서버 `reconcile_hops`: 받기 → 같은 since로 outbox manifest → 대조·확정 기록 → 상태 파일)의 로컬 실행과 LaunchAgent 견본(매시 :07 · 매일 00:50Z) |
+| `common/hop_rules.py`, `common/ndjson.py` | 광고 서버 `ads_server/events/`의 같은 이름 파일과 **바이트가 같은 사본**(요약 규칙·manifest 바이트 규칙). 원본을 바꾸는 커밋에서 함께 바꾼다(`tests/common/`이 확인) |
 | `tools/` | 검증 도구(아래) |
 | `monitor/` | 점검·경보(**임시 D18** — 점검 스크립트 + 1분 주기 + 웹훅). `monitor/README.md` |
 | `runbooks/` | 복구 절차(RB-0~RB-5) 도구·점검표. 바꾸는 도구는 기본 dry-run. `runbooks/README.md` |
@@ -57,6 +61,27 @@ kill -TERM <run-bronze.sh의 pid>          # 사람이 멈춤: Bronze를 정상 
 
 환경 변수(기본값은 로컬 시험대): `KAFKA_BOOTSTRAP`, `BRONZE_BUCKET`, `BRONZE_TRIGGER`, `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_FILE`, `S3_SECRET_KEY_FILE`, `SPARK_MASTER`, `SPARK_CORES_MAX`, `SPARK_EXECUTOR_MEMORY`, `SPARK_DEPS`, `SPARK_LOCAL_IP`(기본 127.0.0.1), `BRONZE_TOPIC`·`BRONZE_TABLE`·`BRONZE_CHECKPOINT`(기본은 lab 토픽·표·checkpoint), `BRONZE_MAX_OFFSETS_PER_TRIGGER`(기본 240,000 — E-B4 로컬 실측(메모리 기준), P8에서 운영 장비로 다시 잼), `BRONZE_STARTING_OFFSETS`(기본 `earliest`, 새 checkpoint에서만 쓰임 — RB-4·RB-5에서 `runbooks/rb_offsets.py`가 낸 JSON), `BRONZE_RETRIES`(기본 3), `BRONZE_RETRY_INTERVAL`(기본 10초 — 팀이 아직 정하지 않은 값이라 임시값), 도구의 `PG_PORT`(기본 5010)·`PG_DB`(대사 도구의 DB, 기본 `ads_pipeline_lab`).
 
+Bronze manifest 잡(P2-1 — 창 크기마다 동시에 하나만, 이미 돌고 있으면 rc 75로 건너뜀):
+
+```bash
+pipeline/bronze/run-hop-manifest.sh hour                 # 지금 창에서 48시간 앞부터, 이름 hop_pipeline_hour
+pipeline/bronze/run-hop-manifest.sh day                  # 오늘에서 8일 앞부터, 이름 hop_pipeline_day
+HOP_MANIFEST_URI=s3a://ads-lake/tmp/<시험>/manifests/hop_pipeline/ pipeline/bronze/run-hop-manifest.sh hour --since 2026-11-02T13:00:00Z --as-of 2026-11-02T15:02:00Z   # 시험·다시 요약
+```
+
+창 대사(P2-2 — 창 크기마다 동시에 하나만, 종료 코드 0 정상·1 확정 불일치·2 입력 실패·3 늦음·75 건너뜀, 상태 파일 `$HOP_RECONCILE_DIR/reconcile-<창>.json`):
+
+```bash
+pipeline/reconcile/run-reconcile.sh hour      # lab DB ↔ manifests/hop_pipeline/hop_pipeline_hour, MongoDB 구간 없음(운영 모양)
+pipeline/reconcile/run-reconcile.sh day
+```
+
+종료 코드 1은 확정 불일치이거나 상태 파일을 쓰기 전에 멈춘 것이다(래퍼의 비밀 파일 없음·설정 오류·작업 폴더 오류 등). 둘은 상태 파일로 구별한다 — 그 회차의 `status`가 `mismatch`인지, `finished_at`이 갱신됐는지 본다. `--as-of` 형식 오류는 2다. outbox 창 닫힘 시각은 받은 `checkpoint.started_at`과 대사의 지금 가운데 이른 쪽이다. 그래서 잡 쪽 시계가 앞서도, 이쪽 기준으로 아직 여유 안에 있는 창은 확정하지 않는다.
+
+하루 주기는 UTC로 정의한다(하루 잡 00:35Z, 하루 대사 00:50Z). LaunchAgent `StartCalendarInterval`은 이 Mac의 현지 시각이라 견본은 Asia/Seoul(UTC+9) 기준 09:35·09:50으로 두었다. 시간대가 다르면 Hour를 바꾼다. 운영 예약(ScheduledSparkApplication·systemd 타이머)은 UTC로 둔다.
+
+잡의 설정(제출 스크립트가 넘긴다 — 잡 본문에는 기본값이 없다): `HOP_BRONZE_TABLE`, `HOP_MANIFEST_URI`(`/`로 끝나는 `s3a://` 접두사), `HOP_SOURCE_DB`(Debezium `source.db`), `HOP_GRACE_SECONDS`(광고 서버 `EVENTS_HOP_GRACE_SECONDS`와 같게), 선택 `HOP_MAX_PARTITION_BYTES`(기본 16m). 로컬 래퍼의 기본값은 lab 표·운영 접두사·`ads_pipeline_lab`·120초이고, 잠금 폴더는 `HOP_LOCK_DIR`(기본 `~/Library/Caches/ads-pipeline`). 시험은 Spark 없이 `python -m unittest discover -s pipeline/tests/common -t pipeline/tests`·`… -s pipeline/tests/bronze …`.
+
 ## 검증 도구(`tools/`)
 
 Spark 도구는 제출 스크립트로 돌린다(`pipeline/bronze/spark-submit-ads.sh pipeline/tools/<도구>.py …`). 나머지는 Python으로 바로 돈다(`psycopg`·광고 서버 Django 설정이 필요).
@@ -65,7 +90,7 @@ Spark 도구는 제출 스크립트로 돌린다(`pipeline/bronze/spark-submit-a
 |---|---|---|
 | `c3_check.py` | Spark | Bronze ↔ Kafka(`read_committed`) 위치별 바이트 대조, 중복, 배치·지연, Delta 이력 |
 | `c4_bronze_dump.py <out.ndjson> [--since ISO]` | Spark | Bronze 최신 판의 위치·value 원문·적재 시각을 NDJSON으로. `--since`: 원천 생성 시각이 그 뒤인 행만(생성 시각이 없는 행 — 삭제·다른 표·툼스톤 — 은 그대로 남겨 대사가 본다) |
-| `c4_reconcile.py <dump.ndjson> <out_dir> [--as-of ISO] [--window hour\|day] [--since ISO]` | Python | outbox ↔ Bronze 창별 manifest(DRD §5.6, 규칙은 `ads_server/events/hops.py`)와 대조. op c(스트리밍)·r(증분 스냅샷 재발행)를 같은 문서로 세고, 같은 event_id는 중복, after 6열이 다르면 충돌로 센다. **덤프와 대사에는 같은 `--since`를 준다** |
+| `c4_reconcile.py <dump.ndjson> <out_dir> [--as-of ISO] [--window hour\|day] [--since ISO]` | Python | outbox ↔ Bronze 창별 manifest(DRD §5.6)와 대조. Bronze 쪽은 광고 서버 공용 요약 규칙 `ads_server/events/hop_rules.py`의 `summarize_changes`(P2-1 잡과 같은 함수)로 요약한다: op c(스트리밍)·r(증분 스냅샷 재발행)를 같은 문서로 세고, 같은 내용의 남는 행은 `duplicates`, after 6열이 다른 사본이 있으면 `conflicts`, c·r가 아닌 행은 `not_insert`, 놓을 수 없는 행·다른 출처 행은 checkpoint(0보다 크면 대조 실패). 비교는 outbox의 미전송을 지연 근거로 쓰지 않는다. P2-1 전 J4 판정용. **덤프와 대사에는 같은 `--since`(UTC 정시)를 준다** |
 | `er1.py snap\|signal\|check` | Python | E-R1(재발행 신호 시험): 토픽 끝 offset 기록, `execute-snapshot`(INCREMENTAL, `created_at` 창) 신호, 두 기록 사이 메시지로 창별 빠짐·창 밖 op=r·스트리밍 이어짐·키 모양(`{"event_id"}`) 판정. 기본값은 e2e 이름 |
 | `bronze_latency.py --since ISO --until ISO` | Spark | 원천 생성 시각이 [since, until)인 이벤트의 단계별 지연(생성→Kafka, Kafka→Bronze, 생성→Bronze) p50·p95·p99·최대, 분당 생성 건수, 적재 배치 수 |
 | `c5_lib.py` | — | 아래 두 도구의 공용 관측(DB·Kafka·Connect REST·슬롯) |

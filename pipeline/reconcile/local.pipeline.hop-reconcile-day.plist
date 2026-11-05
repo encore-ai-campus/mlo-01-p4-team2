@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- 창 대사(P2-2, 창 day) 매일 00:50Z(이 Mac 의 Asia/Seoul 로 09:50 — 하루 잡 00:35Z 뒤) — 로컬 시험대용 사용자 LaunchAgent 견본. 운영은 같은 명령(reconcile_hops)을 광고 서버의 systemd 타이머(UTC)로.
+     StartCalendarInterval 은 이 Mac 의 현지 시각이다 — 하루 주기는 UTC 로 정의하므로 시간대가 Asia/Seoul(UTC+9)이 아니면 Hour 를 바꾼다.
+     설치는 사용자 승인 뒤: 자리 표시 두 가지(__REPO__ = 저장소 경로, __HOME__ = 홈 폴더)를 바꿔 ~/Library/LaunchAgents/ 에 두고
+     launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.pipeline.hop-reconcile-day.plist
+     손으로 한 번: launchctl kickstart gui/$(id -u)/local.pipeline.hop-reconcile-day. 제거: launchctl bootout gui/$(id -u)/local.pipeline.hop-reconcile-day 뒤 파일 삭제. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>local.pipeline.hop-reconcile-day</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__REPO__/pipeline/reconcile/run-reconcile.sh</string>
+    <string>day</string>
+  </array>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>50</integer></dict>
+  <key>StandardOutPath</key><string>__HOME__/Library/Logs/pipeline-hop-reconcile-day.log</string>
+  <key>StandardErrorPath</key><string>__HOME__/Library/Logs/pipeline-hop-reconcile-day.log</string>
+</dict>
+</plist>

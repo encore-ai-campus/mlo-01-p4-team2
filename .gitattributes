@@ -1,2 +1,4 @@
 ads_server/events/hop_rules.py text eol=lf
+pipeline/common/hop_rules.py text eol=lf
 ads_server/events/ndjson.py text eol=lf
+pipeline/common/ndjson.py text eol=lf

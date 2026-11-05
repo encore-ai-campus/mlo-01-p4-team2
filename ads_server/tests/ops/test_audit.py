@@ -1,6 +1,13 @@
-from django.test import TestCase, tag
+from functools import partial
+from unittest import mock
+
+from django.contrib import admin
+from django.contrib.auth.views import PasswordChangeView
+from django.http import HttpResponse
+from django.test import Client, RequestFactory, TestCase, tag
 from django.urls import reverse
 
+from foundation.admin_site import OwnPasswordChangeForm
 from foundation.api import record_audit
 from foundation.models import AppendOnlyError, AuditLog, User
 from tests.support.factories import PW
@@ -242,6 +249,40 @@ class AdminSelfPasswordAuditTests(Cases, TestCase):
         self.assertFalse(AuditLog.objects.filter(action="account.password_changed").exists())
         self.assertTrue(User.objects.get(pk=self.admin.pk).check_password(PW))
         self.assertNotIn("wrong-old-password", str(list(AuditLog.objects.values())))
+
+    def case_wrong_current_passwords_lock_like_the_login_and_are_audited(self):
+        """버그 탐색 B2: 관리자 본인 변경의 현재 비밀번호 확인도 로그인 잠금(axes)과 같은 계수다(T43 — 광고주 화면과 같은 규칙)."""
+        def change(old):
+            return self.client.post("/test-admin/password_change/", {"old_password": old, "new_password1": self.NEW, "new_password2": self.NEW})
+        self.assertEqual([change("wrong-old-password").status_code for _ in range(5)], [200, 200, 200, 200, 429])  # 5번째 실패에서 잠금
+        self.assertEqual(change(PW).status_code, 429)  # 잠금 중에는 맞는 비밀번호도 거절
+        self.assertTrue(User.objects.get(pk=self.admin.pk).check_password(PW))
+        self.assertEqual(Client().post(reverse("login"), {"username": "root_pw", "password": PW}).status_code, 429)  # 로그인도 잠김(같은 아이디·IP — 로그인된 이 클라이언트는 로그인 화면이 돌려보낸다)
+        rejected = AuditLog.objects.filter(action="account.password_change_rejected", actor_id=self.admin.pk)
+        self.assertEqual(rejected.count(), 6)  # 틀린 시도(잠금 중의 시도 포함)는 그대로 감사에
+        self.assertNotIn("wrong-old-password", str(list(AuditLog.objects.values())))
+
+    def case_our_password_change_view_is_djangos_except_the_form(self):
+        """`AuditedAdminSite.password_change` 는 Django 원본을 옮겨 적었다(폼에 요청을 넘기려고). 같은 요청으로 두 쪽이 뷰에 넘기는 인자가 `form_class` 말고 같아야 한다
+        — Django 가 대신 지켜 주던 성공 주소·화면 문맥·current_app 을 이제 우리 코드가 갖고, Django 를 올려 원본이 바뀌면 여기서 드러난다."""
+        request = RequestFactory().get("/test-admin/password_change/")
+        request.user = self.admin
+        built = []
+
+        def record(**initkwargs):
+            context = {key: list(value) if key == "log_entries" else value for key, value in initkwargs["extra_context"].items()}  # 질의 집합은 값으로 비교
+            built.append({**initkwargs, "extra_context": context, "current_app": request.current_app})
+            return lambda req: HttpResponse()
+        with mock.patch.object(PasswordChangeView, "as_view", side_effect=record):
+            admin.AdminSite.password_change(admin.site, request)
+            del request.current_app
+            admin.site.password_change(request)
+        django_kwargs, ours = built
+        form = ours.pop("form_class")
+        django_kwargs.pop("form_class")
+        self.assertEqual(ours, django_kwargs)
+        self.assertIsInstance(form, partial)
+        self.assertEqual((form.func, form.args), (OwnPasswordChangeForm, (request,)))
 
     def case_get_of_the_form_is_not_audited(self):
         self.assertEqual(self.client.get("/test-admin/password_change/").status_code, 200)

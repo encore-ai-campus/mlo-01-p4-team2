@@ -23,6 +23,7 @@ from pathlib import Path
 SCHEMA_VERSION = 1  # 이 모듈이 만드는 manifest 의 모양. 레코드의 모양은 호출한 쪽의 `schema_version` 이다
 NAME = re.compile(r"[A-Za-z0-9_-]{1,64}")
 DATA_FILE = re.compile(r"[A-Za-z0-9_-]{1,64}\.[0-9a-f]{16}\.ndjson")
+SHA256 = re.compile(r"[0-9a-f]{64}")
 
 
 class NdjsonError(Exception):
@@ -33,18 +34,14 @@ def manifest_path(directory, name):
     return Path(directory) / f"{name}.manifest.json"
 
 
-def _fsync_directory(directory):
-    fd = os.open(directory, os.O_RDONLY)
+def _replace_durably(tmp, final):
+    """완성·동기화된 임시 파일을 같은 폴더의 최종 이름으로 바꾸고, 이름 바꾸기도 디스크에 남긴다(폴더 동기화). 데이터 파일과 manifest·세대 사본이 같은 단계를 쓴다."""
+    os.replace(tmp, final)
+    fd = os.open(Path(final).parent, os.O_RDONLY)
     try:
         os.fsync(fd)  # 이름 바꾸기(rename) 자체도 디스크에 남긴다
     finally:
         os.close(fd)
-
-
-def _replace_durably(tmp, final):
-    """완성·동기화된 임시 파일을 같은 폴더의 최종 이름으로 바꾸고, 이름 바꾸기도 디스크에 남긴다(폴더 동기화). 데이터 파일과 manifest·세대 사본이 같은 단계를 쓴다."""
-    os.replace(tmp, final)
-    _fsync_directory(Path(final).parent)
 
 
 def _publish(path, write):
@@ -151,12 +148,16 @@ def write(directory, name, records, source_kind, schema_version, checkpoint=None
 
 
 def read_manifest(path):
+    """manifest(JSON 객체)를 읽는다. 없거나 읽을 수 없으면(UTF-8·JSON 이 아니거나 객체가 아니면) `NdjsonError` — 날것의 예외로 나가지 않는다(리팩터 감사 D2)."""
     try:
-        return json.loads(Path(path).read_text(encoding="utf-8"))
+        manifest = json.loads(Path(path).read_text(encoding="utf-8"))
     except FileNotFoundError:
         raise NdjsonError(f"manifest 가 없다(게시되지 않았거나 지워졌다): {path}")
-    except json.JSONDecodeError as error:
+    except ValueError as error:  # JSON 오류와 UTF-8 오류(UnicodeDecodeError)
         raise NdjsonError(f"manifest 를 읽을 수 없다: {error}")
+    if not isinstance(manifest, dict):
+        raise NdjsonError(f"manifest 가 JSON 객체가 아니다: {path}")
+    return manifest
 
 
 def verify(path):
@@ -168,6 +169,10 @@ def verify(path):
         return problems
     if not DATA_FILE.fullmatch(str(manifest["file"])):
         return [f"manifest 의 file 이 올바른 데이터 파일 이름이 아니다: {manifest['file']!r}"]  # 폴더 밖을 가리키지 못하게
+    if not isinstance(manifest["sha256"], str) or not SHA256.fullmatch(manifest["sha256"]):
+        return [f"manifest 의 sha256 이 소문자 16진 64자가 아니다: {manifest['sha256']!r}"]
+    if isinstance(manifest["rows"], bool) or not isinstance(manifest["rows"], int) or manifest["rows"] < 0:
+        return [f"manifest 의 rows 가 0 이상의 정수가 아니다: {manifest['rows']!r}"]
     if not str(manifest["file"]).startswith(path.name.removesuffix(".manifest.json") + "."):
         problems.append(f"manifest {path.name} 가 다른 이름의 데이터 파일을 가리킨다: {manifest['file']}")
     try:
@@ -207,9 +212,13 @@ def verify_chain(path):
             manifest = json.loads(current)
         except ValueError:
             return ["manifest 를 읽을 수 없다"]
+        if not isinstance(manifest, dict):
+            return ["manifest 가 JSON 객체가 아니다"]
         previous = manifest.get("previous_sha256")
         if previous is None:
             return []  # 처음 세대
+        if not isinstance(previous, str) or not SHA256.fullmatch(previous):
+            return [f"previous_sha256 이 소문자 16진 64자가 아니다: {previous!r}"]
         if previous in seen:
             return ["세대 사슬이 순환한다"]
         seen.add(previous)

@@ -48,6 +48,23 @@ class MediaDeactivation(AppendOnlyModel):
         indexes = [models.Index(fields=["media", "deactivated_at"], name="masters_media_deact_at_idx")]
 
 
+class MediaRateBucket(models.Model):
+    """매체 API 요청 제한의 토큰 버킷 하나 = (매체, 경로군) 행 하나(설계 §10 "요청 제한 구현"). 모든 웹 프로세스·호스트가 이 행을 함께 쓴다.
+    `take_rate_token` 의 문장 하나(INSERT … ON CONFLICT DO UPDATE)만 쓴다. **갱신 열(`tokens`·`refilled_at`·`granted`)에는 색인을 두지 않는다** —
+    매 요청의 UPDATE 가 HOT 갱신으로 같은 페이지 안에서 정리되어 표·색인이 부풀지 않는다."""
+
+    bucket_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
+    media = models.ForeignKey(Media, on_delete=models.PROTECT, related_name="+", db_index=False)  # db_index=False: 유일 제약이 이 열로 시작해 FK 색인이 겹친다
+    route_group = models.CharField(max_length=16)
+    tokens = models.FloatField()  # 마지막 계산 뒤 남은 토큰
+    refilled_at = models.DateTimeField()  # 마지막으로 충전을 계산한 시각. 뒤로 가지 않는다(늦게 도착한 이른 시각은 경과 0)
+    granted = models.BooleanField()  # 마지막 요청의 통과 여부(문장 하나로 결과를 돌려받으려고 둔다)
+
+    class Meta:
+        db_table = "masters_media_rate_bucket"
+        constraints = [models.UniqueConstraint(fields=["media", "route_group"], name="masters_rate_bucket_per_group")]
+
+
 class Slot(models.Model):
     slot_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
     media = models.ForeignKey(Media, on_delete=models.PROTECT, related_name="slots", db_index=False)  # db_index=False: masters_slot_name_per_media 가 이 열로 시작해 FK 색인이 겹친다(계획서 부록 B-1)

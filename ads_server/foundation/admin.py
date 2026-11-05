@@ -5,7 +5,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
 from django.contrib.admin.utils import unquote
-from django.contrib.auth.forms import AdminPasswordChangeForm
+from django.contrib.auth.forms import AdminPasswordChangeForm, UserChangeForm
 from django.core.exceptions import ValidationError
 from django.http import Http404
 
@@ -13,10 +13,21 @@ from .admin_site import PasswordOnlySave, ReadOnlyAdmin, current_login_only
 from .audit import record_audit
 from .models import AuditLog, User
 from .templatetags.kst import kst
+from .validators import clean_class_label, clean_nickname
 
 
 class PasswordResetForm(PasswordOnlySave, AdminPasswordChangeForm):
     pass
+
+
+class ProfileForm(UserChangeForm):
+    """닉네임·반은 가입·내 정보 화면과 **같은 검증**(`foundation.validators` — 길이, 보이지 않는 서식·제어 문자 금지, NFC). Django 기본 폼은 열 길이만 봤다(버그 탐색 B12)."""
+
+    def clean_nickname(self):
+        return clean_nickname(self.cleaned_data["nickname"])
+
+    def clean_class_label(self):
+        return clean_class_label(self.cleaned_data["class_label"])
 
 
 admin.site.unregister(Group)  # 그룹·권한을 두지 않는다 — Django 기본 등록이 쓰기 가능한 그룹 화면을 남겼다(6-16h, R20)
@@ -24,7 +35,7 @@ admin.site.unregister(Group)  # 그룹·권한을 두지 않는다 — Django �
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    """프로필(아이디·닉네임·반)과 비밀번호 초기화만 한다. 계정을 **추가·삭제하지 않고, 역할·활성 여부·슈퍼유저 여부를 바꾸지 않는다**(설계 §10, DRD 수명주기 "사용자: 삭제 없음").
+    """프로필(닉네임·반 — 아이디는 읽기 전용)과 비밀번호 초기화만 한다. 계정을 **추가·삭제하지 않고, 역할·활성 여부·슈퍼유저 여부를 바꾸지 않는다**(설계 §10, DRD 수명주기 "사용자: 삭제 없음").
 
     - 관리자는 서버 명령(`createsuperuser`)으로만, 광고주는 가입(`billing.register_advertiser`: 계정·지갑·가입 지급이 한 트랜잭션)으로만 생긴다.
     - 광고주의 활성 여부는 운영 화면(`set_advertiser_active`: 사유 필수·감사·세션 폐기 버전, 송출도 멈춤)으로만 바꾼다. 역할을 바꿀 수 있으면 역할을 거쳐 이를 우회했다.
@@ -34,12 +45,13 @@ class UserAdmin(BaseUserAdmin):
       역할과 따로 바뀌면 "들어가지만 아무것도 못 보는 관리자"처럼 뜻이 엇갈린다 — 관리자 ⇔ 슈퍼유저를 계정을 만든 곳(매니저)이 정한다.
     """
 
+    form = ProfileForm
     change_password_form = PasswordResetForm
     list_display = ("username", "nickname", "class_label", "role", "is_active", "created_kst")
     list_filter = ("role", "is_active")
     search_fields = ("username", "nickname")
     ordering = ("-created_at",)
-    readonly_fields = ("role", "is_active", "is_superuser", "created_at", "last_login")
+    readonly_fields = ("username", "role", "is_active", "is_superuser", "created_at", "last_login")  # 아이디는 가입 뒤 바꾸지 않는다(화면 안내와 같다, B12)
     filter_horizontal = ()
     fieldsets = (
         (None, {"fields": ("username", "password")}),
@@ -67,7 +79,9 @@ class UserAdmin(BaseUserAdmin):
         changed = [name for name in form.changed_data if name in form.cleaned_data and "password" not in name]
         if changed:
             obj.save(update_fields=changed)
-        record_audit(request, "account.admin_updated", target=obj, detail={"changed": changed, "role": obj.role})
+        before = {name: form.initial.get(name) for name in changed}  # 광고주 자신의 프로필 변경(`update_profile`)처럼 이전·이후 값을 남긴다
+        after = {name: form.cleaned_data[name] for name in changed}
+        record_audit(request, "account.admin_updated", target=obj, detail={"changed": changed, "role": obj.role, "before": before, "after": after})
 
     def user_change_password(self, request, id, form_url=""):
         """대상 행도 요청자와 함께 잠근다. 잠글 대상은 **Django 화면이 대상을 찾는 것과 같은 해석**(`get_object`: `unquote` 뒤 PK 필드의 `to_python`)으로

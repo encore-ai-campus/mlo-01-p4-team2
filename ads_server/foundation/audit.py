@@ -25,11 +25,8 @@ def redact_detail(value):
 
 def _request_id(request):
     """요청이 있으면 그 ID, 요청 없이 서비스가 직접 호출됐으면 로깅이 쓰는 현재 요청 ID(없으면 빈 값)."""
-    rid = getattr(request, "request_id", "") if request is not None else ""
-    if not rid:
-        current = request_id_var.get()
-        rid = "" if current == "-" else current
-    return str(rid or "")
+    rid = getattr(request, "request_id", "") or request_id_var.get()  # 요청 ID 는 미들웨어가 UUID 만 넣는다. "-" 는 로깅의 '없음'
+    return "" if rid == "-" else str(rid)
 
 
 def record_audit(request, action, target=None, detail=None, actor=None):
@@ -57,13 +54,14 @@ def record_audit(request, action, target=None, detail=None, actor=None):
         target_type=target_type,
         target_id=target_id,
         detail=cleaned,
-        ip=(client_ip(request) if request is not None else "") or "",
+        ip=client_ip(request) if request is not None else "",  # client_ip 는 늘 문자열
         request_id=_request_id(request),
     )
 
 
-def latest_detail(action):
-    """그 종류의 가장 최근 감사 로그의 `detail`(없으면 `None`). 폴더 밖의 고정점을 읽을 때 쓴다(추가 전용이라 지울 수 없는 기록)."""
+def latest_detail(action, **detail):
+    """그 종류(와 `detail` 의 키 = 값)의 가장 최근 감사 로그의 `detail`(없으면 `None`). 폴더 밖의 고정점을 읽을 때 쓴다(추가 전용이라 지울 수 없는 기록)."""
     from .models import AuditLog
 
-    return AuditLog.objects.filter(action=action).order_by("-created_at", "-log_id").values_list("detail", flat=True).first()
+    match = {f"detail__{key}": value for key, value in detail.items()}
+    return AuditLog.objects.filter(action=action, **match).order_by("-created_at", "-log_id").values_list("detail", flat=True).first()

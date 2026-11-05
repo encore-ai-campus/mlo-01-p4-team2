@@ -17,12 +17,12 @@ from django.utils import timezone
 
 from billing import api as billing
 from events import api as events
-from foundation.api import is_transient_lock_error
+from foundation.api import is_transient_lock_error, violated_constraint
 
 from . import basis as judgment_basis
 from . import ordering
 from . import facts as fact_gathering
-from .models import Decision, Reaction, ReactionStatus, charge_shares
+from .models import ACCEPTED_KEY_CONSTRAINT, Decision, Reaction, ReactionStatus, charge_shares
 from .rules import MANDATORY_RULES, Hold, run_rules
 
 logger = logging.getLogger(__name__)
@@ -83,9 +83,11 @@ def _hold(row, now):
 
 
 def _process(inbox_id, now):
-    row = Reaction.objects.select_for_update().filter(pk=inbox_id, status=ReactionStatus.RECEIVED).first()
+    # 다른 처리기가 잡고 있는 행은 기다리지 않고 건너뛴다(그쪽이 끝내고, 그쪽이 되돌리면 `RECEIVED` 로 남아 다음 주기에 다시 잡힌다).
+    # 처리기를 늘리면 같은 앞쪽 행에 줄을 서지 않고 나눠 처리한다(중계의 `SKIP LOCKED` 와 같다).
+    row = Reaction.objects.select_for_update(skip_locked=True).filter(pk=inbox_id, status=ReactionStatus.RECEIVED).first()
     if row is None:
-        return None  # 이미 처리됐거나 없다
+        return None  # 이미 처리됐거나 없거나, 다른 처리기가 지금 처리 중이다
     decision = Decision.objects.filter(decision_id=row.decision_id).first()
     facts = fact_gathering.gather(row, decision, now)
     verdict = run_rules(settings.REACTION_RULES, facts)
@@ -190,35 +192,62 @@ def process_after_receipt(inbox_id):
         return None
 
 
+def _queue(now):
+    """처리 대상: `RECEIVED` 이고 실패 상한 전이며, 한 번도 확인하지 않았거나(깨워진 것 포함) 마지막 확인에서 재확인 간격이 지난 것."""
+    due = Q(checked_at__isnull=True) | Q(checked_at__lte=now - timedelta(seconds=settings.REACTION_HOLD_RECHECK_SECONDS))
+    return Reaction.objects.filter(due, status=ReactionStatus.RECEIVED, attempts__lt=settings.REACTION_MAX_ATTEMPTS)
+
+
 def process_pending(limit=100, now=None, should_stop=None):
     """`RECEIVED` 를 최대 `limit` 건 처리한다. 한 건의 실패가 다른 건을 막지 않는다. 반환: 결과별 건수.
 
+    반응마다 트랜잭션 하나에서 **다음 반응을 잠근 채 고르고**(`FOR UPDATE SKIP LOCKED` — 다른 처리기·멈춘 연결이 쥔 행은 기다리지 않고 건너뛴다, 중계와 같다)
+    그 트랜잭션에서 판정한다. 처리기 여럿이 같은 앞쪽 행을 다투지 않고 나눠 처리한다(사용자 2026-11-02 — 전에는 잠그지 않고 고른 ID 목록이 같아 서로 건너뛰기만 했다).
+    접수 잠금은 저장점에서 지나가기만 한다(`ordering.wait_for_inflight_receipts` — 잠금을 쥔 채 과금하지 않는다).
+    이번 호출에서 한 번 시도한 반응은 다시 고르지 않는다(실패한 반응을 연달아 다시 집어 곧바로 상한에 닿지 않게).
+
     앞을 기다리는 보류분은 앞 단계가 끝나 **깨워지거나**(`_wake_dependents`) `REACTION_HOLD_RECHECK_SECONDS` 가 지나야 다시 대상이 된다.
     정렬은 **한 번도 확인하지 않은(또는 깨워진) 것 먼저**(접수 순서), 그 다음은 마지막 확인이 오래된 순이다 — 보류분이 아무리 쌓여도 새 반응이 그 뒤로 밀리지 않는다.
+    더 고를 것이 없으면 `locked` 에 남은 대상 수(= 지금 다른 쪽이 쥐고 있는 것)를 한 번 센다 — 처리기가 하나인데 계속 보이면 멈춘 연결이다(버그 탐색 K4).
 
     `should_stop()` 이 참이 되면 **현재 반응을 끝낸 뒤 다음 반응을 시작하지 않는다**(남은 것은 `RECEIVED` 로 둔다).
     """
-    now_for_due = _now(now)
-    due = Q(checked_at__isnull=True) | Q(checked_at__lte=now_for_due - timedelta(seconds=settings.REACTION_HOLD_RECHECK_SECONDS))
-    ids = list(
-        Reaction.objects.filter(due, status=ReactionStatus.RECEIVED, attempts__lt=settings.REACTION_MAX_ATTEMPTS)
-        .order_by(F("checked_at").asc(nulls_first=True), "received_at", "inbox_id").values_list("inbox_id", flat=True)[:limit]
-    )
-    counts = {"accepted": 0, "rejected": 0, "pending": 0, "skipped": 0, "failed": 0, "transient": 0}
-    for inbox_id in ids:
+    counts = {"accepted": 0, "rejected": 0, "pending": 0, "locked": 0, "failed": 0, "transient": 0, "contended": 0}
+    tried, exhausted = [], False
+    for _ in range(limit):
         if should_stop is not None and should_stop():
             break
+        reaction_now, inbox_id = _now(now), None
         try:
-            outcome = process_reaction(inbox_id, now=now)
+            with transaction.atomic():
+                inbox_id = (_queue(reaction_now).select_for_update(skip_locked=True).exclude(pk__in=tried)
+                            .order_by(F("checked_at").asc(nulls_first=True), "received_at", "inbox_id").values_list("inbox_id", flat=True).first())
+                if inbox_id is None:
+                    exhausted = True
+                    break
+                tried.append(inbox_id)
+                ordering.wait_for_inflight_receipts(inbox_id)  # 저장점에서 진행 중인 접수·비활성화를 기다렸다가 그 잠금을 바로 놓는다
+                outcome = _process(inbox_id, reaction_now)
         except Exception as error:  # noqa: BLE001
-            if is_transient_lock_error(error):  # 다음 주기에 다시 한다(실패 횟수는 그대로)
+            if inbox_id is None:
+                raise  # 대기열 조회 자체의 실패(DB 연결 등)는 호출한 쪽이 다룬다
+            if is_transient_lock_error(error):  # 다음 주기에 다시 한다(실패 횟수는 그대로) — 서버가 되돌렸을 뿐이라 횟수를 올리면 정상 반응이 자동 재처리에서 빠진다
                 logger.warning("반응 처리가 교착·잠금 초과로 되돌려졌다(다음 주기에 다시) inbox=%s", inbox_id)
                 counts["transient"] += 1
+                continue
+            _note_failure(inbox_id)
+            if violated_constraint(error) == ACCEPTED_KEY_CONSTRAINT:  # 두 조회 사이 창에서 같은 사람·유형의 인정이 겹쳤다(설계 D13) — 실패 횟수는 올렸다(설정 누락처럼 반복되면 stuck 으로 드러난다)
+                logger.warning("같은 사람·유형의 인정이 겹쳐 유일 제약이 막았다(다음 처리에서 거부된다) inbox=%s", inbox_id)
+                counts["contended"] += 1
             else:
                 logger.exception("반응 처리 실패 inbox=%s", inbox_id)
                 counts["failed"] += 1
             continue
-        counts["skipped" if outcome is None else outcome.lower()] += 1
+        if outcome in (ReactionStatus.ACCEPTED, ReactionStatus.REJECTED):
+            _wake_dependents(inbox_id)
+        counts[outcome.lower()] += 1
+    if exhausted:
+        counts["locked"] = _queue(_now(now)).exclude(pk__in=tried).count()
     return counts
 
 
@@ -226,7 +255,8 @@ def inbox_status(now=None):
     """수신함의 처리 현황(질의 한 번, 6-3c). 처리기가 멈췄는지·한가한지를 밖에서 구분하는 근거다(설계 §7-9 "처리 대기 건수를 로그로 노출").
 
     - `received`: 아직 `RECEIVED` 인 반응 전부(아래 둘을 포함한다).
-    - `held`: 앞 단계를 기다리며 보류 중인 것(확인한 적이 있고 자동 처리 대상) — 최대 `REACTION_HOLD_SECONDS` 뒤에는 판정된다.
+    - `held`: 앞 단계를 기다리며 보류 중인 것(확인한 적이 있고 자동 처리 대상). 앞 단계가 끝나면 판정되고, 앞 단계가 없으면 `REACTION_HOLD_SECONDS` 뒤 거부된다
+      — 앞 단계가 `RECEIVED` 로 남아 있으면(특히 `stuck`) 그것을 처리할 때까지 보류가 이어진다(설계 §10 "중복 반응의 대표 선택"의 알려진 한계).
     - `stuck`: 실패가 반복돼 자동 재처리에서 빠진 것(`held` 와 겹치지 않는다). 0 이어야 정상이다.
     - `oldest_age_seconds`: 자동 처리 대상(`stuck` 제외) 중 가장 오래 기다린 것의 나이. 계속 커지면 처리기가 멈춘 것이다. 없으면 `None`.
     """

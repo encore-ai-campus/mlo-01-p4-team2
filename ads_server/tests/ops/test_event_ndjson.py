@@ -112,6 +112,22 @@ class WriteAndVerifyTests(Cases, TempDirMixin, SimpleTestCase):
         with self.assertRaises(ndjson.NdjsonError):
             self.publish(directory, [], name="../evil")
 
+    def case_malformed_manifests_are_reported_not_raised(self):
+        """리팩터 감사 D2: 형식이 틀린 manifest 는 날것의 예외(TypeError·UnicodeDecodeError·AttributeError)가 아니라 `NdjsonError` 나 문제 목록이다."""
+        directory = self.tmpdir()
+        manifest = self.publish(directory, [{"n": 1}])
+        path = ndjson.manifest_path(directory, "check")
+        for override in ({"sha256": None}, {"sha256": 5}, {"rows": "1"}, {"rows": True}, {"rows": -1}):
+            path.write_text(json.dumps({**manifest, **override}))
+            self.assertTrue(ndjson.verify(path), override)
+        for raw in (b"\xff\xfe not utf-8", b"[1, 2]"):
+            path.write_bytes(raw)
+            with self.assertRaises(ndjson.NdjsonError, msg=raw):
+                ndjson.read_manifest(path)
+        for body in ("[1]", json.dumps({**manifest, "previous_sha256": 5}), json.dumps({**manifest, "previous_sha256": "../x"})):
+            path.write_text(body)
+            self.assertTrue(ndjson.verify_chain(path), body)
+
     def case_the_manifest_hash_must_match_the_file_name(self):
         directory = self.tmpdir()
         manifest = self.publish(directory, [{"n": 1}])

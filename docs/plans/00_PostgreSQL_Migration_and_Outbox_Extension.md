@@ -44,7 +44,7 @@
 | D9 | `lock_timeout` 값 | **5s로 확정**(P1-10): 150 동시 부하와 장애 시험 5종에서 잠금 대기 초과(55P03)·교착(40P01) 0건. 503 + `Retry-After`가 계약상 재시도 경로다 |
 | D10 | 변경 로그 표의 모양 | 캠페인·광고그룹 **공용 표 1개**로 하고, `ad.ad_group_changed`도 이번에 함께 구현한다. 설계안은 광고그룹 이벤트를 후속으로, 표를 2개로 제안했다(§10에서 설계안 수정) |
 | D11 | PostgreSQL 정렬(collation) | builtin `C.UTF-8`(`POSTGRES_INITDB_ARGS=--locale-provider=builtin --locale=C.UTF-8` — libc 쪽 LC_COLLATE·LC_CTYPE도 C.UTF-8이라 OS의 다른 로케일에 기대지 않는다). 정렬이 코드값만 써서 ICU·glibc 버전이 바뀌어도 문자열 색인의 순서가 바뀌지 않는다(§4.3). 같음 비교는 대소문자·악센트를 구분한다(MySQL `utf8mb4_0900_as_cs`와 같다). 감수하는 것: 화면의 이름순이 코드값 순서가 된다(대문자가 소문자보다 앞, 악센트 문자는 `z` 뒤. 한글끼리는 가나다순 그대로). 처음에는 ICU `und`로 정했으나 D12에서 바꿨다. (버린 안: ICU `und` — 이름순은 MySQL과 가장 가깝지만 ICU 버전이 바뀌면 색인을 다시 만들어야 함 / 기본값 en_US.utf8 — glibc 버전에 같은 위험) |
-| D13 | 판정의 질의 사이 창(`accepted_key` 경쟁) | **설계에 기록만 한다**(P1-9 검토에서 발견). `records/facts.py` `gather`의 두 조회(인정된 유형 / 먼저 접수된 같은 유형의 미처리)가 READ COMMITTED에서 서로 다른 스냅샷을 봐, 그 사이에 앞 반응의 판정이 커밋되면 둘 다 놓친다 → 뒤 반응을 인정하려다 `accepted_key` 유일 제약이 막고(과금도 함께 되돌림) 다음 재처리에서 `once-per-type`으로 거부된다. 영향은 `attempts` +1과 경고 한 줄(상한 5에 닿으려면 같은 반응이 다섯 번 연속 걸려야 한다). 빈도: check.sh 12회 중 1회, 150 동시 부하 0건(`load_test` 끝의 `failed_once`). MySQL(READ COMMITTED)에도 같은 창이 있었다. (버린 안: 이 위반을 실패로 세지 않기 — 진짜 결함이 반복되면 stuck으로 드러나지 않는다 / 같은 결정의 판정을 잠금으로 줄 세우거나 한 질의로 — 판정 경로가 바뀌고 경합이 는다) |
+| D13 | 판정의 질의 사이 창(`accepted_key` 경쟁) | **설계에 기록만 한다**(P1-9 검토에서 발견). `records/facts.py` `gather`의 두 조회(인정된 유형 / 먼저 접수된 같은 유형의 미처리)가 READ COMMITTED에서 서로 다른 스냅샷을 봐, 그 사이에 앞 반응의 판정이 커밋되면 둘 다 놓친다 → 뒤 반응을 인정하려다 `accepted_key` 유일 제약이 막고(과금도 함께 되돌림) 다음 재처리에서 `once-per-type`으로 거부된다. 영향은 `attempts` +1과 경고 한 줄(상한 5에 닿으려면 같은 반응이 다섯 번 연속 걸려야 한다). 빈도: check.sh 12회 중 1회, 150 동시 부하 0건(`load_test` 끝의 `failed_once`). MySQL(READ COMMITTED)에도 같은 창이 있었다. (버린 안: 이 위반을 실패로 세지 않기 — 진짜 결함이 반복되면 stuck으로 드러나지 않는다 / 같은 결정의 판정을 잠금으로 줄 세우거나 한 질의로 — 판정 경로가 바뀌고 경합이 는다) [보완 2026-11-02, 사용자] `process_reactions --once`가 실패를 종료 코드로 알리게 된 뒤(버그 탐색 B15) 이 위반만 `failed`와 따로 `contended`로 센다 — 요약에 보이고 `--once`의 종료 코드에만 넣지 않는다. 버린 안과 달리 `attempts`는 그대로 올려 stuck 탐지를 지킨다 |
 | D12 | 식별자·코드·키 열의 정렬(ICU 버전 위험을 줄이는 방법) | DB 전체를 builtin `C.UTF-8`로 한다 → D11을 다시 정함. 열마다 정렬을 나누는 안(키·코드 열만 `C`)과 ICU `und` 유지 안은 버렸다. 이름순 정렬만 ICU로 하는 완화(`Collate(..., "und-x-icu")`)는 하지 않는다 |
 
 ## 4. P1 — PostgreSQL 전환
@@ -201,7 +201,7 @@ DB 전체를 builtin `C.UTF-8`로 만든다. 그래서 ICU·glibc가 바뀌어�
 | 장치 | 위치 | 근거 |
 |---|---|---|
 | 조건부 UPDATE(상태 비교 후 교체) | `records/processing.py` `_finish`·`_hold`, `masters/services.py` `set_media_active`·`rotate_media_key` | PostgreSQL READ COMMITTED는 잠금을 기다린 뒤 새 행 버전으로 WHERE를 다시 평가한다. 늦은 쪽은 0행을 바꾼다 — MySQL과 같다 |
-| 업무 + outbox 같은 트랜잭션 | `events/outbox.py:15-16`(트랜잭션 밖이면 예외), `records/services.py` `_atomic_if_needed` | DB와 무관 |
+| 업무 + outbox 같은 트랜잭션 | `events/outbox.py:15-16`(트랜잭션 밖이면 예외), `records/services.py` `decide` 의 `atomic(savepoint=False)`(2026-11-01 전에는 `_atomic_if_needed`) | DB와 무관 |
 | `IntegrityError` 처리 11곳 | `records/services.py:191,247`, `billing/services.py:104,174`, `masters/services.py:93,166,183,303`, `campaigns/services.py:194,360,581,774`, `foundation/accounts.py:50` | 모두 `try` 안에 자기 `atomic()`(저장점)이 있다. PostgreSQL은 실패한 문장 뒤 트랜잭션 전체를 중단하지만, 저장점까지만 되돌려지므로 안전하다. **새 코드도 이 형태를 지킨다** |
 | 공유 잠금 원문 SQL | `masters/services.py:126-137` `media_active_for_share`(`FOR SHARE`) | 같은 문법·같은 의미(`FOR SHARE`는 `UPDATE`와 충돌) |
 | `select_for_update(skip_locked=True)` | `events/relay.py:88` | 지원 |
@@ -293,7 +293,8 @@ PostgreSQL은 기본값 없는 NULL 열 추가가 표를 다시 쓰지 않는다
 ## 11. 범위 밖·후속
 
 - **Kafka 전환 때 바꿀 곳:** `events/relay.py:84-96`(성공 뒤 `sent_at` UPDATE), `events/management/commands/purge_sent_events.py`(보낸 지 N일 뒤 DELETE), `events/relay.py:107-132`(MongoDB 대조). Debezium Outbox Router는 INSERT만 있는 outbox를 전제한다(설계안 §3.5).
-- PgBouncer 도입(D6): 요청이 늘어 앱 서버·워커를 늘릴 때. `lock_timeout` 전달 방식을 함께 정한다.
+- PgBouncer 도입(D6): 요청이 늘어 앱 서버·워커를 늘릴 때. `lock_timeout`·`idle_in_transaction_session_timeout`(60초, 2026-11-02 버그 탐색 K3) 전달 방식을 함께 정한다.
+- 반응이 많이 쌓인 DB 에 서비스 중 색인을 더할 때(예: `records/0002_reaction_queue_idx`, 2026-11-02): `AddIndex` 는 `CREATE INDEX`(동시 아님)라 만드는 동안 표 쓰기가 막힌다 — 트래픽이 적은 때 올리거나 `AddIndexConcurrently`(atomic=False 마이그레이션)로 바꾼다. 운영 데이터가 없는 지금은 그대로 둔다.
 - PostgreSQL 복제·HA 구성(MySQL InnoDB Cluster 대체)과 그 장애 시험(`failure_test.py`의 클러스터 시나리오): 인프라와 정한 뒤.
 - `masters.create_slot`의 `except IntegrityError`(P2-3 검토, 선택): 블록 안의 모든 무결성 오류를 "같은 이름의 구성" 409로 바꾼다 — 같은 블록의 감사·outbox 쓰기 결함(CHECK·NOT NULL)도 이름 충돌로 보인다. `is_unique_violation`이 아니면 다시 올리도록 고친다. 실패 방식이 바뀌므로 따로 한다.
 - C4 Insight 저장·`ad.insight_recorded`, `ad.decision` v3: 가격 모델 단계(§8.3).

@@ -39,10 +39,7 @@ class LocalFileStorage:
             os.chmod(tmp, 0o640)
             os.replace(tmp, final)  # 원자적 확정: 반쯤 쓴 파일이 최종 경로에 나타나지 않는다
         except BaseException:
-            try:
-                os.unlink(tmp)
-            except FileNotFoundError:
-                pass
+            Path(tmp).unlink(missing_ok=True)
             raise
 
     def open(self, name):

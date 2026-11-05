@@ -313,8 +313,10 @@ class PurgeTests(TestCase):
         call_command("purge_sent_events", "--days", "7", stdout=out)
         self.assertIn("deleted: 1", out.getvalue())
         self.assertEqual(set(EventOutbox.objects.values_list("pk", flat=True)), {old_unsent.pk, b.pk})
-        with self.assertRaises(CommandError):
-            call_command("purge_sent_events", "--days", "-1")
+        for days in ("-1", "6"):  # 설정(7일)보다 짧게 지우면 구간 대조가 정상 정리를 확정 불일치로 본다(버그 탐색 B7)
+            with self.assertRaises(CommandError, msg=days):
+                call_command("purge_sent_events", "--days", days)
+        self.assertEqual(set(EventOutbox.objects.values_list("pk", flat=True)), {old_unsent.pk, b.pk})
         call_command("purge_sent_events", stdout=io.StringIO())  # 기본은 설정값(7일)
 
 

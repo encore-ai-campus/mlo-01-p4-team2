@@ -5,6 +5,7 @@
 
 실제 DB 연결을 스레드마다 하나씩 쓰고, 접수 트랜잭션을 열어 둔 채 커밋을 미루는 방식으로 순서를 고정한다(시각은 `now=` 로 주입).
 """
+import threading
 import uuid
 
 from django.db import connection
@@ -13,7 +14,7 @@ from django.utils import timezone
 
 from records import api as records
 from records.models import Reaction
-from tests.support.concurrency import BLOCKED, WAIT, Uncommitted, Worker
+from tests.support.concurrency import BLOCKED, WAIT, Uncommitted, Worker, pausing_before
 from tests.support.factories import NOW, SUBJECT, World, at
 from tests.ops.test_funnel_rules import FunnelMixin
 from tests.support.cases import Cases
@@ -82,6 +83,34 @@ class ReceiptOrderingTests(Cases, FunnelMixin, TransactionTestCase):
         self.assertEqual(judging.errors, [])
         self.assertEqual(judging.result, "PENDING")  # 더 이른 유효 후보가 있으니 대표가 되지 않고 기다린다
         self.assertEqual(Reaction.objects.get(pk=later.inbox_id).status, "RECEIVED")
+
+    def case_the_processor_queue_also_waits_and_then_lets_go_before_charging(self):
+        """처리기(`process_pending`)는 반응 행을 잠근 채 고른 트랜잭션 안의 저장점에서 접수 잠금을 지나간다: 진행 중인 더 이른 접수를 기다리고,
+        지나간 뒤에는 그 잠금을 놓는다 — 과금하는 동안 같은 결정의 접수가 막히지 않는다(사용자 2026-11-02, 설계 §10 "판정 설계 기준" ⑪)."""
+        later, _ = self.receive("IMPRESSION", 301.1)
+        with Uncommitted(lambda: self.receive("IMPRESSION", 300.9)) as early:
+            judging = Worker(lambda: records.process_pending(now=at(303)))
+            judging.start()
+            self.assert_blocked(judging, "처리기")
+            early.commit()
+        judging.join(WAIT)
+        self.assertEqual(judging.errors, [])
+        self.assertEqual((judging.result["pending"], judging.result["accepted"]), (1, 1))  # 뒤 노출은 기다리고, 앞 노출이 대표로 인정된다
+        self.assertEqual(Reaction.objects.get(pk=later.inbox_id).status, "RECEIVED")
+
+        paused, release = threading.Event(), threading.Event()
+        self.addCleanup(release.set)
+        charging = Worker(pausing_before("UPDATE", "records_reaction", lambda: records.process_pending(now=at(312)), paused, release))
+        charging.start()
+        self.assertTrue(paused.wait(WAIT))  # 깨워진 뒤 노출(이 결정)을 지나간 뒤 판정해 상태를 바꾸기 직전 — 반응 행은 쥐고 있다
+        receipt = Worker(lambda: self.receive("CLICK", 312))  # 같은 결정의 접수
+        receipt.start()
+        receipt.join(BLOCKED)
+        self.assertFalse(receipt.is_alive(), "처리기가 결정 행 잠금을 쥔 채 과금했다")
+        self.assertEqual(receipt.errors, [])
+        release.set()
+        charging.join(WAIT)
+        self.assertEqual(charging.errors, [])
 
     def case_a_click_waits_for_an_in_flight_impression_of_a_later_decision(self):
         """표시 교체 신호(이후 결정의 노출)도 같다: 클릭 t+100 이 커밋돼 있고 이후 결정의 노출 t+90 이 진행 중이면, 판정은 그 커밋을 기다려 `display_ended` 로 거부한다(인정하면 과다 과금)."""

@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "records.apps.RecordsConfig",
     "serving_api.apps.ServingApiConfig",
     "console.apps.ConsoleConfig",
+    "config.apps.AssemblyConfig",  # 조립 층: 여러 모듈의 설정을 함께 보는 시스템 검사(config/checks.py)
 ]
 
 MIDDLEWARE = [
@@ -178,7 +179,7 @@ EVENTS_HOP_GRACE_SECONDS = 120  # 구간별 정합 manifest(4-3b)의 창 닫힘 
 
 # --- 광고 선택 (설계 §4.3). 구현 선택은 config 한 곳(R4): 알고리즘·필터를 바꿔도 Decision 구조는 그대로다 ---
 ADS_SELECTION_POLICY = "weighted-by-bid/v1"  # 상한 근접 가중 추첨(6-14)
-ADS_ENGINE_FILTERS = ("status", "period", "floor", "budget", "balance")  # 순서가 곧 판정 순서
+ADS_ENGINE_EXTRA_FILTERS = ()  # 추가 필터 이름(순서 = 판정 순서). 상태·기간·하한·예산·잔액 필터는 여기와 무관하게 언제나 먼저 거친다(설계 §6.4)
 
 # --- 매체 API 요청 제한(설계 §10, 계약 C1). (초당 토큰, 버스트). 150명 가정의 개발용 초기값이며 측정 결과가 아니다(2-6 에서 조정) ---
 MEDIA_RATE_LIMITS = {
@@ -216,9 +217,12 @@ def postgres_config(name, user, password, host, port):
     - READ COMMITTED 고정: 판정은 유일 제약·행 잠금·조건부 UPDATE 에 기대고, PostgreSQL 은 잠금을 기다린 뒤 새 행 버전으로 WHERE 를 다시 본다.
       REPEATABLE READ 는 동시 갱신을 직렬화 실패(40001)로 끝내므로 운영 기본값으로 쓰지 않는다(정합성 점검의 읽기 전용 스냅샷만 `billing.consistent_read`).
     - lock_timeout 5s(결정 D9): PostgreSQL 기본(0)은 잠금을 끝없이 기다린다. 넘으면 55P03 → 일시 오류(503 + Retry-After, 반응 처리는 다음 주기 — foundation/dberrors.py).
-      값은 부하 시험(계획 P1-10)으로 확정한다.
+      값은 부하 시험(계획 P1-10)으로 확정했다(55P03·40P01 0건).
+    - idle_in_transaction_session_timeout 60s(사용자 2026-11-02, 버그 탐색 K3): 트랜잭션을 연 채 멈춘 연결은 서버가 끊어 잡은 행 잠금을 푼다 — 반응 처리는 잠긴 행을
+      `SKIP LOCKED` 로 건너뛰므로, 멈춘 연결이 쥔 반응은 경고 없이 계속 남았다. 트랜잭션 안에서 가장 오래 쉬는 곳(중계가 MongoDB 쓰기를 기다림 — 서버 선택 3초 + 소켓 10초, 재시도 한 번이라 최대 약 26초)보다 넉넉하다.
     - 문자열 검사(MySQL STRICT)·문자 집합·정렬 옵션은 없다: PostgreSQL 은 잘리거나 잘못된 값을 항상 오류로 하고, 기본(결정적) 정렬은 대소문자·악센트를 구분한다.
-    - CONN_MAX_AGE=0: 요청마다 연결을 닫는다. 영속 연결·풀은 배포 구성(워커 수 × 스레드 수)과 `max_connections` 가 정해진 뒤에 정한다(결정 D6).
+    - CONN_MAX_AGE=0: 요청마다 연결을 닫는다. 연결 수는 운영 `max_connections` 기본 100 안에 든다(동기 워커 + 상시 프로세스). 요청이 늘면 앱 풀이 아니라
+      PgBouncer(transaction 모드)로 넓히고, 그때 `lock_timeout`·`idle_in_transaction_session_timeout` 전달 방식(DB 역할 설정 또는 PgBouncer `track_extra_parameters`)을 고른다(결정 D6).
     """
     return {
         "ENGINE": "django.db.backends.postgresql",
@@ -230,7 +234,7 @@ def postgres_config(name, user, password, host, port):
         "CONN_MAX_AGE": 0,
         "OPTIONS": {
             "isolation_level": IsolationLevel.READ_COMMITTED,
-            "options": "-c lock_timeout=5s",
+            "options": "-c lock_timeout=5s -c idle_in_transaction_session_timeout=60s",
             "connect_timeout": 5,
         },
     }

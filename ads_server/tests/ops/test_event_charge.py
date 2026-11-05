@@ -53,8 +53,7 @@ class ChargeEventTests(Cases, ProcessingBase):
             def amount_for(self, reaction_type, shares, applied_amount):
                 return 0
 
-        billing.register_charge_policy(Zero())
-        self.addCleanup(billing.unregister_charge_policy, "zero/v1")
+        self.enterContext(mock.patch.dict("billing.policies._POLICIES", {"zero/v1": Zero()}))
         imp = self.receive("IMPRESSION")
         self.process(imp)
         before = len(events_of(schemas.CHARGE))

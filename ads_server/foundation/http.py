@@ -1,6 +1,6 @@
 """HTTP 계층 도우미 (설계 §3, 위협 T9~T14).
 
-- parse_json: 본문 크기·깊이 제한, NaN/Infinity·중복 키·범위 밖 숫자 거부, 최상위는 객체. 실패는 모두 ApiError → 4xx.
+- parse_json: 본문 크기·깊이 제한, NaN/Infinity·중복 키·범위 밖 숫자·저장할 수 없는 문자(짝 없는 서로게이트·U+0000) 거부, 최상위는 객체. 실패는 모두 ApiError → 4xx.
 - 오류 응답: `/api/` 는 application/problem+json, 그 외는 오류 화면의 화면 데이터(프론트가 그린다, 6-15). **입력 오류는 500 이 되지 않고 내부 정보를 싣지 않는다.**
 """
 import json
@@ -75,12 +75,15 @@ def json_depth(value):
     return deepest
 
 
-def _has_unpaired_surrogate(value):
-    """키와 값 모두, 어느 깊이에서든. JSON 이스케이프(`\\ud800`)는 문법상 유효해 디코더가 받지만 UTF-8 로 저장·전송할 수 없다."""
+def _has_unstorable_text(value):
+    """키와 값 모두, 어느 깊이에서든. JSON 이스케이프 `\\ud800`(짝 없는 서로게이트)·`\\u0000` 은 문법상 유효해 디코더가 받지만
+    앞의 것은 UTF-8 로 저장·전송할 수 없고, 뒤의 것은 PostgreSQL 이 text·jsonb 에 받지 않는다(저장 오류 → 500)."""
     stack = [value]
     while stack:
         node = stack.pop()
         if isinstance(node, str):
+            if "\x00" in node:
+                return True
             try:
                 node.encode("utf-8")
             except UnicodeEncodeError:
@@ -123,8 +126,8 @@ def parse_json(request, max_bytes=DEFAULT_MAX_BYTES, max_depth=DEFAULT_MAX_DEPTH
         raise InvalidRequest("JSON 형식이 올바르지 않습니다.")
     if not isinstance(value, dict):
         raise InvalidRequest("최상위는 JSON 객체여야 합니다.")
-    if _has_unpaired_surrogate(value):
-        raise InvalidRequest("유효하지 않은 유니코드(짝 없는 서로게이트)가 있습니다.")
+    if _has_unstorable_text(value):
+        raise InvalidRequest("저장할 수 없는 문자(짝 없는 서로게이트 또는 U+0000)가 있습니다.")
     if json_depth(value) > max_depth:
         raise InvalidRequest(f"중첩 깊이는 최대 {max_depth} 입니다.")
     return value

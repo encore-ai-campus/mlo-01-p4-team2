@@ -3,8 +3,8 @@ from django.utils import timezone
 
 from billing import api as billing
 from campaigns import api as campaigns
-from foundation.api import errors
 
+from ..queries.alerts import wallet_or_none
 from .common import present
 
 
@@ -13,10 +13,7 @@ def _now():
 
 
 def points(request):
-    try:
-        wallet = billing.get_wallet(request.user, now=_now())
-    except errors.NotFound:  # 가입 절차를 거치지 않은 옛 계정
-        wallet = None
+    wallet = wallet_or_none(request.user, _now())
     entries, next_cursor = billing.list_ledger(request.user, before=request.GET.get("before"))  # 틀린 커서는 첫 쪽(서비스)
     return present(request, "console/points.html", {
         "wallet": wallet, "entries": entries, "next_cursor": next_cursor,

@@ -3,6 +3,7 @@ import uuid
 from datetime import date
 from unittest import mock
 
+import psycopg
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import IntegrityError, connection, transaction
@@ -15,6 +16,7 @@ from foundation.errors import Forbidden, InvalidRequest, NotFound
 from foundation.models import AppendOnlyError, AuditLog, User
 from tests.support.factories import NOW, PW, WHOLE, make_admin, make_advertiser, utc
 from tests.support.cases import Cases
+from tests.support.helpers import db_error
 
 
 def funded(points=None):
@@ -292,7 +294,8 @@ class LedgerAndSpendTests(Cases, TestCase):
 
     def case_the_same_key_safety_net_answers_like_a_repeated_charge(self):
         repeated = api.charge_for_reaction(self.adv.pk, self.camp, "IMPRESSION", WHOLE, 10, "r1", now=utc(2026, 10, 9))
-        with mock.patch("billing.services._charge", side_effect=IntegrityError("동시에 같은 키")):  # 먼저 넣은 쪽이 유일 제약을 차지한 경우
+        raced_error = db_error(IntegrityError, psycopg.errors.UniqueViolation("동시에 같은 키"))  # 유일 제약 위반(23505) — 다른 무결성 오류는 그대로 올린다(B16)
+        with mock.patch("billing.services._charge", side_effect=raced_error):  # 먼저 넣은 쪽이 유일 제약을 차지한 경우
             raced = api.charge_for_reaction(self.adv.pk, self.camp, "IMPRESSION", WHOLE, 10, "r1", now=utc(2026, 10, 9))
         expected = (self.first.entry, 10, 0, True)
         self.assertEqual((repeated.entry, repeated.charged, repeated.shortfall, repeated.duplicate), expected)

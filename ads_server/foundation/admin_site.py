@@ -2,15 +2,19 @@
 
 `UserAdmin` 은 다른 사용자의 비밀번호 초기화만 기록한다. 본인 변경은 AdminSite 의 별도 뷰라 여기서 잡는다.
 두 비밀번호 화면 모두 `current_login_only` 로 감싸고 비밀번호 열만 쓴다(`PasswordOnlySave`).
+본인 변경의 현재 비밀번호 확인은 로그인 잠금(axes)과 같은 계수이고 틀린 시도는 감사에 남는다(T43 — 광고주 `accounts.change_password` 와 같은 규칙).
 """
-from functools import wraps
+from functools import partial, wraps
 
 from django.contrib import admin
 from django.contrib.admin.forms import AdminPasswordChangeForm as OwnPasswordForm
-from django.contrib.auth import HASH_SESSION_KEY
-from django.core.exceptions import PermissionDenied
+from django.contrib.auth import HASH_SESSION_KEY, authenticate
+from django.contrib.auth.views import PasswordChangeView
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
+from django.urls import reverse
 from django.utils.crypto import constant_time_compare
+from django.views.decorators.debug import sensitive_variables
 
 from .audit import record_audit
 from .models import User
@@ -69,12 +73,36 @@ def current_login_only(view, *others, audit=None):
 
 
 class OwnPasswordChangeForm(PasswordOnlySave, OwnPasswordForm):
-    pass
+    """현재 비밀번호를 `authenticate(request, …)` 로 확인한다 — 로그인과 이 확인의 실패를 (아이디, IP)마다 함께 세고 5회면 5분 잠금(429, axes 미들웨어).
+    잠금 중에는 맞는 비밀번호도 거절된다. Django 기본(`check_password`)은 계수 밖이라 세션을 탈취한 사람이 비밀번호를 끝없이 맞혀 볼 수 있었다(버그 탐색 B2).
+    틀린 시도는 `account.password_change_rejected` 로 남는다 — 뷰의 트랜잭션(`current_login_only`)은 폼 오류(200)로 끝나면 커밋된다.
+    그래서 실패 계수·거절 감사는 폼 오류 응답을 만든 뒤 예외(500)가 나면 함께 되돌려진다(성공 감사를 변경과 같은 트랜잭션에 두는 것과 같은 선택)."""
+
+    def __init__(self, request, *args, **kwargs):
+        self.request = request
+        super().__init__(*args, **kwargs)
+
+    @sensitive_variables("old_password")
+    def clean_old_password(self):
+        old_password = self.cleaned_data["old_password"]
+        confirmed = authenticate(self.request, username=self.user.get_username(), password=old_password)
+        if confirmed is None or confirmed.pk != self.user.pk:
+            record_audit(self.request, "account.password_change_rejected", target=self.user, actor=self.user)
+            raise ValidationError(self.error_messages["password_incorrect"], code="password_incorrect")
+        return old_password
 
 
 class AuditedAdminSite(admin.AdminSite):
-    password_change_form = OwnPasswordChangeForm
-
     def password_change(self, request, extra_context=None):
+        """Django `AdminSite.password_change` 를 그대로 옮기고 폼만 요청을 받게 했다(axes 계수에 요청이 필요한데 Django 뷰는 폼에 user 만 넘긴다).
+        원본과 `form_class` 말고 같은지는 시험이 대조한다 — Django 를 올려 원본이 바뀌면 실패한다."""
         audit = lambda r: record_audit(r, "account.password_changed", target=r.user, actor=r.user)  # noqa: E731
-        return current_login_only(super().password_change, audit=audit)(request, extra_context)
+        defaults = {
+            "form_class": partial(OwnPasswordChangeForm, request),
+            "success_url": reverse("admin:password_change_done", current_app=self.name),
+            "extra_context": {**self.each_context(request), **(extra_context or {})},
+        }
+        if self.password_change_template is not None:
+            defaults["template_name"] = self.password_change_template
+        request.current_app = self.name
+        return current_login_only(PasswordChangeView.as_view(**defaults), audit=audit)(request)

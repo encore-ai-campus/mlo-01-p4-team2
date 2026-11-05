@@ -129,7 +129,7 @@ class DecisionSnapshotTests(Cases, TestCase):
     def case_decision_not_saved_when_storage_fails(self):
         w = World()
         with mock.patch.object(Decision._default_manager, "create", side_effect=IntegrityError("disk full")):
-            with self.assertRaises(IntegrityError):
+            with self.assertRaises(IntegrityError), transaction.atomic():  # C1 뷰의 트랜잭션 자리: 결정은 그 안에서 저장점 없이 돌고, 실패하면 바깥까지 되돌린다
                 decide(w)
         self.assertEqual(Decision.objects.count(), 0)  # 예외가 나가서 decision_id 가 응답으로 나가지 않는다
 
@@ -226,8 +226,7 @@ class PolicySwapTests(Cases, TestCase):
             def select(self, candidates, request, rng):
                 return engine.Selection(min(candidates, key=lambda c: c.applied_amount) if candidates else None, {"policy": self.name})
 
-        engine.register_policy(Lowest())
-        self.addCleanup(engine.unregister_policy, "lowest-bid/v1")
+        self.enterContext(mock.patch.dict("engine.registry._POLICIES", {"lowest-bid/v1": Lowest()}))
         w = World()
         default = decide(w)
         with override_settings(ADS_SELECTION_POLICY="lowest-bid/v1"):
@@ -241,13 +240,15 @@ class PolicySwapTests(Cases, TestCase):
                 decide(w)
         self.assertEqual(Decision.objects.count(), 2)  # 설정 오류는 결정을 남기지 않는다
 
-    def case_filters_are_chosen_by_setting(self):
+    def case_extra_filters_are_chosen_by_setting(self):
         w = World()
-        campaigns.update_campaign(w.adv, w.campaign.campaign_id, {"status": "ACTIVE"}, now=NOW)
-        campaigns.update_ad_group(w.adv, w.group.ad_group_id, {"enabled": True}, now=NOW)
-        with override_settings(ADS_ENGINE_FILTERS=("period", "floor", "budget", "balance")):  # status 필터를 뺀 구성
-            self.assertIsNotNone(decide(w).chosen)
-        with override_settings(ADS_ENGINE_FILTERS=("status", "period", "floor", "budget", "no-such-filter")):
+        self.assertIsNotNone(decide(w).chosen)
+        with mock.patch.dict("engine.registry._FILTERS", {"nobody": lambda c, e, r: "not_targeted"}):
+            with override_settings(ADS_ENGINE_EXTRA_FILTERS=("nobody",)):
+                d = decide(w)
+        self.assertIsNone(d.chosen)
+        self.assertEqual(d.rejected_counts, {"not_targeted": 1})  # 설정한 추가 필터가 돌았다
+        with override_settings(ADS_ENGINE_EXTRA_FILTERS=("no-such-filter",)):
             with self.assertRaises(engine.UnknownName):
                 decide(w)  # 알 수 없는 필터 이름은 즉시 오류
 

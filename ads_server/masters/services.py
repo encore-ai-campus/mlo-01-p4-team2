@@ -1,11 +1,13 @@
 """masters 의 규칙. 관리자 전용이며 모든 변경은 감사 로그에 남는다(위협 T23)."""
 import hashlib
 import hmac
+import math
 import re
 import secrets
 import uuid
 from datetime import timedelta
 
+from django.core.exceptions import ImproperlyConfigured
 from django.db import IntegrityError, connection, transaction
 from django.db.models import OuterRef, Q, Subquery
 from django.utils import timezone
@@ -17,8 +19,9 @@ from .models import MAX_SHARE, MIN_FLOOR, MIN_SHARE, SHARE_FIELDS, Audience, Bid
 from .types import IssuedKey, MediaIdentity, MediaKeyView, MediaView, PolicyView, SlotView
 
 
-def _validate_policy(floor, base, cap, shares):
-    """`shares` = {비율 열 이름: 값}(노출·클릭·전환). 각각 정수 1~98, 합 100 — DB 제약과 같은 규칙을 읽기 쉬운 400 으로."""
+def _validated_shares(floor, base, cap, impression_share, click_share, conversion_share):
+    """정책 값을 검사하고 비율을 {비율 열 이름: 값}(노출·클릭·전환)으로 돌려준다. 비율은 각각 정수 1~98, 합 100 — DB 제약과 같은 규칙을 읽기 쉬운 400 으로."""
+    shares = dict(zip(SHARE_FIELDS, (impression_share, click_share, conversion_share)))
     problems = []
     for pointer, value, minimum in (("/floor", floor, MIN_FLOOR), ("/base", base, 1), ("/cap", cap, 1)):  # 기준가·상한은 하한 이상이라 하한 최소를 따른다
         if not is_int(value) or not (minimum <= value <= MAX_AMOUNT):
@@ -32,10 +35,7 @@ def _validate_policy(floor, base, cap, shares):
         raise errors.InvalidRequest(errors=[{"pointer": "/base", "message": "하한 ≤ 기준가 ≤ 상한이어야 합니다."}])
     if sum(shares.values()) != 100:
         raise errors.InvalidRequest(errors=[{"pointer": "/shares", "message": f"노출·클릭·전환 비율의 합은 100이어야 합니다(지금 {sum(shares.values())})."}])
-
-
-def _shares(impression_share, click_share, conversion_share):
-    return dict(zip(SHARE_FIELDS, (impression_share, click_share, conversion_share)))
+    return shares
 
 
 def _policy_view(row):
@@ -158,6 +158,36 @@ def media_active_for_share(media_id):
     return None if row is None else bool(row[0])
 
 
+# 토큰 하나를 쓴다. 같은 (매체, 경로군)의 동시 요청은 충돌 행의 잠금으로 줄을 서고, 늦은 쪽은 앞 갱신이 끝난 행으로 다시 계산한다(버스트를 넘겨 통과시키지 않는다).
+# SET 의 식은 모두 갱신 전 행(b)을 본다 — tokens·granted 가 같은 충전값(refill.r)으로 계산된다. 시각은 GREATEST 로 뒤로 가지 않는다.
+_BUCKET_UPSERT = """
+INSERT INTO masters_media_rate_bucket AS b (bucket_id, media_id, route_group, tokens, refilled_at, granted)
+VALUES (%(id)s, %(media)s, %(group)s, %(burst)s - 1, %(now)s, true)
+ON CONFLICT (media_id, route_group) DO UPDATE SET
+    (tokens, granted) = (
+        SELECT CASE WHEN refill.r >= 1 THEN refill.r - 1 ELSE refill.r END, refill.r >= 1
+        FROM (SELECT LEAST(%(burst)s, b.tokens + GREATEST(0, EXTRACT(EPOCH FROM EXCLUDED.refilled_at - b.refilled_at)::float8) * %(rate)s) AS r) AS refill
+    ),
+    refilled_at = GREATEST(b.refilled_at, EXCLUDED.refilled_at)
+RETURNING granted, tokens
+"""
+
+
+def take_rate_token(media_id, group, rate, burst, now=None):
+    """매체 API 요청 제한(설계 §10 "요청 제한 구현"): (매체, 경로군) 버킷에서 토큰 하나를 쓴다. 통과면 `None`, 막히면 다시 보낼 때까지의 **정수 초(1 이상)**.
+
+    **트랜잭션 밖에서 부른다**(C1 데코레이터가 인증 뒤·뷰 전에): autocommit 문장 하나라 버킷 행 잠금은 그 문장 동안만이다.
+    트랜잭션 안에서 부르면 그 트랜잭션이 끝날 때까지 행 잠금을 쥐어 같은 매체의 요청이 줄을 선다. 뷰가 실패해도 쓴 토큰은 돌려주지 않는다.
+    시각은 앱의 벽시계다. 시계가 뒤로 가면 잠깐 더 엄격해지고 앞으로 뛰면 충전이 많아져도 버스트에서 막힌다 — 피해는 버스트 하나로 묶인다.
+    """
+    if not (is_int(burst) and burst >= 1) or isinstance(rate, bool) or not isinstance(rate, (int, float)) or not rate > 0:
+        raise ImproperlyConfigured(f"요청 제한은 초당 토큰 > 0, 버스트는 1 이상의 정수여야 합니다: rate={rate!r}, burst={burst!r}")
+    with connection.cursor() as cursor:
+        cursor.execute(_BUCKET_UPSERT, {"id": uuid.uuid7(), "media": media_id, "group": group, "burst": burst, "rate": float(rate), "now": _now(now)})
+        granted, tokens = cursor.fetchone()
+    return None if granted else max(1, math.ceil((1.0 - tokens) / rate))
+
+
 def create_slot(actor, media_id, name, floor, base, cap, reason, *, audience, impression_share, click_share, conversion_share, now=None):
     """슬롯과 최초 정책(버전 1)을 한 트랜잭션에 만든다. 따라서 모든 슬롯은 항상 현재 정책을 가진다.
     정책에는 반응 유형별 과금 비율(노출·클릭·전환 %)이 들어간다(6-10b).
@@ -172,15 +202,14 @@ def create_slot(actor, media_id, name, floor, base, cap, reason, *, audience, im
     reason = clean_text(reason, "사유", "/reason", 200)
     if audience not in Audience.values:
         raise errors.InvalidRequest(errors=[{"pointer": "/audience", "message": f"{', '.join(Audience.values)} 중 하나여야 합니다."}])
-    shares = _shares(impression_share, click_share, conversion_share)
-    _validate_policy(floor, base, cap, shares)
+    shares = _validated_shares(floor, base, cap, impression_share, click_share, conversion_share)
     try:
         with transaction.atomic():
             media = _get_media(media_id)
             slot = Slot.objects.create(media=media, name=name, audience=audience)
             policy = BidPolicy.objects.create(
                 slot=slot, policy_version=1, floor_amount=floor, base_amount=base, cap_amount=cap, **shares,
-                changed_by=actor.pk, changed_at=now or timezone.now(), reason=reason,
+                changed_by=actor.pk, changed_at=_now(now), reason=reason,
             )
             _record_policy_event(policy)
             _audit(actor, "masters.slot_created", ("masters.slot", slot.slot_id),
@@ -200,7 +229,7 @@ def _add_version(actor, slot_id, floor, base, cap, shares, reason, expected_vers
         with transaction.atomic():
             policy = BidPolicy.objects.create(
                 slot=slot, policy_version=current.policy_version + 1, floor_amount=floor, base_amount=base,
-                cap_amount=cap, **shares, changed_by=actor.pk, changed_at=now or timezone.now(), reason=reason,
+                cap_amount=cap, **shares, changed_by=actor.pk, changed_at=_now(now), reason=reason,
             )
     except IntegrityError:  # 같은 버전을 동시에 만든 쪽의 충돌은 유일 제약이 막는다(뒤쪽이 유일 색인에서 앞쪽 커밋을 기다렸다가 충돌한다 — DB-1c 에서 동시 시험)
         raise errors.StaleVersion()
@@ -215,8 +244,7 @@ def _add_version(actor, slot_id, floor, base, cap, shares, reason, expected_vers
 def add_policy_version(actor, slot_id, floor, base, cap, reason, expected_version, *, impression_share, click_share, conversion_share, now=None):
     require_admin(actor)
     reason = clean_text(reason, "사유", "/reason", 200)
-    shares = _shares(impression_share, click_share, conversion_share)
-    _validate_policy(floor, base, cap, shares)
+    shares = _validated_shares(floor, base, cap, impression_share, click_share, conversion_share)
     with transaction.atomic():
         return _add_version(actor, slot_id, floor, base, cap, shares, reason, expected_version, now)
 
@@ -225,8 +253,7 @@ def add_policy_version_bulk(actor, expected_versions, floor, base, cap, reason, 
     """같은 값(비율 포함)을 여러 슬롯에 새 버전으로. `expected_versions` = {slot_id: 본 버전}. 하나라도 어긋나면 전부 취소."""
     require_admin(actor)
     reason = clean_text(reason, "사유", "/reason", 200)
-    shares = _shares(impression_share, click_share, conversion_share)
-    _validate_policy(floor, base, cap, shares)
+    shares = _validated_shares(floor, base, cap, impression_share, click_share, conversion_share)
     if not expected_versions:
         raise errors.InvalidRequest(errors=[{"pointer": "/slots", "message": "슬롯을 하나 이상 고르세요."}])
     with transaction.atomic():
@@ -375,8 +402,7 @@ def revoke_media_key(actor, key_id, now=None):
             k = MediaKey.objects.get(key_id=parse_uuid(key_id, "키"))
         except MediaKey.DoesNotExist:
             raise errors.NotFound("키를 찾을 수 없습니다.")
-        if k.revoked_at is None:
-            MediaKey.objects.filter(pk=k.pk).update(revoked_at=now)
+        if MediaKey.objects.filter(pk=k.pk, revoked_at__isnull=True).update(revoked_at=now):  # 조건은 DB 의 지금 값으로 — 동시에 두 번 폐기해도 한 번만 바꾸고 한 번만 감사한다(리팩터 감사 D6)
             _audit(actor, "masters.media_key_revoked", ("masters.media_key", k.key_id), {"media_id": str(k.media_id)})
 
 
@@ -399,8 +425,6 @@ def authenticate_media_key(raw_key, now=None):
     row = MediaKey.objects.select_related("media").filter(key_id=uuid.UUID(key_hex)).first()
     expected = row.secret_hash if row is not None else _DUMMY_HASH
     matches = hmac.compare_digest(_hash_secret(secret), expected)
-    if row is None or not matches:
-        return None
-    if not _key_active(row, now):
+    if row is None or not matches or not _key_active(row, now):
         return None
     return MediaIdentity(media_id=row.media_id, key_id=row.key_id, media_is_active=row.media.is_active)

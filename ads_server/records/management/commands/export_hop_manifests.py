@@ -26,7 +26,7 @@ class Command(BaseCommand):
         parser.add_argument("--out", required=True, help="결과를 쓸 폴더")
         parser.add_argument("--since", help="이 날짜(UTC, YYYY-MM-DD) 이후의 창만")
         parser.add_argument("--window", choices=sorted(events.WINDOWS), default="day", help="창의 크기: day(UTC 자정 고정 하루, 기본) 또는 hour(UTC 정시 고정 한 시간)")
-        parser.add_argument("--as-of", help="재현용: 이 시각(ISO 8601, UTC)을 '지금'으로 보고 창을 닫는다(기본은 실제 지금). 시험이 날짜가 바뀐 뒤의 점검을 재현할 때 쓴다")
+        parser.add_argument("--as-of", help="재현용: 시간대를 붙인 이 ISO 8601 시각(예: 2026-10-10T00:05:00Z)을 '지금'으로 보고 창을 닫는다(기본은 실제 지금). 시험이 날짜가 바뀐 뒤의 점검을 재현할 때 쓴다")
 
     def handle(self, *args, **options):
         since = None
@@ -37,9 +37,12 @@ class Command(BaseCommand):
                 raise CommandError("--since 는 YYYY-MM-DD 형식이어야 합니다.")
         size = events.WINDOWS[options["window"]]
         try:
-            now = datetime.fromisoformat(options["as_of"]).astimezone(timezone.utc) if options["as_of"] else datetime.now(timezone.utc)
+            now = datetime.fromisoformat(options["as_of"]) if options["as_of"] else datetime.now(timezone.utc)
         except ValueError:
             raise CommandError("--as-of 는 ISO 8601 시각이어야 합니다.")
+        if now.tzinfo is None:  # 시간대가 없으면 서버 지역 시각으로 읽혀 창 닫힘·보존 기준이 어긋났다(리팩터 감사 D4)
+            raise CommandError("--as-of 에는 시간대를 붙여야 합니다(예: 2026-10-10T00:05:00Z).")
+        now = now.astimezone(timezone.utc)
         grace = settings.EVENTS_HOP_GRACE_SECONDS
         try:
             # 구간마다 닫힌 창을 하나씩·종류별로 읽어 요약한다 — 전체 이력을 메모리에 두지 않고, 열린 창과 --since 앞은 읽지 않는다(외부 검토 00d3067 P3-3)
@@ -68,7 +71,9 @@ class Command(BaseCommand):
                     lines = [line for line in lines if line["window_start"] not in not_comparable]
                     for line in lines:
                         line["unsent"] = unsent.get((line["window_start"], line["event_name"]), 0)  # 중계 지연 후보를 가리는 데 쓴다
-                    extra = {"not_comparable_windows": not_comparable, "retention_cutoff": events.format_time(cutoff)}
+                    # 비교 불가 창은 줄을 빼므로 미전송 건수를 따로 싣는다 — 백필 직후(중계 전)의 오래된 창이 원본 → MongoDB 에서 확정 불일치로 보이지 않게
+                    hidden_unsent = [{"window_start": w, "event_name": n, "unsent": c} for (w, n), c in sorted(unsent.items()) if c and w in not_comparable]
+                    extra = {"not_comparable_windows": not_comparable, "not_comparable_unsent": hidden_unsent, "retention_cutoff": events.format_time(cutoff)}
                 checkpoint = {
                     "scope": SCOPE if hop != "hop_mongo" else "mongodb-read-outside-snapshot", "hop": hop, "window": events.window_label(options["window"]), "grace_seconds": grace, "started_at": now.isoformat(),
                     "since": options["since"], "open_windows": [events.format_time(w) for w in open_windows], "scanned_events": scanned[hop], **extra,
@@ -76,12 +81,9 @@ class Command(BaseCommand):
                 manifest = events.write_ndjson(out, hop, lines, hop, events.HOP_SCHEMA_VERSION, checkpoint=checkpoint, now=now, chain=True)
                 anchors[hop] = events.manifest_digest(manifest)  # 이 실행이 게시한 manifest 의 해시(포인터를 다시 읽지 않는다)
                 self.stdout.write(f"{hop}: rows={manifest['rows']} events={scanned[hop]} open_windows={len(open_windows)} largest_window={results[hop][3]} file={manifest['file']}")
-            record_audit(None, "events.hop_manifests_exported", detail={"anchors": anchors, "since": options["since"], "grace_seconds": grace})  # 폴더 밖의 고정점(H12)
-        self.stdout.write(f"peak_rss={peak_rss_mib():.1f}MiB")  # 이 프로세스의 최대 상주 메모리 — 이력이 쌓여도 늘지 않아야 한다(창 하나·종류 하나만 든다)
+            record_audit(None, "events.hop_manifests_exported", detail={  # 폴더 밖의 고정점(H12) — verify_hops 는 폴더로 찾는다(폴더·창 크기를 여럿 운영해도 서로 덮지 않게)
+                "anchors": anchors, "out": str(out.resolve()), "window": options["window"], "since": options["since"], "grace_seconds": grace})
+        peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (2**20 if sys.platform == "darwin" else 2**10)  # macOS 는 바이트, Linux 는 KiB
+        self.stdout.write(f"peak_rss={peak:.1f}MiB")  # 이 프로세스의 최대 상주 메모리 — 이력이 쌓여도 늘지 않아야 한다(창 하나·종류 하나만 든다)
         if unresolved:  # 게시는 한다(나머지 대조는 계속된다). 실패로 끝내고 verify_hops 도 실패로 본다
             raise CommandError(f"창에 놓을 수 없는 과금 원장 줄 {unresolved}건 — 반응이 없거나 판정 전이라 생성 시각을 정할 수 없다(추정하지 않는다). 예: {', '.join(examples)}")
-
-
-def peak_rss_mib():
-    peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    return peak / (2**20 if sys.platform == "darwin" else 2**10)  # macOS 는 바이트, Linux 는 KiB

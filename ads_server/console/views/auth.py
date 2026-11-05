@@ -18,7 +18,7 @@ class SignupView(View):
 
     def get(self, request):
         if request.user.is_authenticated:
-            return redirect("advertiser_home")
+            return redirect(home_url(request.user))  # 역할의 첫 화면(로그인 화면과 같다) — 관리자를 광고주 화면으로 보내 403 이 나던 것(리팩터 감사 D5)
         return present(request, self.template_name, {"form": SignupForm(), "grant": settings.SIGNUP_GRANT_POINTS})
 
     def post(self, request):

@@ -106,7 +106,9 @@ def _reencode(img, fmt, max_bytes):
             if out.tell() <= max_bytes:
                 return img, out.getvalue()
         raise ImageRejected("too_large", "재인코딩한 결과가 용량 상한을 넘습니다.")
-    if img.mode == "P":
+    if img.mode.startswith("I"):  # 16비트 회색(`I;16` 등)은 그대로 RGB 로 바꾸면 255 에서 잘려 흑백 두 값이 된다 → 8비트 회색으로 줄인다
+        img = img.convert("I").point(lambda v: v / 257).convert("L")
+    elif img.mode == "P":
         img = img.convert("RGBA" if "transparency" in img.info else "RGB")
     elif img.mode not in ("RGB", "RGBA", "L", "LA"):
         img = img.convert("RGBA" if "A" in img.mode else "RGB")

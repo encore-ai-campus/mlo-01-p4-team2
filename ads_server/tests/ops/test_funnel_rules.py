@@ -470,8 +470,8 @@ class HoldQueueTests(Cases, FunnelBase):
         order = []
         from records import processing
 
-        original = processing.process_reaction
-        with mock.patch("records.processing.process_reaction", side_effect=lambda i, now=None: (order.append(i), original(i, now=now))[1]):
+        original = processing._process  # process_pending 이 반응마다 부르는 판정(잠근 채 고른 트랜잭션 안)
+        with mock.patch("records.processing._process", side_effect=lambda i, now: (order.append(i), original(i, now))[1]):
             records.process_pending(now=at(100), limit=10)
         self.assertEqual(order[:3], [fresh.inbox_id, old_held.inbox_id, newer_held.inbox_id])
 
@@ -534,10 +534,6 @@ class ReactionSubjectApiTests(Cases, ProviderContractMixin, TestCase):
     contract = Contract("serving")
 
     def setUp(self):
-        from serving_api.throttle import buckets
-
-        buckets.reset()
-        self.addCleanup(buckets.reset)
         self.w = World()
         self.key = masters.issue_media_key(self.w.admin, self.w.slot.media_id).key
         self.decision = records.decide(self.w.slot.media_id, self.w.slot.slot_id, subject_id=SUBJECT, now=NOW, rng=Random(1))
@@ -594,10 +590,6 @@ class EndToEndFunnelTests(Cases, TestCase):
     def setUp(self):
         from unittest import mock
 
-        from serving_api.throttle import buckets
-
-        buckets.reset()
-        self.addCleanup(buckets.reset)
         for target in ("records.services._now", "records.processing._now"):
             patcher = mock.patch(target, lambda now=None: now or NOW)
             patcher.start()

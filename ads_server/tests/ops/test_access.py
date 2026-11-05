@@ -7,11 +7,11 @@ from django.test import SimpleTestCase, TestCase, override_settings, tag
 from django.urls import URLResolver, get_resolver, reverse
 from django.urls.resolvers import RoutePattern
 
-from config.access_map import validate_admin_path
+from config.access_map import RESERVED_FIRST_SEGMENTS, validate_admin_path
 from foundation.api import owned_or_404
 from foundation.models import User
 from tests.support.factories import PW, make_admin, make_advertiser
-from tests.support.helpers import PROD_ENV, run_python
+from tests.support.helpers import PROD_ENV, every_route, run_python
 from tests.support.support_app.models import OwnedThing
 from tests.support.cases import Cases
 
@@ -140,10 +140,20 @@ class AccessControlTests(Cases, TestCase):
 class AdminPathSettingTests(Cases, SimpleTestCase):
     def case_validate_admin_path_rules(self):
         self.assertEqual(validate_admin_path("ops-9f3a/"), "ops-9f3a/")
-        for bad in ("", "/ops/", "ops", "a//b/", "admin/"):
+        for bad in ("", "/ops/", "ops", "a//b/", "admin/", "api/media/ops/", "c/", "assets/x/", "advertiser/ops/", "accounts/", "health/"):  # 뒤의 여섯: 다른 경로 밑(B13 — /api/media/ 는 CSRF 예외, health/ 는 프론트)
             with self.assertRaises(ImproperlyConfigured, msg=bad):
                 validate_admin_path(bad)
         self.assertEqual(validate_admin_path("admin/", allow_default=True), "admin/")
+        self.assertEqual(validate_admin_path("cops/"), "cops/")  # 첫 조각이 같을 때만 겹친다
+
+    def case_reserved_segments_cover_every_other_route(self):
+        """예약한 첫 조각이 실제 URL 설정과 맞는지 — 새 최상위 경로를 더하면 여기서 드러난다(관리자 경로가 그 밑에 놓이지 않게)."""
+        admin_first = settings.ADMIN_URL_PATH.split("/", 1)[0]
+        firsts = {route.split("/", 1)[0] for route in every_route()} - {"", admin_first}
+        self.assertEqual(firsts - RESERVED_FIRST_SEGMENTS, set())
+        self.assertIn(settings.STATIC_URL.strip("/").split("/", 1)[0], RESERVED_FIRST_SEGMENTS)
+        for prefix in settings.CSRF_EXEMPT_PREFIXES:
+            self.assertIn(prefix.strip("/").split("/", 1)[0], RESERVED_FIRST_SEGMENTS)
 
     def case_admin_url_default_rejected_in_prod(self):
         code = "from django.conf import settings; print(settings.ADMIN_URL_PATH)"

@@ -22,6 +22,11 @@ def is_unique_violation(error):
     return sqlstate(error) == UNIQUE_VIOLATION
 
 
+def violated_constraint(error):
+    """제약 위반(`IntegrityError`)이 어긴 제약의 이름(드라이버 오류의 진단 정보). 없으면 None."""
+    return getattr(getattr(getattr(error, "__cause__", None), "diag", None), "constraint_name", None)
+
+
 def is_transient_lock_error(error):
     """교착·잠금 대기 초과처럼 **다시 시도하면 되는** DB 오류인가. 실패 횟수를 세거나 반응을 포기시키는 근거가 되면 안 된다."""
     return isinstance(error, OperationalError) and sqlstate(error) in TRANSIENT_SQLSTATES

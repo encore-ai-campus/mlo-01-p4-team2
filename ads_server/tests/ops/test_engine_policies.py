@@ -1,8 +1,9 @@
 import unittest
 import uuid
 from random import Random
+from unittest import mock
 
-from engine.api import DEFAULT_POLICY, Selection, UnknownName, decide, register_policy, unregister_policy
+from engine.api import DEFAULT_POLICY, Selection, UnknownName, decide
 from tests.support.engine_factory import cand, request
 from tests.support.cases import Cases
 
@@ -83,8 +84,7 @@ class _FirstPolicy:
 
 class PolicyRegistryTests(Cases, unittest.TestCase):
     def case_policy_swappable_by_name(self):
-        register_policy(_FirstPolicy())
-        self.addCleanup(unregister_policy, "first/v1")
+        self.enterContext(mock.patch.dict("engine.registry._POLICIES", {"first/v1": _FirstPolicy()}))  # 시험에서만 표를 잠시 늘린다
         low, high = cand(bid_amount=12), cand(bid_amount=45)
         by_name = pick([low, high], policy="first/v1").selection
         self.assertEqual(by_name.chosen.ad_group_id, low.ad_group_id)  # 다른 알고리즘이 돌았다
@@ -95,10 +95,6 @@ class PolicyRegistryTests(Cases, unittest.TestCase):
     def case_unknown_policy_raises_even_without_candidates(self):
         with self.assertRaises(UnknownName):
             pick([], policy="no-such/v9")
-
-    def case_duplicate_registration_rejected(self):
-        with self.assertRaises(ValueError):
-            register_policy(type("Dup", (), {"name": DEFAULT_POLICY, "select": None})())
 
     def test_policy_registry(self):
         self.run_cases()

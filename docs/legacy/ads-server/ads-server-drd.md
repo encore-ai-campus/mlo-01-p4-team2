@@ -2,7 +2,7 @@
 
 > Status: **정식 문서**. 광고 서버만 다룬다. **지금 구조만 적는다** — 언제·왜 바뀌었는지는 §11 문서 이력과 [구현 계획](implementation-plan.md)에 있다.
 > 관련 문서: [ads-server-design.md](ads-server-design.md) (설계), [implementation-plan.md](implementation-plan.md) (구현 계획), [threat-model.md](threat-model.md) (위협 모델), [contracts/](contracts/) (OpenAPI 계약)
-> 기준: 2026-10-14(저장소는 2026-10-31 PostgreSQL 전환 0.55, 이벤트는 2026-11-01 Outbox 확장 0.56) · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
+> 기준: 2026-10-14(저장소는 2026-10-31 PostgreSQL 전환 0.55, 이벤트는 2026-11-01 Outbox 확장 0.56, 요청 제한 버킷은 2026-11-01 0.57, C1 1.5.0 은 2026-11-02 0.58, 구간 대조 보완은 2026-11-02 0.59, 소재 보관 문구는 2026-11-02 0.60, 사용자 관리 감사는 2026-11-02 0.61, manifest 입력 검증은 2026-11-02 0.62, 처리 대기열 색인은 2026-11-02 0.63) · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
 > 근거: 설계서 `docs/legacy/ads-server/ads-server-design.md`, 계약 `contracts/serving.openapi.yaml`(C1·C3), `contracts/console.openapi.yaml`(C6), 실제 모델 코드(`*/models.py`)
 > 표기: **[예약]** 계약에 자리만 있고 아직 코드 없음 · **[제안]** 이 문서가 처음 제안함(동의 필요) · **[열림]** 정하지 못함. 표기가 없으면 코드에 있다
 
@@ -16,7 +16,7 @@
 | 범위 | 광고 서버의 저장 데이터(DB·파일), 서버 간 계약(C1~C6)의 데이터 모양, 내부 처리 흐름, 수명주기, 보안 분류, 팀 DRD와의 대응 |
 | 범위 밖 | 매체 서버(메타버스)·데이터 파이프라인의 내부 데이터, 화면 설계, 인프라 구성 |
 | 저장소 | **PostgreSQL 18**(업무 데이터 + 이벤트 outbox, 한 트랜잭션) + **로컬 파일**(소재 이미지) + **MongoDB 8.0**(이벤트 로그 `ad_events` — 중계가 outbox에서 옮긴다). Kafka·Spark는 서버가 감당하지 못할 때의 확장(§2.1) |
-| 엔터티 | 프로젝트 표 **20개**(계정·감사 2, 마스터 5, 운영 8, 지갑·원장 2, 결정·반응 2, 이벤트 outbox 1) + 프레임워크 표 11개(§4.2) |
+| 엔터티 | 프로젝트 표 **21개**(계정·감사 2, 마스터 6, 운영 8, 지갑·원장 2, 결정·반응 2, 이벤트 outbox 1) + 프레임워크 표 11개(§4.2) |
 | 핵심 규칙 | **모든 PK는 UUIDv7, 자동 증가 없음**(예외: outbox의 이벤트 ID는 결정적 UUIDv5) · 자연 키는 업무 규칙용 유일 제약 · 시각은 UTC · 금액은 **정수 포인트** · 이력은 **추가 전용**(§3 R-5) · 삭제 없음 · 판정 규칙은 한 곳(`engine`) · 파생값은 저장하지 않는다(잔액만 예외, §4.7) |
 | 먼저 볼 것 | §1.2 **광고 도메인은 이 문서가 팀 DRD보다 우선**. §10 열린 이슈(D-7) |
 
@@ -177,6 +177,7 @@ erDiagram
     masters_media ||--o{ masters_slot : "media"
     masters_media ||--o{ masters_media_key : "media"
     masters_media ||--o{ masters_media_deactivation : "media (끈 기록)"
+    masters_media ||--o{ masters_media_rate_bucket : "media (요청 제한)"
     masters_slot ||--o{ masters_bid_policy : "slot (버전)"
     masters_slot ||--o{ campaigns_ad_group_slot : "slot"
     campaigns_campaign ||--o{ campaigns_ad_group : "campaign"
@@ -244,6 +245,14 @@ erDiagram
         uuid deactivation_id PK
         uuid media_id FK
         datetime deactivated_at "추가만"
+    }
+    masters_media_rate_bucket {
+        uuid bucket_id PK
+        uuid media_id FK
+        string route_group "UK(media, route_group)"
+        float tokens
+        datetime refilled_at
+        bool granted
     }
     campaigns_campaign {
         uuid campaign_id PK
@@ -369,6 +378,7 @@ erDiagram
 | M3 | 입찰 정책 `masters_bid_policy` | masters | 마스터(추가 전용 버전) | 관리자 | 정책 변경마다 |
 | M4 | 매체 키 `masters_media_key` | masters | 보안 | 관리자 | 키 발급·교체 |
 | M5 | 매체 비활성화 기록 `masters_media_deactivation` | masters | 기록(추가 전용) | 관리자(매체 끄기) | 켜져 있던 매체를 끌 때마다 |
+| M6 | 요청 제한 버킷 `masters_media_rate_bucket` | masters | 운영 상태(가변) | 매체 API 요청(C1, 인증 뒤) | 매체·경로군의 첫 요청(이후는 같은 행을 갱신) |
 | O1 | 캠페인 `campaigns_campaign` | campaigns | 운영 | 광고주(상태는 관리자·시스템도) | 캠페인 생성 |
 | O2 | 광고그룹(화면의 "광고") `campaigns_ad_group` | campaigns | 운영 | 광고주 | 광고 만들기 |
 | O3 | 광고그룹-슬롯 `campaigns_ad_group_slot` | campaigns | 운영(연결) | 광고주 | 구성 선택·교체 |
@@ -512,6 +522,24 @@ erDiagram
 - **쓰는 곳은 하나**: `set_media_active(False)`가 **켜져 있던 매체를 실제로 끌 때만** 같은 트랜잭션에서 한 줄 더한다. 조건부 UPDATE(`is_active=True`인 행만)라 두 관리자가 동시에 꺼도 한 줄이고, 이미 꺼진 매체를 다시 끄거나 켜면 기록하지 않는다.
 - **읽는 곳은 하나**: `masters.api.first_deactivation(매체, after, until)` = (after, until] 안의 가장 이른 비활성화 시각(없으면 `None`). 판정은 (결정 시각, 접수 시각]으로 부른다 — 결정과 같은 시각에 끈 것은 결정 전, 접수와 같은 시각에 끈 것은 접수 전으로 본다. 마지막 시각 하나만으로는 구간 안의 가장 이른 기록을 잃어 표로 둔다.
 
+#### M6. 요청 제한 버킷 `masters_media_rate_bucket`
+
+매체 API(C1)의 요청 제한 토큰 버킷. **(매체, 경로군) 하나 = 행 하나**이고 모든 웹 프로세스·호스트가 같은 행을 쓴다. 한도 값은 설정 `MEDIA_RATE_LIMITS`(경로군마다 초당 토큰·버스트), 초과 응답은 계약 C1 의 429 + `Retry-After`.
+
+| 컬럼 | 타입 | NULL | 키·제약 | 설명 |
+|---|---|:---:|---|---|
+| `bucket_id` | UUID | N | PK | |
+| `media_id` | UUID | N | FK→M1 `PROTECT`, **UNIQUE** `(media, route_group)` | |
+| `route_group` | 문자 16 | N | 위 UNIQUE | `decisions`·`reactions`·`reads`(C1 경로군) |
+| `tokens` | 실수 | N | | 마지막 계산 뒤 남은 토큰(0 이상, 버스트 이하) |
+| `refilled_at` | 시각 | N | | 마지막으로 충전을 계산한 시각(서버 벽시계). **뒤로 가지 않는다** — 늦게 도착한 이른 시각의 요청은 경과 0 으로 본다 |
+| `granted` | 불리언 | N | | 마지막 요청의 통과 여부(문장 하나로 결과를 돌려받으려고 둔다) |
+
+- **쓰는 곳은 하나**: `masters.api.take_rate_token(매체, 경로군, 초당 토큰, 버스트)` — `INSERT … ON CONFLICT (media, route_group) DO UPDATE … RETURNING` 문장 하나를 **트랜잭션 밖**(C1 데코레이터, 인증 뒤·뷰 전)에서 실행한다. 같은 행의 동시 요청은 행 잠금으로 줄을 서고 늦은 쪽은 앞 갱신이 끝난 행으로 다시 계산해 버스트를 넘겨 통과시키지 않는다. 행 잠금은 그 문장 동안만이다. 인증에 실패한 요청(401·403)은 토큰을 쓰지 않는다.
+- **읽는 곳은 없다**(통과 여부는 쓰는 문장이 돌려준다). 거절된 요청도 행을 한 번 갱신한다.
+- **갱신 열(`tokens`·`refilled_at`·`granted`)에는 색인을 두지 않는다** — 매 요청의 UPDATE 가 HOT 갱신으로 같은 페이지 안에서 정리되어 표·색인이 부풀지 않는다.
+- 첫 행을 만들 때만 FK 확인이 매체 행에 `FOR KEY SHARE` 를 잡는다(매체 비활성화가 매체 행을 쥔 동안 그 매체의 **첫** 버킷 생성만 잠깐 기다린다).
+
 #### O1. 캠페인 `campaigns_campaign`
 
 광고주가 성과를 묶어 보는 단위. 기간·일예산·상태를 가진다.
@@ -562,7 +590,7 @@ erDiagram
 |---|---|:---:|---|---|
 | `creative_id` | UUID | N | PK | C1 응답의 `creative_id` |
 | `owner_id` | UUID | N | FK→A1 `PROTECT` | **광고주 소유 목록**. 광고그룹에는 O9로 연결한다 |
-| `archived_at` | 시각 | Y | | 보관(화면의 "삭제"). 끝나지 않은 캠페인의 광고그룹에 연결돼 있으면 보관할 수 없다. 보관한 소재는 개수 상한에서 빠지고 이미지 보유량(O7)에는 남는다 |
+| `archived_at` | 시각 | Y | | 보관(화면의 "삭제"). 끝나지 않은 캠페인의 광고그룹이 지금 선택한 소재(O2 `creative_id`)면 보관할 수 없다(연결만 남은 이전 소재는 보관 가능). 보관한 소재는 개수 상한에서 빠지고 이미지 보유량(O7)에는 남는다 |
 | `title` | 문자 200 | N | | **신뢰할 수 없는 값**(매체가 이스케이프) |
 | `redirect_url` | 문자 2048 | N | | `https`만, 사용자 정보(`user:pw@`)·공백 금지 |
 | `image_name` | 문자 80 | N | | **현재 이미지** `<sha256>.<jpg\|png>`. 파일은 §4.6 |
@@ -573,7 +601,7 @@ erDiagram
 
 #### O9. 광고그룹-소재 연결 `campaigns_ad_group_creative` [추가 전용]
 
-광고그룹에 연결한 소재. **끊지 않는다** — 연결 기록이 ① 보관 가능 여부(끝나지 않은 캠페인의 광고그룹에 연결돼 있으면 불가) ② C3 서빙 가능 여부(연결된 적 있는 광고그룹의 캠페인이 살아 있으면 공개 — 선택을 바꿔도 이전 결정의 이미지가 열림)의 근거다. 선택은 O2의 `creative_id`.
+광고그룹에 연결한 소재. **끊지 않는다** — 연결 기록이 C3 서빙 가능 여부(연결된 적 있는 광고그룹의 캠페인이 살아 있으면 공개 — 선택을 바꿔도 이전 결정의 이미지가 열림)의 근거다. 선택은 O2의 `creative_id`.
 
 | 컬럼 | 타입 | NULL | 키·제약 | 설명 |
 |---|---|:---:|---|---|
@@ -711,7 +739,7 @@ erDiagram
 | `subject_id` | 문자 200 | Y | | **보고된** 사람(가명 UUID, 소문자): 매체 보고의 선택 필드, 서버가 관측한 클릭의 사람 |
 | `person_id` | 문자 200 | Y | | **판정 단위의 사람**: 인정할 때 확정해 저장한다(개인 슬롯은 결정의 사람, 일괄 슬롯은 보고된 사람) |
 | `accepted_key` | 문자 255 | Y | **UNIQUE**, 인정 ⇔ 값 있음(`CHECK`) | `<결정>:<사람>:<유형>` — **인정된 행에만**. 같은 (결정, 사람, 유형)의 인정은 하나(개인 슬롯은 결정당, 일괄 슬롯은 사람마다) |
-| `checked_at` | 시각 | Y | | 앞 단계 반응을 기다리며 보류한 마지막 판정 시각(보류분을 돌려가며 처리해 대기열이 막히지 않게) |
+| `checked_at` | 시각 | Y | 부분 색인 `(checked_at NULLS FIRST, received_at, inbox_id) WHERE status = 'RECEIVED'` | 앞 단계 반응을 기다리며 보류한 마지막 판정 시각(보류분을 돌려가며 처리해 대기열이 막히지 않게) |
 | `status` | 코드 | N | `CHECK` `RECEIVED`·`ACCEPTED`·`REJECTED`, 처음은 `RECEIVED` | §4.5 |
 | `reason_code` | 문자 40 | Y | 거부일 때만(`CHECK`) | 거부 사유 |
 | `applied_rule` | 문자 64 | Y | 상태와 짝(`CHECK`) | 거부한 규칙 이름 |
@@ -719,7 +747,7 @@ erDiagram
 | `attempts` | 작은 양의 정수 | N | 기본 0 | 처리 실패 횟수(반복 실패하는 반응이 대기열을 막지 않게) |
 | `basis` | JSON | Y | 판정한 행 ⇔ 값 있음(`CHECK`) | **판정에 쓴 사실**(설계서 §10 "판정 근거 기록"): 규칙·사유, 판정 단위의 사람, 슬롯 성격, 결정 시각, 사용한 수치, 인정 근거가 된 앞 단계 반응(같은 결정·사람·유형에 최대 1개)·처리 전 후보(상한 + 총 개수)·표시 교체 신호의 `inbox_id`, 캠페인 종료 시각, 결정 뒤·접수 전 매체 비활성화 시각(`media_deactivated_at`, 없으면 `null`). `person`은 확인한 사람만(없는 결정이면 `null`). 판정과 같은 트랜잭션에서 한 번 쓰고 바꾸지 않는다. 판 번호 `v`(지금 3, `v: 0`은 근거를 남기기 전에 판정한 행) |
 
-색인 `received_at`·`processed_at`은 구간 manifest가 접수 이벤트(수신 시각)와 판정·과금 이벤트(처리 시각)를 창마다 그 범위만 읽게 하고, `(status, received_at)`은 처리 대기열과 관리자 첫 화면의 처리 현황이 쓴다.
+색인 `received_at`·`processed_at`은 구간 manifest가 접수 이벤트(수신 시각)와 판정·과금 이벤트(처리 시각)를 창마다 그 범위만 읽게 하고, `(status, received_at)`은 관리자 첫 화면의 처리 현황이 쓴다. 부분 색인 `records_reaction_queue_idx`(대기 중인 행만)는 처리기가 다음 반응을 잠근 채 고르는 순서 그대로다 — 반응마다 한 번 고르므로 정렬을 색인이 대신한다(2026-11-02, 추가형).
 
 #### P3. 이벤트 outbox `events_outbox`
 
@@ -846,7 +874,7 @@ stateDiagram-v2
 
 | # | 계약 | 방향 | 상대 | 전송·인증 | 데이터 형식 | 상태 |
 |---|---|---|---|---|---|---|
-| C1 | Serving API | 들어옴 | 매체 서버 | 백 서버 `/api/media/v1`(서버 간 내부 경로 — 프론트 서버는 공개하지 않음), 헤더 `X-Media-Key` | JSON(UTF-8), 오류는 `application/problem+json` | 계약 1.4.0 |
+| C1 | Serving API | 들어옴 | 매체 서버 | 백 서버 `/api/media/v1`(서버 간 내부 경로 — 프론트 서버는 공개하지 않음), 헤더 `X-Media-Key` | JSON(UTF-8), 오류는 `application/problem+json` | 계약 1.5.0 |
 | C2 | 이벤트 | 나감 | 데이터 파이프라인 | MongoDB `ad_events`(계약 면). 확장: Kafka | JSON 이벤트(§5.6) | MongoDB. Kafka 는 확장 |
 | C3 | 이미지 URL | 나감 | 매체·최종 사용자 브라우저 | HTTPS GET(앞단 nginx에서 종단, 프론트 서버가 통과), 인증 없음 | JPEG·PNG | |
 | C4 | Insight 입력 | 들어옴 | 데이터 파이프라인 | [열림] HTTP·Kafka·파일 | JSON 메시지(§5.7 [제안]) | [예약] 확장 |
@@ -1026,9 +1054,9 @@ sequenceDiagram
 | 관리자 중단·해제·반려 | O1 상태, O6 상태 | `campaign.suspended`·`released`·`review_rejected` |
 | 관리자 포인트 조정 | B2 `ADMIN_ADJUST`(`adjust_key` 포함) + B1 | `billing.adjusted` |
 | 관리자 광고주 비활성화·다시 활성화 | A1 `is_active`·`session_epoch`(비활성화 때 +1) | `account.deactivated`·`account.reactivated`(사유) |
-| 계정 수정(사용자 관리 화면: 프로필·비밀번호 초기화만) | A1 | `account.admin_updated`·`account.password_reset_by_admin`. 계정 추가·삭제와 역할·활성 여부·슈퍼유저 여부 변경은 이 화면에 없다 |
+| 계정 수정(사용자 관리 화면: 프로필·비밀번호 초기화만) | A1 | `account.admin_updated`(바뀐 칸과 이전·이후 값)·`account.password_reset_by_admin`. 아이디는 읽기 전용이고, 계정 추가·삭제와 역할·활성 여부·슈퍼유저 여부 변경은 이 화면에 없다 |
 | 이벤트 백필(`--apply`, 청크마다) | P3 | `events.backfilled`(입력 manifest SHA-256·건수) |
-| 구간별 정합 manifest 게시 | — | `events.hop_manifests_exported`(세 구간 최신 manifest의 SHA-256 — 고정점) |
+| 구간별 정합 manifest 게시 | — | `events.hop_manifests_exported`(세 구간 최신 manifest의 SHA-256 — 고정점, 출력 폴더 `out`·창 크기 `window` — `verify_hops`는 폴더로 찾는다) |
 
 C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘솔이 조합한다: 입찰 `effects`·`bid-preview`(`masters` 정책 + `engine.effect_of`), 캠페인 `today`(`billing.spend_today` + `next_reset`). 대조표는 구현 계획 §6.8.1.
 
@@ -1137,10 +1165,10 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 | `ids_sha256` | 이벤트 ID 문자열을 오름차순 정렬해 `\n`으로 이은(끝 줄바꿈 없음) UTF-8 바이트의 SHA-256 |
 | `content_sha256` | 정규화 문서를 JCS로 만든 문자열을 이벤트 ID 순으로 `\n`으로 이은 UTF-8 바이트의 SHA-256 |
 | 파일과 세대 | 실행마다 구간 하나가 NDJSON 파일 하나(닫힌 창 전부)이고, 게시는 기존 규약(불변 데이터 파일 + manifest 포인터)이다. 세대는 파일 게시본 단위이고 manifest에 직전 manifest의 `previous_sha256`을 싣는다. 각 세대 manifest의 불변 사본(내용 해시 이름)으로 사슬을 거슬러 확인한다. 최신 manifest의 SHA-256은 감사 로그 `events.hop_manifests_exported`에도 남는다. **내보내기 한 번(세 manifest 게시부터 감사 고정점 커밋까지)이 폴더 단위 잠금(`flock`, 출력 폴더의 `.run.lock`)으로 직렬화된다** — 겹친 실행이 최신 감사 고정점과 최종 포인터를 서로 엇갈리게 하지 않는다. 그 안에서 manifest마다 직전 세대를 읽을 때부터 포인터를 교체할 때까지도 잠그므로, 성공한 모든 세대가 사슬에 이어진다. 원본·outbox·MongoDB를 읽는 단계는 이 잠금 밖이라, 겹친 실행은 각자 읽은 값으로 차례로 세대를 낸다. 감사 로그의 고정점은 포인터를 다시 읽은 값이 아니라 **이 실행이 게시한 manifest의 해시**다(다시 읽는 사이 다른 실행이 포인터를 바꿨을 수 있다). **한계**: 파일 잠금은 한 호스트의 로컬 파일시스템을 전제로 한다. 출력 폴더를 네트워크 파일시스템에 두거나 여러 호스트가 같은 폴더에 게시하면 직렬화가 보장되지 않는다 |
-| `checkpoint` | 범위 서술(재개 위치 아님): `scope`(원본·outbox는 한 PostgreSQL 읽기 스냅샷 `postgresql-repeatable-read-snapshot`, MongoDB는 스냅샷 밖 `mongodb-read-outside-snapshot`), `hop`, `window`(`utc-day`·`utc-hour`), `grace_seconds`, `started_at`, `open_windows`(줄에 넣지 않은 열린 창), `scanned_events`(**범위 안** — `--since` 이후의 닫힌 창에서 읽은 이벤트 수), `not_comparable_windows`(outbox를 대조하지 않는 창), `retention_cutoff`(보존 기준 시각, outbox 구간), `unresolved_charges`(원본 구간: **창에 놓을 수 없는 과금 원장 줄 수**, 0 이상의 정수 — 판정한 반응을 멱등 키로 찾지 못한 `CHARGE` 항목, 생성 시각을 추정하지 않는다. 0보다 크면 내보내기는 게시한 뒤 실패하고 `verify_hops`도 실패)·`unresolved_charge_examples`(그 원장 ID, 최대 10개) |
+| `checkpoint` | 범위 서술(재개 위치 아님): `scope`(원본·outbox는 한 PostgreSQL 읽기 스냅샷 `postgresql-repeatable-read-snapshot`, MongoDB는 스냅샷 밖 `mongodb-read-outside-snapshot`), `hop`, `window`(`utc-day`·`utc-hour`), `grace_seconds`, `started_at`, `open_windows`(줄에 넣지 않은 열린 창), `scanned_events`(**범위 안** — `--since` 이후의 닫힌 창에서 읽은 이벤트 수), `not_comparable_windows`(outbox를 대조하지 않는 창), `not_comparable_unsent`(outbox 구간: 그 창들의 (창, 이벤트 이름)별 미전송 건수 — 줄을 빼므로 따로, 원본 → MongoDB 지연 후보의 근거), `retention_cutoff`(보존 기준 시각, outbox 구간), `unresolved_charges`(원본 구간: **창에 놓을 수 없는 과금 원장 줄 수**, 0 이상의 정수 — 판정한 반응을 멱등 키로 찾지 못한 `CHARGE` 항목, 생성 시각을 추정하지 않는다. 0보다 크면 내보내기는 게시한 뒤 실패하고 `verify_hops`도 실패)·`unresolved_charge_examples`(그 원장 ID, 최대 10개) |
 | outbox 대조 범위 | **시작이 보존 기준 시각(지금 − 보존 일수, `checkpoint.retention_cutoff`) 이후인 창**이다. 보존 정리는 보낸 지 보존 일수가 지난 행을 지우고 생성 시각 ≤ 전송 시각이므로, 그런 창의 행은 하나도 지워지지 않았다. 기준 시각이 창 한가운데에 걸리면 앞부분이 지워졌을 수 있으므로 창 전체를 뺀다(일·시간 창 모두). 판정은 "행이 남아 있는가"가 아니라 보존 범위와 창 경계로 하고, 어느 구간에든 있는 닫힌 창이 대상이다 — 오래된 창의 outbox 행이 모두 지워져도 "대조 제외" 정보가 사라지지 않는다 |
-| 입력 검증 | 대조 전에 각 manifest가 계약을 지키는지 확인하고, 하나라도 어기면 그 입력으로 판정하지 않고 비정상 종료한다: 구간 종류(`source_kind`가 `hop_source`·`hop_outbox`·`hop_mongo`·`hop_pipeline` 중 하나이고 기대한 자리와 같음), 계약 버전(`schema_version` = 1), 창 크기 선언(`checkpoint.window` = `utc-day`·`utc-hour`, `checkpoint.hop`이 있으면 `source_kind`와 같음), 줄마다 필수 필드·창 끝 − 시작 = 선언한 크기·시작이 UTC 경계(자정·정시)에 맞음·`event_name`은 빈 문자열이 아님·`count`는 0 이상의 정수(불리언 아님)·두 해시는 소문자 16진 64자, (창, 이벤트 이름) 중복은 거부(마지막 줄로 덮어쓰지 않음). 창 크기가 다른 manifest(일별과 시간별)는 대조하지 않는다. 파일 checksum이 맞는 것과 집계 범위가 같은 것은 별개라서다. `checkpoint.unresolved_charges`는 0 이상의 정수(불리언 아님)여야 한다 |
-| 대조 결과 분류 | `match`(세 값이 같음) / `mismatch`(확정 불일치, 다른 필드를 적음) / `relay_lag_candidate`(하류가 상류보다 적고 **그 부족분이 그 (창, 이벤트 이름)의 미전송 건수로 설명될 때(부족분 ≤ 미전송)**. 미전송이 하나 있다고 이미 보낸 이벤트의 유실을 가리면 안 되므로, 설명할 수 없는 부족분은 확정 불일치다 — 실패가 아니라 다시 낸 manifest로 확인) / `open_window` / `not_comparable`. 원본 → outbox는 같은 스냅샷이라 지연으로 보지 않는다. 결과 파일은 `hop_report` |
+| 입력 검증 | 대조 전에 각 manifest가 계약을 지키는지 확인하고, 하나라도 어기면 그 입력으로 판정하지 않고 비정상 종료한다: 구간 종류(`source_kind`가 `hop_source`·`hop_outbox`·`hop_mongo`·`hop_pipeline` 중 하나이고 기대한 자리와 같음), 계약 버전(`schema_version` = 1), 창 크기 선언(`checkpoint.window` = `utc-day`·`utc-hour`, `checkpoint.hop`이 있으면 `source_kind`와 같음), 줄마다 필수 필드·창 끝 − 시작 = 선언한 크기·시작이 UTC 경계(자정·정시)에 맞음·`event_name`은 빈 문자열이 아님·`count`는 0 이상의 정수(불리언 아님)·두 해시는 소문자 16진 64자, (창, 이벤트 이름) 중복은 거부(마지막 줄로 덮어쓰지 않음). 창 크기가 다른 manifest(일별과 시간별)는 대조하지 않는다. 파일 checksum이 맞는 것과 집계 범위가 같은 것은 별개라서다. `checkpoint.unresolved_charges`는 0 이상의 정수(불리언 아님)여야 한다. `checkpoint`는 객체, `window`는 문자열, `open_windows`·`not_comparable_windows`·`unresolved_charge_examples`는 문자열 목록이고, manifest 자체도 JSON 객체(`sha256` 소문자 16진 64자·`rows` 0 이상 정수·`previous_sha256` 형식)여야 한다 — 어기면 날것의 예외가 아니라 그 입력의 실패 |
+| 대조 결과 분류 | `match`(세 값이 같음) / `mismatch`(확정 불일치, 다른 필드를 적음) / `relay_lag_candidate`(하류가 상류보다 적고 **그 부족분이 그 (창, 이벤트 이름)의 미전송 건수로 설명될 때(부족분 ≤ 미전송)**. 미전송이 하나 있다고 이미 보낸 이벤트의 유실을 가리면 안 되므로, 설명할 수 없는 부족분은 확정 불일치다 — 실패가 아니라 다시 낸 manifest로 확인) / `open_window` / `not_comparable`. 원본 → outbox는 같은 스냅샷이라 지연으로 보지 않는다. MongoDB → 파이프라인도 지연으로 보지 않는다(outbox 미전송은 MongoDB에도 없다). 결과 파일은 `hop_report` |
 
 ### 5.7 C4 Insight 입력 [예약, 제안]
 
@@ -1175,7 +1203,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 | `process_reactions` | P2 `RECEIVED` | P2 상태, B1·B2, P3 | 예(`reaction_ref`) | 상시 |
 | `check_ledger` | B1, B2 | 없음(불일치 목록) | 읽기 전용 | 수시. 불일치 시 비정상 종료 |
 | `relay_events` | P3 미전송(`sent_at` 없음) | MongoDB `ad_events`, P3 `sent_at` | 예(결정적 `_id`, 같은 내용은 통과·다른 내용은 멈춤) | 상시 |
-| `purge_sent_events` | P3 보낸 행 | P3 삭제(보낸 지 7일 지난 행만) | 예 | 주기 |
+| `purge_sent_events` | P3 보낸 행 | P3 삭제(보낸 지 7일 지난 행만 — `--days`는 설정보다 짧을 수 없다) | 예 | 주기 |
 | `clearsessions` | 세션 | 만료된 세션 삭제 | 예 | 매일 |
 | `export_integrity` | B1·B2, R1, P2, M3, O5, O10, P3, MongoDB(한 PostgreSQL 읽기 스냅샷) | NDJSON `ledger_check`·`event_gaps`·`event_delivery` + manifest | 읽기 전용(결과 게시만) | 수시, 문제가 있으면 비정상 종료 |
 | `verify_ndjson` | manifest와 가리키는 데이터 파일 | 없음 | 읽기 전용 | |
@@ -1193,6 +1221,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 | 매체·슬롯 | 관리자 | 이름·활성 | 없음 | 영구 |
 | 매체 키(M4) | 관리자 발급·교체 | 만료 시각(교체 유예)·폐기 시각만 | 없음(폐기) | [열림] |
 | 매체 비활성화 기록(M5) | 켜져 있던 매체를 끌 때 | **없음**(추가만) | 없음 | 영구(그 전 결정의 반응 판정에 필요) |
+| 요청 제한 버킷(M6) | 매체·경로군의 첫 C1 요청 | C1 요청마다(토큰·시각·통과 여부) | 없음(매체를 지우지 않는다) | 매체와 같음. 행 수 ≤ 매체 수 × 3 |
 | 입찰 정책·입찰 | 새 버전 행 | **없음** | 없음 | 영구(결정 해석에 필요) |
 | 캠페인·광고그룹·소재 | 광고주 | 허용 필드만, **`ENDED` 이후 없음**. 소재는 보관(`archived_at`) | 없음 | [열림] |
 | 광고그룹-슬롯(O3) | 광고 만들기·구성 변경 | 없음 | 구성을 바꾸면 그 광고그룹의 행을 바꿔 넣는다(이력 없음 — 나간 슬롯은 결정이 기록) | 광고그룹과 같음 |
@@ -1323,6 +1352,13 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 
 | 버전 | 날짜 | 내용 |
 |---|---|---|
+| 0.63 | 2026-11-02 | P2 `records_reaction` 부분 색인 `records_reaction_queue_idx`(대기 행만, 처리기가 다음 반응을 잠근 채 고르는 순서 — 사용자 결정, 추가형). 데이터 모양은 그대로 |
+| 0.62 | 2026-11-02 | §5.6 입력 검증에 manifest·checkpoint 형식(리팩터 감사 D2·D3). 데이터 모양은 그대로 |
+| 0.61 | 2026-11-02 | A1 감사 `account.admin_updated` 의 detail 에 이전·이후 값, 사용자 관리 화면의 아이디는 읽기 전용(버그 탐색 B12). 데이터 모양은 그대로 |
+| 0.60 | 2026-11-02 | O4 `archived_at`·O9 설명을 설계 6-24(보관 제한은 선택한 소재만)에 맞춤 — 버그 탐색 B10. 데이터 모양은 그대로 |
+| 0.59 | 2026-11-02 | 구간 대조 보완(버그 탐색 B4~B7): §5.6 `checkpoint.not_comparable_unsent`(outbox 구간, 추가형), 분류에 "MongoDB → 파이프라인은 지연 아님", A3 `events.hop_manifests_exported` 의 `out`·`window`(폴더마다 고정점), §5.9 `purge_sent_events --days` 하한 |
+| 0.58 | 2026-11-02 | §5.1 C1 계약 1.5.0(버그 탐색 B1 — `context` 문자열의 U+0000 은 400, PostgreSQL jsonb 가 받지 않는 문자). 데이터 모양은 그대로 |
+| 0.57 | 2026-11-01 | 요청 제한 버킷 M6 `masters_media_rate_bucket`(설계 §10 "요청 제한 구현" — 프로세스 메모리 버킷을 모든 프로세스가 함께 쓰는 DB 행으로): §0 표 수, ERD, §4.2, 컬럼·쓰는 곳·HOT 갱신, §6 |
 | 0.56 | 2026-11-01 | Outbox 확장 반영(계획 `docs/plans/00` P2): O10 변경 로그 표(열·색인·CHECK 둘, R-5·§4.4·§6), P3 의 원천·메시지 키를 종류별로, §5.6 신규 이벤트 넷(`ad.bid_policy_changed`·`ad.bid_added`·`ad.campaign_changed`·`ad.ad_group_changed`)과 소비자 정렬 규칙 `(changed_at, change_id)`, §5.9 `backfill_events` 의 `excluded`·`export_integrity` 원천·`end_expired_campaigns` 의 변경 로그 |
 | 0.55 | 2026-10-31 | PostgreSQL 전환 반영(계획 `docs/plans/00` P1): 저장소·구성도·순서도·저장소 기준·한계를 PostgreSQL 18로(정렬 builtin `C.UTF-8`, `lock_timeout` 5초, 연결 한도 100 — D6·D9·D11). §4.3 표기와 O6·B2·§4.4: DB 계산 열 `open_campaign`·`signup_grant_wallet`를 지우고 조건부 유일 제약(부분 유일 색인)으로(P1-6). 색인 정리(P1-7): A3 `actor_id`·O4 `image_name` 단일 색인 삭제. §5.6 `scope` 값(D5) |
 | 0.54 | 2026-10-14 | Step 6-16j(구현 계획 §8.4.17, 사용자 결정): **본문을 지금 구조만 적도록 정리** — `[구현 …]` 표시·단계 번호·"그 전에는" 같은 변경 이력·지운 A2 표 단면·§4.8 PK 규칙 적용 기록(0.5)·해결된 어긋남 D-1~D-6·D-8의 상세(0.2·0.6·0.19·0.32 등)를 본문에서 뺐다. **표 −4 반영**: B3 `billing_campaign_spend`(캠페인 일 소진액은 원장에서 계산 — 원장 색인 `(campaign, entry_type, created_at, amount)`, 상한 하루 1만 줄, 6-16f), O8 `campaigns_advertiser_quota`(광고주 상한은 사용자 행 잠금, 6-16g), Django 권한 M2M 둘 `foundation_user_groups`·`foundation_user_user_permissions`(권한은 활성 슈퍼유저 하나, 6-16h). **어긋남 고침**: ① §4.2 목록에 O9 ② ERD 에 `records_reaction`·`events_outbox` ③ P2 를 표 이름이 있는 열 표로 ④ 프레임워크 표 11개(쓰지 않는 5개 포함) ⑤ O3 "단위가 같을 때만"(과금 단위가 없어진 뒤의 남은 말) ⑥ O4 `image_bytes` 는 현재 이미지의 크기(보유량 상한은 O7) ⑦ R-5·§4.4 추가 전용 목록에 O7·O9·M5(전수 시험도 모든 추가 전용 모델을 덮도록) ⑧ 결정 순서도의 "(계획)"·"(P1)" ⑨ §6 수명주기에 매체 키·광고그룹-슬롯·소재 연결·이미지 보유·세션·로그인 잠금 기록. 그 밖에 §2 를 프론트·백 분리(6-15)에 맞춤, 반응 상태도, C3 공개 조건(O9 연결·광고주 활성), §5.5 소재 사건, 결정의 `bid_id` 는 뽑힌 광고그룹의 행(6-16d) |

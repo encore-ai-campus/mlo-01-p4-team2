@@ -191,11 +191,11 @@ class MediaKeyRequestKeyTests(TestCase):
 
 
 @tag("security")
-class RotationRaceTests(TransactionTestCase):
+class KeyRaceTests(Cases, TransactionTestCase):
     """외부 검토(3-1d) P2: 서로 다른 교체가 겹치면, 늦게 끝난 긴 유예 교체가 그 사이 유예 0 교체로 이미 만료된 키를 다시 살렸다
     (만료를 파이썬에서 읽은 값으로 판단하고 PK 로만 갱신). 같은 매체의 교체는 매체 행 잠금으로 줄을 서고, 만료 조건은 UPDATE 가 DB 의 지금 값으로 본다."""
 
-    def test_a_slower_long_grace_rotation_does_not_revive_an_expired_key(self):
+    def case_a_slower_long_grace_rotation_does_not_revive_an_expired_key(self):
         admin = make_admin()
         m = media(admin)
         old = api.issue_media_key(admin, m.media_id)
@@ -206,6 +206,20 @@ class RotationRaceTests(TransactionTestCase):
         self.assertIsNone(api.authenticate_media_key(old.key))  # 즉시 만료가 되살아나지 않는다
         self.assertIsNone(api.authenticate_media_key(slow.result.key))  # 뒤의 교체(유예 0)는 앞의 교체가 만든 키도 본다
         self.assertIsNotNone(api.authenticate_media_key(fast.result.key))
+
+    def case_two_revocations_at_once_change_and_audit_once(self):
+        """리팩터 감사 D6: 폐기가 키를 읽은 뒤 UPDATE 직전에 멈춘 사이 다른 폐기가 먼저 커밋하면, 늦은 쪽은 아무것도 바꾸지 않고 감사도 남기지 않는다
+        (전에는 PK 로만 갱신해 감사가 두 줄 남고 폐기 시각이 뒤 값으로 덮였다)."""
+        admin = make_admin()
+        key = api.issue_media_key(admin, media(admin).media_id)
+        late, early = overlap(self, lambda: api.revoke_media_key(admin, key.key_id, now=NOW), "UPDATE", "masters_media_key",
+                              lambda: api.revoke_media_key(admin, key.key_id, now=NOW + DAY), waits=False)  # 늦은 쪽은 잠그지 않고 읽었다
+        self.assertEqual((late.errors, early.errors), ([], []))
+        self.assertEqual(AuditLog.objects.filter(action="masters.media_key_revoked").count(), 1)
+        self.assertEqual(MediaKey.objects.get(pk=key.key_id).revoked_at, NOW + DAY)  # 먼저 커밋한 폐기 시각 그대로
+
+    def test_key_races(self):
+        self.run_cases()
 
 
 class KeyListActiveTests(TestCase):

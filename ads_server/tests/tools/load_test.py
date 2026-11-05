@@ -16,7 +16,7 @@
   4. 처리가 끝나면 `RECEIVED` 가 남지 않는다. SIGTERM 은 현재 반응만 끝내고 멈추며 재기동 뒤 이어서 처리된다.
 
 한계(결과 해석 때 함께 읽는다): 서버와 클라이언트가 한 프로세스(GIL 공유)라 지연 시간은 실제 배포보다 나쁘게 나오고, 단일 서버 프로세스라
-다중 워커(프로세스별 요청 제한 버킷)는 검증하지 않는다. 처리량 수치는 이 장비·이 서버 구성의 값이다.
+여러 워커는 보지 않는다(gunicorn 워커·처리기 수에 따른 측정은 `tests/tools/scale_test.py`). 처리량 수치는 이 장비·이 서버 구성의 값이다.
 """
 import argparse
 import http.client
@@ -226,12 +226,14 @@ def verify_events(relayed=False):
     ② `relayed`(중계가 모두 끝난 시점): 미전송 0, MongoDB 의 ID 집합 = outbox, 그리고 **MongoDB 문서 전체(봉투 + 페이로드)가 outbox 와 같다**.
     outbox 와 MongoDB 를 같은 잘못된 값으로 바꿔도 ①이 잡고, MongoDB 만 바꿔도 ②가 잡는다.
     """
+    from django.db import transaction
     from events import relay, schemas, store
     from events.models import EventOutbox
 
     from records.api import expected_events
 
-    expected = expected_events()
+    with transaction.atomic():  # expected_events 의 `.iterator()` 는 트랜잭션 안에서만 연다 — 밖이면 WITH HOLD 커서가 된다(계획 D6: PgBouncer transaction 모드에서 깨진다)
+        expected = expected_events()
     outbox = {row.pk: row for row in EventOutbox.objects.all()}
     problems = []
     if expected.keys() - outbox.keys():
@@ -822,7 +824,7 @@ class Harness:
         from django.test import Client
         from django.test.utils import CaptureQueriesContext, override_settings
 
-        from serving_api.throttle import buckets
+        from masters.models import MediaRateBucket
 
         body = json.dumps({"slot_id": str(self.ctx["slot_id"]), "subject_id": str(uuid.uuid4())})
         client = Client()
@@ -831,7 +833,7 @@ class Harness:
             return client.post("/api/media/v1/decisions", data=body, content_type="application/json", HTTP_X_MEDIA_KEY=self.key)
 
         with override_settings(ALLOWED_HOSTS=["*"], MEDIA_RATE_LIMITS={"decisions": (10**6, 10**6), "reactions": (10**6, 10**6), "reads": (10**6, 10**6)}):
-            buckets.reset()
+            MediaRateBucket.objects.all().delete()  # 앞 단계가 쓴 토큰과 무관하게(한도는 위에서 넉넉히)
             with CaptureQueriesContext(connection) as queries:
                 assert post().status_code == 201
             kinds = dict(Counter(q["sql"].split(None, 1)[0].upper() for q in queries.captured_queries))
@@ -848,7 +850,7 @@ class Harness:
                     times.append((time.perf_counter() - t0) * 1000)
                     assert response.status_code == 201
                 samples_ms[label] = round(statistics.median(times), 2)
-            buckets.reset()
+            MediaRateBucket.objects.all().delete()
         from records.models import Decision
 
         self.acked_decisions.update(str(i) for i in Decision.objects.order_by("-decided_at").values_list("decision_id", flat=True)[: samples * 2 + 1])

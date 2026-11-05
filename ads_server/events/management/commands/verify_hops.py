@@ -39,9 +39,9 @@ class Command(BaseCommand):
                 examples = ", ".join(hops[name].manifest["checkpoint"].get("unresolved_charge_examples", []))
                 errors.append(f"{name}: 창에 놓을 수 없는 과금 원장 줄 {hops[name].unresolved_charges}건(반응이 없거나 판정 전, 예: {examples}) — 줄 대조에 나오지 않는다")
         if not options["no_anchor"] and not errors:
-            anchors = (latest_audit_detail("events.hop_manifests_exported") or {}).get("anchors")
+            anchors = (latest_audit_detail("events.hop_manifests_exported", out=str(directory.resolve())) or {}).get("anchors")  # 폴더마다의 고정점
             if anchors is None:
-                errors.append("감사 로그에 고정점이 없다(export_hop_manifests 를 한 번도 실행하지 않았거나 다른 환경의 폴더다 — --no-anchor)")
+                errors.append("감사 로그에 이 폴더의 고정점이 없다(이 폴더로 export_hop_manifests 를 실행한 적이 없거나 다른 환경의 폴더다 — --no-anchor)")
             else:
                 for name in HOP_FILES:
                     if anchors.get(name) != ndjson.manifest_sha256(ndjson.manifest_path(directory, name)):
@@ -61,7 +61,7 @@ class Command(BaseCommand):
             else:
                 if "hop_mongo" in hops:
                     try:
-                        rows += hopcheck.compare(hops["hop_mongo"], pipeline, unsent_from=hops.get("hop_outbox"))
+                        rows += hopcheck.compare(hops["hop_mongo"], pipeline)  # outbox 미전송은 MongoDB 에도 없어 파이프라인의 부족을 설명하지 못한다(지연 후보 없음)
                     except hopcheck.HopInputError as error:
                         errors.append(f"pipeline: {error}")
         counts = dict(Counter(row["status"] for row in rows))

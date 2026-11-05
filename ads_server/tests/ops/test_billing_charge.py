@@ -1,5 +1,7 @@
 import uuid
+from unittest import mock
 
+from django.db import IntegrityError
 from django.test import TestCase, TransactionTestCase, override_settings, tag
 
 from billing import api
@@ -38,6 +40,13 @@ class ChargeTests(Cases, TestCase):
         self.assertEqual(charge(adv, 999, "m1:r1", camp).charged, 40)  # 금액이 달라도 처음 결과(재전송은 같은 내용이어야 한다는 것은 Step 2 의 몫)
         self.assertEqual(api.check_ledger(quiescent=True), [])
 
+    def case_a_non_unique_integrity_error_keeps_its_cause(self):
+        """버그 탐색 B16: 유일 제약이 아닌 IntegrityError(CHECK 등)를 '같은 키가 먼저 들어갔다'로 읽으면 원장 줄 조회의 DoesNotExist 가 원래 원인을 가린다."""
+        adv, camp = funded(), uuid.uuid4()
+        with mock.patch("billing.services._charge", side_effect=IntegrityError("check violation")), self.assertRaises(IntegrityError):
+            charge(adv, 40, "m1:r2", camp)
+        self.assertFalse(LedgerEntry.objects.filter(entry_type="CHARGE").exists())
+
     def case_charge_policy_by_share(self):
         """`share/v1`: 반응 하나의 과금 = 내림(적용 금액 × 결정에 남긴 그 유형의 비율 ÷ 100)(설계 §10 "구성별 반응 비율 과금"). 정책 이름이 원장에 남는다."""
         adv, camp = funded(), uuid.uuid4()
@@ -59,17 +68,13 @@ class ChargeTests(Cases, TestCase):
             def amount_for(self, reaction_type, shares, applied_amount):
                 return 1
 
-        api.register_charge_policy(FlatOne())
-        self.addCleanup(api.unregister_charge_policy, "flat-one/v1")
         adv, camp = funded(), uuid.uuid4()
-        with override_settings(BILLING_CHARGE_POLICY="flat-one/v1"):
+        with mock.patch.dict("billing.policies._POLICIES", {"flat-one/v1": FlatOne()}), override_settings(BILLING_CHARGE_POLICY="flat-one/v1"):
             result = charge(adv, 500, "flat-r1", camp, rtype=CLICK)  # 기본 정책이면 500
         self.assertEqual((result.charged, result.entry.charge_policy), (1, "flat-one/v1"))
         with override_settings(BILLING_CHARGE_POLICY="no-such/v9"):
             with self.assertRaises(api.UnknownChargePolicy):
                 charge(adv, 5, "x", camp)
-        with self.assertRaises(ValueError):
-            api.register_charge_policy(FlatOne())  # 이름 중복
 
     def case_campaign_spend_counts_what_was_charged_not_the_shortfall(self):
         adv, camp, other = funded(100), uuid.uuid4(), uuid.uuid4()
@@ -148,13 +153,9 @@ class ChargeInputValidationTests(Cases, TestCase):
         adv, camp = funded(), uuid.uuid4()
         before = self.snapshot(adv)
         for i, bad in enumerate((0.5, True, -3, 6, 2**53, "9", None)):  # 6: 적용 금액(5)을 넘는다
-            api.register_charge_policy(Broken(bad))
-            try:
-                with override_settings(BILLING_CHARGE_POLICY="broken/v1"):
-                    with self.assertRaises(ValueError, msg=bad):
-                        charge(adv, 5, f"policy-{i}", camp)
-            finally:
-                api.unregister_charge_policy("broken/v1")
+            with mock.patch.dict("billing.policies._POLICIES", {"broken/v1": Broken(bad)}), override_settings(BILLING_CHARGE_POLICY="broken/v1"):
+                with self.assertRaises(ValueError, msg=bad):
+                    charge(adv, 5, f"policy-{i}", camp)
         self.assertEqual(self.snapshot(adv), before)
         self.assertEqual(api.check_ledger(quiescent=True), [])
 

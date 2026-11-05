@@ -48,8 +48,6 @@ def to_data(value):
         data = {f.name: to_data(getattr(value, f.name)) for f in dataclasses.fields(value)}
         data.update({name: to_data(getattr(value, name)) for name, _ in inspect.getmembers(type(value), lambda a: isinstance(a, property))})
         return data
-    if isinstance(value, tuple) and hasattr(value, "_asdict"):
-        return {k: to_data(v) for k, v in value._asdict().items()}
     if isinstance(value, dict):
         return {str(k): to_data(v) for k, v in value.items()}
     if isinstance(value, (list, tuple, set, frozenset)):

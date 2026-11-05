@@ -40,6 +40,17 @@ class ValidationTests(Cases, SimpleTestCase):
         self.assertEqual(run(f.png_bytes(mode="RGBA", color=(1, 2, 3, 128))).ext, "png")
         self.assertEqual(run(f.png_bytes(mode="L", color=100)).ext, "png")
 
+    def case_a_16_bit_grayscale_png_keeps_its_tones(self):
+        """버그 탐색(리팩터 감사 D1): 16비트 회색 PNG 를 그대로 RGB 로 바꾸면 255 에서 잘려 흑백 두 값이 됐다 — 8비트 회색으로 줄여 단계가 남는다."""
+        gradient = Image.new("I;16", (256, 1))
+        gradient.putdata([i * 257 for i in range(256)])
+        source = io.BytesIO()
+        gradient.save(source, format="PNG")
+        out = Image.open(io.BytesIO(run(source.getvalue()).data))
+        self.assertEqual(out.mode, "L")
+        self.assertEqual([out.getpixel((x, 0)) for x in (0, 128, 255)], [0, 128, 255])
+        self.assertEqual(len({out.getpixel((x, 0)) for x in range(256)}), 256)
+
     def case_rejects_svg_gif_webp_bmp(self):
         self.assertRejected(f.SVG_WITH_SCRIPT, "unsupported_format")
         for fmt in ("GIF", "BMP", "TIFF", "ICO"):

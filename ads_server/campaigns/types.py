@@ -135,7 +135,7 @@ class ReviewRequestView:
 
 @dataclass(frozen=True)
 class CandidateFacts:
-    """슬롯 하나의 후보 후보. 판정은 하지 않은 **사실**이다(기간·금액 판정은 engine). records 가 이것으로 `Candidate` 를 조립한다."""
+    """슬롯 하나의 후보 사실. 판정은 하지 않은 **사실**이다(기간·금액 판정은 engine). records 가 이것으로 `Candidate` 를 조립한다."""
 
     owner_id: uuid.UUID
     campaign_id: uuid.UUID

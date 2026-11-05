@@ -76,14 +76,20 @@ class UnknownRule(ValueError):
     pass
 
 
-def run_rules(names, facts):
-    """처음 거부·보류한 규칙의 `(규칙 이름, 사유 또는 Hold)`. 모두 통과하면 `None`. **거부가 보류보다 먼저**다(보류는 거부가 없을 때만)."""
+def resolve(names):
+    """규칙 이름들 → `(이름, check)` 목록. 알 수 없는 이름은 `UnknownRule` — 판정과 설정의 기동 검사(config/checks.py)가 같이 쓴다."""
     checks = []
     for name in names:
         try:
             checks.append((name, _RULES[name]))
         except KeyError:
             raise UnknownRule(f"알 수 없는 반응 규칙: {name!r} (등록된 것: {sorted(_RULES)})")
+    return checks
+
+
+def run_rules(names, facts):
+    """처음 거부·보류한 규칙의 `(규칙 이름, 사유 또는 Hold)`. 모두 통과하면 `None`. **거부가 보류보다 먼저**다(보류는 거부가 없을 때만)."""
+    checks = resolve(names)
     held = None
     for name, check in checks:
         result = check(facts)

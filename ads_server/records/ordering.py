@@ -40,7 +40,8 @@ def lock_for_receipt(decision_id, reporting_media_id):
 
 
 def wait_for_inflight_receipts(inbox_id):
-    """반응을 판정하기 전에, 이 반응의 판정에 영향을 줄 수 있는 **진행 중인 접수와 매체 비활성화**가 커밋될 때까지 기다린다. 잠금은 바로 놓는다."""
+    """반응을 판정하기 전에, 이 반응의 판정에 영향을 줄 수 있는 **진행 중인 접수와 매체 비활성화**가 커밋될 때까지 기다린다. 잠금은 바로 놓는다
+    — 트랜잭션 밖에서 부르면 그 트랜잭션을, 반응 행을 쥔 바깥 트랜잭션 안에서 부르면(`processing.process_pending`) 저장점을 되돌린다."""
     row = Reaction.objects.filter(pk=inbox_id, status=ReactionStatus.RECEIVED).values("media_id", "decision_id", "type", "received_at").first()
     if row is None:
         return
@@ -54,3 +55,4 @@ def wait_for_inflight_receipts(inbox_id):
             ids += list(later_decisions(decision).filter(decided_at__lte=row["received_at"]).values_list("decision_id", flat=True))
         list(Decision.objects.select_for_update().filter(pk__in=ids).order_by("pk").values_list("pk", flat=True))
         masters.media_active_for_share(decision.media_id)  # 결정 행 다음: 진행 중인 비활성화(결정 소유 매체)의 커밋을 기다린다
+        transaction.set_rollback(True)  # 읽기·잠금만 했다 — 되돌려 잠금을 바로 놓는다. 바깥 트랜잭션 안(process_pending)이면 이 저장점만 되돌아가고, PostgreSQL 은 그 뒤에 얻은 행 잠금을 놓는다

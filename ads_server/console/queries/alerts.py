@@ -42,12 +42,17 @@ def alerts_for(user, now, camps, wallet):
     return sorted(alerts, key=lambda a: (_SEVERITY[a.severity], -a.since.timestamp()))
 
 
+def wallet_or_none(user, now):
+    """광고주의 지갑. 가입 절차를 거치지 않은 옛 계정은 지갑이 없어 `None`(포인트·대시보드·내 정보·헤더 종이 같은 규칙)."""
+    try:
+        return billing.get_wallet(user, now=now)
+    except errors.NotFound:
+        return None
+
+
 def has_alerts(user, now):
     """헤더 종의 점(6-21d): 대시보드 알림 패널과 같은 계산에 한 건이라도 있는지. 광고주 화면마다 부른다(질의 수는 캠페인 수와 무관)."""
-    try:
-        wallet = billing.get_wallet(user, now=now)
-    except errors.NotFound:  # 가입 절차를 거치지 않은 옛 계정
-        wallet = None
+    wallet = wallet_or_none(user, now)
     return bool(alerts_for(user, now, campaigns.list_campaigns(user, now=now), wallet))
 
 

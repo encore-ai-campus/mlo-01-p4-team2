@@ -9,7 +9,7 @@ from django.db import IntegrityError, connection, transaction
 from django.db.models import F, Sum
 from django.utils import timezone
 
-from foundation.api import MAX_AMOUNT, Role, clean_request_key, clean_text, create_advertiser, errors, is_int, parse_uuid, record_audit, require_admin
+from foundation.api import MAX_AMOUNT, Role, clean_request_key, clean_text, create_advertiser, errors, is_int, is_unique_violation, parse_uuid, record_audit, require_admin
 
 from .budget_day import budget_day_expression, budget_day_of, day_start, next_reset
 from .models import EntryType, LedgerEntry, Wallet
@@ -171,7 +171,9 @@ def charge_for_reaction(owner_id, campaign_id, reaction_type, shares, applied_am
     try:
         with transaction.atomic():
             return _charge(owner_id, campaign_id, amount, reaction_ref, policy.name, now)
-    except IntegrityError:  # 동시에 같은 키가 들어온 경우의 안전망(유니크 제약): 먼저 들어간 결과를 돌려준다
+    except IntegrityError as error:  # 동시에 같은 키가 들어온 경우의 안전망(유니크 제약): 먼저 들어간 결과를 돌려준다
+        if not is_unique_violation(error):  # CHECK 등은 원인 그대로 올린다(같은 키의 행을 찾다 DoesNotExist 로 가리지 않는다 — receive_reaction 과 같은 규칙)
+            raise
         return _duplicate(LedgerEntry.objects.get(reaction_ref=reaction_ref))
 
 
@@ -271,7 +273,7 @@ def spend_by_campaign(campaign_ids, start_day, end_day):
 def charged_amounts(reaction_refs):
     """반응 멱등 키(`reaction_ref`)별로 **실제로 받은** 포인트 `{키: 포인트}`. 과금되지 않은 키는 결과에 없다.
 
-    광고그룹처럼 소진액이 따로 쌓이지 않는 범위의 소진을 원장에서 읽을 때 쓴다. 한 번에 많은 키를 `IN` 에 넣지 않도록 나눠 조회한다.
+    광고그룹 범위의 소진을 원장에서 읽을 때 쓴다(원장의 과금 줄에는 캠페인만 있다). 한 번에 많은 키를 `IN` 에 넣지 않도록 나눠 조회한다.
     """
     found = {}
     for chunk in batched(reaction_refs, 500):
@@ -327,7 +329,7 @@ def consistent_read(quiescent=False):
       PostgreSQL 의 `SET TRANSACTION` 은 트랜잭션 안에서만 듣고(밖에서는 경고만 내고 아무것도 바꾸지 않는다), 첫 조회 전에만 바꿀 수 있다.
     - **이미 시작한 트랜잭션 안**에서는 격리 수준을 바꿀 수 없다(첫 조회 전에만 정할 수 있다). Django 트랜잭션은 접속 설정대로 READ COMMITTED 로 시작하므로
       그 안에서는 스냅샷이 하나가 아니고, `atomic()` 이라고 다른 연결의 커밋이 막히는 것도 아니다. 그래서 **거절한다**(`ConsistentReadUnavailable`) — 조용히 건너뛰지도, 추정해서 허용하지도 않는다.
-      (PostgreSQL 은 `current_setting('transaction_isolation')` 으로 지금 트랜잭션의 수준을 알 수 있지만, 허용 규칙을 넓히지 않는다 — 동작은 MySQL 때와 같다.)
+      (PostgreSQL 은 `current_setting('transaction_isolation')` 으로 지금 트랜잭션의 수준을 알 수 있지만, 허용 규칙을 넓히지 않는다.)
     - `quiescent=True` 는 호출한 쪽이 **동시에 쓰는 연결이 없음을 보장**할 때(단일 연결 시험)만 쓴다. 보장은 호출한 쪽의 책임이고, 틀리면 거짓 불일치가 날 수 있다.
     """
     if connection.in_atomic_block:

@@ -25,19 +25,21 @@ class Command(BaseCommand):
     )
 
     def add_arguments(self, parser):
-        parser.add_argument("--once", action="store_true", help="한 번 비우고 종료")
+        parser.add_argument("--once", action="store_true", help="한 번 비우고 종료. 처리 실패(failed)가 있으면 0 이 아닌 코드로 끝난다 — 일시 오류(transient)와 동시 인정 경합(contended)은 실패가 아니다")
         parser.add_argument("--status", action="store_true", help="처리 현황(대기·보류·stuck·가장 오래된 대기)만 출력")
         parser.add_argument("--interval", type=float, default=1.0, help="주기(초). 기본 1")
         parser.add_argument("--batch", type=int, default=100, help="한 번에 처리할 최대 건수. 기본 100")
         parser.add_argument("--retry-stuck", action="store_true", help="실패가 반복돼 빠진 반응의 실패 횟수를 0 으로 되돌려 다시 처리 대상으로")
 
     def drain(self, batch, should_stop):
-        total = {"accepted": 0, "rejected": 0, "pending": 0, "skipped": 0, "failed": 0, "transient": 0}  # transient = 교착·잠금 초과로 되돌려져 다음 주기에 다시 하는 것
+        # locked = 더 고를 것이 없을 때 다른 처리기(또는 멈춘 연결)가 쥐고 있던 대상 수, transient = 교착·잠금 초과로 되돌려져 다음 주기에 다시 하는 것,
+        # contended = 같은 사람·유형의 인정이 겹쳐 유일 제약이 막은 것(다음 처리에서 거부, 설계 D13)
+        total = {"accepted": 0, "rejected": 0, "pending": 0, "locked": 0, "failed": 0, "transient": 0, "contended": 0}
         while not should_stop():
             counts = process_pending(limit=batch, should_stop=should_stop)
             for key, value in counts.items():
                 total[key] += value
-            if sum(counts.values()) < batch:  # 더 없다(또는 멈추라는 신호로 중간에 끊었다)
+            if sum(counts.values()) - counts["locked"] < batch:  # 더 없다(또는 멈추라는 신호로 중간에 끊었다). locked 는 처리한 건이 아니다
                 break
         return total
 
@@ -67,6 +69,8 @@ class Command(BaseCommand):
                         reported_stuck = stuck_count()
                         self.stdout.write(stamped(f"{total} stuck={reported_stuck}"))
                         reported_at = time.monotonic()
+                        if options["once"] and total["failed"]:  # 한 번 실행은 실패를 종료 코드로 알린다(relay_events --once 와 같다). 실패한 반응은 RECEIVED 로 남아 다음에 다시 처리된다. contended 는 요약에만 보인다
+                            raise CommandError(f"반응 처리 실패 {total['failed']}건(로그의 '반응 처리 실패' 참고)")
                     else:  # 한가하다: 시작 직후·stuck 이 바뀌었을 때·HEARTBEAT_SECONDS 마다 현황을 찍는다(질의 한 번)
                         status = inbox_status()
                         if status["stuck"] != reported_stuck or time.monotonic() - reported_at >= HEARTBEAT_SECONDS:

@@ -74,7 +74,7 @@ class CsrfExemptPrefixesMiddleware:
 
 
 class ApiErrorMiddleware:
-    """뷰가 던진 ApiError 를 problem+json 으로 바꾼다. 교착·잠금 대기 초과는 503 + `Retry-After`(화면은 HTML, API 는 problem+json).
+    """뷰가 던진 ApiError 를 problem+json 으로 바꾼다. 교착·잠금 대기 초과는 503 + `Retry-After`(화면은 오류 화면의 화면 데이터, API 는 problem+json).
     (다른 예외는 Django 핸들러가 처리한다.)"""
 
     def __init__(self, get_response):

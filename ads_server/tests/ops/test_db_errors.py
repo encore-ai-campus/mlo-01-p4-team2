@@ -12,6 +12,7 @@ import psycopg
 from django.db import IntegrityError, OperationalError, connection, transaction
 from django.test import TestCase, TransactionTestCase, override_settings, tag
 
+from billing.models import Wallet
 from foundation.api import is_transient_lock_error
 from foundation.dberrors import is_unique_violation
 from foundation.models import User
@@ -103,7 +104,8 @@ class ProcessingRetriesTests(Cases, TestCase):
 @override_settings(REACTION_PROCESS_ON_RECEIPT=False)
 @tag("security")
 class RealLockWaitTimeoutTests(TransactionTestCase):
-    """실제 PostgreSQL 의 잠금 대기 초과(55P03, lock_timeout): 다른 연결이 반응 행을 쥐고 있어 기다리다 시간이 넘으면 횟수를 올리지 않는다."""
+    """실제 PostgreSQL 의 잠금 대기 초과(55P03, lock_timeout): 판정 도중 다른 연결이 쥔 행(지갑)을 기다리다 시간이 넘으면 모두 되돌리고 횟수를 올리지 않는다.
+    반응 행 자체는 `SKIP LOCKED` 라 기다리지 않는다(다른 처리기가 쥐고 있으면 건너뛴다 — test_records_processing)."""
 
     def test_waiting_for_a_held_row_until_the_timeout_is_not_a_failure(self):
         w = World()
@@ -113,7 +115,7 @@ class RealLockWaitTimeoutTests(TransactionTestCase):
 
         def hold():
             with transaction.atomic():
-                list(Reaction.objects.select_for_update().filter(pk=view.inbox_id))
+                list(Wallet.objects.select_for_update().filter(owner_id=w.adv))  # 과금이 잠그는 행
                 holding.set()
                 release.wait(WAIT)
 

@@ -173,7 +173,7 @@ def process_reaction(inbox_id, now=None):
         with transaction.atomic():
             outcome = _process(inbox_id, now)
     except Exception as error:
-        if not is_transient_lock_error(error):  # 교착·잠금 초과는 실패가 아니다: 서버가 되돌렸을 뿐이라 횟수를 올리면 정상 반응이 자동 재처리에서 빠진다(상한 5)
+        if not is_transient_lock_error(error):  # 교착·잠금 초과·읽기 전용은 실패가 아니다: 서버가 되돌렸을 뿐이라 횟수를 올리면 정상 반응이 자동 재처리에서 빠진다(상한 5)
             _note_failure(inbox_id)
         raise
     if outcome in (ReactionStatus.ACCEPTED, ReactionStatus.REJECTED):
@@ -232,7 +232,7 @@ def process_pending(limit=100, now=None, should_stop=None):
             if inbox_id is None:
                 raise  # 대기열 조회 자체의 실패(DB 연결 등)는 호출한 쪽이 다룬다
             if is_transient_lock_error(error):  # 다음 주기에 다시 한다(실패 횟수는 그대로) — 서버가 되돌렸을 뿐이라 횟수를 올리면 정상 반응이 자동 재처리에서 빠진다
-                logger.warning("반응 처리가 교착·잠금 초과로 되돌려졌다(다음 주기에 다시) inbox=%s", inbox_id)
+                logger.warning("반응 처리가 교착·잠금 초과·읽기 전용으로 되돌려졌다(다음 주기에 다시) inbox=%s", inbox_id)
                 counts["transient"] += 1
                 continue
             _note_failure(inbox_id)

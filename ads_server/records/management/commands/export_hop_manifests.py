@@ -15,6 +15,24 @@ from records.api import source_streams, unresolved_charges
 SCOPE = "postgresql-repeatable-read-snapshot"  # 결정 D5 — 전환 전 manifest 에는 "mysql-…" 가 남아 있다
 
 
+def parse_since(text):
+    """`--since` → UTC 정시(설계 01 S1, DRD §5.6). 날짜만 주면 그날 0시(UTC)다. 시간대가 없거나 UTC 정시가 아니면 거부한다 — 파이프라인 manifest 의
+    `checkpoint.since` 를 그대로 받아 같은 범위로 요약하고, 범위가 다르면 대조가 실패한다."""
+    try:
+        moment = datetime.combine(date.fromisoformat(text), datetime.min.time(), tzinfo=timezone.utc)
+    except ValueError:
+        try:
+            moment = datetime.fromisoformat(text)
+        except ValueError:
+            raise CommandError("--since 는 YYYY-MM-DDTHH:00:00Z(UTC 정시) 또는 YYYY-MM-DD 형식이어야 합니다.")
+    if moment.tzinfo is None:
+        raise CommandError("--since 에는 시간대를 붙여야 합니다(예: 2026-10-10T05:00:00Z).")
+    moment = moment.astimezone(timezone.utc)
+    if moment.minute or moment.second or moment.microsecond:
+        raise CommandError("--since 는 UTC 정시여야 합니다(분·초가 0).")
+    return moment
+
+
 class Command(BaseCommand):
     help = (
         "구간별 정합 manifest(설계 §6.3a)를 낸다: hop_source(원본에서 기대되는 이벤트) / hop_outbox / hop_mongo 세 구간의 (창, 이벤트 이름)별 건수·ids_sha256·content_sha256. "
@@ -24,17 +42,14 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--out", required=True, help="결과를 쓸 폴더")
-        parser.add_argument("--since", help="이 날짜(UTC, YYYY-MM-DD) 이후의 창만")
+        parser.add_argument("--since", help="이 시각(UTC 정시) 이후의 창만: YYYY-MM-DDTHH:00:00Z(시간대를 붙인 ISO 8601) 또는 YYYY-MM-DD(그날 0시 UTC). "
+                            "파이프라인 manifest 와 대조할 때는 그 manifest 의 checkpoint.since 를 그대로 준다(범위가 다르면 verify_hops 가 대조하지 않고 실패한다)")
         parser.add_argument("--window", choices=sorted(events.WINDOWS), default="day", help="창의 크기: day(UTC 자정 고정 하루, 기본) 또는 hour(UTC 정시 고정 한 시간)")
         parser.add_argument("--as-of", help="재현용: 시간대를 붙인 이 ISO 8601 시각(예: 2026-10-10T00:05:00Z)을 '지금'으로 보고 창을 닫는다(기본은 실제 지금). 시험이 날짜가 바뀐 뒤의 점검을 재현할 때 쓴다")
 
     def handle(self, *args, **options):
-        since = None
-        if options["since"]:
-            try:
-                since = datetime.combine(date.fromisoformat(options["since"]), datetime.min.time(), tzinfo=timezone.utc)
-            except ValueError:
-                raise CommandError("--since 는 YYYY-MM-DD 형식이어야 합니다.")
+        since = parse_since(options["since"]) if options["since"] else None
+        since_text = events.format_time(since) if since else None  # manifest·감사 기록의 범위 시작(UTC 정시 문자열 또는 null)
         size = events.WINDOWS[options["window"]]
         try:
             now = datetime.fromisoformat(options["as_of"]) if options["as_of"] else datetime.now(timezone.utc)
@@ -76,13 +91,13 @@ class Command(BaseCommand):
                     extra = {"not_comparable_windows": not_comparable, "not_comparable_unsent": hidden_unsent, "retention_cutoff": events.format_time(cutoff)}
                 checkpoint = {
                     "scope": SCOPE if hop != "hop_mongo" else "mongodb-read-outside-snapshot", "hop": hop, "window": events.window_label(options["window"]), "grace_seconds": grace, "started_at": now.isoformat(),
-                    "since": options["since"], "open_windows": [events.format_time(w) for w in open_windows], "scanned_events": scanned[hop], **extra,
+                    "since": since_text, "open_windows": [events.format_time(w) for w in open_windows], "scanned_events": scanned[hop], **extra,
                 }
                 manifest = events.write_ndjson(out, hop, lines, hop, events.HOP_SCHEMA_VERSION, checkpoint=checkpoint, now=now, chain=True)
                 anchors[hop] = events.manifest_digest(manifest)  # 이 실행이 게시한 manifest 의 해시(포인터를 다시 읽지 않는다)
                 self.stdout.write(f"{hop}: rows={manifest['rows']} events={scanned[hop]} open_windows={len(open_windows)} largest_window={results[hop][3]} file={manifest['file']}")
             record_audit(None, "events.hop_manifests_exported", detail={  # 폴더 밖의 고정점(H12) — verify_hops 는 폴더로 찾는다(폴더·창 크기를 여럿 운영해도 서로 덮지 않게)
-                "anchors": anchors, "out": str(out.resolve()), "window": options["window"], "since": options["since"], "grace_seconds": grace})
+                "anchors": anchors, "out": str(out.resolve()), "window": options["window"], "since": since_text, "grace_seconds": grace})
         peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / (2**20 if sys.platform == "darwin" else 2**10)  # macOS 는 바이트, Linux 는 KiB
         self.stdout.write(f"peak_rss={peak:.1f}MiB")  # 이 프로세스의 최대 상주 메모리 — 이력이 쌓여도 늘지 않아야 한다(창 하나·종류 하나만 든다)
         if unresolved:  # 게시는 한다(나머지 대조는 계속된다). 실패로 끝내고 verify_hops 도 실패로 본다

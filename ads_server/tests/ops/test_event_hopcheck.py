@@ -1,22 +1,25 @@
 """Step 4-3c: 구간 대조(`verify_hops`) — 분류(일치·확정 불일치·중계 지연 후보·열린 창·비교 불가), 세대 사슬, 폴더 밖 고정점."""
+import getpass
 import io
 import json
 import shutil
 import tempfile
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from random import Random
+from unittest import mock
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.test import SimpleTestCase, TransactionTestCase, tag
+from django.test import SimpleTestCase, TransactionTestCase, override_settings, tag
 
-from events import hopcheck, ndjson, store
+from events import hop_rules, hopcheck, ndjson, store
 from events.models import EventOutbox
 from events.relay import relay_batch
+from foundation.models import AuditLog
 from records import api as records
-from tests.support.factories import NOW, SUBJECT, World
+from tests.support.factories import NOW, SUBJECT, World, make_admin
 from tests.support.mongo_support import MongoDatabaseMixin
 from tests.support.cases import Cases
 
@@ -31,8 +34,8 @@ def line(count=1, ids="i", content="c", unsent=None, window=W, name="ad.decision
     return base
 
 
-def hop(name, *lines, open_windows=(), not_comparable=()):
-    checkpoint = {"open_windows": list(open_windows), "not_comparable_windows": list(not_comparable)}
+def hop(name, *lines, open_windows=(), not_comparable=(), since=None):
+    checkpoint = {"open_windows": list(open_windows), "not_comparable_windows": list(not_comparable), "since": since}
     return hopcheck.Hop(name, {"checkpoint": checkpoint}, {(l["window_start"], l["event_name"]): l for l in lines})
 
 
@@ -88,6 +91,16 @@ class ClassificationTests(Cases, SimpleTestCase):
         rows = hopcheck.compare(hop("hop_source"), hop("hop_mongo", open_windows=["2026-10-10T00:00:00Z"]))
         self.assertEqual([(r["status"], r["window_start"]) for r in rows], [("open_window", "2026-10-10T00:00:00Z")])
 
+    def case_only_manifests_with_the_same_range_start_are_compared(self):
+        """설계 01 S1 (가): 범위 시작(checkpoint.since)이 다르면 한쪽의 옛 창이 모두 '빠짐'으로 보이므로 대조하지 않고 실패한다. 같으면 그 앞 창은 보지 않는다."""
+        later, kept = "2026-10-07T05:00:00Z", "2026-10-07T06:00:00Z"
+        for a_since, b_since in ((None, later), (later, None), (later, "2026-10-07T06:00:00Z")):
+            with self.subTest(a=a_since, b=b_since), self.assertRaises(hopcheck.HopInputError):
+                hopcheck.compare(hop("hop_outbox", line(unsent=0), since=a_since), hop("hop_mongo", line(), since=b_since))
+        a = hop("hop_outbox", line(unsent=0), line(unsent=0, window=kept), open_windows=["2026-10-07T01:00:00Z", "2026-10-07T07:00:00Z"], since=later)  # W(00시) 줄·01시 열린 창은 범위 앞
+        b = hop("hop_mongo", line(window=kept), since=later)
+        self.assertEqual([(r["window_start"], r["status"]) for r in hopcheck.compare(a, b)], [(kept, "match"), ("2026-10-07T07:00:00Z", "open_window")])
+
     def test_classification(self):
         self.run_cases()
 
@@ -123,6 +136,182 @@ class LagExplanationTests(Cases, SimpleTestCase):
         self.run_cases()
 
 
+UTC = timezone.utc
+SOURCE_DB = "ads_test_source"  # 파이프라인 잡에 설정한 원천 DB 이름
+T5 = datetime(2026, 10, 7, 5, 10, 0, 123456, tzinfo=UTC)  # 05시 창(마이크로초까지 — Debezium created_at)
+LATER = datetime(2026, 10, 8, tzinfo=UTC)  # 아래 창이 모두 닫힌 '지금'
+
+
+def after(i, at=T5, name="ad.decision", payload=None, aggregate="agg-1"):
+    """outbox 봉투 6열(Debezium after — payload 는 DB 의 JSON 원문 문자열, created_at 은 마이크로초 UTC 문자열)."""
+    return {"event_id": str(uuid.UUID(int=i)), "event_name": name, "schema_version": 1, "aggregate_id": aggregate,
+            "payload": json.dumps({"n": i}) if payload is None else payload, "created_at": at.strftime("%Y-%m-%dT%H:%M:%S.%fZ")}
+
+
+def change(af, op="c", db=SOURCE_DB, tombstone=False, keyless=False):
+    """Bronze 행 하나의 (key, value): 키는 스키마를 담은 JsonConverter 모양, value 는 Debezium 원본 봉투(DELETE·TRUNCATE 는 after 없음, tombstone 은 value 없음)."""
+    key = None if keyless else json.dumps({"schema": {"type": "struct"}, "payload": {"event_id": af["event_id"]}})
+    if tombstone:
+        return key, None
+    return key, json.dumps({"before": None, "after": None if op in ("d", "t") else af, "op": op, "source": {"db": db, "schema": "public", "table": "events_outbox"}})
+
+
+def outbox_hop(afters, unsent=0):
+    docs = [hop_rules.normal_document(a["event_id"], a["event_name"], a["schema_version"], datetime.fromisoformat(a["created_at"]), json.loads(a["payload"])) for a in afters]
+    lines, open_windows = hop_rules.summarize(docs, LATER, 120, size=hop_rules.HOUR)
+    checkpoint = {"window": "utc-hour", "open_windows": [hop_rules.format_time(w) for w in open_windows]}
+    return hopcheck.Hop("hop_outbox", {"source_kind": "hop_outbox", "checkpoint": checkpoint}, {(l["window_start"], l["event_name"]): l | {"unsent": unsent} for l in lines})
+
+
+def fold(changes):
+    """Bronze 행 목록(offset 0, 1, …)을 공용 규칙으로 요약한다. 반환: (줄 사전, 열린 창, checkpoint 필드)."""
+    lines, open_windows, extra = hop_rules.summarize_changes([(k, v, 0, offset) for offset, (k, v) in enumerate(changes)], SOURCE_DB, LATER, 120, size=hop_rules.HOUR)
+    return {(l["window_start"][11:13], l["event_name"]): l for l in lines}, [hop_rules.format_time(w) for w in open_windows], extra
+
+
+def pipeline_hop(changes, **checkpoint):
+    lines, open_windows, extra = hop_rules.summarize_changes([(k, v, 0, offset) for offset, (k, v) in enumerate(changes)], SOURCE_DB, LATER, 120, size=hop_rules.HOUR)
+    manifest = {"source_kind": "hop_pipeline", "checkpoint": {"window": "utc-hour", "open_windows": [hop_rules.format_time(w) for w in open_windows],
+                                                              "rule_sha256": hop_rules.rule_sha256(), **extra, **checkpoint}}
+    return hopcheck.Hop("pipeline", manifest, {(l["window_start"], l["event_name"]): l for l in lines})
+
+
+def pair(outbox, pipeline, **kw):
+    return [(r["window_start"][11:13], r["event_name"], r["status"], r["fields"]) for r in hopcheck.compare(outbox, pipeline, **kw)]
+
+
+@tag("security")
+class PipelinePairTests(Cases, SimpleTestCase):
+    """DRD §5.6 [P1-3·P2-1]: Bronze 행 → hop_pipeline 줄(공용 규칙 `summarize_changes`)과 outbox → 파이프라인 대조. C4 탐지(누락·내용 변경·중복)와 DRD 0.67 의 경우들."""
+
+    def case_the_same_events_match_with_zero_counts(self):
+        afters = [after(1), after(2), after(3, name="ad.charge")]
+        lines, open_windows, extra = fold([change(a) for a in afters])
+        self.assertEqual({k: (l["count"], l["duplicates"], l["conflicts"], l["not_insert"]) for k, l in lines.items()},
+                         {("05", "ad.decision"): (2, 0, 0, 0), ("05", "ad.charge"): (1, 0, 0, 0)})
+        self.assertEqual((open_windows, extra["not_insert_unplaced"], extra["foreign_source_rows"]), ([], 0, 0))
+        self.assertEqual(pair(outbox_hop(afters), pipeline_hop([change(a) for a in afters])), [("05", "ad.charge", "match", []), ("05", "ad.decision", "match", [])])
+
+    def case_c4_detection_loss_content_change_and_duplicates(self):
+        afters = [after(1), after(2)]
+        lost = pair(outbox_hop(afters), pipeline_hop([change(after(1))]))
+        self.assertEqual(lost, [("05", "ad.decision", "mismatch", ["count", "ids_sha256", "content_sha256"])])
+        changed = pair(outbox_hop(afters), pipeline_hop([change(after(1)), change(after(2, payload='{"n": 99}'))]))
+        self.assertEqual(changed, [("05", "ad.decision", "mismatch", ["content_sha256"])])
+        replay = [change(after(1)), change(after(2)), change(after(2), op="r")]  # 재발행 op=r 은 c 와 같은 문서 — 중복은 match 를 막지 않는다
+        lines, _, extra = fold(replay)
+        self.assertEqual(lines[("05", "ad.decision")]["duplicates"], 1)
+        self.assertEqual(extra["duplicate_examples"], [{"event_id": after(2)["event_id"], "partition": 0, "offset": 2}])
+        self.assertEqual(pair(outbox_hop(afters), pipeline_hop(replay)), [("05", "ad.decision", "match", [])])
+
+    def case_payload_notation_is_not_a_conflict(self):
+        """payload 는 해석한 값으로 비교한다 — 공백·키 순서·1 과 1.0 은 같은 내용이다(DRD §5.6 (5))."""
+        lines, _, _ = fold([change(after(2, payload='{"n": 2, "m": "x"}')), change(after(2, payload='{ "m":"x","n":2.0 }'), op="r")])
+        self.assertEqual((lines[("05", "ad.decision")]["duplicates"], lines[("05", "ad.decision")]["conflicts"]), (1, 0))
+
+    def case_conflicting_copies_count_on_every_line_they_land_on(self):
+        """충돌 열에 created_at 이 있어 사본이 다른 창에 놓인다 — 그 event_id 는 건수·해시에서 빠지고 사본이 놓인 두 줄 모두 conflicts 1, count 0 줄도 낸다."""
+        afters = [after(1), after(2)]
+        copies = [change(after(1)), change(after(2)), change(after(2, at=T5 + timedelta(hours=1)), op="r")]
+        lines, _, extra = fold(copies)
+        self.assertEqual({k: (l["count"], l["conflicts"], l["duplicates"]) for k, l in lines.items()}, {("05", "ad.decision"): (1, 1, 0), ("06", "ad.decision"): (0, 1, 0)})
+        self.assertEqual(lines[("06", "ad.decision")]["ids_sha256"], hop_rules.EMPTY_SHA256)
+        self.assertEqual([(e["event_id"], e["offset"]) for e in extra["conflict_examples"]], [(after(2)["event_id"], 1), (after(2)["event_id"], 2)])
+        self.assertEqual(pair(outbox_hop(afters), pipeline_hop(copies)),
+                         [("05", "ad.decision", "mismatch", ["count", "ids_sha256", "content_sha256", "conflicts"]), ("06", "ad.decision", "mismatch", ["line_missing_in_a", "conflicts"])])
+
+    def case_three_copies_with_one_different_are_a_conflict_not_a_duplicate(self):
+        same, other = change(after(2), op="r"), change(after(2, aggregate="agg-2"), op="r")  # 둘은 같고 하나만 aggregate_id 가 다름
+        for copies in ([change(after(2)), same, other], [change(after(2)), other, same]):  # 다른 사본이 끝에 와도, 가운데 와도(뒤의 같은 사본이 충돌을 지우지 않는다)
+            with self.subTest(order=[json.loads(v)["after"]["aggregate_id"] for _, v in copies]):
+                lines, _, _ = fold(copies)
+                self.assertEqual({k: (l["count"], l["duplicates"], l["conflicts"]) for k, l in lines.items()}, {("05", "ad.decision"): (0, 0, 1)})
+
+    def case_not_insert_counts_on_the_line_of_its_after(self):
+        """op 가 c·r 가 아닌 행(u)은 자기 after 의 줄에 not_insert — 같은 event_id 의 c 행은 그대로 센다. 다른 줄이면 count 0 줄, 열린 창이면 줄에 넣지 않는다."""
+        afters = [after(1), after(2)]
+        same_line = [change(after(1)), change(after(2)), change(after(2), op="u")]
+        lines, _, extra = fold(same_line)
+        self.assertEqual((lines[("05", "ad.decision")]["count"], lines[("05", "ad.decision")]["not_insert"]), (2, 1))
+        self.assertEqual(extra["not_insert_examples"], [{"event_id": after(2)["event_id"], "partition": 0, "offset": 2}])
+        self.assertEqual(pair(outbox_hop(afters), pipeline_hop(same_line)), [("05", "ad.decision", "mismatch", ["not_insert"])])  # 건수·해시가 같아도
+        other_line = same_line[:2] + [change(after(9, at=T5 + timedelta(hours=2)), op="u"), change(after(10, at=LATER - timedelta(seconds=30)), op="u")]
+        lines, open_windows, _ = fold(other_line)
+        self.assertEqual((lines[("07", "ad.decision")]["count"], lines[("07", "ad.decision")]["not_insert"]), (0, 1))
+        self.assertEqual(open_windows, ["2026-10-07T23:00:00Z"])  # 아직 열린 창의 행은 줄에 넣지 않는다
+        self.assertEqual(pair(outbox_hop(afters), pipeline_hop(other_line))[1:2], [("07", "ad.decision", "mismatch", ["line_missing_in_a", "not_insert"])])
+
+    def case_since_drops_older_windows_of_every_count(self):
+        """since 앞 창은 줄에 넣지 않는다 — 문서뿐 아니라 duplicates·conflicts·not_insert 만 남는 줄도(DRD §5.6 (6), 설계 01 S1)."""
+        six = T5 + timedelta(hours=1)
+        rows = [change(after(1)), change(after(1), op="r"), change(after(2)), change(after(2, aggregate="x"), op="r"), change(after(3), op="u"),  # 05시: 중복·충돌·not_insert
+                change(after(4, at=six)), change(after(4, at=six), op="r"), change(after(5, at=six), op="u")]  # 06시: 문서 하나·중복·not_insert
+        lines, open_windows, _ = hop_rules.summarize_changes([(k, v, 0, offset) for offset, (k, v) in enumerate(rows)], SOURCE_DB, LATER, 120,
+                                                             since=datetime(2026, 10, 7, 6, tzinfo=UTC), size=hop_rules.HOUR)
+        self.assertEqual([(l["window_start"], l["count"], l["duplicates"], l["conflicts"], l["not_insert"]) for l in lines], [("2026-10-07T06:00:00Z", 1, 1, 0, 1)])
+        self.assertEqual(open_windows, [])
+
+    def case_a_created_at_without_time_zone_stops_the_summary(self):
+        """시간대 없는 created_at 은 지역 시각으로 읽혀 창이 조용히 어긋나므로, 형식이 깨진 after 로 보고 멈춘다(Debezium 은 늘 Z 를 붙인다)."""
+        with self.assertRaisesRegex(ValueError, "시간대가 없다"):
+            fold([change(after(1) | {"created_at": "2026-10-07T05:10:00.123456"})])
+
+    def case_rows_that_cannot_be_placed_or_come_from_elsewhere_fail_the_pair(self):
+        """DELETE(op d)·tombstone(value null)·TRUNCATE(op t, 키 없음)는 어느 줄에도 놓을 수 없고, 다른 DB 의 행은 다른 출처다 — checkpoint 에 세고 그 쌍은 대조하지 않는다."""
+        base = [change(after(1))]
+        for bad, field, event_id in ((change(after(2), op="d"), "not_insert_unplaced", after(2)["event_id"]), (change(after(2), tombstone=True), "not_insert_unplaced", after(2)["event_id"]),
+                                     (change(after(2), op="t", keyless=True), "not_insert_unplaced", None), (change(after(2), db="other_db"), "foreign_source_rows", None)):
+            with self.subTest(field=field, event_id=event_id):
+                lines, _, extra = fold(base + [bad])
+                self.assertEqual((extra["not_insert_unplaced"] + extra["foreign_source_rows"], extra[field]), (1, 1))
+                self.assertEqual(lines[("05", "ad.decision")]["count"], 1)  # 정상 행은 그대로 센다
+                if field == "not_insert_unplaced":
+                    self.assertEqual(extra["not_insert_unplaced_examples"], [{"event_id": event_id, "partition": 0, "offset": 1}])
+                with self.assertRaisesRegex(hopcheck.HopInputError, f"pipeline 은 대조하지 않는다: {field} 1건"):
+                    hopcheck.compare(outbox_hop([after(1)]), pipeline_hop(base + [bad]), use_unsent=False)
+
+    def case_a_different_rule_version_is_not_compared(self):
+        """설계 01 S5: 파이프라인 사본의 규칙 파일이 광고 서버의 hop_rules.py 와 다르면 대조하지 않는다."""
+        with self.assertRaisesRegex(hopcheck.HopInputError, "rule_sha256 0{64} 이 이 광고 서버의 공용 요약 규칙"):
+            hopcheck.compare(outbox_hop([after(1)]), pipeline_hop([change(after(1))], rule_sha256="0" * 64), use_unsent=False)
+
+    def case_unsent_rows_do_not_excuse_a_pipeline_shortfall(self):
+        """설계 01 D11: CDC 는 sent_at 을 채우지 않으므로 outbox → 파이프라인은 미전송을 지연 근거로 쓰지 않는다(인자로 끈다)."""
+        afters = [after(1), after(2)]
+        self.assertEqual(pair(outbox_hop(afters, unsent=1), pipeline_hop([change(after(1))]))[0][2], "relay_lag_candidate")  # 끄지 않으면(기본) 지연으로 보인다
+        self.assertEqual(pair(outbox_hop(afters, unsent=1), pipeline_hop([change(after(1))]), use_unsent=False)[0][2], "mismatch")
+        short_with_update = pipeline_hop([change(after(1)), change(after(2), op="u")])  # 부족 1 + not_insert 1 — 기본값으로 불러도 원인이 지연 후보로 가려지지 않는다
+        self.assertEqual(pair(outbox_hop(afters, unsent=1), short_with_update), [("05", "ad.decision", "mismatch", ["count", "ids_sha256", "content_sha256", "not_insert"])])
+
+    def case_a_window_is_confirmed_only_when_every_line_of_it_matches(self):
+        """설계 01 D8 구현 규칙 1: outbox → 파이프라인 줄이 모두 match 인 닫힌 창만 확정. 병행 기간에는 같은 창의 outbox → MongoDB 도 match 여야 한다."""
+        def row(pair, hour, status, name="ad.decision"):
+            return {"pair": pair, "window_start": f"2026-10-07T{hour}:00:00Z", "event_name": name, "status": status}
+        p, m = hopcheck.PIPELINE_PAIR, hopcheck.MONGO_PAIR
+        rows = [row(p, "05", "match"), row(p, "05", "match", "ad.charge"),  # 05시: 모두 match
+                row(p, "06", "match"), row(p, "06", "mismatch", "ad.charge"),  # 06시: 한 줄 불일치
+                row(p, "07", "open_window"), row(p, "07", "open_window", None),  # 07시: 열린 창 — 판정하지 않음
+                row(p, "08", "match"), row(m, "08", "relay_lag_candidate"),  # 08시: 파이프라인은 match, MongoDB 는 지연 후보
+                row(m, "09", "mismatch"),  # 09시: outbox → 파이프라인 줄이 없다 — 판정하지 않음
+                row("hop_source->hop_outbox", "10", "mismatch")]  # 다른 쌍은 보지 않는다
+        self.assertEqual(hopcheck.judge_windows(rows, with_mongo=True), (["2026-10-07T05:00:00Z"], ["2026-10-07T06:00:00Z", "2026-10-07T08:00:00Z"]))
+        self.assertEqual(hopcheck.judge_windows(rows, with_mongo=False), (["2026-10-07T05:00:00Z", "2026-10-07T08:00:00Z"], ["2026-10-07T06:00:00Z"]))
+
+    def case_verdict_windows_are_offset_ranges_that_fit_the_audit_limit(self):
+        """감사 detail 은 4,000자를 넘으면 통째로 잘린다 — 창 목록은 가장 이른 창에서 센 오프셋 구간으로 적는다(매일 대사의 8일치 시간 창 192개도 몇 구간)."""
+        hours = [f"2026-10-07T{h:02d}:00:00Z" for h in (0, 1, 2, 5)]
+        detail = hopcheck.verdict_detail("utc-hour", None, hours, ["2026-10-07T03:00:00Z"], {"hop_outbox": "a" * 64, "pipeline": "b" * 64}, True)
+        self.assertEqual((detail["base"], detail["confirmed"], detail["unconfirmed"]), ("2026-10-07T00:00:00Z", [[0, 2], [5, 5]], [[3, 3]]))
+        week = [hop_rules.format_time(T5.replace(minute=0, second=0, microsecond=0) + timedelta(hours=k)) for k in range(192)]
+        big = hopcheck.verdict_detail("utc-hour", "2026-10-07T05:00:00Z", week[::2], week[1::2], {"hop_outbox": "a" * 64, "hop_mongo": "c" * 64, "pipeline": "b" * 64}, True,
+                                      reason="r" * 500)  # 확정·미확정이 번갈아도(가장 나쁜 모양)
+        self.assertLess(len(json.dumps(big, ensure_ascii=False)), 4000)
+        self.assertEqual(hopcheck.span(["2026-10-07T05:00:00Z", "2026-10-07T08:00:00Z"], "utc-hour"), [f"2026-10-07T0{h}:00:00Z" for h in (5, 6, 7, 8)])
+
+    def test_pipeline_pair(self):
+        self.run_cases()
+
+
 A64, B64 = "a" * 64, "b" * 64  # 형식이 맞는 해시
 
 
@@ -143,6 +332,8 @@ class InputValidationTests(Cases, SimpleTestCase):
             checkpoint["hop"] = hop_field
         if "unresolved" in extra:
             checkpoint["unresolved_charges"] = extra["unresolved"]
+        if "since" in extra:
+            checkpoint["since"] = extra["since"]
         if "hidden" in extra:
             checkpoint |= {"not_comparable_windows": extra["not_comparable"], "not_comparable_unsent": extra["hidden"]}
         ndjson.write(directory, "h", lines, kind, schema_version, checkpoint=checkpoint)
@@ -204,6 +395,35 @@ class InputValidationTests(Cases, SimpleTestCase):
             with self.subTest(hidden=hidden), self.assertRaises(hopcheck.HopInputError):
                 self.load(self.publish([], kind="hop_outbox", not_comparable=[W], hidden=hidden), "hop_outbox")
 
+    def case_the_range_start_must_be_a_utc_hour_or_null(self):
+        """DRD §5.6: checkpoint.since 는 UTC 정시(YYYY-MM-DDTHH:00:00Z) 또는 null — 날짜만 쓴 옛 형식·분이 있는 시각·다른 표기·문자열이 아닌 값은 입력 실패다."""
+        for since in (None, "2026-10-07T05:00:00Z"):
+            self.assertEqual(self.load(self.publish([self.day()], since=since)).since, since)
+        for since in ("2026-10-07", "2026-10-07T05:30:00Z", "2026-10-07T05:00:00+00:00", "2026-10-7T5:00:00Z", 5, ["2026-10-07T05:00:00Z"]):  # 0 을 채우지 않은 표기도
+            with self.subTest(since=since), self.assertRaises(hopcheck.HopInputError):
+                self.load(self.publish([self.day()], since=since))
+
+    def case_a_pipeline_manifest_must_carry_its_counts_examples_and_rule_version(self):
+        """DRD §5.6 "입력 검증" [P1-3]: hop_pipeline 의 줄마다 duplicates·conflicts·not_insert, checkpoint 의 두 건수·예시 넷·rule_sha256 은 필수다."""
+        lines, open_windows, extra = hop_rules.summarize_changes([(*change(after(1)), 0, 0), (*change(after(1), op="r"), 0, 1)], SOURCE_DB, LATER, 120, size=hop_rules.HOUR)
+
+        def publish(lines=lines, **checkpoint):
+            directory = Path(tempfile.mkdtemp())
+            self.addCleanup(shutil.rmtree, directory, True)
+            full = {"window": "utc-hour", "open_windows": [], "rule_sha256": hop_rules.rule_sha256(), **extra, **checkpoint}
+            ndjson.write(directory, "h", lines, "hop_pipeline", 1, checkpoint={k: v for k, v in full.items() if v is not ...})
+            return ndjson.manifest_path(directory, "h")
+        loaded = self.load(publish(), "pipeline")
+        self.assertEqual(next(iter(loaded.lines.values()))["duplicates"], 1)  # 공용 규칙의 출력이 계약 검사를 통과한다
+        bad_lines = [[{k: v for k, v in lines[0].items() if k != field}] for field in hop_rules.PIPELINE_COUNTS] + [[lines[0] | {"conflicts": True}], [lines[0] | {"not_insert": -1}]]
+        bad_checkpoints = [{"not_insert_unplaced": ...}, {"foreign_source_rows": "0"}, {"rule_sha256": ...}, {"rule_sha256": "A" * 64}, {"duplicate_examples": ...},
+                           {"conflict_examples": [{"event_id": 1, "partition": 0, "offset": 0}]}, {"not_insert_examples": [{"event_id": None, "partition": -1, "offset": 0}]},
+                           {"not_insert_unplaced_examples": [{"event_id": None, "partition": 0, "offset": 0}] * 11},
+                           {"duplicate_examples": [{"partition": 0, "offset": 0}]}, {"conflict_examples": [{"event_id": None, "partition": 0, "offset": 0, "topic": "t"}]}]  # 키는 정확히 셋
+        for kw in [{"lines": l} for l in bad_lines] + bad_checkpoints:
+            with self.subTest(kw=kw), self.assertRaises(hopcheck.HopInputError):
+                self.load(publish(**kw), "pipeline")
+
     def case_malformed_checkpoints_are_refused_not_raised(self):
         """리팩터 감사 D3: checkpoint 가 객체가 아니거나 창 크기가 문자열이 아니거나 창 목록·과금 예시가 문자열 목록이 아니면 날것의 예외(대조 전체가 멈춘다)가 아니라 `HopInputError` 다."""
         for checkpoint in ([1], {"window": "utc-day", "open_windows": 5}, {"window": "utc-day", "open_windows": [[1]]}, {"window": "utc-day", "not_comparable_windows": "W"},
@@ -252,21 +472,36 @@ class VerifyHopsCommandTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         view, _ = records.receive_reaction(w.slot.media_id, decision.decision_id, uuid.uuid4(), "IMPRESSION", NOW, {"type": "IMPRESSION"}, now=NOW)
         records.process_reaction(view.inbox_id, now=NOW + timedelta(seconds=7))
 
-    def export(self):
+    def export(self, folder="hops", window="day"):
         # 시험 데이터의 날짜는 고정(2026-10-07)이다 — 실제 지금으로 내보내면 보존 기준(지금 − 7일)이 그 창을 넘는 날부터 대조 제외가 된다(6-14d)
-        call_command("export_hop_manifests", "--out", str(self.dir / "hops"), "--as-of", (NOW + timedelta(days=3)).isoformat(), stdout=io.StringIO())
+        call_command("export_hop_manifests", "--out", str(self.dir / folder), "--window", window, "--as-of", (NOW + timedelta(days=3)).isoformat(), stdout=io.StringIO())
 
-    def verify(self, *flags):
+    def verify(self, *flags, folder="hops"):
         out = io.StringIO()
         try:
-            call_command("verify_hops", "--dir", str(self.dir / "hops"), *flags, stdout=out)
+            call_command("verify_hops", "--dir", str(self.dir / folder), *flags, stdout=out)
             return True, out.getvalue()
         except CommandError as error:
             return False, out.getvalue() + str(error)
 
-    def lines(self, hop_name):
-        manifest = ndjson.read_manifest(ndjson.manifest_path(self.dir / "hops", hop_name))
-        return [json.loads(l) for l in (self.dir / "hops" / manifest["file"]).read_text().splitlines()]
+    def lines(self, hop_name, folder="hops"):
+        manifest = ndjson.read_manifest(ndjson.manifest_path(self.dir / folder, hop_name))
+        return [json.loads(l) for l in (self.dir / folder / manifest["file"]).read_text().splitlines()]
+
+    def exception(self, *flags):
+        out = io.StringIO()
+        try:
+            call_command("record_hop_exception", *flags, stdout=out)
+            return True, out.getvalue()
+        except CommandError as error:
+            return False, out.getvalue() + str(error)
+
+    def pipeline(self, lines, **checkpoint):
+        """계약 모양의 파이프라인 manifest(DRD §5.6 [P1-3] — 줄의 세 건수·checkpoint 필수 필드·이 광고 서버의 rule_sha256)를 쓰고 경로를 돌려준다."""
+        full = {"open_windows": [], "window": "utc-day", "rule_sha256": hop_rules.rule_sha256(), "not_insert_unplaced": 0, "foreign_source_rows": 0,
+                **{field: [] for field in hop_rules.EXAMPLE_FIELDS}, **checkpoint}
+        ndjson.write(self.dir / "pipeline", "pipeline", [{"duplicates": 0, "conflicts": 0, "not_insert": 0} | l for l in lines], "hop_pipeline", 1, checkpoint=full)
+        return str(ndjson.manifest_path(self.dir / "pipeline", "pipeline"))
 
     def case_everything_matches_after_the_relay(self):
         relay_batch()
@@ -358,21 +593,40 @@ class VerifyHopsCommandTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.assertIn("hop_mongo", text)
         self.assertIn("검증 실패", text)
 
-    def case_a_pipeline_manifest_is_compared_with_the_mongodb_hop(self):
+    def case_a_pipeline_manifest_is_compared_with_the_outbox_and_mongodb_hops(self):
+        """DRD §5.6 [P1-3]: 파이프라인 manifest 는 outbox 구간과 대조하고, 로컬 병행 기간에는 MongoDB 구간과도 대조한다."""
         relay_batch()
         self.export()
-        pipeline_dir = self.dir / "pipeline"
         mongo_lines = self.lines("hop_mongo")
-        ndjson.write(pipeline_dir, "pipeline", mongo_lines, "hop_pipeline", 1, checkpoint={"open_windows": [], "window": "utc-day"})
-        ok, text = self.verify("--pipeline", str(ndjson.manifest_path(pipeline_dir, "pipeline")))
+        ok, text = self.verify("--pipeline", self.pipeline(mongo_lines))
         self.assertTrue(ok, text)
-        self.assertIn("'match': 32", text)  # 네 쌍 × 8줄
+        self.assertIn("'match': 40", text)  # 다섯 쌍 × 8줄
         bad = [dict(l, content_sha256="0" * 64) if l["event_name"] == "ad.charge" else l for l in mongo_lines]
-        ndjson.write(pipeline_dir, "pipeline", bad, "hop_pipeline", 1, checkpoint={"open_windows": [], "window": "utc-day"})
-        ok, text = self.verify("--pipeline", str(ndjson.manifest_path(pipeline_dir, "pipeline")))
+        ok, text = self.verify("--pipeline", self.pipeline(bad))
         self.assertFalse(ok)
-        self.assertIn("hop_mongo->pipeline", text)
+        for pair in ("hop_outbox->pipeline", "hop_mongo->pipeline"):
+            self.assertIn(f"FAIL {pair} ", text)
         self.assertIn("content_sha256", text)
+
+    def case_a_pipeline_manifest_with_another_range_start_is_not_compared(self):
+        """설계 01 S1 (가): 파이프라인 manifest 의 범위 시작이 광고 서버 manifest 와 다르면 그 쌍은 대조하지 않고 실패한다(옛 창이 '빠짐'으로 쏟아지지 않게)."""
+        relay_batch()
+        self.export()
+        ok, text = self.verify("--pipeline", self.pipeline(self.lines("hop_mongo"), since="2026-10-07T00:00:00Z"))
+        self.assertFalse(ok)
+        self.assertIn("FAIL pipeline: 범위(checkpoint.since)가 다른 manifest 는 대조하지 않는다: hop_outbox=None, pipeline=2026-10-07T00:00:00Z", text)
+        self.assertEqual(text.count("FAIL pipeline:"), 1)  # 두 쌍에 같은 실패라 한 번만
+        self.assertNotIn("->pipeline", text)  # 줄 대조를 하지 않았다
+
+    def case_rows_the_pipeline_could_not_place_fail_the_pair(self):
+        """DRD §5.6 [P1-3]: 놓을 수 없는 행(DELETE·tombstone·TRUNCATE)이나 다른 출처 행이 있으면 커넥터 설정 이상이라 그 쌍은 대조하지 않고 실패한다."""
+        relay_batch()
+        self.export()
+        for field in ("not_insert_unplaced", "foreign_source_rows"):
+            ok, text = self.verify("--pipeline", self.pipeline(self.lines("hop_mongo"), **{field: 1}))
+            self.assertFalse(ok, field)
+            self.assertIn(f"FAIL pipeline: pipeline 은 대조하지 않는다: {field} 1건(커넥터 설정 이상", text)
+            self.assertNotIn("->pipeline", text)
 
     def case_a_pipeline_shortfall_is_not_excused_by_unsent_outbox_rows(self):
         """버그 탐색 B4: outbox 미전송은 MongoDB 에도 아직 없으므로 파이프라인이 MongoDB 보다 적은 이유가 될 수 없다 — 확정 불일치."""
@@ -380,12 +634,184 @@ class VerifyHopsCommandTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         row = EventOutbox.objects.filter(event_name="ad.decision").first()
         EventOutbox.objects.filter(pk=row.pk).update(sent_at=None)  # MongoDB 에는 이미 있지만 outbox 로는 미전송 1
         self.export()
-        pipeline_dir = self.dir / "pipeline"
         short = [dict(l, count=l["count"] - 1, ids_sha256="0" * 64) if l["event_name"] == "ad.decision" else l for l in self.lines("hop_mongo")]
-        ndjson.write(pipeline_dir, "pipeline", short, "hop_pipeline", 1, checkpoint={"open_windows": [], "window": "utc-day"})
-        ok, text = self.verify("--pipeline", str(ndjson.manifest_path(pipeline_dir, "pipeline")))
+        ok, text = self.verify("--pipeline", self.pipeline(short))
         self.assertFalse(ok)
         self.assertIn("FAIL hop_mongo->pipeline", text)
+        self.assertIn("FAIL hop_outbox->pipeline", text)  # outbox → 파이프라인도 미전송을 지연 근거로 쓰지 않는다(CDC 는 sent_at 을 채우지 않는다, D11)
+
+    def case_a_late_row_after_a_confirmed_window_undoes_the_confirmation(self):
+        """설계 01 S3 (가)·계획 02 P1-4 끝 조건: 한 번 확정된 창에 늦은 행이 생기면 다음 판정이 미확정으로 남기고, 마지막 판정이 이긴다."""
+        relay_batch()
+        self.export()
+        pipeline = self.pipeline(self.lines("hop_mongo"))
+        ok, text = self.verify("--pipeline", pipeline)
+        self.assertTrue(ok, text)
+        self.assertIn("판정 기록: 확정 1창 · 미확정 0창(창 utc-day, MongoDB 쌍 포함)", text)
+        self.assertEqual(hopcheck.window_verdicts("utc-day"), {"2026-10-07T00:00:00Z": True})
+        late = World()  # 같은 창(10-07)에 늦게 커밋된 행 — MongoDB 로는 갔지만 파이프라인 manifest 에는 아직 없다
+        records.decide(late.slot.media_id, late.slot.slot_id, subject_id=SUBJECT, now=NOW, rng=Random(2))
+        relay_batch()
+        self.export()
+        ok, text = self.verify("--pipeline", pipeline)
+        self.assertFalse(ok)
+        self.assertIn("FAIL hop_outbox->pipeline 2026-10-07T00:00:00Z ad.decision", text)
+        self.assertIn("판정 기록: 확정 0창 · 미확정 1창", text)
+        self.assertEqual(hopcheck.window_verdicts("utc-day"), {"2026-10-07T00:00:00Z": False})
+        first, second = AuditLog.objects.filter(action=hopcheck.CONFIRM_ACTION).order_by("log_id").values_list("detail", flat=True)
+        self.assertEqual((first["confirmed"], first["unconfirmed"], second["confirmed"], second["unconfirmed"]), ([[0, 0]], [], [], [[0, 0]]))
+        self.assertEqual((second["base"], second["since"], second["with_mongo"], sorted(second["inputs"])), ("2026-10-07T00:00:00Z", None, True, ["hop_mongo", "hop_outbox", "pipeline"]))
+        self.assertEqual(second["inputs"]["pipeline"], ndjson.manifest_sha256(pipeline))
+
+    def case_a_pipeline_that_cannot_be_judged_leaves_every_outbox_window_unconfirmed(self):
+        """파이프라인 쪽을 판정할 수 없으면(놓을 수 없는 행 등) 앞의 확정이 남지 않게 outbox 범위의 모든 창을 미확정으로, 이유와 함께 남긴다(확정 전에는 지우지 않는다 — D8)."""
+        relay_batch()
+        self.export()
+        self.assertTrue(self.verify("--pipeline", self.pipeline(self.lines("hop_mongo")))[0])
+        ok, text = self.verify("--pipeline", self.pipeline(self.lines("hop_mongo"), not_insert_unplaced=1))
+        self.assertFalse(ok)
+        self.assertIn("판정 기록: 확정 0창 · 미확정 1창", text)
+        detail = AuditLog.objects.filter(action=hopcheck.CONFIRM_ACTION).order_by("-log_id").values_list("detail", flat=True).first()
+        self.assertEqual((detail["confirmed"], detail["unconfirmed"], "pipeline" in detail["inputs"]), ([], [[0, 0]], False))
+        self.assertIn("파이프라인 쪽을 판정할 수 없다: pipeline 은 대조하지 않는다: not_insert_unplaced 1건", detail["reason"])
+        self.assertEqual(hopcheck.window_verdicts("utc-day"), {"2026-10-07T00:00:00Z": False})
+
+    def case_unverified_outbox_inputs_record_no_verdict_but_say_so(self):
+        """이 DB 의 내보내기와 이어지지 않는 판정은 정리 근거가 될 수 없다 — 고정점이 다르면 기록하지 않고 실패하며, --no-anchor 면 기록하지 않았다고 적는다(조용히 넘어가지 않음)."""
+        relay_batch()
+        self.export()
+        pipeline = self.pipeline(self.lines("hop_mongo"))
+        ok, text = self.verify("--pipeline", pipeline, "--no-anchor")
+        self.assertTrue(ok, text)
+        self.assertIn("판정 기록: 남기지 않음 — --no-anchor", text)
+        ndjson.write(self.dir / "hops", "hop_source", [], "hop_source", 1, checkpoint={"hop": "hop_source", "window": "utc-day", "open_windows": []}, chain=True)  # 내보내기 밖 게시
+        ok, text = self.verify("--pipeline", pipeline)
+        self.assertFalse(ok)
+        self.assertIn("고정점", text)
+        self.assertIn("판정 기록: 남기지 않음 — 광고 서버 쪽 입력 오류 1건(위 FAIL)", text)
+        self.assertFalse(AuditLog.objects.filter(action=hopcheck.CONFIRM_ACTION).exists())
+
+    def case_the_mongodb_condition_follows_the_setting(self):
+        """설계 01 D17: 로컬 병행 기간(설정 켬)에는 같은 창의 outbox → MongoDB 도 match 여야 확정이다 — 중계가 밀린 창(지연 후보)은 미확정, 운영(끔)은 파이프라인 쌍만 본다."""
+        self.export()  # 중계 전: MongoDB 는 비어 outbox → MongoDB 가 지연 후보
+        pipeline = self.pipeline([{k: v for k, v in l.items() if k != "unsent"} for l in self.lines("hop_outbox")])
+        _ok, text = self.verify("--pipeline", pipeline)  # MongoDB → 파이프라인은 불일치로 실패한다(그대로) — 여기서는 판정 기록만 본다
+        self.assertIn("LAG  hop_outbox->hop_mongo 2026-10-07T00:00:00Z", text)
+        self.assertNotIn("FAIL hop_outbox->pipeline", text)  # 파이프라인 쌍은 모두 match
+        self.assertIn("판정 기록: 확정 0창 · 미확정 1창(창 utc-day, MongoDB 쌍 포함)", text)
+        with override_settings(EVENTS_HOP_CONFIRM_WITH_MONGO=False):
+            _ok, text = self.verify("--pipeline", pipeline)
+        self.assertIn("판정 기록: 확정 1창 · 미확정 0창(창 utc-day)", text)
+        last = AuditLog.objects.filter(action=hopcheck.CONFIRM_ACTION).order_by("-log_id").values_list("detail", flat=True).first()
+        self.assertEqual((last["with_mongo"], sorted(last["inputs"])), (False, ["hop_outbox", "pipeline"]))
+        self.assertEqual(hopcheck.window_verdicts("utc-day"), {"2026-10-07T00:00:00Z": True})
+
+    def case_a_verdict_too_large_for_the_audit_is_replaced_by_an_unconfirmed_span(self):
+        """감사 detail 은 크기 한도를 넘으면 통째로 잘린다 — 판정이 사라져 앞의 확정이 남지 않게, 전 범위(사이의 빈 창까지)를 미확정 한 구간으로 다시 남기고 실패한다."""
+        gap = World()  # 12시에 더해 14시에도 이벤트 — 13시는 빈 창
+        records.decide(gap.slot.media_id, gap.slot.slot_id, subject_id=SUBJECT, now=NOW + timedelta(hours=2), rng=Random(3))
+        relay_batch()
+        self.export(folder="hours", window="hour")
+        with mock.patch("foundation.audit._MAX_DETAIL_JSON", 380):  # 판정 기록(입력 해시 셋 포함)은 넘고, 대신 남기는 기록(해시 없음)은 들어가는 크기
+            ok, text = self.verify("--pipeline", self.pipeline(self.lines("hop_mongo", folder="hours"), window="utc-hour"), folder="hours")
+        self.assertFalse(ok)
+        self.assertIn("판정 기록이 감사 detail 크기 한도를 넘어 전 범위를 미확정으로 남겼다", text)
+        first, fallback = AuditLog.objects.filter(action=hopcheck.CONFIRM_ACTION).order_by("log_id").values_list("detail", flat=True)
+        self.assertEqual((first, fallback["unconfirmed"], fallback["confirmed"], fallback["inputs"]), ({"truncated": True}, [[0, 2]], [], {}))  # 구간 하나 — 늘 들어간다
+        self.assertEqual(hopcheck.window_verdicts("utc-hour"), {f"2026-10-07T{h}:00:00Z": False for h in (12, 13, 14)})
+
+    def case_a_known_exception_is_recorded_with_its_recorder_and_read_back(self):
+        """설계 01 D16: 사람이 사건을 확인한 창을 '알려진 예외'로 남긴다 — 기록자(관리자 계정은 actor, OS 로그인 이름은 detail), 창(오프셋 구간), 사유, 사건 번호. 창 크기별로 읽고, 다시 기록하면 나중 것이 이긴다."""
+        admin = make_admin()
+        ok, text = self.exception("--window", "hour", "--start", "2026-10-07T12:00:00Z", "--start", "2026-10-07T14:00:00Z", "--start", "2026-10-07T12:00:00Z",
+                                  "--reason", "Bronze 에만 있는 유령 확인", "--incident", "INC-1", "--by", admin.username)
+        self.assertTrue(ok, text)
+        self.assertIn(f"알려진 예외 기록: 2창(창 utc-hour, 사건 INC-1, 기록자 {admin.username}·", text)
+        log = AuditLog.objects.get(action=hopcheck.EXCEPTION_ACTION)
+        self.assertEqual((log.actor_id, log.actor_username), (admin.pk, admin.username))
+        self.assertEqual(log.detail, {"pair": "hop_outbox->pipeline", "window": "utc-hour", "base": "2026-10-07T12:00:00Z", "windows": [[0, 0], [2, 2]],
+                                      "reason": "Bronze 에만 있는 유령 확인", "incident": "INC-1", "os_user": getpass.getuser()})
+        found = hopcheck.window_exceptions("utc-hour")
+        self.assertEqual({k: (v["incident"], v["recorded_at"]) for k, v in found.items()},
+                         {"2026-10-07T12:00:00Z": ("INC-1", log.created_at), "2026-10-07T14:00:00Z": ("INC-1", log.created_at)})  # 기록일 = 감사 created_at(정리의 30일 기준)
+        self.assertEqual(hopcheck.window_exceptions("utc-day"), {})
+        self.assertTrue(self.exception("--window", "hour", "--start", "2026-10-07T14:00:00Z", "--reason", "재확인", "--incident", "INC-2", "--by", admin.username)[0])
+        self.assertEqual({k: v["incident"] for k, v in hopcheck.window_exceptions("utc-hour").items()}, {"2026-10-07T12:00:00Z": "INC-1", "2026-10-07T14:00:00Z": "INC-2"})
+
+    def case_an_exception_is_refused_for_a_bad_recorder_or_window(self):
+        """기록자는 활성 관리자 계정이어야 하고, 창은 그 크기의 UTC 경계·닫힌 창·마지막 판정이 확정이 아닌 창이어야 한다 — 어기면 아무것도 남기지 않는다."""
+        admin, inactive, advertiser = make_admin(), make_admin(), World().adv
+        inactive.is_active = False
+        inactive.save()
+        relay_batch()
+        self.export()
+        self.assertTrue(self.verify("--pipeline", self.pipeline(self.lines("hop_mongo")))[0])  # 10-07 하루 창은 확정
+        current_hour = hop_rules.format_time(hop_rules.window_start(datetime.now(timezone.utc), hop_rules.HOUR))
+        ok_args = ["--reason", "r", "--incident", "INC-9"]
+        for flags, message in (
+                (["--window", "day", "--start", "2026-10-06T00:00:00Z", "--by", "없는계정"], "활성 관리자"),
+                (["--window", "day", "--start", "2026-10-06T00:00:00Z", "--by", advertiser.username], "활성 관리자"),
+                (["--window", "day", "--start", "2026-10-06T00:00:00Z", "--by", inactive.username], "활성 관리자"),
+                (["--window", "day", "--start", "2026-10-06T05:00:00Z", "--by", admin.username], "UTC 경계"),
+                (["--window", "day", "--start", "2026-10-6T00:00:00Z", "--by", admin.username], "UTC 경계"),
+                (["--window", "day", "--start", "어제", "--by", admin.username], "형식"),
+                (["--window", "hour", "--start", current_hour, "--by", admin.username], "닫히지 않은"),
+                (["--window", "day", "--start", "2026-10-06T00:00:00Z", "--start", "2026-10-07T00:00:00Z", "--by", admin.username], "확정인 창")):
+            ok, text = self.exception(*flags, *ok_args)
+            self.assertFalse(ok, flags)
+            self.assertIn(message, text)
+        self.assertFalse(self.exception("--window", "day", "--start", "2026-10-06T00:00:00Z", "--reason", " ", "--incident", "INC-9", "--by", admin.username)[0])
+        ok, text = self.exception("--window", "day", "--start", "2026-10-06T00:00:00Z", "--reason", "가" * 501, "--incident", "INC-9", "--by", admin.username)
+        self.assertFalse(ok)
+        self.assertIn("500자까지", text)  # 감사 기록이 사유를 잘라 저장하지 않게 미리 거부
+        self.assertFalse(AuditLog.objects.filter(action=hopcheck.EXCEPTION_ACTION).exists())
+        self.assertTrue(self.exception("--window", "day", "--start", "2026-10-06T00:00:00Z", *ok_args, "--by", admin.username)[0])  # 판정 기록이 없는 창은 받는다
+        with mock.patch("foundation.audit._MAX_DETAIL_JSON", 150):  # 감사 detail 이 크기 한도로 잘리면 기록됐다고 알리지 않고 실패한다
+            ok, text = self.exception("--window", "day", "--start", "2026-10-05T00:00:00Z", *ok_args, "--by", admin.username)
+        self.assertFalse(ok)
+        self.assertIn("예외가 기록되지 않았다 — 창을 나눠서", text)
+        self.assertEqual(sorted(hopcheck.window_exceptions("utc-day")), ["2026-10-06T00:00:00Z"])  # 잘린 기록은 예외로 읽히지 않는다
+
+    def case_mismatches_of_excepted_windows_do_not_fail_the_check_but_others_still_do(self):
+        """설계 01 D16: 알려진 예외 창의 파이프라인 쌍 불일치는 EXC 로 보이고 실패로 세지 않는다(보고에는 mismatch 그대로 + 사건 번호). 예외가 아닌 창에 불일치가 하나라도 있으면 전처럼 실패한다."""
+        later = World()
+        records.decide(later.slot.media_id, later.slot.slot_id, subject_id=SUBJECT, now=NOW + timedelta(days=1), rng=Random(2))  # 10-08 창에도 결정
+        relay_batch()
+        self.export()
+        lines = self.lines("hop_mongo")
+        self.assertTrue(self.exception("--window", "day", "--start", "2026-10-07T00:00:00Z", "--reason", "유령 확인", "--incident", "INC-7", "--by", make_admin().username)[0])
+        both = [dict(l, content_sha256="0" * 64) if l["event_name"] == "ad.decision" else l for l in lines]  # 10-07·10-08 둘 다 결정 줄 불일치
+        ok, text = self.verify("--pipeline", self.pipeline(both))
+        self.assertFalse(ok)  # 10-08 은 예외가 아니다
+        self.assertIn("EXC  hop_outbox->pipeline 2026-10-07T00:00:00Z ad.decision ['content_sha256'] 사건=INC-7", text)
+        self.assertIn("FAIL hop_outbox->pipeline 2026-10-08T00:00:00Z ad.decision ['content_sha256']", text)
+        self.assertIn("확정 불일치 2건", text)  # 10-08 의 두 쌍(outbox·MongoDB → 파이프라인)
+        only_excepted = [dict(l, content_sha256="0" * 64) if l["event_name"] == "ad.decision" and l["window_start"] == "2026-10-07T00:00:00Z" else l for l in lines]
+        ok, text = self.verify("--pipeline", self.pipeline(only_excepted), "--out", str(self.dir / "report"))
+        self.assertTrue(ok, text)
+        self.assertIn("그 가운데 알려진 예외 창의 불일치 2줄(EXC, 실패로 세지 않음)", text)
+        manifest = ndjson.read_manifest(ndjson.manifest_path(self.dir / "report", "hop_report"))
+        rows = [json.loads(l) for l in (self.dir / "report" / manifest["file"]).read_text().splitlines()]
+        self.assertEqual(sorted((r["pair"], r["status"], r.get("exception")) for r in rows if r.get("exception")),
+                         [("hop_mongo->pipeline", "mismatch", "INC-7"), ("hop_outbox->pipeline", "mismatch", "INC-7")])  # 사실(mismatch)은 그대로
+        self.assertIn("판정 기록: 확정 1창 · 미확정 1창", text)  # 예외 창도 확정은 아니다(정리는 기록일 + 30일, P1-6)
+        store.collection().delete_one({"event_name": "ad.charge"})  # 예외는 파이프라인 쌍에만 — 광고 서버 안의 쌍(outbox → MongoDB 등)의 불일치는 예외 창이어도 실패
+        self.export()
+        ok, text = self.verify("--pipeline", self.pipeline(only_excepted))
+        self.assertFalse(ok)
+        self.assertIn("FAIL hop_outbox->hop_mongo 2026-10-07T00:00:00Z ad.charge", text)
+
+    def case_verdicts_are_read_per_window_size(self):
+        """같은 시각이라도 시간 창과 하루 창은 다른 창이다 — 마지막 판정은 창 크기마다 따로 읽는다(P1-6 정리가 자기 창 크기의 판정만 본다)."""
+        relay_batch()
+        self.export()
+        self.export(folder="hours", window="hour")
+        self.assertTrue(self.verify("--pipeline", self.pipeline(self.lines("hop_mongo")))[0])
+        hour_lines = self.lines("hop_mongo", folder="hours")
+        ok, text = self.verify("--pipeline", self.pipeline([dict(l, count=l["count"] + 1) for l in hour_lines], window="utc-hour"), folder="hours")  # 시간 창은 불일치
+        self.assertFalse(ok)
+        self.assertEqual(hopcheck.window_verdicts("utc-day"), {"2026-10-07T00:00:00Z": True})  # 뒤에 남은 시간 창 기록이 하루 창의 판정을 바꾸지 않는다
+        self.assertEqual(hopcheck.window_verdicts("utc-hour"), {"2026-10-07T12:00:00Z": False})
 
     def case_a_missing_hop_manifest_fails(self):
         self.export()

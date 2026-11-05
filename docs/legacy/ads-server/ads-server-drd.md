@@ -2,7 +2,7 @@
 
 > Status: **정식 문서**. 광고 서버만 다룬다. **지금 구조만 적는다** — 언제·왜 바뀌었는지는 §11 문서 이력과 [구현 계획](implementation-plan.md)에 있다.
 > 관련 문서: [ads-server-design.md](ads-server-design.md) (설계), [implementation-plan.md](implementation-plan.md) (구현 계획), [threat-model.md](threat-model.md) (위협 모델), [contracts/](contracts/) (OpenAPI 계약)
-> 기준: 2026-10-14(저장소는 2026-10-31 PostgreSQL 전환 0.55, 이벤트는 2026-11-01 Outbox 확장 0.56, 요청 제한 버킷은 2026-11-01 0.57, C1 1.5.0 은 2026-11-02 0.58, 구간 대조 보완은 2026-11-02 0.59, 소재 보관 문구는 2026-11-02 0.60, 사용자 관리 감사는 2026-11-02 0.61, manifest 입력 검증은 2026-11-02 0.62, 처리 대기열 색인은 2026-11-02 0.63) · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
+> 기준: 2026-10-14(저장소는 2026-10-31 PostgreSQL 전환 0.55, 이벤트는 2026-11-01 Outbox 확장 0.56, 요청 제한 버킷은 2026-11-01 0.57, C1 1.5.0 은 2026-11-02 0.58, 구간 대조 보완은 2026-11-02 0.59, 소재 보관 문구는 2026-11-02 0.60, 사용자 관리 감사는 2026-11-02 0.61, manifest 입력 검증은 2026-11-02 0.62, 처리 대기열 색인은 2026-11-02 0.63, Kafka 확장 경로는 2026-11-02 0.64, 파이프라인 장애 복구 결정(구현 전, [예약])은 2026-11-03 0.65, Kafka 메시지 키 `event_id`·`op` `c`·`r`는 2026-11-04 0.66, `hop_pipeline` 중복·충돌·INSERT 아닌 행·쌍 실패 조건은 2026-11-04 0.67, 구간 규칙 원본 파일은 2026-11-04 0.68, 대사 범위 `since` 구현은 2026-11-04 0.69, outbox → 파이프라인 대조 구현은 2026-11-04 0.70, 창 확정·알려진 예외 구현은 2026-11-04 0.71) · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
 > 근거: 설계서 `docs/legacy/ads-server/ads-server-design.md`, 계약 `contracts/serving.openapi.yaml`(C1·C3), `contracts/console.openapi.yaml`(C6), 실제 모델 코드(`*/models.py`)
 > 표기: **[예약]** 계약에 자리만 있고 아직 코드 없음 · **[제안]** 이 문서가 처음 제안함(동의 필요) · **[열림]** 정하지 못함. 표기가 없으면 코드에 있다
 
@@ -66,7 +66,7 @@
 
 | 계약 | 방향 | 상대 | 방식 | 상태 |
 |---|---|---|---|---|
-| C2 이벤트 | 나감 | 파이프라인 쪽 | Debezium(outbox 라우터) → Kafka, 스키마 저장소 | 예정 |
+| C2 이벤트 | 나감 | 파이프라인 쪽 | Debezium CDC(outbox INSERT) → Kafka `ads.outbox.events`, 스키마 저장소 | 예정 |
 | 분석 계층 | 파이프라인 | — | Spark → Delta Bronze/Silver/Gold(§2.3 대응 그대로) | 예정 |
 | C4 Insight | 들어옴 | 파이프라인 쪽 | 집계 결과를 광고 서버로(`records.api` 안쪽 교체) | 예정, 방식 미정 |
 
@@ -130,7 +130,7 @@ flowchart LR
 | PostgreSQL 18 | §4의 모든 엔터티, 세션, 로그인 잠금 기록 + **outbox**(같은 트랜잭션, P3) | UUIDv7 PK(§3 R-2, Django `UUIDField` 는 `uuid` 형), 격리 수준 `READ COMMITTED`, 잠금 대기 제한 `lock_timeout` 5초, 커밋마다 WAL을 디스크에(`fsync`·`full_page_writes` 켬, `synchronous_commit` 끄지 않음), 정렬 builtin `C.UTF-8`(대소문자·악센트 구분, 순서는 코드값) |
 | MongoDB `ad_events` | C2 이벤트 로그(중계가 outbox에서 옮겨 씀, 추가만) | `_id = event_id`, 멱등 저장. 컬렉션은 공통 봉투(`_id`·`event_name`·`schema_version`·`produced_at`·`payload`)가 없는 문서를 거부하고, 색인은 (`event_name`, `produced_at`)·(`payload.decision_id`, `produced_at`). 쓰기는 과반 확인(`w=majority`) |
 | NDJSON 파일 | manifest·검증·백필 대상 목록 **전용**(이벤트 통로 아님) | 한 줄 = 레코드 하나. **게시 = 내용 해시가 이름에 들어간 불변 데이터 파일(`<이름>.<SHA-256 앞 16자>.ndjson`) + manifest(`<이름>.manifest.json`, 현재 게시본을 가리키는 포인터)의 원자적 교체**. manifest에 데이터 파일 이름·SHA-256·행 수·`schema_version`·`source_kind`·`checkpoint`(범위 서술: 스냅샷 종류·시작 시각·훑은 행 수, 재개 위치 아님)·만든 시각. manifest가 가리키는 파일은 언제나 완결. 파일 종류: `ledger_check`·`event_gaps`·`event_delivery`(점검 결과), `backfill_result`(백필 결과), `hop_source`·`hop_outbox`·`hop_mongo`(구간별 정합 manifest), `hop_report`(구간 대조 결과) |
-| Kafka 토픽 | C2 이벤트(확장) | `ad.decision.v2` 등, 키 `decision_id` — 확장(조건부) |
+| Kafka 토픽 | C2 이벤트(확장) | `ads.outbox.events` 하나(여덟 종류 모두), 키 `event_id`(outbox PK — 행마다 다름. 종류별 대상은 `after.aggregate_id`), value = Debezium 원본 변경 봉투(`after` = outbox 봉투 열, `source` = 출처·원천 위치 — §5.6 "전달 방식") — 확장(조건부) |
 
 **저장소를 고르는 기준 [확정]**: 업무 데이터와 outbox는 한 트랜잭션이어야 하므로 업무 DB(PostgreSQL)에, 이벤트 로그는 MongoDB에 둔다(두 DB는 한 트랜잭션으로 묶을 수 없다). 이 문서의 데이터 구조 결정(PK·순번·잠금)은 **PostgreSQL·MongoDB에서 성립하는지**로 판단한다(설계서 §10 "저장소 단계").
 
@@ -751,19 +751,19 @@ erDiagram
 
 #### P3. 이벤트 outbox `events_outbox`
 
-결정·접수·판정·과금·입찰 정책·입찰·캠페인·광고그룹 변경과 **같은 트랜잭션**에 쓴다(트랜잭션 밖이면 거부). 중계는 "마지막으로 보낸 번호 이후"가 아니라 **`sent_at`이 비어 있는 행**을 보낸다(번호 방식은 늦게 커밋된 행을 건너뛸 수 있다 — 설계서 §6.3, §10 "outbox 쓰기 규약"). Debezium outbox 라우터의 기본 열과 대응을 적었다(확장 때 라우터 설정에서 매핑).
+결정·접수·판정·과금·입찰 정책·입찰·캠페인·광고그룹 변경과 **같은 트랜잭션**에 쓴다(트랜잭션 밖이면 거부). 중계는 "마지막으로 보낸 번호 이후"가 아니라 **`sent_at`이 비어 있는 행**을 보낸다(번호 방식은 늦게 커밋된 행을 건너뛸 수 있다 — 설계서 §6.3, §10 "outbox 쓰기 규약"). 확장 때는 Debezium 일반 CDC가 이 행의 `sent_at`을 뺀 열을 Kafka 메시지(Debezium 원본 변경 봉투)의 `after`에 그대로 싣는다(§5.6 "전달 방식"). Silver가 `after`를 꺼내고 `created_at`을 `produced_at`으로 이름만 바꾼다. 아래 표 설명 끝의 "Kafka"가 그 대응이다.
 
 | 컬럼 | 타입 | NULL | 키·제약 | 설명 |
 |---|---|---|---|---|
-| `event_id` | UUID | N | **PK** | 이벤트 ID = MongoDB `_id`. 원천 행 ID(결정 `decision_id`·수신함 `inbox_id`·원장 `entry_id`·정책 버전 `bid_policy_id`·입찰 `bid_id`·변경 로그 `change_id`)와 `event_name`에서 결정적으로 만든 **UUIDv5**(R-2의 예외). 같은 이벤트를 두 번 쓰면 PK가 막아 한 줄만 남는다(다시 써도 바뀌지 않음). 모델 기본값은 없다 — 빠뜨리면 저장이 실패한다. Debezium `id` |
-| `event_name` | 문자 64 | N | 색인(아래) | `ad.decision`·`ad.reaction_received`·`ad.reaction`·`ad.charge`·`ad.bid_policy_changed`·`ad.bid_added`·`ad.campaign_changed`·`ad.ad_group_changed`(버전은 붙이지 않음). Debezium `type` |
+| `event_id` | UUID | N | **PK** | 이벤트 ID = MongoDB `_id`. 원천 행 ID(결정 `decision_id`·수신함 `inbox_id`·원장 `entry_id`·정책 버전 `bid_policy_id`·입찰 `bid_id`·변경 로그 `change_id`)와 `event_name`에서 결정적으로 만든 **UUIDv5**(R-2의 예외). 같은 이벤트를 두 번 쓰면 PK가 막아 한 줄만 남는다(다시 써도 바뀌지 않음). 모델 기본값은 없다 — 빠뜨리면 저장이 실패한다. Kafka `after.event_id` |
+| `event_name` | 문자 64 | N | 색인(아래) | `ad.decision`·`ad.reaction_received`·`ad.reaction`·`ad.charge`·`ad.bid_policy_changed`·`ad.bid_added`·`ad.campaign_changed`·`ad.ad_group_changed`(버전은 붙이지 않음). Kafka `after.event_name` |
 | `schema_version` | 작은 정수 | N | | 이벤트 종류별: `ad.decision` 2, 나머지 1. 그 종류의 페이로드 모양이 바뀌면 그 종류만 올린다 |
-| `aggregate_id` | UUID | N | | 메시지 키 = 종류별 대상(결정·접수·판정·과금은 `decision_id`, 입찰 정책은 `slot_id`, 입찰·광고그룹 변경은 `ad_group_id`, 캠페인 변경은 `campaign_id`). Debezium `aggregateid` |
+| `aggregate_id` | UUID | N | | 종류별 대상(결정·접수·판정·과금은 `decision_id`, 입찰 정책은 `slot_id`, 입찰·광고그룹 변경은 `ad_group_id`, 캠페인 변경은 `campaign_id`). Kafka에는 `after.aggregate_id`로 실린다. Kafka 메시지 키는 `event_id`다(2026-11-04 — §5.6 "전달 방식") |
 | `payload` | JSON | N | | §5.6의 필드. 이름·형식은 `events/schemas.py` 한 곳 |
-| `created_at` | 시각 | N | 색인(아래) | 이벤트의 `produced_at`: 결정 = 결정 시각, 접수 = 수신 시각, 판정 = 처리 시각, 과금 = 과금을 일으킨 반응의 처리 시각(판정과 같은 처리 트랜잭션의 같은 시각), 입찰 정책 = 정책 버전의 변경 시각, 입찰 = 입찰 버전을 만든 시각, 캠페인·광고그룹 변경 = 변경 시각. MongoDB에는 밀리초로 잘라 넣는다 |
-| `sent_at` | 시각 | Y | 색인(아래) | MongoDB에 저장한 시각. **비어 있으면 미전송** |
+| `created_at` | 시각 | N | 색인(아래) | 이벤트의 `produced_at`: 결정 = 결정 시각, 접수 = 수신 시각, 판정 = 처리 시각, 과금 = 과금을 일으킨 반응의 처리 시각(판정과 같은 처리 트랜잭션의 같은 시각), 입찰 정책 = 정책 버전의 변경 시각, 입찰 = 입찰 버전을 만든 시각, 캠페인·광고그룹 변경 = 변경 시각. MongoDB에는 밀리초로 잘라 넣는다. Kafka `after.created_at`(마이크로초 그대로, UTC `Z` — Silver에서 `produced_at`) |
+| `sent_at` | 시각 | Y | 색인(아래) | MongoDB에 저장한 시각. **비어 있으면 미전송**. Kafka에는 싣지 않는다 |
 
-색인 `events_outbox_pending_idx (sent_at, created_at)`: 중계가 미전송 행을 오래된 것부터 집고, 보존 정리가 오래전에 보낸 행을 찾는다(구간 manifest의 미전송 건수도 이것으로 미전송 행만 읽는다). `events_outbox_name_created_idx (event_name, created_at)`: 구간 manifest가 이벤트 종류·창마다 그 범위만 읽는다. FK는 없다(원천 행과 같은 트랜잭션에 쓰는 대기열). 집계 종류(Debezium `aggregatetype`) 열은 두지 않았다 — 모든 이벤트의 집계가 결정이다. 보낸 행은 7일 뒤 지운다(§6).
+색인 `events_outbox_pending_idx (sent_at, created_at)`: 중계가 미전송 행을 오래된 것부터 집고, 보존 정리가 오래전에 보낸 행을 찾는다(구간 manifest의 미전송 건수도 이것으로 미전송 행만 읽는다). `events_outbox_name_created_idx (event_name, created_at)`: 구간 manifest가 이벤트 종류·창마다 그 범위만 읽는다. FK는 없다(원천 행과 같은 트랜잭션에 쓰는 대기열). 집계 종류 열(`aggregate_type`)은 두지 않았다 — 종류는 `event_name`으로 알고, Kafka 토픽이 하나라 나눌 기준도 필요 없다. 보낸 행은 7일 뒤 지운다(§6).
 
 ### 4.4 무결성 규칙 — 어디서 지키나
 
@@ -1057,6 +1057,8 @@ sequenceDiagram
 | 계정 수정(사용자 관리 화면: 프로필·비밀번호 초기화만) | A1 | `account.admin_updated`(바뀐 칸과 이전·이후 값)·`account.password_reset_by_admin`. 아이디는 읽기 전용이고, 계정 추가·삭제와 역할·활성 여부·슈퍼유저 여부 변경은 이 화면에 없다 |
 | 이벤트 백필(`--apply`, 청크마다) | P3 | `events.backfilled`(입력 manifest SHA-256·건수) |
 | 구간별 정합 manifest 게시 | — | `events.hop_manifests_exported`(세 구간 최신 manifest의 SHA-256 — 고정점, 출력 폴더 `out`·창 크기 `window` — `verify_hops`는 폴더로 찾는다) |
+| 구간 창 확정 판정(`verify_hops --pipeline`, 실행마다 한 건) | — | `events.hop_windows_confirmed`(`pair`·`window`·`since`·`base`·`confirmed`·`unconfirmed`(`base`에서 센 창 단위 오프셋 구간 목록)·`inputs`(각 구간 manifest 포인터의 SHA-256)·`with_mongo`·`reason`(판정할 수 없을 때)). 창마다 마지막 판정은 창 크기별로 감사 순서(PK)로 읽는다 |
+| 알려진 예외 기록(`record_hop_exception`) | — | `events.hop_window_exception`(actor = `--by`의 활성 관리자, `pair`·`window`·`base`·`windows`(오프셋 구간)·`reason`·`incident`(각 500자까지)·`os_user`). `--by`·OS 로그인 이름은 인증이 아니다 — 셸 접근 권한이 곧 기록 권한이다 |
 
 C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘솔이 조합한다: 입찰 `effects`·`bid-preview`(`masters` 정책 + `engine.effect_of`), 캠페인 `today`(`billing.spend_today` + `next_reset`). 대조표는 구현 계획 §6.8.1.
 
@@ -1076,7 +1078,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 | `produced_at` | 시각(UTC) | 이벤트를 만든 시각: **결정 = 결정 시각, 접수 = 수신 시각, 판정 = 처리 시각, 과금 = 과금을 일으킨 반응의 처리 시각(판정과 같은 처리 트랜잭션의 같은 시각), 입찰 정책 = 정책 버전의 변경 시각, 입찰 = 입찰 버전을 만든 시각, 캠페인·광고그룹 변경 = 변경 시각**. 과금 이벤트의 `produced_at`은 페이로드의 원장 시각(`created_at` = 반응 수신 시각)과 다르다. MongoDB 날짜라 **밀리초까지** |
 | `payload` | 객체 | 아래. 안의 UUID는 문자열, 시각은 UTC ISO 8601 문자열(마이크로초까지) |
 
-**전달 방식**: outbox(업무 DB, 같은 트랜잭션) → 광고 서버 중계가 MongoDB `ad_events`에 멱등 저장(`_id = event_id`), 확장 때는 Debezium outbox 라우터가 Kafka로 보낸다. 스키마 저장소는 확장 항목이다. **최소 한 번 전달**이므로 소비자는 `event_id`로 중복을 제거한다. **메시지 키는 종류별 대상**(outbox `aggregate_id`: 결정·접수·판정·과금은 `decision_id`, 입찰 정책은 `slot_id`, 입찰·광고그룹 변경은 `ad_group_id`, 캠페인 변경은 `campaign_id`. 팀 DRD 6.9는 `user_id`를 키로 쓰지만 광고 서버는 `user_id`를 모른다). **순서는 보장하지 않는다** — 소비자가 다시 맞춘다: 결정·반응·과금은 `decision_id`, 입찰 정책·입찰은 대상별 버전(`slot_id` + `policy_version`, `ad_group_id` + `bid_version` — 잠금 아래에서 매기고 유일 제약이 지키는 단조 값), 캠페인·광고그룹 변경은 `(changed_at, change_id)`. 한 요청의 여러 변경 줄은 `changed_at`이 같고 `event_id`(UUIDv5)는 시간 순서가 아니라 전달 순서가 임의다. **백필**은 결정·접수·판정·과금만 한다 — 나머지 넷은 하지 않는다(설계서 결정 D8). **순서는 보장하지 않는다**: 중계는 오래된 것부터 보내지만 여러 중계가 동시에 돌고 재전송이 있으며, Kafka의 순서 보장도 같은 토픽·같은 파티션 안뿐이다. 소비자는 반응이 결정보다 먼저 보일 수 있다고 보고 `decision_id`로 다시 맞춘다. 토픽·파티션 단위의 순서 보장은 Kafka 확장 때 다시 정한다. **요청 경로는 MongoDB를 호출하지 않는다** — 요청은 outbox에만 쓰고, MongoDB가 끊기면 이벤트는 쌓였다가 복구 뒤 상시 중계가 옮긴다(짧은 재시작 시험에서 요청 503 0은 관찰값이고, 장기 장애는 확인하지 않았다 — 설계서 §10 "MongoDB 장애와 요청").
+**전달 방식**: outbox(업무 DB, 같은 트랜잭션) → 광고 서버 중계가 MongoDB `ad_events`에 멱등 저장(`_id = event_id`), 확장 때는 Debezium 일반 CDC가 Kafka 토픽 `ads.outbox.events` 하나로 보낸다: value = Debezium 원본 변경 봉투 — `before`(늘 null)·`after`(outbox 봉투 열 `event_id`·`event_name`·`schema_version`(정수)·`aggregate_id`·`payload`(DB에 저장된 JSON 원문 문자열 — 소비자가 한 번 더 해석)·`created_at`(마이크로초 UTC `Z`))·`source`(출처 `db`·`schema`·`table`, 원천 위치 `lsn`·`txId`(삽입 트랜잭션 번호 — 함께 커밋된 이벤트 묶음)·`sequence`, 커밋 시각 `ts_ms`·`ts_us`, `snapshot`)·`op`(스트리밍은 `c`, outbox에서 다시 보낸 행(재발행 — 장애 복구, 또는 커넥터 등록이 늦었을 때 첫 창 메우기)은 `r`. 둘은 같은 이벤트다)·`ts_ms`. 커넥터의 변환은 토픽 이름뿐이고, `after` 추출과 MongoDB 봉투 이름 맞춤(`created_at` → `produced_at`)은 Silver가 한다. 헤더에는 봉투를 싣지 않는다. UPDATE·DELETE는 INSERT 전용 publication이라 흐르지 않는다. 스키마 저장소는 확장 항목이다. **최소 한 번 전달**이므로 소비자는 `event_id`로 중복을 제거한다. `op` `c`와 `r`는 같은 문서로 센다. 같은 `event_id`인데 `after`(봉투 6열)가 다르면 중복이 아니라 내용 충돌이다 — 알리고, 구간 대조에서는 그 창을 확정하지 않는다(아래 "대조 결과 분류"). **메시지 키는 `event_id`**(outbox PK, Debezium 기본 키 — 2026-11-04). 처음에는 종류별 대상(`aggregate_id`)을 키로 두었다. 그런데 재발행에 쓰는 Debezium 증분 스냅샷이 같은 키의 행을 하나로 합쳐서, 같은 대상(`aggregate_id`)의 여러 행 중 하나만 남았다(실측: 한 시간 창 68,440행 중 16,489행만 옴 — 대상 수와 같음). 그래서 바꿨다. 종류별 대상은 `after.aggregate_id`로 그대로 실린다(결정·접수·판정·과금은 `decision_id`, 입찰 정책은 `slot_id`, 입찰·광고그룹 변경은 `ad_group_id`, 캠페인 변경은 `campaign_id`). 팀 DRD 6.9는 `user_id`를 키로 쓰지만 광고 서버는 `user_id`를 모른다. **순서는 보장하지 않는다** — 소비자가 다시 맞춘다: 결정·반응·과금은 `decision_id`, 입찰 정책·입찰은 대상별 버전(`slot_id` + `policy_version`, `ad_group_id` + `bid_version` — 잠금 아래에서 매기고 유일 제약이 지키는 단조 값), 캠페인·광고그룹 변경은 `(changed_at, change_id)`. 한 요청의 여러 변경 줄은 `changed_at`이 같고 `event_id`(UUIDv5)는 시간 순서가 아니라 전달 순서가 임의다. **백필**은 결정·접수·판정·과금만 한다 — 나머지 넷은 하지 않는다(설계서 결정 D8). **순서는 보장하지 않는다**: 중계는 오래된 것부터 보내지만 여러 중계가 동시에 돌고 재전송이 있으며, Kafka의 순서 보장도 같은 토픽·같은 파티션 안뿐이다. 소비자는 반응이 결정보다 먼저 보일 수 있다고 보고 `decision_id`로 다시 맞춘다. 토픽·파티션 단위의 순서도 보장하지 않는다. 키가 `event_id`라 한 결정의 이벤트가 여러 파티션에 흩어진다(2026-11-04 정함). **요청 경로는 MongoDB를 호출하지 않는다** — 요청은 outbox에만 쓰고, MongoDB가 끊기면 이벤트는 쌓였다가 복구 뒤 상시 중계가 옮긴다(짧은 재시작 시험에서 요청 503 0은 관찰값이고, 장기 장애는 확인하지 않았다 — 설계서 §10 "MongoDB 장애와 요청").
 
 **`ad.decision.v2`** — 결정을 저장할 때 한 건(결정과 같은 트랜잭션, 광고 없음 결정 포함)
 
@@ -1125,7 +1127,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 
 | 필드 | 원본 | 비고 |
 |---|---|---|
-| `slot_id`, `bid_policy_id`, `policy_version` | M3 | 메시지 키 `slot_id` |
+| `slot_id`, `bid_policy_id`, `policy_version` | M3 | 대상 키 `slot_id` |
 | `floor_amount`, `base_amount`, `cap_amount` | M3 | |
 | `impression_share`, `click_share`, `conversion_share` | M3 | 반응 유형별 과금 비율(%) |
 | `changed_at` | M3 | |
@@ -1138,13 +1140,13 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 
 | 필드 | 원본 | 비고 |
 |---|---|---|
-| `bid_id`, `ad_group_id`, `bid_version`, `amount`, `created_at` | O5 | 메시지 키 `ad_group_id` |
+| `bid_id`, `ad_group_id`, `bid_version`, `amount`, `created_at` | O5 | 대상 키 `ad_group_id` |
 
 **`ad.campaign_changed.v1`**·**`ad.ad_group_changed.v1`** — 변경 로그(O10) 한 줄마다 한 건(같은 트랜잭션, 같은 값)
 
 | 필드 | 원본 | 비고 |
 |---|---|---|
-| `campaign_id` / `ad_group_id`·`campaign_id` | O10 | 메시지 키는 캠페인 변경 `campaign_id`, 광고그룹 변경 `ad_group_id` |
+| `campaign_id` / `ad_group_id`·`campaign_id` | O10 | 대상 키는 캠페인 변경 `campaign_id`, 광고그룹 변경 `ad_group_id` |
 | `change_id`, `change_type` | O10 | 기록 지점: 캠페인 생성·상태 전이(일시 중지·재개·중단·해제·조기 종료·기간 종료)·일예산·종료 시각 / 광고그룹 생성·켜기·끄기·게재 위치·소재 선택(자동 선택 포함) |
 | `previous_value`, `new_value` | O10 | 변경 로그의 JSON 그대로(바뀐 업무 필드만, `CREATED` 의 이전 값은 `null`). 조기 종료는 `status` 와 `ends_at` 을 한 줄에 |
 | `changed_at` | O10 | |
@@ -1153,22 +1155,22 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 
 지갑 잔액·광고주 계정 정보는 어느 이벤트에도 넣지 않는다(파이프라인에 필요하지 않고 개인 연결 위험만 늘어남).
 
-**구간별 manifest 계약** — 결정은 설계서 §10 "Step 4-3 백필·구간 manifest 결정", 규칙의 원본은 `ads_server/events/hops.py`. 파이프라인 쪽이 같은 규칙으로 manifest를 만들어 광고 서버의 manifest와 대조할 수 있게 하는 **언어 중립 규칙**이다.
+**구간별 manifest 계약** — 결정은 설계서 §10 "Step 4-3 백필·구간 manifest 결정", 규칙의 원본은 `ads_server/events/hop_rules.py`(표준 라이브러리만 쓴다. 파이프라인 쪽이 이 파일을 그대로 복사해 쓰고 `rule_sha256`으로 판을 맞춘다. 2026-11-04 `events/hops.py`에서 떼어 냈고, DB를 읽는 쪽은 `hops.py`에 남았다). 파이프라인 쪽이 같은 규칙으로 manifest를 만들어 광고 서버의 manifest와 대조할 수 있게 하는 **언어 중립 규칙**이다.
 
 | 항목 | 규칙 |
 |---|---|
-| 구간 | ① 원본 기대(`hop_source`, 업무 DB 원본 행에서 재구성) ② outbox(`hop_outbox`) ③ MongoDB(`hop_mongo`) ④ 파이프라인 수령(확장 — 같은 규칙으로 만든 manifest(`source_kind` = `hop_pipeline`)를 `verify_hops --pipeline`이 ③과 대조) |
+| 구간 | ① 원본 기대(`hop_source`, 업무 DB 원본 행에서 재구성) ② outbox(`hop_outbox`) ③ MongoDB(`hop_mongo`) ④ 파이프라인 수령(확장 — 같은 규칙으로 만든 manifest(`source_kind` = `hop_pipeline`)를 `verify_hops --pipeline`이 **②와 대조**한다(로컬 병행 기간에는 ③과도). 운영에는 ③이 없다. **[예약 — 결정 2026-11-03 D14·D17, 구현 P1-8·P2-1]** 이 manifest는 Bronze Delta를 읽는 파이프라인 쪽 잡이 만들어 S3에 게시하고, 광고 서버가 받아 온다) |
 | 창 | `produced_at` 기준 **UTC 자정 고정 하루**(예산 일 설정과 무관). 옵션으로 UTC 정시 고정 한 시간. 창 시작 + 크기 + 여유 ≤ 지금이면 닫힌 창이다. 여유는 120초(설정 `EVENTS_HOP_GRACE_SECONDS`, 설계서 H11 A안). 늦은 이벤트가 보이면 잠금 대기 제한으로 상한을 정해 여유를 다시 정한다(B안) |
 | 정규화 문서 | 키 `event_id`·`event_name`·`schema_version`·`produced_at`·`payload`. `event_id`는 **소문자 하이픈 UUID 문자열**, `produced_at`은 **`YYYY-MM-DDTHH:MM:SS.mmmZ`**(UTC, 밀리초는 반올림하지 않고 자름 — MongoDB 날짜 정밀도), `payload`는 저장된 JSON 그대로 |
 | JSON 정규화 | **RFC 8785(JCS)**: 객체 키는 UTF-16 코드 단위 순 정렬, 공백 없음, UTF-8, 문자열은 JSON 이스케이프(비 ASCII는 그대로), 불리언·`null`은 그대로, 정수는 10진수, 실수는 ECMAScript 숫자 표기. **주의**: `300.0`은 `300`이 되므로 정수와 같은 값의 실수는 구분되지 않는다(타입 구분은 중계의 충돌 판정과 `verify_events`가 맡는다) |
-| 한 줄 | (창, `event_name`) 하나: `window_start`·`window_end`(`YYYY-MM-DDTHH:MM:SSZ`), `event_name`, `count`, `ids_sha256`, `content_sha256`. 이벤트가 없는 (창, 이벤트 이름)은 줄이 없다(= 0건). outbox 구간의 줄에는 `unsent`(미전송 건수)를 더 싣는다 |
+| 한 줄 | (창, `event_name`) 하나: `window_start`·`window_end`(`YYYY-MM-DDTHH:MM:SSZ`), `event_name`, `count`, `ids_sha256`, `content_sha256`. 이벤트가 없는 (창, 이벤트 이름)은 줄이 없다(= 0건). outbox 구간의 줄에는 `unsent`(미전송 건수)를 더 싣는다. `unsent`는 outbox → MongoDB 쌍에서만 지연 근거로 쓴다. outbox → 파이프라인 쌍에서는 쓰지 않는다(CDC는 `sent_at`을 채우지 않음). `hop_pipeline` 줄은 다음처럼 센다(규칙은 공용 요약 규칙 파일의 `summarize_changes`. 이 줄을 실제로 만드는 Bronze 잡은 **[예약 — 2026-11-04, 구현 P2-1]**). 판정은 창마다가 아니라 **읽은 범위 전체에서 `event_id`로 먼저 모아** 한다. (1) `count`·`ids_sha256`·`content_sha256`은 `op` `c`·`r`인 행을 고유 `event_id`로 센다(정규화 문서는 위 5개 필드). (2) `duplicates`: 같은 `event_id`·같은 `after`의 `c`·`r` 행 가운데 하나를 뺀 남는 행 수. (3) `conflicts`: `after`가 서로 다른 `c`·`r` 행이 있는 `event_id` 수. 그 `event_id`는 통째로 충돌이다 — `count`·두 해시·`duplicates`에 넣지 않고, 사본이 놓인 **모든** (창, 이벤트 이름) 줄의 `conflicts`에 1씩 센다(충돌 열에 `created_at`·`event_name`이 있어 사본이 다른 줄에 놓일 수 있다). (4) `not_insert`: `op`가 `c`·`r`가 아니고 `after`가 있는 **행** 수. 그 행은 자기 `after`의 창·이벤트 이름 줄에 센다. 같은 `event_id`의 `c`·`r` 행은 (1)~(3)대로 센다. (5) `after`가 같은지는 6열 객체로 본다: `event_id`·`event_name`·`aggregate_id`·`created_at`(마이크로초 문자열 그대로)·`schema_version`(정수 그대로)은 원문 값, `payload`는 JSON으로 해석한 값으로 객체를 만들고, JCS 문자열이 같으면 같다(payload의 공백·키 순서·`1`과 `1.0` 차이는 충돌이 아니다). 이 비교 함수는 공용 요약 규칙 파일(`rule_sha256` 대상)에 둔다. (6) `count`가 0이어도 `duplicates`·`conflicts`·`not_insert` 가운데 하나가 0보다 크면 그 줄을 낸다(위 "이벤트가 없는 줄은 없다"의 예외). (7) `after.created_at`에 시간대가 없는 등 `after`의 형식이 깨졌으면 요약하지 않고 멈춘다. 한계: `content_sha256`은 5개 필드이고 `produced_at`을 밀리초에서 자르므로, 사본이 하나뿐인 행의 `aggregate_id`나 `created_at` 밀리초 아래 자리만 바뀐 경우는 잡지 못한다(두 사본이 서로 다를 때만 (3)으로 잡힌다). 한 사본이 읽은 범위 밖에 있으면 충돌로 보이지 않으므로, 옛 창을 다시 요약할 때(RB-0) 범위를 그 창까지 넓힌다 |
 | `ids_sha256` | 이벤트 ID 문자열을 오름차순 정렬해 `\n`으로 이은(끝 줄바꿈 없음) UTF-8 바이트의 SHA-256 |
 | `content_sha256` | 정규화 문서를 JCS로 만든 문자열을 이벤트 ID 순으로 `\n`으로 이은 UTF-8 바이트의 SHA-256 |
 | 파일과 세대 | 실행마다 구간 하나가 NDJSON 파일 하나(닫힌 창 전부)이고, 게시는 기존 규약(불변 데이터 파일 + manifest 포인터)이다. 세대는 파일 게시본 단위이고 manifest에 직전 manifest의 `previous_sha256`을 싣는다. 각 세대 manifest의 불변 사본(내용 해시 이름)으로 사슬을 거슬러 확인한다. 최신 manifest의 SHA-256은 감사 로그 `events.hop_manifests_exported`에도 남는다. **내보내기 한 번(세 manifest 게시부터 감사 고정점 커밋까지)이 폴더 단위 잠금(`flock`, 출력 폴더의 `.run.lock`)으로 직렬화된다** — 겹친 실행이 최신 감사 고정점과 최종 포인터를 서로 엇갈리게 하지 않는다. 그 안에서 manifest마다 직전 세대를 읽을 때부터 포인터를 교체할 때까지도 잠그므로, 성공한 모든 세대가 사슬에 이어진다. 원본·outbox·MongoDB를 읽는 단계는 이 잠금 밖이라, 겹친 실행은 각자 읽은 값으로 차례로 세대를 낸다. 감사 로그의 고정점은 포인터를 다시 읽은 값이 아니라 **이 실행이 게시한 manifest의 해시**다(다시 읽는 사이 다른 실행이 포인터를 바꿨을 수 있다). **한계**: 파일 잠금은 한 호스트의 로컬 파일시스템을 전제로 한다. 출력 폴더를 네트워크 파일시스템에 두거나 여러 호스트가 같은 폴더에 게시하면 직렬화가 보장되지 않는다 |
-| `checkpoint` | 범위 서술(재개 위치 아님): `scope`(원본·outbox는 한 PostgreSQL 읽기 스냅샷 `postgresql-repeatable-read-snapshot`, MongoDB는 스냅샷 밖 `mongodb-read-outside-snapshot`), `hop`, `window`(`utc-day`·`utc-hour`), `grace_seconds`, `started_at`, `open_windows`(줄에 넣지 않은 열린 창), `scanned_events`(**범위 안** — `--since` 이후의 닫힌 창에서 읽은 이벤트 수), `not_comparable_windows`(outbox를 대조하지 않는 창), `not_comparable_unsent`(outbox 구간: 그 창들의 (창, 이벤트 이름)별 미전송 건수 — 줄을 빼므로 따로, 원본 → MongoDB 지연 후보의 근거), `retention_cutoff`(보존 기준 시각, outbox 구간), `unresolved_charges`(원본 구간: **창에 놓을 수 없는 과금 원장 줄 수**, 0 이상의 정수 — 판정한 반응을 멱등 키로 찾지 못한 `CHARGE` 항목, 생성 시각을 추정하지 않는다. 0보다 크면 내보내기는 게시한 뒤 실패하고 `verify_hops`도 실패)·`unresolved_charge_examples`(그 원장 ID, 최대 10개) |
-| outbox 대조 범위 | **시작이 보존 기준 시각(지금 − 보존 일수, `checkpoint.retention_cutoff`) 이후인 창**이다. 보존 정리는 보낸 지 보존 일수가 지난 행을 지우고 생성 시각 ≤ 전송 시각이므로, 그런 창의 행은 하나도 지워지지 않았다. 기준 시각이 창 한가운데에 걸리면 앞부분이 지워졌을 수 있으므로 창 전체를 뺀다(일·시간 창 모두). 판정은 "행이 남아 있는가"가 아니라 보존 범위와 창 경계로 하고, 어느 구간에든 있는 닫힌 창이 대상이다 — 오래된 창의 outbox 행이 모두 지워져도 "대조 제외" 정보가 사라지지 않는다 |
-| 입력 검증 | 대조 전에 각 manifest가 계약을 지키는지 확인하고, 하나라도 어기면 그 입력으로 판정하지 않고 비정상 종료한다: 구간 종류(`source_kind`가 `hop_source`·`hop_outbox`·`hop_mongo`·`hop_pipeline` 중 하나이고 기대한 자리와 같음), 계약 버전(`schema_version` = 1), 창 크기 선언(`checkpoint.window` = `utc-day`·`utc-hour`, `checkpoint.hop`이 있으면 `source_kind`와 같음), 줄마다 필수 필드·창 끝 − 시작 = 선언한 크기·시작이 UTC 경계(자정·정시)에 맞음·`event_name`은 빈 문자열이 아님·`count`는 0 이상의 정수(불리언 아님)·두 해시는 소문자 16진 64자, (창, 이벤트 이름) 중복은 거부(마지막 줄로 덮어쓰지 않음). 창 크기가 다른 manifest(일별과 시간별)는 대조하지 않는다. 파일 checksum이 맞는 것과 집계 범위가 같은 것은 별개라서다. `checkpoint.unresolved_charges`는 0 이상의 정수(불리언 아님)여야 한다. `checkpoint`는 객체, `window`는 문자열, `open_windows`·`not_comparable_windows`·`unresolved_charge_examples`는 문자열 목록이고, manifest 자체도 JSON 객체(`sha256` 소문자 16진 64자·`rows` 0 이상 정수·`previous_sha256` 형식)여야 한다 — 어기면 날것의 예외가 아니라 그 입력의 실패 |
-| 대조 결과 분류 | `match`(세 값이 같음) / `mismatch`(확정 불일치, 다른 필드를 적음) / `relay_lag_candidate`(하류가 상류보다 적고 **그 부족분이 그 (창, 이벤트 이름)의 미전송 건수로 설명될 때(부족분 ≤ 미전송)**. 미전송이 하나 있다고 이미 보낸 이벤트의 유실을 가리면 안 되므로, 설명할 수 없는 부족분은 확정 불일치다 — 실패가 아니라 다시 낸 manifest로 확인) / `open_window` / `not_comparable`. 원본 → outbox는 같은 스냅샷이라 지연으로 보지 않는다. MongoDB → 파이프라인도 지연으로 보지 않는다(outbox 미전송은 MongoDB에도 없다). 결과 파일은 `hop_report` |
+| `checkpoint` | 범위 서술(재개 위치 아님): `scope`(원본·outbox는 한 PostgreSQL 읽기 스냅샷 `postgresql-repeatable-read-snapshot`, MongoDB는 스냅샷 밖 `mongodb-read-outside-snapshot`), `hop`, `window`(`utc-day`·`utc-hour`), `grace_seconds`, `started_at`, `open_windows`(줄에 넣지 않은 열린 창), `scanned_events`(**범위 안** — `--since` 이후의 닫힌 창에서 읽은 이벤트 수), `not_comparable_windows`(outbox를 대조하지 않는 창), `not_comparable_unsent`(outbox 구간: 그 창들의 (창, 이벤트 이름)별 미전송 건수 — 줄을 빼므로 따로, 원본 → MongoDB 지연 후보의 근거), `retention_cutoff`(보존 기준 시각, outbox 구간), `unresolved_charges`(원본 구간: **창에 놓을 수 없는 과금 원장 줄 수**, 0 이상의 정수 — 판정한 반응을 멱등 키로 찾지 못한 `CHARGE` 항목, 생성 시각을 추정하지 않는다. 0보다 크면 내보내기는 게시한 뒤 실패하고 `verify_hops`도 실패)·`unresolved_charge_examples`(그 원장 ID, 최대 10개), `since`(범위 시작 — `export_hop_manifests --since`의 **UTC 정시** `YYYY-MM-DDTHH:00:00Z`, 주지 않으면 `null`) **[예약 — 2026-11-03 S5, 싣는 쪽 구현 P2-1(검증은 구현됨)]** `hop_pipeline`은 `rule_sha256`(공용 요약 규칙 파일의 SHA-256)을 싣는다 **[예약 — 2026-11-04, 싣는 쪽 구현 P2-1(요약 규칙·검증은 구현됨)]** `hop_pipeline`은 `not_insert_unplaced`(value가 null이거나 `after`가 없는 행 수 — DELETE·tombstone·TRUNCATE), `foreign_source_rows`(`source`의 `db`·`schema`·`table`이 파이프라인 잡에 설정한 DB 이름의 `public.events_outbox`가 아닌 행 수 — DB 이름은 환경마다 다르다)와 예시 넷 `duplicate_examples`·`conflict_examples`·`not_insert_examples`·`not_insert_unplaced_examples`(각 최대 10개, 항목은 객체 `{"event_id": 문자열 또는 null, "partition": 0 이상 정수, "offset": 0 이상 정수}` — 키가 없는 행(TRUNCATE)은 `event_id` null)를 싣는다 |
+| outbox 대조 범위 | **[예약 — 결정 2026-11-03 D8, 구현 P1-6·P1-7. 구현되면 이 행을 바꾼다]** **감사 `events.outbox_purged`에 적힌(실제로 지운) 창이 아닌 창**이다. 정리는 창 단위로만 지우므로(창 끝 < 지금 − 보존 일수 그리고 그 창의 마지막 판정이 확정, 또는 "알려진 예외" 기록 뒤 30일) 지운 창은 통째로 비교 불가이고 나머지 창은 행이 모두 남아 있다. 지운 창 목록과 이 규칙 전의 "옛 정리 경계"(처음 한 번 감사에 남김)를 `checkpoint`에 싣는다(필드 이름은 구현에서 정함). **지금 규칙(코드)**: **시작이 보존 기준 시각(지금 − 보존 일수, `checkpoint.retention_cutoff`) 이후인 창**이다. 보존 정리는 보낸 지 보존 일수가 지난 행을 지우고 생성 시각 ≤ 전송 시각이므로, 그런 창의 행은 하나도 지워지지 않았다. 기준 시각이 창 한가운데에 걸리면 앞부분이 지워졌을 수 있으므로 창 전체를 뺀다(일·시간 창 모두). 판정은 "행이 남아 있는가"가 아니라 보존 범위와 창 경계로 하고, 어느 구간에든 있는 닫힌 창이 대상이다 — 오래된 창의 outbox 행이 모두 지워져도 "대조 제외" 정보가 사라지지 않는다 |
+| 입력 검증 | 대조 전에 각 manifest가 계약을 지키는지 확인하고, 하나라도 어기면 그 입력으로 판정하지 않고 비정상 종료한다: 구간 종류(`source_kind`가 `hop_source`·`hop_outbox`·`hop_mongo`·`hop_pipeline` 중 하나이고 기대한 자리와 같음), 계약 버전(`schema_version` = 1), 창 크기 선언(`checkpoint.window` = `utc-day`·`utc-hour`, `checkpoint.hop`이 있으면 `source_kind`와 같음), 줄마다 필수 필드·창 끝 − 시작 = 선언한 크기·시작이 UTC 경계(자정·정시)에 맞음·`event_name`은 빈 문자열이 아님·`count`는 0 이상의 정수(불리언 아님)·두 해시는 소문자 16진 64자, (창, 이벤트 이름) 중복은 거부(마지막 줄로 덮어쓰지 않음). 창 크기가 다른 manifest(일별과 시간별)는 대조하지 않는다. 파일 checksum이 맞는 것과 집계 범위가 같은 것은 별개라서다. `checkpoint.unresolved_charges`는 0 이상의 정수(불리언 아님)여야 한다. `checkpoint`는 객체, `window`는 문자열, `open_windows`·`not_comparable_windows`·`unresolved_charge_examples`는 문자열 목록이고, manifest 자체도 JSON 객체(`sha256` 소문자 16진 64자·`rows` 0 이상 정수·`previous_sha256` 형식)여야 한다 — 어기면 날것의 예외가 아니라 그 입력의 실패다. `checkpoint.since`는 `null`이거나 위 형식 그대로여야 한다(0을 채우지 않은 표기도 거부). 두 manifest의 `checkpoint.since`가 다르면 그 쌍은 대조하지 않고 실패하고, 같으면 `since` 앞 창은 보지 않는다. `hop_pipeline`의 `rule_sha256`이 광고 서버의 공용 요약 규칙 파일 SHA-256과 다르면 대조하지 않고 실패한다. `hop_pipeline`의 줄마다 `duplicates`·`conflicts`·`not_insert`는 **필수**이고 0 이상의 정수(불리언 아님)다. `checkpoint.not_insert_unplaced`·`checkpoint.foreign_source_rows`도 `hop_pipeline`에서 **필수**·0 이상의 정수이고, 예시 넷은 위 형식의 객체 목록(최대 10개)이다 — 없거나 형식이 다르면 입력 실패. `not_insert_unplaced`나 `foreign_source_rows`가 0보다 크면 그 쌍은 대조하지 않고 실패한다(커넥터 설정 이상) |
+| 대조 결과 분류 | `match`(세 값이 같음) / `mismatch`(확정 불일치, 다른 필드를 적음) / `relay_lag_candidate`(하류가 상류보다 적고 **그 부족분이 그 (창, 이벤트 이름)의 미전송 건수로 설명될 때(부족분 ≤ 미전송)**. 미전송이 하나 있다고 이미 보낸 이벤트의 유실을 가리면 안 되므로, 설명할 수 없는 부족분은 확정 불일치다 — 실패가 아니라 다시 낸 manifest로 확인) / `open_window` / `not_comparable`. 원본 → outbox는 같은 스냅샷이라 지연으로 보지 않는다. MongoDB → 파이프라인도 지연으로 보지 않는다(outbox 미전송은 MongoDB에도 없다). 결과 파일은 `hop_report`. outbox → 파이프라인 쌍에는 `relay_lag_candidate`가 없다. 이 쌍의 `count`·`ids_sha256`·`content_sha256`은 **고유 `event_id`**로 센다. 같은 `event_id`가 여러 Bronze 행이면 내용이 같을 때 줄 필드 `duplicates`(건수 — 위치는 `checkpoint.duplicate_examples`)로 따로 보고하고 `match`를 막지 않는다. 줄의 `conflicts`나 `not_insert`가 0보다 크면 `count`·해시가 outbox와 같아도 그 (창, 이벤트 이름)은 `mismatch`이고, 보고에 원인(`conflicts`·`not_insert` 건수)을 함께 적어 유실과 구별하며, 그 창은 확정하지 않는다 — 다른 창은 영향이 없다(2026-11-04 사용자 결정). outbox에 없는 (창, 이벤트 이름)의 줄(`count` 0 줄 포함)도 `mismatch`다. 파이프라인에만 있는 이벤트(유령)는 `mismatch`이고 그 창은 확정하지 않는다. **창 확정**은 `verify_hops --pipeline`이 실행마다 남기는 감사 `events.hop_windows_confirmed`다: outbox → 파이프라인 줄이 모두 `match`인 닫힌 창은 확정, 아니면 미확정(설정 `EVENTS_HOP_CONFIRM_WITH_MONGO`가 켜진 로컬 병행 기간에는 같은 창의 outbox → MongoDB 줄도 모두 `match`여야 확정, 운영은 끔). 파이프라인 manifest를 판정할 수 없으면(입력 실패·놓을 수 없는 행·다른 출처 행·`rule_sha256`·`since` 다름) outbox에 줄이 있는 창을 모두 미확정으로 남긴다. 광고 서버 쪽 입력 오류나 `--no-anchor`면 기록하지 않고 그렇다고 출력한다. 감사 크기 한도를 넘으면 전 범위를 미확정 한 구간으로 다시 남기고 실패한다. **알려진 예외**는 `record_hop_exception`이 남기는 감사 `events.hop_window_exception`이다: 예외 창의 파이프라인 쌍 `mismatch`는 `hop_report`에 사건 번호를 붙여 그대로 두고 `verify_hops`의 실패로 세지 않는다. **[예약 — 2026-11-03 D8·D16, 구현 P1-6]** 정리하면 감사 `events.outbox_purged`를, 잘못 기록한 예외를 거두면 거둠 기록(`revoked`)을 남긴다(이름은 구현에서 확정). |
 
 ### 5.7 C4 Insight 입력 [예약, 제안]
 
@@ -1209,7 +1211,8 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 | `verify_ndjson` | manifest와 가리키는 데이터 파일 | 없음 | 읽기 전용 | |
 | `backfill_events` | 검증된 `event_gaps` manifest(어느 원본 행인지만), R1·P2·B2 원본 행 | P3(outbox, 원본 행에서 다시 만든 이벤트), NDJSON `backfill_result` + manifest, A3 감사 | 예(결정적 이벤트 ID, 있으면 바꾸지 않음) | 운영자가 필요할 때, 기본 `--dry-run`(`--apply`로 씀). 해석 불가가 있으면 비정상 종료. 백필하지 않는 종류(입찰 정책·입찰·캠페인·광고그룹 변경)는 결과에 `excluded` 로 세고 건너뛴다 — 누락 목록 전체를 거부하지 않는다 |
 | `export_hop_manifests` | 원본 행(재구성)·P3(한 PostgreSQL 읽기 스냅샷), MongoDB(스냅샷 밖) | `hop_source`·`hop_outbox`·`hop_mongo` NDJSON + manifest(새 세대, `previous_sha256`), A3 감사(`events.hop_manifests_exported`, 고정점) | 같은 데이터면 같은 요약값 | 주기, 창이 닫힌 뒤 |
-| `verify_hops` | 세 구간의 manifest(+ 파이프라인 쪽 manifest), 세대 사슬, A3 고정점 | `hop_report` NDJSON + manifest(`--out`을 줄 때) | 읽기 전용 | manifest를 낸 뒤. 확정 불일치·검증 실패·사슬 오류·고정점 불일치는 비정상 종료, 지연 후보만 있으면 정상 종료 |
+| `verify_hops` | 세 구간의 manifest(+ 파이프라인 쪽 manifest), 세대 사슬, A3 고정점, 알려진 예외 감사 | `hop_report` NDJSON + manifest(`--out`을 줄 때), `--pipeline`이면 A3 감사 `events.hop_windows_confirmed` 한 건 | 대조는 읽기 전용, 창 확정 감사만 씀 | manifest를 낸 뒤. 확정 불일치·검증 실패·사슬 오류·고정점 불일치는 비정상 종료, 지연 후보만 있으면 정상 종료. 알려진 예외 창의 파이프라인 쌍 불일치는 `EXC`로 보이고 실패로 세지 않는다(광고 서버 안 쌍의 불일치는 그대로 실패) |
+| `record_hop_exception` | 창 확정 감사(마지막 판정) | A3 감사 `events.hop_window_exception` | 추가만(같은 창의 나중 기록이 이긴다) | 운영자가 필요할 때. 창은 그 크기의 UTC 경계·닫힌 창이어야 하고, 마지막 판정이 확정인 창은 받지 않는다. 감사 크기 한도로 잘리면 실패(창을 나눠 다시) |
 
 ---
 
@@ -1318,7 +1321,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 | E20 반응 처리 결과 미반영 | `status`(`ACCEPTED`·`REJECTED`)·`reason_code` 추가 검토(거부된 반응도 이벤트로 나간다) |
 | 과금 단위 하나(`charge_unit_code`) | 구성별 반응 비율 셋(노출·클릭·전환 %) |
 | 매체 마스터 없음 | 매체가 늘면 매체 마스터 신설(서버는 이미 `media_id`를 가진다) |
-| 6.9 Kafka 메시지 키 `user_id` | 광고 이벤트는 `decision_id`를 키로 제안(§5.6) |
+| 6.9 Kafka 메시지 키 `user_id` | 광고 이벤트는 `event_id`를 키로 쓴다(대상은 `after.aggregate_id`, §5.6 — 2026-11-04, 증분 스냅샷 재발행이 같은 키의 행을 합치므로) |
 | 6.2 "모든 ID는 UUIDv4" | 광고 영역은 **UUIDv7**(시각 순서, 색인 쓰기 효율). 형식(36자 소문자 하이픈)은 같아 저장·전송 규칙은 그대로 |
 
 ---
@@ -1352,6 +1355,14 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 
 | 버전 | 날짜 | 내용 |
 |---|---|---|
+| 0.71 | 2026-11-04 | §5.6 창 확정(P1-4)·알려진 예외(P1-5)를 구현된 규칙으로: 감사 `events.hop_windows_confirmed`·`events.hop_window_exception`(이름 확정)과 detail 모양, 판정할 수 없을 때 전부 미확정, 확정 창은 예외로 받지 않음, 관리 명령 `record_hop_exception`, `verify_hops`가 창 확정 감사를 쓰고 예외 창의 파이프라인 쌍 불일치를 실패로 세지 않음(종료 코드 뜻 변경). 정리·예외 거두기(P1-6)는 [예약]으로 남김. 표·스키마는 그대로 |
+| 0.70 | 2026-11-04 | §5.6 outbox → 파이프라인 대조를 구현된 규칙으로(P1-3): `verify_hops --pipeline`의 ② 대조, `unsent`를 이 쌍에서 쓰지 않음, 파이프라인 줄·checkpoint 필수 필드와 `rule_sha256` 검증, 원인이 붙은 `mismatch`. `after` 형식이 깨졌으면(시간대 없는 `created_at` 등) 요약하지 않고 멈춤(새 문장). 파이프라인 잡이 만들고 싣는 쪽(P2-1)·S3 받기(P1-8)·창 확정·정리·예외(P1-4·P1-5)는 [예약]으로 남김. 표·스키마는 그대로 |
+| 0.69 | 2026-11-04 | §5.6 대사 범위 `since`를 구현된 규칙으로(P1-2): `checkpoint.since`는 UTC 정시 `YYYY-MM-DDTHH:00:00Z` 또는 `null`, 형식 그대로가 아니면 입력 실패, `since`가 다른 쌍은 대조하지 않고 실패·같으면 그 앞 창은 보지 않음. `rule_sha256`만 [예약]으로 남김. 표·스키마는 그대로 |
+| 0.68 | 2026-11-04 | §5.6 구간 manifest 규칙의 원본을 `events/hop_rules.py`로(P1-1 분리 — 표준 라이브러리만, 파이프라인이 복사해 `rule_sha256`으로 판을 맞춤, DB 읽기는 `hops.py`). 규칙·표·스키마는 그대로 |
+| 0.67 | 2026-11-04 | §5.6 `hop_pipeline` 줄 필드 `duplicates`·`conflicts`·`not_insert`(필수), 충돌 비교 방법(6열, payload 해석 후 JCS), `count` 0 줄, `checkpoint`의 `not_insert_unplaced`·`foreign_source_rows`·예시 넷(**[예약]**, 사용자 결정 — op `c`·`r` 아닌 행은 그 창만 미확정, 놓을 수 없는 행·다른 출처 행은 그 쌍 실패). "전달 방식"의 충돌 처리 문구. 표·스키마는 그대로 |
+| 0.66 | 2026-11-04 | Kafka 메시지 키를 `event_id`로 바꿈(증분 스냅샷 재발행이 같은 키의 행을 합쳐 빠짐 — 실측 68,440 중 16,489, 사용자 결정). `op` `c`·`r`는 같은 문서, 같은 `event_id`에 `after`가 다르면 내용 충돌(§5.6). 파티션 순서 비보장 확정. P3 `aggregate_id`는 대상 키로, 토픽 행 키. 표·스키마는 그대로 |
+| 0.65 | 2026-11-03 | §5.6 파이프라인 확장 결정을 **[예약]**으로 적음(사용자 결정, 구현 전): 파이프라인 쌍은 outbox ↔ Bronze(D11·D14), 창 확정·창 단위 정리·지운 창 목록 기준 비교 불가(D8), 알려진 예외(D16), `since` 정시·규칙 해시(S1·S5), 운영 MongoDB 구간 없음(D17). 표·스키마는 그대로 |
+| 0.64 | 2026-11-02 | C2 확장 경로를 Debezium Outbox Event Router에서 **일반 CDC(원본 변경 봉투 그대로)**로(사용자 결정 — 로컬 실측 비교, 팀 파이프라인과 같게 `after` 추출은 Silver). Kafka 토픽 `ads.outbox.events` 하나, value = Debezium 원본 변경 봉투(`after`는 `sent_at`을 뺀 outbox 열). P3 열 대응을 Router 이름에서 Kafka 필드로. 표·스키마는 그대로 |
 | 0.63 | 2026-11-02 | P2 `records_reaction` 부분 색인 `records_reaction_queue_idx`(대기 행만, 처리기가 다음 반응을 잠근 채 고르는 순서 — 사용자 결정, 추가형). 데이터 모양은 그대로 |
 | 0.62 | 2026-11-02 | §5.6 입력 검증에 manifest·checkpoint 형식(리팩터 감사 D2·D3). 데이터 모양은 그대로 |
 | 0.61 | 2026-11-02 | A1 감사 `account.admin_updated` 의 detail 에 이전·이후 값, 사용자 관리 화면의 아이디는 읽기 전용(버그 탐색 B12). 데이터 모양은 그대로 |

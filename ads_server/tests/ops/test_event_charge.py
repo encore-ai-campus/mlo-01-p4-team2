@@ -24,7 +24,7 @@ class ChargeEventTests(Cases, ProcessingBase):
         entry = LedgerEntry.objects.get(entry_type="CHARGE")
         (event,) = events_of(schemas.CHARGE)
         self.assertEqual(event.event_id, schemas.event_id_of(schemas.CHARGE, entry.entry_id))
-        self.assertEqual(event.aggregate_id, self.decision.decision_id)  # 메시지 키 = 결정
+        self.assertEqual(event.aggregate_id, self.decision.decision_id)  # 대상 키 = 결정
         p = event.payload
         self.assertEqual((p["entry_id"], p["campaign_id"], p["charge_policy"], p["decision_id"]), (str(entry.entry_id), str(entry.campaign_id), entry.charge_policy, str(self.decision.decision_id)))
         self.assertEqual((p["charged_amount"], p["shortfall"], p["requested_amount"]), (-entry.amount, entry.shortfall, -entry.amount + entry.shortfall))

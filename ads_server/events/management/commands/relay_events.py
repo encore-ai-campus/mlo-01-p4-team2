@@ -3,12 +3,13 @@ import signal
 import time
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db import InterfaceError, OperationalError, close_old_connections, connection
+from django.db import InterfaceError, InternalError, OperationalError, close_old_connections, connection
 from django.utils import timezone
 from pymongo.errors import PyMongoError
 
 from events import mongo
 from events.relay import BATCH, EventConflict, outbox_status, relay_batch
+from foundation.api import is_transient_lock_error
 
 
 def stamped(text):
@@ -67,10 +68,12 @@ class Command(BaseCommand):
                     # 설정이 없는 것은 일시 장애가 아니다 — 기다려도 고쳐지지 않으므로 상시 실행도 바로 멈춘다(0 이 아닌 종료 코드, 설계 §10 "이벤트 저장소 설정", 6-3e).
                     # 보낼 이벤트가 있을 때 드러난다. 시작할 때 설정·접속을 미리 확인하는 것은 운영하면서 더한다(같은 결정의 C)
                     raise CommandError(f"이벤트 저장소 설정이 없어 중계를 멈춥니다: {mongo.error_text(error)}")
-                except (PyMongoError, OperationalError, InterfaceError) as error:
+                except (PyMongoError, OperationalError, InterfaceError, InternalError) as error:
+                    if isinstance(error, InternalError) and not is_transient_lock_error(error):
+                        raise  # 읽기 전용(25006, 설계 01 D21) 밖의 내부 오류는 일시 장애가 아니다
                     if options["once"]:
                         raise CommandError(f"중계 실패: {mongo.error_text(error)}")
-                    # 상시 중계는 MongoDB 나 DB 가 잠시 죽어도 죽지 않는다: 행은 미전송으로 남아 있고, 점점 길게 쉬며 다시 시도한다
+                    # 상시 중계는 MongoDB 나 DB 가 잠시 죽거나 읽기 전용 서버에 닿아도 죽지 않는다: 행은 미전송으로 남아 있고, 점점 길게 쉬며 다시 시도한다
                     failures += 1
                     wait = min(30.0, interval * 2 ** min(failures, 5))
                     self.stderr.write(stamped(f"이번 주기를 건너뛴다({failures}번째, {wait:.0f}초 뒤 다시): {mongo.error_text(error)}"))

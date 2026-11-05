@@ -20,7 +20,7 @@ MIN_SERVER_MAJOR = 8
 # 색인 이름 → 키. `_id`(= event_id, 유일)는 MongoDB 가 항상 만든다.
 INDEXES = {
     "event_name_produced_at": [("event_name", pymongo.ASCENDING), ("produced_at", pymongo.ASCENDING)],  # 이벤트 종류별 시각 순 증분 읽기
-    "decision_produced_at": [("payload.decision_id", pymongo.ASCENDING), ("produced_at", pymongo.ASCENDING)],  # 결정 하나의 이벤트 모아 보기(메시지 키)
+    "decision_produced_at": [("payload.decision_id", pymongo.ASCENDING), ("produced_at", pymongo.ASCENDING)],  # 결정 하나의 이벤트 모아 보기(대상 키)
 }
 
 # 공통 봉투(DRD §5.6)가 빠진 문서가 들어오지 못하게 한다. 내용(payload)은 객체인지만 본다 — 이벤트별 필드는 쓰는 쪽(`schemas.py`)이 정한다.

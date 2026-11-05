@@ -127,6 +127,7 @@ DB 전체를 builtin `C.UTF-8`로 만든다. 그래서 ICU·glibc가 바뀌어�
 | `ad.campaign_changed` v1 | `change_id` | `campaign_id` | `campaign_id`, `change_id`, `change_type`, `previous_value`, `new_value`, `changed_at` |
 | `ad.ad_group_changed` v1 | `change_id` | `ad_group_id` | `ad_group_id`, `campaign_id`, `change_id`, `change_type`, `previous_value`, `new_value`, `changed_at` |
 
+- (2026-11-04: Kafka 메시지 키는 `event_id`로 바뀌었다 — 설계 §10 C2. `aggregate_id`는 대상 키로 남는다.)
 - `event_id`는 기존 규칙대로 `event_id_of(event_name, source_id)`(UUIDv5)로 만든다.
 - `change_source`: `policy_version = 1`이면 `INITIAL`, 나머지는 `MANUAL`이다. 지금은 DB 열 없이 계산한다. `insight_id`는 지금은 항상 `null`이다(§8.2).
 - 싣지 않는 것: 정책 변경 사유·`changed_by`(관리자 자유문·사람 연결), 캠페인 중단 사유, 캠페인·광고그룹 이름(표시용). 광고주 계정·잔액·요청 원문도 싣지 않는다.
@@ -292,10 +293,16 @@ PostgreSQL은 기본값 없는 NULL 열 추가가 표를 다시 쓰지 않는다
 
 ## 11. 범위 밖·후속
 
-- **Kafka 전환 때 바꿀 곳:** `events/relay.py:84-96`(성공 뒤 `sent_at` UPDATE), `events/management/commands/purge_sent_events.py`(보낸 지 N일 뒤 DELETE), `events/relay.py:107-132`(MongoDB 대조). Debezium Outbox Router는 INSERT만 있는 outbox를 전제한다(설계안 §3.5).
+- **Kafka 전환 때 바꿀 곳:** `events/relay.py:84-96`(성공 뒤 `sent_at` UPDATE), `events/management/commands/purge_sent_events.py`(보낸 지 N일 뒤 DELETE), `events/relay.py:107-132`(MongoDB 대조). 확장은 Debezium 일반 CDC로 한다(2026-11-02 결정, 설계서 §6.3). publication을 INSERT 전용으로 만들어 이 UPDATE·DELETE가 Kafka로 흐르지 않게 한다. → **[2026-11-03 D8·D17, 사용자] 정해졌다**: `sent_at` UPDATE·MongoDB 대조는 운영에 없다(로컬 병행만). `purge_sent_events`는 창 대사 확정 기준의 창 단위 정리로 바뀐다(설계서 §6.3 게이트 1·§6.3a, 구현 `docs/legacy/ads-server/implementation-plan.md` §8.4.26).
 - PgBouncer 도입(D6): 요청이 늘어 앱 서버·워커를 늘릴 때. `lock_timeout`·`idle_in_transaction_session_timeout`(60초, 2026-11-02 버그 탐색 K3) 전달 방식을 함께 정한다.
 - 반응이 많이 쌓인 DB 에 서비스 중 색인을 더할 때(예: `records/0002_reaction_queue_idx`, 2026-11-02): `AddIndex` 는 `CREATE INDEX`(동시 아님)라 만드는 동안 표 쓰기가 막힌다 — 트래픽이 적은 때 올리거나 `AddIndexConcurrently`(atomic=False 마이그레이션)로 바꾼다. 운영 데이터가 없는 지금은 그대로 둔다.
-- PostgreSQL 복제·HA 구성(MySQL InnoDB Cluster 대체)과 그 장애 시험(`failure_test.py`의 클러스터 시나리오): 인프라와 정한 뒤.
+- PostgreSQL 복제·HA [결정 2026-11-03 D12, 사용자 — 파이프라인 설계 문서]
+  - 구성: 3대 + Patroni(etcd 3대) + HAProxy(rw/ro, 상태 검사 2초·3번, 재시작 직후 첫 검사 전까지 DOWN, PostgreSQL 연결 유휴 제한 7일 + keepalive).
+  - 동기 복제: `synchronous_mode: quorum`, `synchronous_node_count: 1`, strict 끔.
+  - 논리 슬롯: 장애 전환 슬롯(`slot.failover`·`sync_replication_slots`), Patroni `ignore_slots`에 CDC 슬롯(필수 — 장애 전환 표시가 꺼진 슬롯은 Patroni가 지운다).
+  - 보호 목록: `synchronized_standby_slots`를 노드별 갱신 스크립트가 2초 주기 + 승격 콜백으로 "지금 붙어 복제받는 대기 서버"로 유지.
+  - 운영 배치: 홈서버 노트북 3대에 한 대씩.
+  - 장애 시험: 파이프라인 계획 P5(E-P2·E-P2b·E-P3). 광고 서버 쪽 `failure_test.py`의 클러스터 시나리오는 그 결과를 보고 다시 정한다.
 - `masters.create_slot`의 `except IntegrityError`(P2-3 검토, 선택): 블록 안의 모든 무결성 오류를 "같은 이름의 구성" 409로 바꾼다 — 같은 블록의 감사·outbox 쓰기 결함(CHECK·NOT NULL)도 이름 충돌로 보인다. `is_unique_violation`이 아니면 다시 올리도록 고친다. 실패 방식이 바뀌므로 따로 한다.
 - C4 Insight 저장·`ad.insight_recorded`, `ad.decision` v3: 가격 모델 단계(§8.3).
 

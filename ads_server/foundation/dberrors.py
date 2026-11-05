@@ -3,13 +3,16 @@
 DB 는 PostgreSQL 하나다(Django 오류가 감싼 드라이버 오류 — `__cause__` — 의 SQLSTATE 로 구분한다). 모르는 오류는 '유일 제약 충돌이 아님'으로 답한다
 — 모르면 숨기지 않고 올리는 쪽이 안전하다.
 """
-from django.db import OperationalError
+from django.db import DatabaseError
 
 UNIQUE_VIOLATION = "23505"
 # 교착(40P01)·잠금 대기 초과(55P03 — 접속 설정의 lock_timeout, settings.base.postgres_config). 둘 다 같은 일을 다시 하면 된다 — 데이터나 코드의 결함이 아니다.
 # PostgreSQL 에서는 문장이 실패하면 그 트랜잭션이 중단 상태가 되어 되돌려야 다음 문장을 쓸 수 있다(저장점 없이 잡고 계속 쓰면 25P02 → 500).
 # 그래서 잡는 쪽은 트랜잭션(저장점) 밖에서 잡는다 — IntegrityError 를 잡는 규칙(계획서 §6)과 같다.
-TRANSIENT_SQLSTATES = frozenset({"40P01", "55P03"})
+# 읽기 전용 트랜잭션(25006): 장애 전환·HAProxy 재시작 직후 쓰기 연결이 잠깐 대기 서버에 닿을 때 난다. 쓰기 자체가 거부됐으므로 같은 일을 다시 하면 된다
+# (설계 §6.5-6, 파이프라인 설계 01 D21). psycopg 는 이것을 `InternalError` 로 올린다(`OperationalError` 가 아니다).
+READ_ONLY = "25006"
+TRANSIENT_SQLSTATES = frozenset({"40P01", "55P03", READ_ONLY})
 
 
 def sqlstate(error):
@@ -28,8 +31,9 @@ def violated_constraint(error):
 
 
 def is_transient_lock_error(error):
-    """교착·잠금 대기 초과처럼 **다시 시도하면 되는** DB 오류인가. 실패 횟수를 세거나 반응을 포기시키는 근거가 되면 안 된다."""
-    return isinstance(error, OperationalError) and sqlstate(error) in TRANSIENT_SQLSTATES
+    """교착·잠금 대기 초과·읽기 전용 트랜잭션처럼 **서버가 되돌렸을 뿐 다시 시도하면 되는** DB 오류인가. 실패 횟수를 세거나 반응을 포기시키는 근거가 되면 안 된다."""
+    return isinstance(error, DatabaseError) and sqlstate(error) in TRANSIENT_SQLSTATES
+
 
 
 def cause_text(error):

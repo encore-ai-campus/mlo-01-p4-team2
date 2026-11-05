@@ -15,6 +15,8 @@ check.sh 에는 넣지 않는다(Docker 가 필요하고 수 분 걸린다).
   processor-kill   처리 프로세스 하나를 SIGKILL 하고 새로 띄운다(DB 는 그대로): 처리 도중 죽어도 이중 과금·유실이 없다
   mongo-restart    임시 MongoDB(레플리카셋)를 재시작한다: **요청은 전혀 영향이 없고**(503 도 없다) outbox 에 이벤트가 쌓였다가 복구 뒤 상시 중계 프로세스가 비운다
   relay-kill       중계 프로세스 하나를 SIGKILL 하고 새로 띄운다: 보낸 뒤 표시 전에 죽어도 같은 내용의 중복으로 통과해 이벤트가 늘거나 줄지 않는다
+  read-only        쓰기 연결이 읽기 전용(대기) 서버에 닿은 몇 초(장애 전환 틈, 설계 01 D21·계획 P1-10): 데이터베이스 기본값을 읽기 전용으로 바꾸고 붙어 있던
+                   연결을 끊은 뒤 5초 뒤 되돌린다. API 는 25006 을 503 으로 답하고, 상시 처리·중계는 그 주기를 건너뛰고 계속한다
 
 클러스터(HA) 시나리오는 PostgreSQL HA 구성을 정한 뒤에 둔다(MySQL InnoDB Cluster 시나리오는 PostgreSQL 전환 때 지웠다 — 계획 docs/plans/00 P1-2).
 
@@ -30,6 +32,7 @@ check.sh 에는 넣지 않는다(Docker 가 필요하고 수 분 걸린다).
 """
 import argparse
 import json
+import logging
 import os
 import secrets
 import shutil
@@ -51,7 +54,8 @@ import mongo_temp_rs  # noqa: E402
 
 IMAGE = "postgres:18.6-trixie"  # tests/docker/compose.yaml 과 같게(docs/plans/00 §4.3 V-1)
 INITDB_ARGS = "--locale-provider=builtin --locale=C.UTF-8"  # 시험 DB 와 같은 정렬(결정 D11, tests/docker/compose.yaml)
-SCENARIOS = ("restart", "crash", "processor-kill", "mongo-restart", "relay-kill")
+SCENARIOS = ("restart", "crash", "processor-kill", "mongo-restart", "relay-kill", "read-only")
+READ_ONLY_SECONDS = 5
 
 
 docker = partial(docker_cli.docker, timeout=180)  # 이 스크립트의 시간 제한(R5)
@@ -93,6 +97,35 @@ class DbContainer:
 
     def remove(self):
         docker("rm", "-f", "-v", self.name, check=False)  # 공식 이미지는 VOLUME 을 선언한다 — 익명 볼륨도 함께 지운다
+
+
+def read_only_window(database, seconds=READ_ONLY_SECONDS):
+    """이 데이터베이스의 새 세션이 `seconds` 동안 읽기 전용으로 시작하게 하고, 붙어 있던 세션을 끊는다(HAProxy 가 옛 primary 의 세션을 끊는 것과 같다).
+    되돌릴 때는 끊지 않는다 — 앱이 25006 뒤에 스스로 연결을 버리고 다시 여는지 본다. 관리 연결은 다른 데이터베이스(postgres)라 영향을 받지 않는다."""
+    import pg_admin
+    from psycopg import sql
+
+    with pg_admin.connect() as conn:
+        conn.execute(sql.SQL("ALTER DATABASE {} SET default_transaction_read_only = on").format(sql.Identifier(database)))
+        conn.execute("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = %s AND pid <> pg_backend_pid()", (database,))
+        try:
+            time.sleep(seconds)
+        finally:
+            conn.execute(sql.SQL("ALTER DATABASE {} RESET default_transaction_read_only").format(sql.Identifier(database)))
+
+
+class ReadOnlyCount(logging.Handler):
+    """매체 API 가 25006 을 503 으로 바꾼 횟수(`serving_api.auth` 의 '저장소 일시 장애' 기록 가운데 원인이 25006 인 것)."""
+
+    def __init__(self):
+        super().__init__()
+        self.count = 0
+
+    def emit(self, record):
+        from foundation.dberrors import READ_ONLY, sqlstate
+
+        if record.exc_info and sqlstate(record.exc_info[1]) == READ_ONLY:
+            self.count += 1
 
 
 def start_standing(command, env, tmp, name):
@@ -141,7 +174,8 @@ def run_scenario(name, db, mongo_container, log):
         result["checks"].append({"check": label, "ok": bool(ok), "detail": detail})
         log(f"  {'OK  ' if ok else 'FAIL'} {label} {detail}")
 
-    processors, relays, server, lag = [], [], None, None
+    processors, relays, server, lag, read_only = [], [], None, None, ReadOnlyCount()
+    logging.getLogger("serving_api.auth").addHandler(read_only)
     try:
         call_command("migrate", verbosity=0)
         store.ensure()
@@ -198,6 +232,8 @@ def run_scenario(name, db, mongo_container, log):
             db.kill_and_start()
         elif name == "mongo-restart":
             mongo_temp_rs.restart(*mongo_container)
+        elif name == "read-only":
+            read_only_window(database)
         elif name == "relay-kill":
             relays[0].kill()
             relays[0].wait(timeout=10)
@@ -219,8 +255,10 @@ def run_scenario(name, db, mongo_container, log):
         unacked = sum(1 for o in outcomes if not o.acked)
         log(f"  요청 {len(outcomes)}건, 시도 {len(statuses)}회: 끊김(503·연결 실패) {unavailable}회, 최종 수신 확인 못 한 것 {unacked}건, "
             f"주입 {timeline['recovered_at'] - timeline['injected_at']:.1f}초")
-        if name in ("restart", "crash"):
+        if name in ("restart", "crash", "read-only"):
             check("끊김을 실제로 겪은 요청이 있다(시험이 공회전이 아니다)", unavailable > 0, f"{unavailable}회")
+        if name == "read-only":
+            check("매체 API 가 읽기 전용 오류(25006)를 실제로 겪고 503 으로 답했다", read_only.count > 0, f"{read_only.count}회")
         if name == "mongo-restart":
             check("MongoDB 가 끊겨도 요청은 영향이 없다(503·연결 실패 0)", unavailable == 0, f"{unavailable}회")
         check("끊김 동안 500 이 없다(503·연결 실패만)", not server_errors, f"500대: {server_errors}")
@@ -229,6 +267,11 @@ def run_scenario(name, db, mongo_container, log):
         check("상시 처리 프로세스가 죽지 않았다", all(alive), f"살아 있음 {alive}")
         relay_alive = [p.poll() is None for p in relays]
         check("상시 중계 프로세스가 죽지 않았다", all(relay_alive), f"살아 있음 {relay_alive}")
+        if name == "read-only":  # 끊긴 연결(OperationalError)만 겪고 25006 을 겪지 않았다면 이 시나리오가 보려는 길이 아니다
+            skipped = {p.log_handle.name: sum(1 for line in Path(p.log_handle.name).read_text().splitlines() if "건너뛴다" in line and "25006" in line) for p in processors}
+            check("상시 처리 프로세스가 읽기 전용 오류(25006)를 겪고 그 주기를 건너뛰었다", all(skipped.values()), str({Path(k).stem: v for k, v in skipped.items()}))
+            skipped = {p.log_handle.name: sum(1 for line in Path(p.log_handle.name).read_text().splitlines() if "건너뛴다" in line and "read-only transaction" in line) for p in relays}
+            check("상시 중계 프로세스가 읽기 전용 오류(25006)를 겪고 그 주기를 건너뛰었다", all(skipped.values()), str({Path(k).stem: v for k, v in skipped.items()}))
 
         # 복구 판정: 별도 처리 명령을 쓰기 **전에**, 상시 처리 프로세스만으로 대기열이 비워지는지 본다(접수 직후 처리는 꺼져 있다)
         connections.close_all()  # 주입 전에 열었던 연결은 끊겼을 수 있다
@@ -272,6 +315,7 @@ def run_scenario(name, db, mongo_container, log):
         check("불변식: 유실 0·이중 과금 0·잔액=원장·남은 대기열 없음·이벤트=원본 행(일대일)·MongoDB=outbox", not problems, "; ".join(problems[:3]))
         result.update(requests=len(outcomes), attempts=len(statuses), unavailable=unavailable, acked_decisions=len(harness.acked_decisions), acked_reactions=len(harness.acked_reactions))
     finally:
+        logging.getLogger("serving_api.auth").removeHandler(read_only)
         if lag is not None:
             lag.stop()
         for proc in processors + relays:

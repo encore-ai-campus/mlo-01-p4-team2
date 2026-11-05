@@ -64,7 +64,7 @@ test('final main delivery retains its ending before subsequent dialogue 06',asyn
 test('dialogue 07 verifies note delivery with a guide ticket and leaves the note owned',async()=>{
  const f=fixture({completed:true,stage:7},true);await f.open();
  const scene=f.scenes[0];assert.equal(scene.chapter,'SECRET RECIPE · 아이템 전용 대화');
- assert.equal(scene.lines[0].text,'어... 그 종이! 혹시 책상 사이에서 찾았어?');
+ assert.equal(scene.lines[0].text,'어... 그 종이! 혹시 화단 사이에서 찾았어?');
  assert.equal(scene.lines[1].text,'초콜릿 발자국까지 그대로네. 돋보기로 봐도... 분명 내 거야.');
  assert.equal(f.requests.at(-1).data.action,'recognize');assert.equal(f.progress.hasNote,true);
  f.dialog.close();await f.open();assert.equal(f.scenes.at(-1).title,'아이템 전용 대화');

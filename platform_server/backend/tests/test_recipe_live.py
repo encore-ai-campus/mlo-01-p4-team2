@@ -12,6 +12,7 @@ from django.test import Client, override_settings
 from websockets.sync.client import connect
 
 from accounts.models import Position, Profile
+from campus.motion import world
 from event_story import main
 from event_story.achievement_services import RECIPE_ID
 from event_story.test_achievements import seed_definitions
@@ -45,10 +46,10 @@ class RecipeLiveTests(ChannelsLiveServerTestCase):
             body = response.read()
             return response.status, json.loads(body) if body and response.headers.get_content_type() == 'application/json' else body.decode()
 
-    def account(self, name, x, y):
+    def account(self, name, x, y, floor='campus'):
         user = get_user_model().objects.create_user(username=name)
         profile = Profile.objects.create(user=user, nickname=name, cohort=ClassGroup.objects.get(code='unassigned'), guide_completed=True)
-        Position.objects.create(profile=profile, last_position={'floor': 'campus', 'x': x, 'y': y, 'dir': 'up'})
+        Position.objects.create(profile=profile, last_position={'floor': floor, 'x': x, 'y': y, 'dir': 'up'})
         main.complete(user, '6')
         client = Client();client.force_login(user)
         cookies = CookieJar()
@@ -81,7 +82,8 @@ class RecipeLiveTests(ChannelsLiveServerTestCase):
         return response
 
     def test_real_socket_note_proof_and_http_acquisition(self):
-        _, http = self.account('live-recipe-note', 1552, 747)
+        x, y = world('rooftop').objects['hidden-recipe-note']['interactionPoint']
+        _, http = self.account('live-recipe-note', x, y, floor='rooftop')
         proof = self.proof(http, 'recipe-note')
         response = self.post(http, 'acquire', proof)
         self.assertTrue(response['state']['hasNote'])

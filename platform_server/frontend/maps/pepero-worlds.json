@@ -2342,29 +2342,6 @@
           "renderHeight": 95,
           "axis": "x",
           "height": 62
-        },
-        {
-          "id": "hidden-recipe-note",
-          "type": "pepero-art",
-          "name": "초콜릿 묻은 레시피 쪽지",
-          "action": "recipe-note",
-          "x": 1540,
-          "y": 720,
-          "w": 24,
-          "h": 18,
-          "roomId": "class1",
-          "solid": false,
-          "interactionPoint": [
-            1552,
-            747
-          ],
-          "interactionRadius": 50,
-          "description": "Python 학습교실의 두 작업대 사이에 초콜릿이 묻은 레시피 쪽지가 놓여 있습니다.",
-          "seasonalArt": "recipe-note",
-          "artWidth": 42,
-          "artHeight": 33,
-          "artAnchor": 0.6,
-          "renderHeight": 36
         }
       ],
       "entrance": {
@@ -6141,6 +6118,29 @@
           "solid": false,
           "renderHeight": 135,
           "axis": "x"
+        },
+        {
+          "id": "hidden-recipe-note",
+          "type": "pepero-art",
+          "name": "초콜릿 묻은 레시피 쪽지",
+          "action": "recipe-note",
+          "x": 938,
+          "y": 1681,
+          "w": 24,
+          "h": 18,
+          "roomId": "roof-plaza",
+          "solid": false,
+          "interactionPoint": [
+            950,
+            1660
+          ],
+          "interactionRadius": 50,
+          "description": "옥상 아래쪽 화단 사이에 초콜릿이 묻은 레시피 쪽지가 놓여 있습니다.",
+          "seasonalArt": "recipe-note",
+          "artWidth": 42,
+          "artHeight": 33,
+          "artAnchor": 0.6,
+          "renderHeight": 36
         }
       ],
       "walls": [

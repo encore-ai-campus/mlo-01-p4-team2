@@ -3,7 +3,7 @@ from django.core import signing
 from campus.motion import ControlError
 
 TARGETS = {
-    'recipe-note': ('campus', 'hidden-recipe-note'),
+    'recipe-note': ('rooftop', 'hidden-recipe-note'),
     'recipe-guide': ('campus', 'campus-guide-kkuwang'),
     'board': ('campus', 'class3-4-noticeboard'),
     'wrapper': ('campus', 'campus-guide-kkuwang'),

@@ -2,7 +2,7 @@ const {test}=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.resolve(__dirname,'..');
 const script=fs.readFileSync(path.join(root,'dist/main-quest.js'),'utf8');
-const note=require('../maps/pepero-worlds.json').worlds.campus.objects.find(o=>o.id==='hidden-recipe-note');
+const note=require('../maps/pepero-worlds.json').worlds.rooftop.objects.find(o=>o.id==='hidden-recipe-note');
 const plain=x=>JSON.parse(JSON.stringify(x));
 function section(start,end){const a=script.indexOf(start),b=script.indexOf(end,a);assert.ok(a>=0&&b>a);return script.slice(a,b);}
 function fixture({hasNote=false,completed=false,failure=null}={}){
@@ -29,9 +29,9 @@ function fixture({hasNote=false,completed=false,failure=null}={}){
 }
 test('discovery keeps its original text regardless of main mission completion',async()=>{
  const pending=fixture();await pending.context.recipeNote();
- assert.equal(pending.scenes[0].lines[0].text,'책상 사이에 종이 끝이 살짝 보인다. 초콜릿이 묻은 작은 발자국... 어디서 본 것 같은데?');
+ assert.equal(pending.scenes[0].lines[0].text,'화단 사이에 종이 끝이 살짝 보인다. 초콜릿이 묻은 작은 발자국... 어디서 본 것 같은데?');
  const completed=fixture({completed:true});await completed.context.recipeNote();
- assert.equal(completed.scenes[0].lines[0].text,'책상 사이에 종이 끝이 살짝 보인다. 초콜릿이 묻은 작은 발자국... 어디서 본 것 같은데?');
+ assert.equal(completed.scenes[0].lines[0].text,'화단 사이에 종이 끝이 살짝 보인다. 초콜릿이 묻은 작은 발자국... 어디서 본 것 같은데?');
 });
 test('inspection and leaving only read status and create no pickup request',async()=>{
  const f=fixture();await f.context.recipeNote();
@@ -44,7 +44,7 @@ test('inspection and leaving only read status and create no pickup request',asyn
  assert.deepEqual(plain(leave.actions.map(a=>a[0])),['확인']);
  assert.equal(f.commands.length,0);assert.equal(f.requests.length,1);
  await leave.actions[0][1]();assert.equal(f.dialog.open,false);
- await f.context.recipeNote();assert.equal(f.scenes.at(-1).title,'책상 사이에 숨은 쪽지');
+ await f.context.recipeNote();assert.equal(f.scenes.at(-1).title,'화단 사이에 숨은 쪽지');
  assert.equal(f.requests.some(r=>r.data),false);
 });
 test('an incomplete main mission shows one dialogue with a confirmation that only closes',async()=>{
@@ -52,9 +52,9 @@ test('an incomplete main mission shows one dialogue with a confirmation that onl
  await f.context.run(f.scenes[0].actions[0][1]);
  assert.deepEqual(f.errors,[]);
  const blocked=f.scenes.at(-1);
- assert.equal(blocked.title,'책상 사이에 숨은 쪽지');
+ assert.equal(blocked.title,'화단 사이에 숨은 쪽지');
  assert.equal(blocked.lines.length,1);
- assert.equal(blocked.lines[0].text,'메인 미션을 완료해야 주울 것 같이 생겼습니다.');
+ assert.equal(blocked.lines[0].text,'메인 미션을 완료해야 주울 수 있을 것 같습니다.');
  assert.deepEqual(plain(blocked.actions.map(a=>a[0])),['확인']);
  const count=f.requests.length;await blocked.actions[0][1]();
  assert.equal(f.dialog.open,false);assert.equal(f.requests.length,count);
@@ -87,14 +87,15 @@ test('restored note ownership shows the holding message without issuing a pickup
  assert.match(f.scenes[0].lines[0].text,/쪽지를 잘 접어 챙겼다/);
  assert.equal(f.commands.length,0);assert.equal(f.requests.length,1);
 });
-test('note uses the supplied sprite between the two Python workbenches without blocking movement',()=>{
- const world=require('../maps/pepero-worlds.json').worlds.campus;
- const room=world.rooms.find(r=>r.id==='class1');
- const desks=world.objects.filter(o=>o.id.startsWith('python-exterior-bench-')).sort((a,b)=>a.y-b.y);
- assert.equal(note.roomId,'class1');assert.equal(note.solid,false);
- assert.ok(note.x>=room.x&&note.x+note.w<=room.x+room.w);
- assert.ok(note.y>desks[0].y+desks[0].h&&note.y+note.h<desks[1].y);
- const exported=require('../../backend/campus/data/worlds.json').worlds.campus;
+test('note uses the supplied sprite in the rooftop flowerbed gap without blocking movement',()=>{
+ const worlds=require('../maps/pepero-worlds.json').worlds;
+ assert.ok(!worlds.campus.objects.some(o=>o.id===note.id));
+ assert.equal(note.roomId,'roof-plaza');assert.equal(note.solid,false);
+ assert.deepEqual([note.x+note.w/2,note.y+note.h/2],[950,1690]);
+ assert.deepEqual(note.interactionPoint,[950,1660]);
+ const exportedWorlds=require('../../backend/campus/data/worlds.json').worlds;
+ assert.ok(!exportedWorlds.campus.objects.some(o=>o.id===note.id));
+ const exported=exportedWorlds.rooftop;
  assert.equal(exported.objects.filter(o=>o.id===note.id).length,1);
  assert.equal(exported.colliders.some(c=>c.objectId===note.id),false);
  const c=vm.createContext({window:{CAMPUS_SEASON:'pepero',dispatchEvent(){}},matchMedia:()=>({matches:true}),Image:class{},CustomEvent:class{}});

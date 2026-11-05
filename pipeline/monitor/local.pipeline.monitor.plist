@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- 파이프라인 점검(임시 D18)을 1분마다 — 로컬 시험대용 사용자 LaunchAgent 견본. 운영은 같은 check.py 를 systemd 타이머로.
+     설치: 아래 자리 표시 세 가지(__PYTHON__ = psycopg·boto3 가 있는 python, __REPO__ = 저장소 경로, __HOME__ = 홈 폴더)를 이 장치에 맞게 바꾼 뒤
+     ~/Library/LaunchAgents/ 에 복사하고 launchctl bootstrap gui/$(id -u) <파일>.
+     웹훅 주소는 여기에 쓰지 않는다 — MONITOR_WEBHOOK_FILE 로 저장소 밖 파일 경로만 준다. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>local.pipeline.monitor</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>__PYTHON__</string>
+    <string>__REPO__/pipeline/monitor/check.py</string>
+  </array>
+  <key>StartInterval</key><integer>60</integer>
+  <key>RunAtLoad</key><true/>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>MONITOR_WEBHOOK_FILE</key><string>__HOME__/.config/pipeline-monitor/webhook</string>
+  </dict>
+  <key>StandardOutPath</key><string>__HOME__/Library/Logs/pipeline-monitor.log</string>
+  <key>StandardErrorPath</key><string>__HOME__/Library/Logs/pipeline-monitor.log</string>
+</dict>
+</plist>

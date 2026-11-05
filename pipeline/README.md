@@ -11,6 +11,10 @@
 | `bronze/spark-submit-ads.sh` | Spark 제출(Standalone client 모드). 의존 jar는 미리 둔 세트를 `extraClassPath`로 쓴다 |
 | `bronze/run-bronze.sh` | Bronze 상시 실행(로컬). 운영 `restartPolicy: OnFailure`(최초 1회 + 재시도 3회)를 흉내 내고 잠듦을 막는다 |
 | `tools/` | 검증 도구(아래) |
+| `monitor/` | 점검·경보(**임시 D18** — 점검 스크립트 + 1분 주기 + 웹훅). `monitor/README.md` |
+| `runbooks/` | 복구 절차(RB-0~RB-5) 도구·점검표. 바꾸는 도구는 기본 dry-run. `runbooks/README.md` |
+| `requirements.txt` | `pipeline/`의 Python 도구가 직접 쓰는 라이브러리(Spark 도구는 Spark 배포판의 pyspark) |
+| `legacy/metaverse/` | 메타버스 파이프라인 Step1·Step2 보관본(Metaverse 쪽 소유). 재사용할 부분은 통합 설계(M2)에서 정해 본체로 옮긴다 |
 
 ## 로컬 시험대(2026-11-03)
 
@@ -51,7 +55,7 @@ kill -TERM <run-bronze.sh의 pid>          # 사람이 멈춤: Bronze를 정상 
 
 드라이버를 직접 죽이면(`kill -9 <SparkSubmit pid>`, 드라이버에 직접 `kill -TERM`도) 장애로 보고 다시 띄운다(재시도 1회 사용). 사람이 멈출 때는 드라이버가 아니라 `run-bronze.sh`에 TERM을 준다.
 
-환경 변수(기본값은 로컬 시험대): `KAFKA_BOOTSTRAP`, `BRONZE_BUCKET`, `BRONZE_TRIGGER`, `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_FILE`, `S3_SECRET_KEY_FILE`, `SPARK_MASTER`, `SPARK_CORES_MAX`, `SPARK_EXECUTOR_MEMORY`, `SPARK_DEPS`, `SPARK_LOCAL_IP`(기본 127.0.0.1), `BRONZE_TOPIC`·`BRONZE_TABLE`·`BRONZE_CHECKPOINT`(기본은 lab 토픽·표·checkpoint), `BRONZE_MAX_OFFSETS_PER_TRIGGER`(기본 10,000 — 임시값, E-B4로 정함), `BRONZE_RETRIES`(기본 3), `BRONZE_RETRY_INTERVAL`(기본 10초 — 팀이 아직 정하지 않은 값이라 임시값), 도구의 `PG_PORT`(기본 5010)·`PG_DB`(대사 도구의 DB, 기본 `ads_pipeline_lab`).
+환경 변수(기본값은 로컬 시험대): `KAFKA_BOOTSTRAP`, `BRONZE_BUCKET`, `BRONZE_TRIGGER`, `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_FILE`, `S3_SECRET_KEY_FILE`, `SPARK_MASTER`, `SPARK_CORES_MAX`, `SPARK_EXECUTOR_MEMORY`, `SPARK_DEPS`, `SPARK_LOCAL_IP`(기본 127.0.0.1), `BRONZE_TOPIC`·`BRONZE_TABLE`·`BRONZE_CHECKPOINT`(기본은 lab 토픽·표·checkpoint), `BRONZE_MAX_OFFSETS_PER_TRIGGER`(기본 240,000 — E-B4 로컬 실측(메모리 기준), P8에서 운영 장비로 다시 잼), `BRONZE_STARTING_OFFSETS`(기본 `earliest`, 새 checkpoint에서만 쓰임 — RB-4·RB-5에서 `runbooks/rb_offsets.py`가 낸 JSON), `BRONZE_RETRIES`(기본 3), `BRONZE_RETRY_INTERVAL`(기본 10초 — 팀이 아직 정하지 않은 값이라 임시값), 도구의 `PG_PORT`(기본 5010)·`PG_DB`(대사 도구의 DB, 기본 `ads_pipeline_lab`).
 
 ## 검증 도구(`tools/`)
 
@@ -61,7 +65,8 @@ Spark 도구는 제출 스크립트로 돌린다(`pipeline/bronze/spark-submit-a
 |---|---|---|
 | `c3_check.py` | Spark | Bronze ↔ Kafka(`read_committed`) 위치별 바이트 대조, 중복, 배치·지연, Delta 이력 |
 | `c4_bronze_dump.py <out.ndjson> [--since ISO]` | Spark | Bronze 최신 판의 위치·value 원문·적재 시각을 NDJSON으로. `--since`: 원천 생성 시각이 그 뒤인 행만(생성 시각이 없는 행 — 삭제·다른 표·툼스톤 — 은 그대로 남겨 대사가 본다) |
-| `c4_reconcile.py <dump.ndjson> <out_dir> [--as-of ISO] [--window hour\|day] [--since ISO]` | Python | outbox ↔ Bronze 창별 manifest(DRD §5.6, 규칙은 `ads_server/events/hops.py`)와 대조. 중복·충돌을 따로 센다. **덤프와 대사에는 같은 `--since`를 준다** |
+| `c4_reconcile.py <dump.ndjson> <out_dir> [--as-of ISO] [--window hour\|day] [--since ISO]` | Python | outbox ↔ Bronze 창별 manifest(DRD §5.6, 규칙은 `ads_server/events/hops.py`)와 대조. op c(스트리밍)·r(증분 스냅샷 재발행)를 같은 문서로 세고, 같은 event_id는 중복, after 6열이 다르면 충돌로 센다. **덤프와 대사에는 같은 `--since`를 준다** |
+| `er1.py snap\|signal\|check` | Python | E-R1(재발행 신호 시험): 토픽 끝 offset 기록, `execute-snapshot`(INCREMENTAL, `created_at` 창) 신호, 두 기록 사이 메시지로 창별 빠짐·창 밖 op=r·스트리밍 이어짐·키 모양(`{"event_id"}`) 판정. 기본값은 e2e 이름 |
 | `bronze_latency.py --since ISO --until ISO` | Spark | 원천 생성 시각이 [since, until)인 이벤트의 단계별 지연(생성→Kafka, Kafka→Bronze, 생성→Bronze) p50·p95·p99·최대, 분당 생성 건수, 적재 배치 수 |
 | `c5_lib.py` | — | 아래 두 도구의 공용 관측(DB·Kafka·Connect REST·슬롯) |
 | `c5_connect.py <접미사>` | Python | 커넥터 REST stop 동안 이벤트를 만들고, 슬롯 WAL·Kafka offset을 관측한 뒤 resume해서 빠짐·중복을 본다. 결과는 `$TMPDIR/ads_pipeline_lab/c5a_report.json` |

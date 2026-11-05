@@ -14,12 +14,14 @@ from django.utils import timezone
 
 from assets.api import store, validate_image
 from engine.api import effect_of, is_expired
+from events import api as events
 from foundation.api import MAX_AMOUNT, clean_request_key, clean_text, errors, is_int, is_request_key, lock_user, owned_or_404, parse_uuid, parse_uuids, record_audit, require_admin, require_advertiser
 from masters import api as masters
 
 from . import transitions as tr
+from .changes import record_change
 from .errors import CampaignSuspended, LimitExceeded, NotSuspended, ReviewPending
-from .models import AdGroup, AdGroupCreative, AdGroupSlot, Bid, Campaign, CampaignStatus, Creative, CreativeImage, ReviewRequest, ReviewStatus
+from .models import AdGroup, AdGroupCreative, AdGroupSlot, Bid, Campaign, CampaignStatus, ChangeTarget, Creative, CreativeImage, ReviewRequest, ReviewStatus
 from .types import (
     AdGroupEffects, AdGroupView, AdvertiserUsage, BidView, CampaignView, CandidateFacts, CreatedAd, CreativeUse, CreativeView, MonitoredCampaign, OwnedCreative,
     ReviewQueueItem, ReviewRequestView, SlotEffect, SuspensionView,
@@ -136,6 +138,22 @@ def _bid_view(b):
     return BidView(bid_id=b.bid_id, ad_group_id=b.ad_group_id, bid_version=b.bid_version, amount=b.amount, created_at=b.created_at)
 
 
+def _record_bid_event(bid):
+    """입찰 버전 하나의 이벤트(`ad.bid_added`) — 입찰 행과 **같은 트랜잭션**에서. 값만 넘긴다(events 는 모델을 모른다, 계획 docs/plans/00 D1)."""
+    events.record_bid_added(now=bid.created_at, bid_id=bid.bid_id, ad_group_id=bid.ad_group_id, bid_version=bid.bid_version, amount=bid.amount, created_at=bid.created_at)
+
+
+def bid_versions():
+    """모든 입찰 버전(`BidView`)을 훑는다 — 이벤트 누락 점검·기대 이벤트용 읽기."""
+    return (_bid_view(b) for b in Bid.objects.iterator(chunk_size=2000))
+
+
+def bid_stream(to_documents):
+    """입찰 버전을 만든 시각(`created_at`) 창으로 읽는 흐름(구간 manifest 의 원본 구간). `to_documents(views)` 가 창 하나의 `BidView` 를 문서로 바꾼다.
+    ponytail: created_at 색인이 없어 창마다 표를 다 훑는다 — 광고주가 손으로 늘리는 작은 표라 그대로 둔다. 추천 적용(계획 docs/plans/00 §8.3)으로 입찰 버전을 자동으로 쓰기 시작할 때 (created_at) 색인."""
+    return events.table_stream(Bid.objects.all(), "created_at", lambda rows: to_documents([_bid_view(b) for b in rows]))
+
+
 def _current_bid(ad_group):
     return Bid.objects.filter(ad_group=ad_group).order_by("-bid_version").first()
 
@@ -190,6 +208,7 @@ def create_campaign(user, name, starts_at, ends_at, daily_budget, now=None, requ
                 raise LimitExceeded("캠페인 개수 상한에 도달했습니다.")
             c = Campaign.objects.create(owner=user, name=name, starts_at=starts_at, ends_at=ends_at, daily_budget=daily_budget, created_at=now, updated_at=now,
                                         request_key=request_key)
+            _record_campaign_change(c, "CREATED", None, {"status": c.status, "daily_budget": c.daily_budget, "starts_at": c.starts_at, "ends_at": c.ends_at}, now)
             _audit(user, "campaign.created", ("campaigns.campaign", c.campaign_id), {"name": name, "daily_budget": daily_budget})
     except IntegrityError:
         done = _campaign_by_key(user, request_key, now)
@@ -197,6 +216,14 @@ def create_campaign(user, name, starts_at, ends_at, daily_budget, now=None, requ
             raise
         return done
     return _campaign_view(c, now)
+
+
+def _record_campaign_change(c, change_type, previous, new, now):
+    record_change(target_type=ChangeTarget.CAMPAIGN, target_id=c.campaign_id, campaign_id=c.campaign_id, change_type=change_type, previous=previous, new=new, now=now)
+
+
+def _record_ad_group_change(g, change_type, previous, new, now):
+    record_change(target_type=ChangeTarget.AD_GROUP, target_id=g.ad_group_id, campaign_id=g.campaign_id, change_type=change_type, previous=previous, new=new, now=now)
 
 
 def campaign_created_by_key(user, request_key, now=None):
@@ -261,11 +288,15 @@ def update_campaign(user, campaign_id, changes, now=None, expected_updated_at=No
                 raise CampaignSuspended()
             if changes["status"] != c.status:
                 tr.apply(c, "pause" if changes["status"] == CampaignStatus.PAUSED else "resume", tr.ADVERTISER, now)
+        before = {"daily_budget": c.daily_budget, "ends_at": c.ends_at}
         for field in ("name", "ends_at", "daily_budget"):
             if field in changes:
                 setattr(c, field, changes[field])
         c.updated_at = now
         c.save()
+        for field, change_type in (("daily_budget", "BUDGET_CHANGED"), ("ends_at", "PERIOD_CHANGED")):  # 이름은 싣지 않는다(표시용, 계획 §5.1). 상태는 apply 가 쓴다
+            if field in changes:
+                _record_campaign_change(c, change_type, {field: before[field]}, {field: getattr(c, field)}, now)  # 값이 그대로면 쓰지 않는다
         _audit(user, "campaign.updated", ("campaigns.campaign", c.campaign_id), {"changed": sorted(changes)})
     return _campaign_view(c, now, _open_review_id(c))
 
@@ -512,6 +543,9 @@ def create_ad_group(user, campaign_id, name, slot_ids, bid_amount=None, now=None
         group = AdGroup.objects.create(campaign=c, name=name, created_at=now, updated_at=now)
         AdGroupSlot.objects.bulk_create([AdGroupSlot(ad_group=group, slot_id=s) for s in ids])
         bid = Bid.objects.create(ad_group=group, bid_version=1, amount=bid_amount, created_by=user.pk, created_at=now) if bid_amount is not None else None
+        if bid is not None:
+            _record_bid_event(bid)
+        _record_ad_group_change(group, "CREATED", None, {"enabled": group.enabled, "slot_ids": ids, "creative_id": None}, now)  # 소재는 뒤이어 연결될 때 CREATIVE_SELECTED
         _audit(user, "ad_group.created", ("campaigns.ad_group", group.ad_group_id), {"name": name, "slots": len(ids)})
     return _ad_group_view(group, bid, ids)  # 방금 넣은 게재 위치(검증한 ID, 중복 없음)를 다시 읽지 않는다
 
@@ -547,6 +581,7 @@ def update_ad_group(user, ad_group_id, changes, now=None, expected_updated_at=No
     with transaction.atomic():
         g = _locked_group(user, ad_group_id, now)
         _assert_seen(expected_updated_at, g.updated_at)
+        enabled_before = g.enabled  # 바꾸기 전 값 — 변경 로그의 이전 값
         if "name" in changes:
             g.name = clean_text(changes["name"], "광고 이름", "/name")
         if "enabled" in changes:
@@ -555,11 +590,15 @@ def update_ad_group(user, ad_group_id, changes, now=None, expected_updated_at=No
             g.enabled = changes["enabled"]
         if "slot_ids" in changes:
             ids = _validated_slots(changes["slot_ids"])
+            slots_before = set(g.slot_links.values_list("slot_id", flat=True))  # 지우기 전에 읽는다 — 변경 로그의 이전 값
             g.slot_links.exclude(slot_id__in=ids).delete()
-            have = set(g.slot_links.values_list("slot_id", flat=True))
-            AdGroupSlot.objects.bulk_create([AdGroupSlot(ad_group=g, slot_id=s) for s in ids if s not in have])
+            AdGroupSlot.objects.bulk_create([AdGroupSlot(ad_group=g, slot_id=s) for s in ids if s not in slots_before])
         g.updated_at = now
         g.save()
+        if "enabled" in changes:  # 값이 그대로면 쓰지 않는다. 이름은 싣지 않는다(표시용, 계획 §5.1)
+            _record_ad_group_change(g, "ENABLED_CHANGED", {"enabled": enabled_before}, {"enabled": g.enabled}, now)
+        if "slot_ids" in changes:
+            _record_ad_group_change(g, "SLOTS_CHANGED", {"slot_ids": slots_before}, {"slot_ids": ids}, now)
         _audit(user, "ad_group.updated", ("campaigns.ad_group", g.ad_group_id), {"changed": sorted(changes)})
     return _ad_group_view(g, _current_bid(g))
 
@@ -580,6 +619,7 @@ def add_bid(user, ad_group_id, amount, expected_version, now=None):
                 bid = Bid.objects.create(ad_group=g, bid_version=(current_version or 0) + 1, amount=amount, created_by=user.pk, created_at=now)
         except IntegrityError:  # 다른 DB 로 옮겼을 때의 안전망
             raise errors.StaleVersion()
+        _record_bid_event(bid)  # 저장점 뒤, 바깥 트랜잭션 안
         _audit(user, "bid.added", ("campaigns.ad_group", g.ad_group_id), {"version": bid.bid_version, "amount": amount})
     return _bid_view(bid)
 
@@ -680,8 +720,10 @@ def _link(group, creative, now, select=False):
     if not AdGroupCreative.objects.filter(ad_group=group, creative=creative).exists():
         AdGroupCreative.objects.create(ad_group=group, creative=creative, linked_at=now)
     if (select or group.creative_id is None) and group.creative_id != creative.creative_id:
+        before = group.creative_id
         AdGroup.objects.filter(pk=group.pk).update(creative=creative, updated_at=now)
         group.creative, group.updated_at = creative, now
+        _record_ad_group_change(group, "CREATIVE_SELECTED", {"creative_id": before}, {"creative_id": creative.creative_id}, now)  # 선택이 바뀌는 곳은 여기 하나(자동 선택 포함)
 
 
 def link_creative(user, ad_group_id, creative_id, now=None, select=False):

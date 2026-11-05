@@ -1,14 +1,18 @@
 import io
 import uuid
+from unittest import mock
 
-from django.db import connection
+from django.db import IntegrityError, connection, transaction
 from django.http import Http404
 from django.test import Client, TestCase, TransactionTestCase, override_settings, tag
 from django.test.utils import CaptureQueriesContext
 
 from assets.api import ImageRejected, asset_exists
 from campaigns import api
-from campaigns.models import AdGroup, Bid, Creative
+from campaigns.changes import record_change
+from campaigns.models import AdGroup, Bid, ChangeLog, Creative
+from events.api import OutsideTransaction, event_id_for
+from events.models import EventOutbox
 from foundation.errors import Forbidden, InvalidRequest, StaleVersion
 from foundation.models import AuditLog
 from masters import api as masters
@@ -126,6 +130,137 @@ class CampaignServiceTests(Cases, TestCase):
         self.assertEqual((low.bid_version, low.amount, high.bid_version, high.amount), (2, 50, 3, 5000))
         self.assertEqual([b.amount for b in api.list_bids(self.w.adv, self.w.group.ad_group_id)], [5000, 50, 300])
         self.assertEqual(api.get_ad_group(self.w.adv, self.w.group.ad_group_id).current_bid.amount, 5000)
+
+    def case_every_bid_version_records_its_event_in_the_same_transaction(self):
+        """입찰 버전마다 `ad.bid_added` 하나(계획 docs/plans/00 P2-4): 광고그룹을 만들 때(입찰액이 있을 때만 v1)·입찰 추가 모두, 입찰 행과 함께 커밋되거나 함께 되돌려진다."""
+        def bid_events(ad_group_id):
+            return list(EventOutbox.objects.filter(event_name="ad.bid_added", aggregate_id=ad_group_id).order_by("created_at").values_list("event_id", "payload"))
+        gid = self.w.group.ad_group_id
+        v2 = api.add_bid(self.w.adv, gid, 400, expected_version=1, now=NOW + SEC)
+        bids = api.list_bids(self.w.adv, gid)[::-1]  # 오래된 것부터
+        rows = bid_events(gid)
+        self.assertEqual([e for e, _ in rows], [event_id_for("ad.bid_added", b.bid_id) for b in bids])  # 버전마다 다른 이벤트, 원천에서 다시 계산한 ID
+        self.assertEqual([(p["bid_version"], p["amount"], p["created_at"]) for _, p in rows], [(1, 300, NOW.isoformat()), (2, 400, (NOW + SEC).isoformat())])
+        self.assertEqual(v2.bid_id, bids[-1].bid_id)
+        empty = api.create_ad_group(self.w.adv, self.w.campaign.campaign_id, "빈 그룹", [self.w.slot.slot_id], now=NOW)
+        self.assertEqual(bid_events(empty.ad_group_id), [])  # 입찰액 없이 만들면 입찰도 이벤트도 없다
+        with mock.patch("campaigns.services.events.record_bid_added", side_effect=RuntimeError("outbox down")):  # 이벤트 쓰기가 실패하면 입찰 행도 남지 않는다
+            with self.assertRaises(RuntimeError):
+                api.create_ad_group(self.w.adv, self.w.campaign.campaign_id, "실패 그룹", [self.w.slot.slot_id], bid_amount=500, now=NOW)
+            with self.assertRaises(RuntimeError):
+                api.add_bid(self.w.adv, gid, 450, expected_version=2, now=NOW)
+        self.assertFalse(AdGroup.objects.filter(name="실패 그룹").exists())
+        self.assertEqual([b.bid_version for b in api.list_bids(self.w.adv, gid)], [2, 1])
+        with self.assertRaises(StaleVersion):  # 입찰 저장이 실패하면 이벤트도 없다
+            api.add_bid(self.w.adv, gid, 450, expected_version=1, now=NOW)
+        self.assertEqual(len(bid_events(gid)), 2)
+
+    def case_campaign_changes_are_logged_with_their_event_at_each_documented_point(self):
+        """`ad.campaign_changed`(계획 docs/plans/00 §5.4): 생성·상태(일시 중지·재개·중단·해제·조기 종료·기간 종료)·일예산·종료 시각마다 로그 한 줄 + 이벤트 하나.
+        이름만 바꾸거나 같은 값으로 저장하면 쓰지 않는다. 이벤트가 실패하면 캠페인 변경도 남지 않는다."""
+        def changes(campaign_id):
+            rows = ChangeLog.objects.filter(target_type="campaign", target_id=campaign_id).order_by("changed_at", "change_id")
+            return [(r.change_type, r.previous_value, r.new_value) for r in rows]
+        adv, admin, cid, end = self.w.adv, self.w.admin, self.w.campaign.campaign_id, NOW + 10 * DAY
+        api.update_campaign(adv, cid, {"name": "새 이름"}, now=NOW + SEC)
+        api.update_campaign(adv, cid, {"daily_budget": 60_000, "ends_at": NOW + 20 * DAY, "status": "PAUSED"}, now=NOW + 2 * SEC)  # 한 요청에 세 줄(상태는 전이가 쓴다)
+        api.update_campaign(adv, cid, {"daily_budget": 60_000}, now=NOW + 3 * SEC)
+        api.update_campaign(adv, cid, {"status": "ACTIVE"}, now=NOW + 4 * SEC)
+        api.suspend_campaign(admin, cid, "사유", now=NOW + 5 * SEC)
+        api.release_campaign(admin, cid, now=NOW + 6 * SEC)
+        api.end_campaign(adv, cid, now=NOW + 7 * SEC)
+        iso = lambda t: t.isoformat()
+        self.assertEqual(changes(cid), [
+            ("CREATED", None, {"status": "ACTIVE", "daily_budget": 50_000, "starts_at": iso(NOW - DAY), "ends_at": iso(end)}),
+            ("STATUS_CHANGED", {"status": "ACTIVE"}, {"status": "PAUSED"}),
+            ("BUDGET_CHANGED", {"daily_budget": 50_000}, {"daily_budget": 60_000}),
+            ("PERIOD_CHANGED", {"ends_at": iso(end)}, {"ends_at": iso(NOW + 20 * DAY)}),
+            ("STATUS_CHANGED", {"status": "PAUSED"}, {"status": "ACTIVE"}),
+            ("STATUS_CHANGED", {"status": "ACTIVE"}, {"status": "SUSPENDED"}),
+            ("STATUS_CHANGED", {"status": "SUSPENDED"}, {"status": "ACTIVE"}),
+            ("STATUS_CHANGED", {"status": "ACTIVE", "ends_at": iso(NOW + 20 * DAY)}, {"status": "ENDED", "ends_at": iso(NOW + 7 * SEC)}),  # 조기 종료는 종료 시각도
+        ])
+        due = api.create_campaign(adv, "기간 종료", NOW - DAY, NOW + DAY, 1_000, now=NOW)
+        api.suspend_campaign(admin, due.campaign_id, "사유", now=NOW)
+        self.assertEqual(api.end_expired_campaigns(now=NOW + 2 * DAY), 1)
+        self.assertEqual(changes(due.campaign_id)[-1], ("STATUS_CHANGED", {"status": "SUSPENDED"}, {"status": "ENDED"}))  # 일괄 종료도 잠근 행의 이전 상태로
+        for r in ChangeLog.objects.filter(target_type="campaign"):
+            e = EventOutbox.objects.get(pk=event_id_for("ad.campaign_changed", r.change_id))
+            self.assertEqual((e.aggregate_id, e.created_at, e.payload["change_type"], e.payload["previous_value"], e.payload["new_value"]),
+                             (r.campaign_id, r.changed_at, r.change_type, r.previous_value, r.new_value))
+        live = api.create_campaign(adv, "이벤트 실패", NOW - DAY, None, 1_000, now=NOW)
+        campaigns_before = len(api.list_campaigns(adv, now=NOW))
+        with mock.patch("campaigns.changes.events.record_campaign_changed", side_effect=RuntimeError("outbox down")):
+            with self.assertRaises(RuntimeError):
+                api.update_campaign(adv, live.campaign_id, {"daily_budget": 5_000}, now=NOW + SEC)
+            with self.assertRaises(RuntimeError):
+                api.create_campaign(adv, "만들기 실패", NOW - DAY, None, 1_000, now=NOW)
+        self.assertEqual((api.get_campaign(adv, live.campaign_id, now=NOW).daily_budget, len(changes(live.campaign_id))), (1_000, 1))
+        self.assertEqual(len(api.list_campaigns(adv, now=NOW)), campaigns_before)
+
+    def case_ad_group_changes_are_logged_with_their_event_at_each_documented_point(self):
+        """`ad.ad_group_changed`(계획 docs/plans/00 §5.5): 생성(소재 없음)·소재 선택(자동 선택 포함)·켜기/끄기·게재 위치마다 로그 한 줄 + 이벤트 하나.
+        이름만 바꾸거나 같은 값(순서만 다른 게재 위치 포함)이면 쓰지 않는다. 이벤트가 실패하면 광고그룹 변경도 남지 않는다."""
+        def changes(ad_group_id):
+            rows = ChangeLog.objects.filter(target_type="ad_group", target_id=ad_group_id).order_by("changed_at", "change_id")
+            return [(r.change_type, r.previous_value, r.new_value) for r in rows]
+        adv, gid, slot, first = self.w.adv, self.w.group.ad_group_id, self.w.slot, self.w.creative.creative_id
+        other = make_slot(self.w.admin)
+        api.update_ad_group(adv, gid, {"name": "새 이름"}, now=NOW + SEC)
+        api.update_ad_group(adv, gid, {"enabled": False, "slot_ids": [slot.slot_id, other.slot_id]}, now=NOW + 2 * SEC)
+        api.update_ad_group(adv, gid, {"enabled": False, "slot_ids": [other.slot_id, slot.slot_id]}, now=NOW + 3 * SEC)
+        second = api.create_creative(adv, gid, "둘째", "https://example.com/2", png_file((9, 9, 9)), now=NOW + 4 * SEC)  # 선택된 소재가 있어 연결만
+        api.link_creative(adv, gid, second.creative_id, now=NOW + 5 * SEC, select=True)
+        self.assertEqual(changes(gid), [
+            ("CREATED", None, {"enabled": True, "slot_ids": [str(slot.slot_id)], "creative_id": None}),
+            ("CREATIVE_SELECTED", {"creative_id": None}, {"creative_id": str(first)}),  # 소재가 없을 때의 자동 선택
+            ("ENABLED_CHANGED", {"enabled": True}, {"enabled": False}),
+            ("SLOTS_CHANGED", {"slot_ids": [str(slot.slot_id)]}, {"slot_ids": sorted([str(slot.slot_id), str(other.slot_id)])}),  # 지우기 전의 목록이 이전 값
+            ("CREATIVE_SELECTED", {"creative_id": str(first)}, {"creative_id": str(second.creative_id)}),
+        ])
+        for r in ChangeLog.objects.filter(target_type="ad_group"):
+            e = EventOutbox.objects.get(pk=event_id_for("ad.ad_group_changed", r.change_id))
+            self.assertEqual((e.aggregate_id, e.created_at, e.payload["campaign_id"], e.payload["previous_value"], e.payload["new_value"]),
+                             (r.target_id, r.changed_at, str(r.campaign_id), r.previous_value, r.new_value))
+        groups_before = AdGroup.objects.count()
+        with mock.patch("campaigns.changes.events.record_ad_group_changed", side_effect=RuntimeError("outbox down")):
+            with self.assertRaises(RuntimeError):
+                api.update_ad_group(adv, gid, {"enabled": True}, now=NOW + 6 * SEC)
+            with self.assertRaises(RuntimeError):
+                api.create_ad_group(adv, self.w.campaign.campaign_id, "실패 그룹", [slot.slot_id], now=NOW)
+        self.assertEqual((api.get_ad_group(adv, gid).enabled, len(changes(gid)), AdGroup.objects.count()), (False, 5, groups_before))
+
+    def case_a_change_is_one_log_row_and_one_event_with_the_same_values(self):
+        """변경 로그(계획 docs/plans/00 §5.2·P2-5): 변경 한 번 = 로그 한 줄 + 변경 이벤트 하나, 같은 값·같은 트랜잭션. 값이 그대로면 아무것도 쓰지 않는다."""
+        c, g, slot = self.w.campaign, self.w.group, self.w.slot
+        before = ChangeLog.objects.count()  # 세계를 만들 때 캠페인 생성(CREATED)도 한 줄 생긴다
+        args = dict(target_type="ad_group", target_id=g.ad_group_id, campaign_id=c.campaign_id, change_type="SLOTS_CHANGED")
+        other = uuid.uuid4()
+        change_id = record_change(**args, previous={"slot_ids": [slot.slot_id]}, new={"slot_ids": {other, slot.slot_id}}, now=NOW)
+        row = ChangeLog.objects.get(pk=change_id)
+        self.assertEqual((row.previous_value, row.new_value), ({"slot_ids": [str(slot.slot_id)]}, {"slot_ids": sorted([str(other), str(slot.slot_id)])}))  # UUID 목록은 정렬한 문자열
+        event = EventOutbox.objects.get(pk=event_id_for("ad.ad_group_changed", change_id))
+        self.assertEqual((event.aggregate_id, event.created_at, event.payload["previous_value"], event.payload["new_value"]),
+                         (g.ad_group_id, NOW, row.previous_value, row.new_value))  # 로그 = 이벤트(정합성 원천)
+        self.assertIsNone(record_change(**args, previous={"slot_ids": [slot.slot_id]}, new={"slot_ids": (slot.slot_id,)}, now=NOW))  # 그대로면 쓰지 않는다
+        created = record_change(target_type="campaign", target_id=c.campaign_id, campaign_id=c.campaign_id, change_type="CREATED", previous=None,
+                                new={"status": "ACTIVE", "daily_budget": 50_000, "ends_at": NOW + DAY, "starts_at": NOW}, now=NOW)
+        payload = EventOutbox.objects.get(pk=event_id_for("ad.campaign_changed", created)).payload
+        self.assertEqual((payload["previous_value"], payload["new_value"]["ends_at"], payload["campaign_id"]), (None, (NOW + DAY).isoformat(), str(c.campaign_id)))
+        self.assertEqual(ChangeLog.objects.count(), before + 2)
+        for bad in (1.5, NOW.replace(tzinfo=None)):  # 형식을 모르는 값·시간대 없는 시각은 조용히 바꾸지 않는다
+            with self.assertRaises(TypeError, msg=bad):
+                record_change(**args, previous={"x": 1}, new={"x": bad}, now=NOW)
+        with mock.patch("campaigns.changes.connection", mock.Mock(in_atomic_block=False)), self.assertRaises(OutsideTransaction):  # 트랜잭션 밖이면 로그를 쓰기 전에 막는다
+            record_change(**args, previous={"slot_ids": []}, new={"slot_ids": [slot.slot_id]}, now=NOW)
+        with mock.patch("campaigns.changes.events.record_campaign_changed", side_effect=RuntimeError("outbox down")):  # 이벤트가 실패하면 로그도 남지 않는다
+            with self.assertRaises(RuntimeError), transaction.atomic():
+                record_change(target_type="campaign", target_id=c.campaign_id, campaign_id=c.campaign_id, change_type="BUDGET_CHANGED",
+                              previous={"daily_budget": 50_000}, new={"daily_budget": 70_000}, now=NOW)
+        self.assertEqual(ChangeLog.objects.count(), before + 2)
+        for kind, previous in (({"target_type": "campaign", "change_type": "SLOTS_CHANGED"}, {"a": 1}), ({"target_type": "ad_group", "change_type": "CREATED"}, {"a": 1})):
+            with self.assertRaises(IntegrityError, msg=kind), transaction.atomic():  # DB 가 막는다: 대상에 없는 변경 종류, CREATED 의 이전 값
+                ChangeLog.objects.create(target_id=g.ad_group_id, campaign_id=c.campaign_id, previous_value=previous, new_value={"a": 2}, changed_at=NOW, **kind)
 
     def case_bid_validation(self):
         for bad in (0, -1, 1.5, True, "30", None, 2**53):

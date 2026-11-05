@@ -52,7 +52,7 @@ def make_slot(admin, unit="IMPRESSION", floor=100, base=200, cap=500, name=None)
     from masters import api as masters
 
     media = masters.create_media(admin, f"매체-{next(_counter)}")
-    return masters.create_slot(admin, media.media_id, name or f"슬롯-{next(_counter)}", floor, base, cap, "초기", audience="individual", **shares_for(unit))
+    return masters.create_slot(admin, media.media_id, name or f"슬롯-{next(_counter)}", floor, base, cap, "초기", audience="individual", **shares_for(unit), now=NOW)
 
 
 class World:
@@ -78,7 +78,7 @@ class World:
         """같은 매체의 일괄 구성(하한 100·기준 200·상한 500)과 그 구성에만 놓인 이 캠페인의 광고(입찰 400)·소재. (구성, 광고그룹)을 돌려준다."""
         from masters import api as masters
 
-        slot = masters.create_slot(self.admin, self.slot.media_id, "전광판", 100, 200, 500, "초기", audience="shared", **SHARES)
+        slot = masters.create_slot(self.admin, self.slot.media_id, "전광판", 100, 200, 500, "초기", audience="shared", **SHARES, now=NOW)
         group = self.api.create_ad_group(self.adv, self.campaign.campaign_id, "일괄 그룹", [slot.slot_id], bid_amount=400, now=NOW)
         self.api.create_creative(self.adv, group.ad_group_id, "전광판 광고", "https://example.com/board", png_file((4, 4, 4)), now=NOW)
         return slot, group

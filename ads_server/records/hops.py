@@ -4,7 +4,7 @@
 (`tests/tools/load_test.py` 의 `verify_events` 도 같은 기대값을 쓴다). 형식은 `events` 의 빌더를 쓴다.
 
 생성 시각(`produced_at`)은 종류마다 생성 규약이 정한 원본 시각이다: 결정 = 결정 시각, 접수 = 수신 시각, 판정 = 처리 시각(`processed_at`),
-과금 = 그 과금을 일으킨 반응의 처리 시각(과금과 판정은 같은 처리 트랜잭션의 같은 `now` 를 쓴다).
+과금 = 그 과금을 일으킨 반응의 처리 시각(과금과 판정은 같은 처리 트랜잭션의 같은 `now` 를 쓴다), 입찰 정책 = 정책 버전의 변경 시각, 입찰 = 입찰 버전을 만든 시각, 캠페인·광고그룹 변경 = 변경 로그의 변경 시각.
 """
 from functools import reduce
 from operator import or_
@@ -12,7 +12,9 @@ from operator import or_
 from django.db.models import Q
 
 from billing import api as billing
+from campaigns import api as campaigns
 from events import api as events
+from masters import api as masters
 
 from .models import Decision, Reaction, charge_shares
 from .processing import parse_reaction_ref, reaction_ref
@@ -29,16 +31,24 @@ def expected_events():
         expected.update([_received_event(r)] + ([_judged_event(r)] if r.status != "RECEIVED" else []))
     for e in billing.charge_entries(billing.charge_entry_ids()):
         expected.update([_charge_event(e, *reactions.get(e.reaction_ref, (None, None)))])  # 원장의 멱등 키(<매체>:<reaction_id>)로 반응을 거쳐 결정을 찾는다
+    expected.update(_bid_policy_event(p) for p in masters.policy_versions())
+    expected.update(_bid_event(b) for b in campaigns.bid_versions())
+    expected.update(_campaign_change_event(v) for v in campaigns.change_rows(campaigns.ChangeTarget.CAMPAIGN))
+    expected.update(_ad_group_change_event(v) for v in campaigns.change_rows(campaigns.ChangeTarget.AD_GROUP))
     return expected
 
 
 def source_streams():
     """① 구간을 창으로 읽는 흐름(`events.summarize_windows` 용, 외부 검토 00d3067 P3-3). `expected_events` 와 같은 매핑을 창 하나·종류 하나씩 적용한다:
-    결정(결정 시각) / 접수(수신 시각) / 판정과 그 과금(처리 시각). 호출한 쪽의 읽기 스냅샷 안에서 쓴다."""
+    결정(결정 시각) / 접수(수신 시각) / 판정과 그 과금(처리 시각) / 입찰 정책(변경 시각) / 입찰(만든 시각) / 캠페인·광고그룹 변경(변경 시각). 호출한 쪽의 읽기 스냅샷 안에서 쓴다."""
     return [
         events.table_stream(Decision.objects.all(), "decided_at", lambda rows: [_document(_decision_event(d)) for d in rows]),
         events.table_stream(Reaction.objects.all(), "received_at", lambda rows: [_document(_received_event(r)) for r in rows]),
         events.table_stream(Reaction.objects.filter(processed_at__isnull=False), "processed_at", _judged_documents),  # 판정한 반응 = 처리 시각이 있는 반응(DB 제약)
+        masters.policy_stream(lambda views: [_document(_bid_policy_event(p)) for p in views]),
+        campaigns.bid_stream(lambda views: [_document(_bid_event(b)) for b in views]),
+        campaigns.change_stream(campaigns.ChangeTarget.CAMPAIGN, lambda views: [_document(_campaign_change_event(v)) for v in views]),
+        campaigns.change_stream(campaigns.ChangeTarget.AD_GROUP, lambda views: [_document(_ad_group_change_event(v)) for v in views]),
     ]
 
 
@@ -112,4 +122,34 @@ def _charge_event(e, decision_id, processed_at):
     return events.event_id_for(name, e.entry_id), (name, decision_id, processed_at, events.charge_payload(
         entry_id=e.entry_id, campaign_id=e.campaign_id, charge_policy=e.charge_policy, created_at=e.created_at, reaction_ref=e.reaction_ref, decision_id=decision_id,
         requested_amount=e.charged + e.shortfall, charged_amount=e.charged, shortfall=e.shortfall, budget_day=billing.budget_day_of(e.created_at),
+    ))
+
+
+def _bid_policy_event(p):
+    name = events.NAMES["bid_policy_changed"]
+    return events.event_id_for(name, p.bid_policy_id), (name, p.slot_id, p.changed_at, events.bid_policy_changed_payload(
+        slot_id=p.slot_id, bid_policy_id=p.bid_policy_id, policy_version=p.policy_version, floor_amount=p.floor, base_amount=p.base, cap_amount=p.cap,
+        impression_share=p.impression_share, click_share=p.click_share, conversion_share=p.conversion_share, changed_at=p.changed_at,
+    ))
+
+
+def _bid_event(b):
+    name = events.NAMES["bid_added"]
+    return events.event_id_for(name, b.bid_id), (name, b.ad_group_id, b.created_at, events.bid_added_payload(
+        bid_id=b.bid_id, ad_group_id=b.ad_group_id, bid_version=b.bid_version, amount=b.amount, created_at=b.created_at,
+    ))
+
+
+def _campaign_change_event(v):
+    name = events.NAMES["campaign_changed"]
+    return events.event_id_for(name, v.change_id), (name, v.campaign_id, v.changed_at, events.campaign_changed_payload(
+        campaign_id=v.campaign_id, change_id=v.change_id, change_type=v.change_type, previous_value=v.previous_value, new_value=v.new_value, changed_at=v.changed_at,
+    ))
+
+
+def _ad_group_change_event(v):
+    name = events.NAMES["ad_group_changed"]
+    return events.event_id_for(name, v.change_id), (name, v.target_id, v.changed_at, events.ad_group_changed_payload(
+        ad_group_id=v.target_id, campaign_id=v.campaign_id, change_id=v.change_id, change_type=v.change_type,
+        previous_value=v.previous_value, new_value=v.new_value, changed_at=v.changed_at,
     ))

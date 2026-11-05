@@ -34,6 +34,21 @@ def unapplied_migration():
 
 
 @contextmanager
+def stale_collation():
+    """시험 DB 에 기록 버전이 실제와 다른 정렬과 그것을 쓰는 열을 만든다(pg_upgrade 가 옛 버전을 옮겨 온 것과 같은 상태, 끝나면 지운다).
+    모든 DB 의 기록 버전(pg_database)은 서버 전체에 걸쳐 같은 서버를 쓰는 다른 실행에 보이므로 여기서 깨뜨리지 않는다."""
+    with connection.cursor() as cur:
+        cur.execute("CREATE COLLATION ops_check_stale (provider = builtin, locale = 'C.UTF-8', version = '0')")
+        cur.execute("CREATE TABLE ops_check_stale (name text COLLATE ops_check_stale)")
+    try:
+        yield
+    finally:
+        with connection.cursor() as cur:
+            cur.execute("DROP TABLE ops_check_stale")
+            cur.execute("DROP COLLATION ops_check_stale")
+
+
+@contextmanager
 def tampered_ledger():
     billing.grant_signup(make_advertiser())
     with connection.cursor() as cur:  # ORM 우회 — 운영자 실수·DB 직접 수정 모사(test_billing_ledger 와 같은 방법)
@@ -69,11 +84,12 @@ class OpsCheckTests(Cases, MongoDatabaseMixin, TransactionTestCase):
             ("설정·파일 저장소", "없는 MEDIA_ROOT", override_settings(MEDIA_ROOT="/nonexistent-ads-media"), True),
             ("의존성", "같은 6.1 이지만 요구보다 낮은 Django(~=6.1.2 에 6.1.1)", django_at("6.1.1"), True),
             ("의존성", "호환 범위를 넘은 Django(~=6.1.x 에 7.0.0)", django_at("7.0.0"), True),
-            ("MySQL", "적용 안 된 마이그레이션", unapplied_migration(), True),
+            ("PostgreSQL", "적용 안 된 마이그레이션", unapplied_migration(), True),
+            ("PostgreSQL", "기록과 다른 정렬 버전", stale_collation(), True),
             ("MongoDB", "닿지 않음", unreachable_store(), True),
             ("상시 처리", "stuck 반응", mock.patch("records.api.inbox_status", return_value={"received": 1, "held": 0, "stuck": 1, "oldest_age_seconds": 3.0}), True),
             ("상시 처리", "601초 된 미전송", mock.patch("events.api.outbox_status", return_value={"pending": 2, "oldest_age_seconds": 601.0}), True),
-            ("MySQL", "고친 지갑 잔액", tampered_ledger(), True),  # 마지막 — 고친 원장은 시험이 끝날 때 비워진다
+            ("PostgreSQL", "고친 지갑 잔액", tampered_ledger(), True),  # 마지막 — 고친 원장은 시험이 끝날 때 비워진다
         ]
         for name, how, broken, prod_like in cases:
             with self.subTest(f"{name}: {how}"), override_settings(**(PROD_LIKE if prod_like else {})), broken:

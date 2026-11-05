@@ -9,10 +9,11 @@ from tests.support.cases import Cases
 # 모듈을 옮기거나 새로 만들면 이 딕셔너리만 고친다. config(조립)·tests 는 검사에서 제외한다.
 LAYERS = {
     "foundation": 0,
-    "masters": 1, "engine": 1, "assets": 1, "events": 1,
-    "campaigns": 2, "billing": 2,
-    "records": 3,
-    "serving_api": 4, "console": 4,
+    "events": 1,  # foundation 만 안다 — 위의 업무 모듈이 모두 자기 변경과 같은 트랜잭션에서 이벤트를 기록한다(계획 docs/plans/00 D1)
+    "masters": 2, "engine": 2, "assets": 2,
+    "campaigns": 3, "billing": 3,
+    "records": 4,
+    "serving_api": 5, "console": 5,
 }
 
 

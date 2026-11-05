@@ -1,29 +1,22 @@
 #!/usr/bin/env python
 """DB-1d 장애 시험(로컬): 지속 유입 중에 DB 를 재시작·강제 종료하거나 처리 프로세스를 강제 종료하고, **약속이 지켜지는지** 확인한다.
 
-    python tests/tools/failure_test.py                       # 단일 노드 MySQL 의 모든 시나리오
+    python tests/tools/failure_test.py                       # 단일 노드 PostgreSQL 의 모든 시나리오
     python tests/tools/failure_test.py restart crash         # 골라서
-    python tests/tools/failure_test.py --mysql cluster       # InnoDB Cluster(3노드 + Router, 자동 failover)로 — 아래 클러스터 시나리오
     python tests/tools/failure_test.py --json out.json
 
-환경: **임시 MySQL 8.4 컨테이너와 임시 MongoDB 8.0 레플리카셋 컨테이너**를 따로 띄운다(이미지는 `intake/db-standalone` 이 만든 `db-standalone/mysql:8.4-ubuntu24.04`·`mongodb:8.0-ubuntu24.04`, 포트·비밀번호는 무작위).
-공유 시험 DB(`ads_server`)나 다른 사람이 쓰는 컨테이너는 건드리지 않는다. 끝나면 컨테이너를 지운다. Docker 가 없거나 이미지가 없으면 **건너뛰지 않고 실패**한다.
+환경: **임시 PostgreSQL 18 컨테이너와 임시 MongoDB 8.0 레플리카셋 컨테이너**를 따로 띄운다(공식 이미지 `postgres:18.6-trixie`·`mongo:8.0`, 포트·비밀번호는 무작위).
+공유 시험 DB(`ads_server`)나 다른 사람이 쓰는 컨테이너는 건드리지 않는다. 끝나면 컨테이너를 지운다. Docker 가 없으면 **건너뛰지 않고 실패**한다.
 check.sh 에는 넣지 않는다(Docker 가 필요하고 수 분 걸린다).
 
 시나리오(모두 지속 유입 중 — 결정을 받고 노출을 보고하는 클라이언트 여러 개가 계약의 재시도 규칙대로 움직인다):
   restart          `docker restart`(정상 종료 → 기동): 계획된 재시작·전환에 가까운 끊김
-  crash            `docker kill`(SIGKILL) → 기동: 강제 종료. InnoDB 충돌 복구. **수신 확인(2xx)한 것은 전부 살아 있어야 한다**(커밋마다 디스크 동기화 설정 하에서)
+  crash            `docker kill`(SIGKILL) → 기동: 강제 종료. WAL 충돌 복구. **수신 확인(2xx)한 것은 전부 살아 있어야 한다**(커밋마다 디스크 동기화 설정 하에서)
   processor-kill   처리 프로세스 하나를 SIGKILL 하고 새로 띄운다(DB 는 그대로): 처리 도중 죽어도 이중 과금·유실이 없다
   mongo-restart    임시 MongoDB(레플리카셋)를 재시작한다: **요청은 전혀 영향이 없고**(503 도 없다) outbox 에 이벤트가 쌓였다가 복구 뒤 상시 중계 프로세스가 비운다
   relay-kill       중계 프로세스 하나를 SIGKILL 하고 새로 띄운다: 보낸 뒤 표시 전에 죽어도 같은 내용의 중복으로 통과해 이벤트가 늘거나 줄지 않는다
 
-클러스터 시나리오(`--mysql cluster`, tests/tools/mysql_cluster.py: 서버 3노드 그룹 복제 단일 primary + MySQL Router, 앱은 Router 읽기·쓰기 포트로만 접속):
-  primary-kill     primary 를 SIGKILL 한다 → **자동 failover**(새 primary 선출, Router 가 따라감) → 죽은 노드를 다시 띄워 스스로 합류. 확인한 쓰기는 과반에 복제된 것이라 잃지 않는다
-  primary-restart  primary 를 정상 재시작한다(failover 가 일어나고 원래 노드는 secondary 로 돌아온다)
-  switchover       계획된 primary 전환(`setPrimaryInstance`)
-  secondary-kill   secondary 하나를 SIGKILL: 과반(2/3)이 남아 쓰기가 이어진다
-  router-restart   Router 를 재시작한다(연결이 끊기고 Router 가 돌아오면 이어진다)
-  (processor-kill·mongo-restart·relay-kill 은 같다) 끝에서 **모든 노드가 ONLINE 이고 같은 데이터(GTID 집합·표별 행 수)** 를 가진다.
+클러스터(HA) 시나리오는 PostgreSQL HA 구성을 정한 뒤에 둔다(MySQL InnoDB Cluster 시나리오는 PostgreSQL 전환 때 지웠다 — 계획 docs/plans/00 P1-2).
 
 확인하는 것(종료 코드 0 = 모두 충족):
   1. 끊김 동안 API 는 503(또는 연결 실패)으로 답하고 **500 은 없다**. 시험이 공회전이 아니다(끊김을 실제로 겪은 요청이 있다).
@@ -33,7 +26,7 @@ check.sh 에는 넣지 않는다(Docker 가 필요하고 수 분 걸린다).
   4. 상시 처리 프로세스는 DB 가 끊겼다 돌아와도 죽지 않고 이어서 처리한다. **접수 직후 처리를 끄고**, 복구 뒤 상시 처리 프로세스**만으로** 대기열이 비워지는지
      (별도 `process_reactions --once` 없이) 최종 불변식 전에 판정한다 — 다른 곳이 처리할 수 없으므로 상시 프로세스가 일하지 않으면 실패한다.
 
-한계: 개발 PC 의 Docker 클러스터다(한 호스트, 네트워크 분리·지연 주입 없음). 인프라 서버의 실제 네트워크·디스크에서의 failover 시간과 유실 범위는 인프라 서버에서 확인할 일이다(계획 7.3.4 #6).
+한계: 개발 PC 의 Docker 컨테이너다(한 호스트, 네트워크 분리·지연 주입 없음). 인프라 서버의 실제 네트워크·디스크에서의 복구 시간과 유실 범위는 인프라 서버에서 확인할 일이다(계획 7.3.4 #6).
 """
 import argparse
 import json
@@ -55,18 +48,17 @@ sys.path.insert(0, str(BASE_DIR / "tests" / "tools"))
 
 import docker_cli  # noqa: E402 — tests/tools/ 가 경로에 있다
 import mongo_temp_rs  # noqa: E402
-import mysql_cluster  # noqa: E402
 
-IMAGE = "db-standalone/mysql:8.4-ubuntu24.04"
-SCENARIOS = ("restart", "crash", "processor-kill", "mongo-restart", "relay-kill")  # 단일 노드 MySQL
-CLUSTER_SCENARIOS = ("primary-kill", "primary-restart", "switchover", "secondary-kill", "router-restart", "processor-kill", "mongo-restart", "relay-kill")  # --mysql cluster
+IMAGE = "postgres:18.6-trixie"  # tests/docker/compose.yaml 과 같게(docs/plans/00 §4.3 V-1)
+INITDB_ARGS = "--locale-provider=builtin --locale=C.UTF-8"  # 시험 DB 와 같은 정렬(결정 D11, tests/docker/compose.yaml)
+SCENARIOS = ("restart", "crash", "processor-kill", "mongo-restart", "relay-kill")
 
 
 docker = partial(docker_cli.docker, timeout=180)  # 이 스크립트의 시간 제한(R5)
 
 
 class DbContainer:
-    """임시 MySQL 컨테이너. 비밀번호는 환경변수로만 넘기고 출력하지 않는다."""
+    """임시 PostgreSQL 컨테이너(사용자 postgres). 비밀번호는 환경변수로만 넘기고 출력하지 않는다. 내구성 설정(fsync·synchronous_commit)은 이미지 기본값(on)이다."""
 
     def __init__(self):
         self.port = docker_cli.free_port()
@@ -74,18 +66,20 @@ class DbContainer:
         self.password = secrets.token_urlsafe(24)
 
     def start(self):
-        docker("run", "-d", "--name", self.name, "-p", f"127.0.0.1:{self.port}:3306", "-e", f"MYSQL_ROOT_PASSWORD={self.password}", IMAGE)
+        docker("run", "-d", "--name", self.name, "-p", f"127.0.0.1:{self.port}:5432", "-e", f"POSTGRES_PASSWORD={self.password}",
+               "-e", f"POSTGRES_INITDB_ARGS={INITDB_ARGS}", IMAGE)
         self.wait_ready()
 
     def wait_ready(self, timeout=180):
         deadline = time.time() + timeout
         while time.time() < deadline:
-            probe = docker("exec", "-e", f"MYSQL_PWD={self.password}", self.name, "mysqladmin", "ping", "--protocol=tcp", "-h127.0.0.1", "-uroot", "--silent",
+            # TCP 로 묻는다 — 첫 기동의 초기화 단계에서는 서버가 유닉스 소켓만 열어 두므로 그때는 아직 준비 전이다
+            probe = docker("exec", self.name, "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-q",
                            check=False)  # 다른 docker 호출과 같은 시간 제한(R5) — 걸린 exec 가 대기를 끝없이 늘이지 않게(6-13g)
             if probe.returncode == 0:
                 return
             time.sleep(1)
-        raise SystemExit(f"컨테이너 {self.name} 의 MySQL 이 {timeout}초 안에 준비되지 않았다")
+        raise SystemExit(f"컨테이너 {self.name} 의 PostgreSQL 이 {timeout}초 안에 준비되지 않았다")
 
     def restart(self):
         docker("restart", "-t", "20", self.name)
@@ -98,7 +92,7 @@ class DbContainer:
         self.wait_ready()
 
     def remove(self):
-        docker("rm", "-f", self.name, check=False)
+        docker("rm", "-f", "-v", self.name, check=False)  # 공식 이미지는 VOLUME 을 선언한다 — 익명 볼륨도 함께 지운다
 
 
 def start_standing(command, env, tmp, name):
@@ -114,11 +108,11 @@ def start_standing(command, env, tmp, name):
 
 def run_scenario(name, db, mongo_container, log):
     import load_test
-    import mysql_admin
+    import pg_admin
 
     tmp = Path(tempfile.mkdtemp(prefix="ads-failure-"))
     (tmp / "static").mkdir()  # 빈 정적 파일 폴더(WhiteNoise 가 시작할 때 읽는다, 6-5e)
-    database = mysql_admin.create_database("ads_failure")
+    database = pg_admin.create_database("ads_failure")
     os.environ.update(DJANGO_SETTINGS_MODULE="config.settings.dev", DB_NAME=database, MEDIA_ROOT=str(tmp / "media"), STATIC_ROOT=str(tmp / "static"))
     os.environ.pop("DJANGO_DEBUG", None)
     import django
@@ -198,38 +192,7 @@ def run_scenario(name, db, mongo_container, log):
         [t.start() for t in clients]
         time.sleep(4)
         timeline["injected_at"] = time.time()
-        cluster = db if isinstance(db, mysql_cluster.Cluster) else None
-        injected = {}
-        if name == "primary-kill":
-            old = cluster.primary()
-            cluster.kill(old)
-            new = cluster.wait_for_primary(different_from=old)
-            cluster.wait_router()
-            injected = {"old_primary": old, "new_primary": new, "failover_s": round(time.time() - timeline["injected_at"], 1)}
-            cluster.start_node(old)  # 죽은 노드를 다시 띄우면 그룹 복제가 스스로 다시 합류시킨다
-        elif name == "primary-restart":
-            old = cluster.primary()
-            cluster.restart_node(old)
-            new = cluster.wait_for_primary()
-            cluster.wait_router()
-            injected = {"old_primary": old, "new_primary": new}
-        elif name == "switchover":
-            old = cluster.primary()
-            target = next(n for n in cluster.running() if n != old)
-            cluster.switchover(target)
-            new = cluster.wait_for_primary(different_from=old)
-            cluster.wait_router()
-            injected = {"old_primary": old, "new_primary": new, "switchover_s": round(time.time() - timeline["injected_at"], 1)}
-        elif name == "secondary-kill":
-            primary = cluster.primary()
-            victim = next(n for n in cluster.running() if n != primary)
-            cluster.kill(victim)
-            time.sleep(8)  # 한 노드가 빠진 채 쓰기가 이어진다(과반 2/3)
-            injected = {"primary": primary, "killed": victim}
-            cluster.start_node(victim)
-        elif name == "router-restart":
-            cluster.restart_router()
-        elif name == "restart":
+        if name == "restart":
             db.restart()
         elif name == "crash":
             db.kill_and_start()
@@ -246,7 +209,6 @@ def run_scenario(name, db, mongo_container, log):
             processors[0].log_handle.close()
             processors[0] = start_standing("process_reactions", env, tmp, "p1b")
         timeline["recovered_at"] = time.time()
-        result.update(injected=injected)
         time.sleep(8)
         stop.set()
         [t.join(timeout=120) for t in clients]
@@ -257,10 +219,8 @@ def run_scenario(name, db, mongo_container, log):
         unacked = sum(1 for o in outcomes if not o.acked)
         log(f"  요청 {len(outcomes)}건, 시도 {len(statuses)}회: 끊김(503·연결 실패) {unavailable}회, 최종 수신 확인 못 한 것 {unacked}건, "
             f"주입 {timeline['recovered_at'] - timeline['injected_at']:.1f}초")
-        if name in ("restart", "crash", "primary-kill", "primary-restart", "router-restart"):
+        if name in ("restart", "crash"):
             check("끊김을 실제로 겪은 요청이 있다(시험이 공회전이 아니다)", unavailable > 0, f"{unavailable}회")
-        if cluster is not None and name in ("primary-kill", "primary-restart", "switchover"):
-            check("primary 가 바뀌었다(자동 failover·전환이 실제로 일어났다)", injected["new_primary"] != injected["old_primary"], f"{injected['old_primary']} → {injected['new_primary']}")
         if name == "mongo-restart":
             check("MongoDB 가 끊겨도 요청은 영향이 없다(503·연결 실패 0)", unavailable == 0, f"{unavailable}회")
         check("끊김 동안 500 이 없다(503·연결 실패만)", not server_errors, f"500대: {server_errors}")
@@ -301,11 +261,6 @@ def run_scenario(name, db, mongo_container, log):
         for proc in processors + relays:
             proc.log_handle.close()
         connections.close_all()
-        if cluster is not None:
-            cluster.wait_all_online()
-            check("모든 노드가 ONLINE 이고 한 개의 primary 만 있다", sum(1 for m in cluster.status()["defaultReplicaSet"]["topology"].values() if m["memberRole"] == "PRIMARY") == 1, "")
-            same, report_nodes = cluster.replica_report(database, ("records_decision", "records_reaction", "billing_ledger_entry", "events_outbox"))
-            check("모든 노드가 같은 데이터를 가진다(실행한 GTID 집합·표별 행 수)", same, json.dumps(report_nodes, ensure_ascii=False)[:400])
         lag.stop()
         report = lag.report(settings.EVENTS_HOP_GRACE_SECONDS)
         result["event_lag"] = report
@@ -333,7 +288,7 @@ def run_scenario(name, db, mongo_container, log):
         except BaseException as error:  # noqa: BLE001
             print(f"정리 실패(임시 MongoDB 데이터베이스): {error!r}", file=sys.stderr)
         try:
-            mysql_admin.drop_database(database)
+            pg_admin.drop_database(database)
         except BaseException as error:  # noqa: BLE001
             print(f"정리 실패(임시 DB): {error!r}", file=sys.stderr)
         shutil.rmtree(tmp, ignore_errors=True)
@@ -343,31 +298,22 @@ def run_scenario(name, db, mongo_container, log):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("scenarios", nargs="*", help=f"기본은 모두. 단일 노드: {', '.join(SCENARIOS)} / --mysql cluster: {', '.join(CLUSTER_SCENARIOS)}")
-    parser.add_argument("--mysql", choices=("single", "cluster"), default="single", help="single: 임시 MySQL 컨테이너 하나(기본), cluster: InnoDB Cluster 3노드 + Router")
+    parser.add_argument("scenarios", nargs="*", help=f"기본은 모두: {', '.join(SCENARIOS)}")
     parser.add_argument("--json", help="결과를 JSON 으로 저장할 경로")
     args = parser.parse_args(argv)
-    known = CLUSTER_SCENARIOS if args.mysql == "cluster" else SCENARIOS
-    chosen = args.scenarios or list(known)
-    unknown = [name for name in chosen if name not in known]
+    chosen = args.scenarios or list(SCENARIOS)
+    unknown = [name for name in chosen if name not in SCENARIOS]
     if unknown:
-        raise SystemExit(f"알 수 없는 시나리오 {unknown}. 가능한 것: {', '.join(known)}")
+        raise SystemExit(f"알 수 없는 시나리오 {unknown}. 가능한 것: {', '.join(SCENARIOS)}")
     if shutil.which("docker") is None:
-        raise SystemExit("docker 가 없다. 이 시험은 임시 MySQL·MongoDB 컨테이너가 필요하다.")
-    if args.mysql == "single" and docker("image", "inspect", IMAGE, check=False).returncode != 0:
-        raise SystemExit(f"이미지 {IMAGE} 가 없다. intake/db-standalone 에서 `docker compose build mysql` 로 만든다.")
+        raise SystemExit("docker 가 없다. 이 시험은 임시 PostgreSQL·MongoDB 컨테이너가 필요하다.")
 
     results, mongo_name = [], None
-    db = mysql_cluster.Cluster() if args.mysql == "cluster" else DbContainer()
+    db = DbContainer()
     try:
-        if args.mysql == "cluster":
-            print(f"임시 InnoDB Cluster {db.id} (노드 {len(db.nodes)}개 + Router, 포트 {db.port}) 기동…")
-            db.start()
-            os.environ.update(db.env())
-        else:
-            print(f"임시 MySQL 컨테이너 {db.name} (포트 {db.port}) 기동…")
-            db.start()
-            os.environ.update(DB_HOST="127.0.0.1", DB_PORT=str(db.port), DB_USER="root", DB_PASSWORD=db.password)
+        print(f"임시 PostgreSQL 컨테이너 {db.name} (포트 {db.port}) 기동…")
+        db.start()
+        os.environ.update(DB_HOST="127.0.0.1", DB_PORT=str(db.port), DB_USER="postgres", DB_PASSWORD=db.password)
         mongo_name, mongo_port, mongo_password = mongo_temp_rs.start()  # 임시 단일 노드 레플리카셋(인증 켜짐)
         print(f"임시 MongoDB 컨테이너 {mongo_name} (포트 {mongo_port}) 기동")
         os.environ.update(MONGO_HOSTS=f"127.0.0.1:{mongo_port}", MONGO_USER="root", MONGO_PASSWORD=mongo_password, MONGO_AUTH_SOURCE="admin", MONGO_REPLICA_SET=mongo_temp_rs.REPLICA_SET)

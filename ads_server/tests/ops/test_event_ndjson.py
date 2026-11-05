@@ -390,7 +390,7 @@ class ExportCommandTests(Cases, TempDirMixin, MongoDatabaseMixin, TransactionTes
         out = self.tmpdir()
         self.export(out)
         checkpoint = ndjson.read_manifest(ndjson.manifest_path(out, "event_gaps"))["checkpoint"]
-        self.assertEqual(checkpoint["scope"], "mysql-repeatable-read-snapshot")
+        self.assertEqual(checkpoint["scope"], "postgresql-repeatable-read-snapshot")
         self.assertEqual(checkpoint["scanned"], {"decision": 1, "reaction": 1, "ledger_charge": 1})  # 실제로 훑은 행 수
         self.assertEqual(checkpoint, ndjson.read_manifest(ndjson.manifest_path(out, "ledger_check"))["checkpoint"])  # 세 점검이 같은 범위를 본다
 

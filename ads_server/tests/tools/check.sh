@@ -5,8 +5,8 @@
 #   OFFLINE_OK=1 tests/tools/check.sh pip-audit 이 네트워크 문제로 못 돌면 건너뛴다(기본은 실패로 취급)
 #   PYTHON=/path/to/python        사용할 파이썬(기본: python)
 #
-# 단계: MySQL·MongoDB 접속(없으면 명확히 실패 — 시험을 건너뛰지 않는다) → check --deploy(prod 샘플 환경) → 마이그레이션 최신 여부 → 전체 테스트(경계 검사·보안 회귀 포함)
-#       → 부하 시험(소규모: MySQL·실제 HTTP·별도 처리 프로세스, 불변식) → 프론트 check --deploy·시험(ads_frontend) → pip-audit(의존성 취약점) → bandit(정적 보안 점검)
+# 단계: PostgreSQL·MongoDB 접속(없으면 명확히 실패 — 시험을 건너뛰지 않는다. 로컬 서버는 tests/docker/compose.yaml) → check --deploy(prod 샘플 환경) → 마이그레이션 최신 여부 → 전체 테스트(경계 검사·보안 회귀 포함)
+#       → 부하 시험(소규모: PostgreSQL·실제 HTTP·별도 처리 프로세스, 불변식) → 프론트 check --deploy·시험(ads_frontend) → pip-audit(의존성 취약점) → bandit(정적 보안 점검)
 #       150 동시 전체 시험은 `python tests/tools/load_test.py`(약 40초, docs/legacy/ads-server/load-test.md)
 set -uo pipefail
 cd "$(dirname "$0")/../.."  # ads_server
@@ -22,11 +22,11 @@ run() {
 
 check_deploy() {
   local key; key="$("$PY" -c 'import secrets; print(secrets.token_urlsafe(60))')"
-  eval "$("$PY" tests/tools/mysql_admin.py --print-env)"  # .env 의 DB_* (실제 환경변수가 우선)
-  # MySQL 에서는 모델 검사가 서버 정보를 읽으려고 실제로 연결한다 → 시험 DB 접속 값(DB_*)을 그대로 넘긴다.
+  eval "$("$PY" tests/tools/pg_admin.py --print-env)"  # .env 의 DB_* (실제 환경변수가 우선)
+  # prod 설정이 DB_* 를 요구해 시험 DB 접속 값을 넘긴다. check --deploy 자체는 DB 에 연결하지 않는다(PostgreSQL — P1-9 에서 확인).
   env -i PATH="$PATH" DJANGO_SETTINGS_MODULE=config.settings.prod SECRET_KEY="$key" \
     ALLOWED_HOSTS=ads.example.com ADMIN_URL_PATH=ops-check/ \
-    DB_NAME="${DB_NAME:-ads_server}" DB_USER="${DB_USER:-}" DB_PASSWORD="${DB_PASSWORD:-}" DB_HOST="${DB_HOST:-127.0.0.1}" DB_PORT="${DB_PORT:-3306}" \
+    DB_NAME="${DB_NAME:-ads_server}" DB_USER="${DB_USER:-}" DB_PASSWORD="${DB_PASSWORD:-}" DB_HOST="${DB_HOST:-127.0.0.1}" DB_PORT="${DB_PORT:-5432}" \
     MEDIA_ROOT=/tmp/ads-check-media ASSET_PUBLIC_BASE_URL=https://ads.example.com TRUSTED_PROXY_COUNT=1 CSRF_TRUSTED_ORIGINS=https://ads.example.com \
     "$PY" -m django check --deploy --fail-level WARNING
 }
@@ -71,9 +71,9 @@ audit_dependencies() {
   return 1
 }
 
-run "MySQL 접속 (시험 DB, 없으면 여기서 멈춘다)" "$PY" tests/tools/mysql_admin.py
+run "PostgreSQL 접속 (시험 DB, 없으면 여기서 멈춘다)" "$PY" tests/tools/pg_admin.py
 run "MongoDB 접속 (이벤트 저장소 시험, 없으면 여기서 멈춘다)" "$PY" tests/tools/mongo_admin.py
-if [ ${#failures[@]} -gt 0 ]; then printf '\n실패: %s\nDB 가 필요한 나머지 단계는 실행하지 않았습니다(README "MySQL 시험 환경"·"MongoDB 시험 환경").\n' "${failures[*]}"; exit 1; fi
+if [ ${#failures[@]} -gt 0 ]; then printf '\n실패: %s\nDB 가 필요한 나머지 단계는 실행하지 않았습니다(tests/docker/compose.yaml 로 PostgreSQL·MongoDB 를 띄우세요).\n' "${failures[*]}"; exit 1; fi
 run "check --deploy (prod 샘플 환경, 경고 0)" check_deploy
 run "마이그레이션이 최신인가" "$PY" manage.py makemigrations --check --dry-run
 run "운영용 시험 (tests/ops — 제품 동작)" counted OPS_N "$PY" manage.py test tests.ops

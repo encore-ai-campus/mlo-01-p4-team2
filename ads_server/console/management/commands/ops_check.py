@@ -3,7 +3,7 @@
 
     python manage.py ops_check
 
-**다섯 가지**(6-19d — 서버마다 5개 이하): 설정·파일 저장소 · 의존성 · MySQL · MongoDB · 상시 처리. 점검마다 한 줄(`OK`/`FAIL`)을 쓰고,
+**다섯 가지**(6-19d — 서버마다 5개 이하): 설정·파일 저장소 · 의존성 · PostgreSQL · MongoDB · 상시 처리. 점검마다 한 줄(`OK`/`FAIL`)을 쓰고,
 하나가 실패해도 나머지를 모두 본다(한 항목 안의 여러 점검도 모두 보고 이유를 모은다). 기존 점검 명령과 각 모듈의 `api` 를 부를 뿐 판정 규칙을 새로 두지 않는다 —
 기다림의 상한(`OPS_CHECK_MAX_WAIT_SECONDS`)과 설치된 패키지 버전만 여기서 본다. MongoDB 점검은 점검용 컬렉션에 문서 하나를 쓰고 지운다(`check_event_store`).
 """
@@ -79,7 +79,7 @@ def _dependencies():
     for line in (raw.split("#")[0].strip() for raw in text.splitlines()):
         if not line:
             continue
-        m = re.fullmatch(r"([A-Za-z0-9_.-]+)\s*~=\s*(\d+(?:\.\d+)+)", line)
+        m = re.fullmatch(r"([A-Za-z0-9_.-]+)(?:\[[A-Za-z0-9_,.-]+\])?\s*~=\s*(\d+(?:\.\d+)+)", line)  # `psycopg[binary]` 같은 extras 는 이름만 대조한다
         if not m:
             wrong.append(f"읽을 수 없는 줄 '{line}'")
             continue
@@ -113,14 +113,14 @@ def _all(*parts):
 CHECKS = (  # 서버마다 5개 이하(사용자 2026-10-14)
     ("설정·파일 저장소", lambda: _all(("배포 점검", lambda: _command("check", deploy=True, fail_level="WARNING")), ("MEDIA_ROOT", _media))),
     ("의존성", _dependencies),
-    ("MySQL", lambda: _all(("마이그레이션", lambda: _command("migrate", check_unapplied=True)), ("원장 대조", lambda: _command("check_ledger")))),
+    ("PostgreSQL", lambda: _all(("마이그레이션", lambda: _command("migrate", check_unapplied=True)), ("원장 대조", lambda: _command("check_ledger")), ("정렬 버전", lambda: _command("check_collations")))),
     ("MongoDB", lambda: _command("check_event_store")),
     ("상시 처리", lambda: _all(("반응 처리", _reactions), ("outbox", _outbox))),
 )
 
 
 class Command(BaseCommand):
-    help = "운영 환경 점검(배포 후): 설정·파일 저장소·의존성·MySQL(마이그레이션·원장)·MongoDB·상시 처리(반응·outbox). 운영 데이터는 바꾸지 않는다. 하나라도 실패하면 종료 코드 1."
+    help = "운영 환경 점검(배포 후): 설정·파일 저장소·의존성·PostgreSQL(마이그레이션·원장·정렬 버전)·MongoDB·상시 처리(반응·outbox). 운영 데이터는 바꾸지 않는다. 하나라도 실패하면 종료 코드 1."
 
     def handle(self, *args, **options):
         failed = []

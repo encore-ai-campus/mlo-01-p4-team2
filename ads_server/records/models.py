@@ -13,7 +13,7 @@ from masters.api import Audience
 class Decision(AppendOnlyModel):
     decision_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
     # 요청 쪽 사실
-    media_id = models.UUIDField(db_index=True)
+    media_id = models.UUIDField()  # 색인은 Meta 의 (media_id, decided_at) 하나 — 단일 색인은 그 앞 열이라 겹친다(부록 B-2)
     slot_id = models.UUIDField()
     subject_id = models.CharField(max_length=200, null=True, blank=True)  # V1 은 수집만 한다(설계 §3). `shared` 슬롯의 결정에는 없다
     audience = models.CharField(max_length=20)  # 슬롯 성격의 스냅샷(`individual`·`shared`). 슬롯은 바뀌지 않지만 결정은 자기 사실을 들고 있다
@@ -148,8 +148,8 @@ class Reaction(models.Model):
             ),
             # 안전망: (결정, 사람)당 유형별로 인정된 반응은 하나뿐이다(규칙 `once-per-type` 이 먼저 거르고, 동시 처리가 새도 DB 가 막는다).
             # 개인 슬롯의 사람은 결정의 사람이라 결정당 하나, 일괄 슬롯은 보는 사람마다 하나다.
-            # **조건 없는 유일 제약**이다: 인정된 행만 `accepted_key` 를 갖고 나머지는 NULL(NULL 끼리는 서로 다른 값이다). 조건부 유일 제약을 지원하지 않는
-            # MySQL·MariaDB 에서도 그대로 성립한다(설계 §10 "MySQL 전환 점검").
+            # **조건 없는 유일 제약**이다: 인정된 행만 `accepted_key` 를 갖고 나머지는 NULL(NULL 끼리는 서로 다른 값이다). 조건부 유일 제약 없이
+            # 성립한다(PostgreSQL 의 부분 유일 색인으로 바꿀 수 있지만 그대로 둔다 — docs/plans/00 결정 D3).
             models.UniqueConstraint(fields=["accepted_key"], name="records_reaction_one_accepted_per_person_type"),
             # 판정(인정·거부)한 행에는 근거가 반드시 있고, 아직 판정하지 않은 행에는 없다
             models.CheckConstraint(

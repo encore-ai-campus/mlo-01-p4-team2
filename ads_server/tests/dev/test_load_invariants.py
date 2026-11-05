@@ -52,11 +52,11 @@ class InvariantBase(InvariantMixin, TestCase):
 
 @tag("security")
 class DoubleChargeCheckerTests(InvariantMixin, TransactionTestCase):
-    """유일 제약을 빼는 DDL 은 MySQL 에서 트랜잭션을 끝내 버리므로(암묵적 커밋) 롤백에 기댈 수 없다 — 이 시험만 TransactionTestCase 로 하고, 뺀 제약은 반드시 되돌린다."""
+    """유일 제약을 뺀 저장소를 가정해 같은 키를 한 줄 더 넣고, 검사기가 이중 과금을 찾는지 본다. 뺀 제약은 끝나면 반드시 되돌린다(정리 작업)."""
 
     def test_a_double_charge_is_found(self):
         charge = LedgerEntry.objects.get(entry_type="CHARGE")
-        sql("ALTER TABLE billing_ledger_entry DROP INDEX billing_charge_once_per_reaction")  # 유일 제약이 없는 저장소를 가정하고 같은 키를 한 번 더 넣는다
+        sql("ALTER TABLE billing_ledger_entry DROP CONSTRAINT billing_charge_once_per_reaction")  # 유일 제약이 없는 저장소를 가정하고 같은 키를 한 번 더 넣는다
         duplicate = uuid.uuid4().hex
 
         def restore():  # 같은 키가 두 줄이면 제약을 다시 걸 수 없으므로 넣은 줄부터 지운다

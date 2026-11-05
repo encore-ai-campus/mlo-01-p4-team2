@@ -688,7 +688,7 @@ class PasswordAuditAtomicityTests(Cases, TransactionTestCase):
 
     def case_a_failing_success_audit_rolls_the_password_back(self):
         def fail_audit_insert(execute, sql, params, many, context):
-            if sql.lstrip().upper().startswith("INSERT") and "`foundation_audit_log`" in sql:
+            if sql.lstrip().upper().startswith("INSERT") and '"foundation_audit_log"' in sql:
                 raise DatabaseError("감사 기록 실패(시험)")
             return execute(sql, params, many, context)
         for action, (url, data, user) in self.cases.items():
@@ -729,13 +729,13 @@ class TransientLockOnAdminWriteTests(TransactionTestCase):
         self.addCleanup(done.set)
         self.assertTrue(held.wait(WAIT))
         with connection.cursor() as cursor:
-            cursor.execute("SET SESSION innodb_lock_wait_timeout = 1")  # 이 연결(요청)만 짧게
+            cursor.execute("SET lock_timeout = '1s'")  # 이 연결(요청)만 짧게
         try:
             r = client.post(reverse("admin:auth_user_password_change", args=[adv.pk]),
                             {"password1": "Mine-Again-7-pass", "password2": "Mine-Again-7-pass", "usable_password": "true"})
         finally:
             with connection.cursor() as cursor:
-                cursor.execute("SET SESSION innodb_lock_wait_timeout = DEFAULT")
+                cursor.execute("RESET lock_timeout")  # 접속 때 값(5s)으로
             done.set()
             holder.join(WAIT)
         self.assertEqual(r.status_code, 503)

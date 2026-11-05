@@ -42,24 +42,28 @@ def python():
     return os.environ.get("PYTHON", sys.executable)
 
 
-def _mysql(*sql):
+def _pg(*sql):
+    """문장마다 따로(autocommit) 실행한다 — CREATE/DROP DATABASE 는 트랜잭션 안에서 돌 수 없다. 마지막 문장의 결과 행을 돌려준다."""
     sys.path.insert(0, str(APP / "tests" / "tools"))
-    from mysql_admin import connect
-    conn = connect()
-    try:
-        with conn.cursor() as cur:
-            for q in sql:
-                cur.execute(q)
-            return cur.fetchall()
-    finally:
-        conn.close()
+    from pg_admin import connect
+    with connect() as conn:
+        rows = []
+        for q in sql:
+            cur = conn.execute(q)
+            rows = cur.fetchall() if cur.description else []
+        return rows
+
+
+def _drop(name):
+    return f'DROP DATABASE IF EXISTS "{name}" WITH (FORCE)'
 
 
 def ensure_db(name):
-    """`DB_NAME` 의 실제 DB 가 있어야 한다(배포 점검 시험이 새 프로세스에서 그 DB 에 접속한다). 없으면 빈 DB 를 만들고 True — 끝나면 그것만 지운다."""
-    if _mysql(f"SHOW DATABASES LIKE '{name}'"):
+    """`DB_NAME` 의 DB 가 없으면 빈 DB 를 만들고 True — 끝나면 그것만 지운다. 정렬은 template1 의 것(builtin C.UTF-8, 결정 D11)을 물려받는다.
+    전에는 배포 점검이 그 DB 에 접속해서 필요했다. PostgreSQL 에서는 접속하지 않으므로 아직 필요한지는 다음 측정 때 본다."""
+    if _pg(f"SELECT 1 FROM pg_database WHERE datname = '{name}'"):
         return False
-    _mysql(f"CREATE DATABASE `{name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs")
+    _pg(f'CREATE DATABASE "{name}"')
     return True
 
 
@@ -82,7 +86,7 @@ def run_coverage(out):
         done = subprocess.run([python(), "-m", "coverage", "run", f"--rcfile={rc}", "manage.py", "test", "--noinput"], cwd=APP, env=env)
     finally:
         if created:
-            _mysql(f"DROP DATABASE IF EXISTS `{env['DB_NAME']}`")
+            _pg(_drop(env['DB_NAME']))
     print(f"시험 {'통과' if done.returncode == 0 else '실패'} ({time.time() - started:.0f}초)")
     summarize(out)
     return done.returncode
@@ -237,7 +241,7 @@ def _test(copy_dir, n, labels, timeout):
                               cwd=copy_dir / "ads_server", env={**os.environ, "DB_NAME": f"ads_mut{n}"},
                               capture_output=True, text=True, timeout=timeout)
     except subprocess.TimeoutExpired:
-        _mysql(f"DROP DATABASE IF EXISTS `test_ads_mut{n}`")
+        _pg(_drop(f"test_ads_mut{n}"))
         return True, "timeout"
     if done.returncode == 0:
         return False, None
@@ -309,7 +313,7 @@ def run_mutants(mutants_file, cov_dir, out, workers=4, recheck=False, only=None)
         t.join()
     shutil.rmtree(work, ignore_errors=True)
     # 이 명령이 --keepdb 로 남긴 시험 DB 와 여기서 만든 빈 DB 만 지운다(이름이 ads_mut{n} 에서 정해진다)
-    _mysql(*[f"DROP DATABASE IF EXISTS `test_ads_mut{n}`" for n in range(1, workers + 1)], *[f"DROP DATABASE IF EXISTS `ads_mut{n}`" for n in created])
+    _pg(*[_drop(f"test_ads_mut{n}") for n in range(1, workers + 1)], *[_drop(f"ads_mut{n}") for n in created])
     killed = sum(1 for r in results.values() if r["status"] == "killed")
     print(f"잡음 {killed} / {len(results)}")
 

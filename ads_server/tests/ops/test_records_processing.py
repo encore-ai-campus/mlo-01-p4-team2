@@ -290,7 +290,7 @@ class QueueTests(Cases, ProcessingBase):
         def flaky(*args, **kwargs):
             calls.append(1)
             if len(calls) <= 2:
-                raise OperationalError(2003, "Can't connect to MySQL server")
+                raise OperationalError("connection failed: Connection refused")
             return real(*args, **kwargs)
 
         def fake_sleep(seconds):
@@ -411,7 +411,7 @@ class ConcurrentProcessingTests(TransactionTestCase):
         def worker():
             for _ in range(300):
                 counts = records.process_pending(limit=100, now=NOW)
-                if counts["failed"] or counts["transient"]:  # 정상 경쟁에서 실패·교착·잠금 초과가 나면 안 된다(MySQL 행 잠금) — 드러낸다
+                if counts["failed"] or counts["transient"]:  # 정상 경쟁에서 실패·교착·잠금 초과가 나면 안 된다(행 잠금) — 드러낸다
                     errors.append(f"처리 중 실패/일시 오류: {counts}")
                 if not Reaction.objects.filter(status="RECEIVED").exists():
                     return

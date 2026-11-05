@@ -1,10 +1,9 @@
 """캠페인 행 잠금을 둘러싼 경쟁(외부 검토 회귀 시험): 광고주 전체 상한·광고그룹 쓰기·기간 종료·재검토 반려와 해제.
 
-실제 MySQL 연결을 스레드마다 하나씩 쓰고, 한쪽이 행을 쓰기 직전(SQL 훅, `tests/support/concurrency.py`)에 멈춘 사이 다른 쪽을 실행해 순서를 고정한다.
+실제 DB 연결을 스레드마다 하나씩 쓰고, 한쪽이 행을 쓰기 직전(SQL 훅, `tests/support/concurrency.py`)에 멈춘 사이 다른 쪽을 실행해 순서를 고정한다.
 """
 import re
 
-from django.db import connection
 from django.test import Client, TestCase, TransactionTestCase, override_settings, tag
 from django.urls import reverse
 
@@ -29,7 +28,7 @@ class QuotaRaceTests(Cases, TransactionTestCase):
        → 만들기·이미지 교체는 광고주의 사용자 행을 가장 먼저 잠그고(6-16g — 그 전에는 따로 둔 상한 잠금 행), 잠금 안에서 상한을 다시 센다.
     2. 성공한 요청 키의 겹친 재전송이 상한 오류(409)로 끝났다 — 첫 조회와 앞선 요청의 커밋 사이의 틈.
        → 같은 잠금 안에서 키를 다시 본다.
-    실제 MySQL 연결 두 개로, 한쪽이 쓰기 직전(상한 확인 뒤)에 멈춘 사이 다른 쪽을 실행한다.
+    실제 DB 연결 두 개로, 한쪽이 쓰기 직전(상한 확인 뒤)에 멈춘 사이 다른 쪽을 실행한다.
     """
 
     def setUp(self):
@@ -114,7 +113,7 @@ class AdGroupWriteRaceTests(Cases, TransactionTestCase):
     """Step 3-2d: 광고그룹·입찰·소재를 바꾸는 동작은 캠페인 행 → 그 행 순서로 잠그고 다시 읽는다.
 
     잠그지 않고 읽은 객체를 통째로 저장하면 (1) 그 사이 다른 탭의 변경을 되돌리고(예: 제목 수정이 방금 교체한 이미지를 옛 이미지로) (2) 그 사이 끝난 캠페인에도 썼다.
-    실제 MySQL 연결 두 개로, 한쪽이 행을 쓰기 직전에 멈춘 사이 다른 쪽을 실행한다.
+    실제 DB 연결 두 개로, 한쪽이 행을 쓰기 직전에 멈춘 사이 다른 쪽을 실행한다.
     """
 
     def setUp(self):
@@ -243,23 +242,16 @@ class ExpireVersusExtendTests(Cases, TransactionTestCase):
         self.assertEqual(Campaign.objects.get(pk=self.cid).status, "ENDED")
         self.assertEqual(ReviewRequest.objects.filter(campaign_id=self.cid, status="OPEN").count(), 0)
 
-    def case_expire_locks_rows_by_primary_key_not_by_secondary_index(self):
-        """교착 방지(전체 시험을 돌릴 때 1213 으로 드러났다): 잠금 조회가 `ends_at`·`status` 보조 색인을 타면, 색인 레코드를 먼저 잡은 기간 종료와 기본 키 행을 먼저 잡고 색인 열을 바꾸는
-        쓰기 쪽이 서로를 기다린다. 잠금 조회의 조건은 기본 키뿐이어야 한다."""
-        locking = []
-
-        def hook(execute, sql, params, many, context):
-            if "FOR UPDATE" in sql and "campaigns_campaign" in sql:
-                locking.append(sql)
-            return execute(sql, params, many, context)
-
-        with connection.execute_wrapper(hook):
-            self.assertEqual(self.expire(), 1)
-        self.assertEqual(len(locking), 1)
-        where = locking[0].split("WHERE", 1)[1]
-        self.assertIn("campaign_id", where)
-        self.assertNotIn("ends_at", where)
-        self.assertNotIn("status", where)
+    def case_two_expiries_at_once_end_each_campaign_once_without_deadlock(self):
+        """두 기간 종료가 겹쳐도 교착 없이 캠페인마다 한 번만 끝난다(감사 1건씩). 둘째는 첫째가 쥔 행 잠금을 기다렸다가, PostgreSQL 이 새 행 버전으로
+        조건(`status <> ENDED`)을 다시 보므로 이미 끝난 캠페인을 다시 끝내지 않는다. 잠금은 기본 키 순서라 여러 행을 잡아도 서로 엇갈리지 않는다.
+        (MySQL 때는 보조 색인 레코드 잠금의 교착(1213)을 피하려고 '잠금 조건은 기본 키뿐'을 시험했다 — PostgreSQL 은 행 단위 잠금이라 그 규칙을 없앴다, 계획서 부록 A-5.)"""
+        others = [World().campaign.campaign_id for _ in range(2)]  # 같은 시각에 함께 끝나는 캠페인
+        first, second = overlap(self, self.expire, "UPDATE", "campaigns_campaign", self.expire)
+        self.assertEqual((first.errors, second.errors), ([], []))
+        self.assertEqual((first.result, second.result), (3, 0))
+        self.assertEqual(AuditLog.objects.filter(action="campaign.expired").count(), 3)
+        self.assertEqual(set(Campaign.objects.filter(pk__in=[self.cid, *others]).values_list("status", flat=True)), {"ENDED"})
 
     def test_expire_versus_extend(self):
         self.run_cases()

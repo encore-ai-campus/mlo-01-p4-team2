@@ -5,7 +5,7 @@ from .accounts import (
     update_profile,
 )
 from .admin_site import ReadOnlyAdmin
-from .dberrors import is_transient_lock_error, is_unique_violation
+from .dberrors import cause_text as db_cause_text, is_transient_lock_error, is_unique_violation
 from .audit import latest_detail as latest_audit_detail, record_audit
 from . import errors
 from .http import json_depth, parse_json
@@ -18,6 +18,6 @@ __all__ = [
     "present",  # 화면 데이터(설계 §6.6 "6-15 분리")
     "create_advertiser", "ProfileView", "update_profile", "change_password", "profiles", "AdvertiserAccount", "list_advertisers", "get_advertiser",
     "set_advertiser_active", "lock_user", "Role", "User", "client_ip",
-    "owned_or_404", "require_admin", "require_advertiser", "is_unique_violation", "is_transient_lock_error", "json_depth", "parse_json",
+    "owned_or_404", "require_admin", "require_advertiser", "is_unique_violation", "is_transient_lock_error", "db_cause_text", "json_depth", "parse_json",
     "errors", "record_audit", "latest_audit_detail", "MAX_AMOUNT", "AppendOnlyModel", "AppendOnlyError", "clean_text", "clean_request_key", "is_int", "is_request_key", "parse_uuid", "parse_uuids", "ReadOnlyAdmin",
 ]

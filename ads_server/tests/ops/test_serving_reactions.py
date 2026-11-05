@@ -256,7 +256,7 @@ class StorageFailureTests(Cases, ReactionApiBase):
         self.assertContract(self.contract, PATH, "put", response)
 
     def case_a_unique_violation_that_slipped_past_the_precheck_is_resolved_not_a_500(self):
-        """다른 연결이 사이에 같은 키를 넣은 경우(MySQL 등)의 안전망: 유일 제약 충돌 뒤 처음 행과 비교해 200/409 로 답한다."""
+        """다른 연결이 사이에 같은 키를 넣은 경우의 안전망: 유일 제약 충돌 뒤 처음 행과 비교해 200/409 로 답한다."""
         rid = uuid.uuid4()
         self.put(rid)
         real_filter, calls = Reaction._default_manager.filter, []
@@ -342,7 +342,7 @@ class CommitFailureTests(ReactionApiMixin, TransactionTestCase):
 
 @tag("security")
 class ConcurrentReceiptTests(Cases, ReactionApiMixin, TransactionTestCase):
-    """같은 (매체, reaction_id) 가 동시에 들어와도 행은 하나다. 503/429 는 재시도하지만 **몇 번 났는지 센다** — 정상 경쟁에서는 0 이어야 한다(MySQL 행 잠금)."""
+    """같은 (매체, reaction_id) 가 동시에 들어와도 행은 하나다. 503/429 는 재시도하지만 **몇 번 났는지 센다** — 정상 경쟁에서는 0 이어야 한다(행 잠금)."""
 
     def send_all(self, jobs):
         """jobs: [(reaction_id, body)]. 각 작업을 스레드 하나로 동시에 시작하고, 2xx/409 가 나올 때까지 재시도한 최종 상태를 모은다."""

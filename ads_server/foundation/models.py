@@ -45,7 +45,7 @@ class User(AbstractBaseUser):
     class_label = models.CharField("반", max_length=30)
     is_active = models.BooleanField(default=True)
     is_superuser = models.BooleanField(default=False)  # 관리자만 참 — 계정을 만드는 곳(매니저)이 역할과 함께 정한다
-    session_epoch = models.PositiveIntegerField(default=0, db_default=0)  # 올리면 그 전의 로그인 세션이 모두 끝난다(비활성화 — 다시 활성화해도 돌아오지 않는다). DB 기본값은 이 열을 모르는 옛 마이그레이션 상태의 INSERT 용
+    session_epoch = models.PositiveIntegerField(default=0)  # 올리면 그 전의 로그인 세션이 모두 끝난다(비활성화 — 다시 활성화해도 돌아오지 않는다)
     created_at = models.DateTimeField(default=timezone.now)
 
     USERNAME_FIELD = "username"
@@ -128,9 +128,9 @@ class AuditLog(AppendOnlyModel):
     """누가·언제·무엇을. 비밀값·개인정보는 기록하지 않는다(audit.record_audit 가 가린다)."""
 
     log_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
-    actor_id = models.UUIDField(null=True, blank=True, db_index=True)  # FK 가 아니다: 사용자가 바뀌어도 기록은 그대로
+    actor_id = models.UUIDField(null=True, blank=True)  # FK 가 아니다: 사용자가 바뀌어도 기록은 그대로. 이 열로 찾는 질의가 없어 색인을 두지 않는다(부록 B-4)
     actor_username = models.CharField(max_length=30, blank=True)
-    action = models.CharField(max_length=64, db_index=True)
+    action = models.CharField(max_length=64)
     target_type = models.CharField(max_length=64, blank=True)
     target_id = models.CharField(max_length=64, blank=True)
     detail = models.JSONField(default=dict, blank=True)
@@ -140,3 +140,5 @@ class AuditLog(AppendOnlyModel):
 
     class Meta:
         db_table = "foundation_audit_log"
+        # latest_audit_detail 이 종류로 찾는다. db_index 대신 여기 두면 `_like` 색인이 따로 생기지 않는다(부록 B-5)
+        indexes = [models.Index(fields=["action"], name="foundation_audit_action_idx")]

@@ -50,3 +50,10 @@ PROD_ENV = {
     "TRUSTED_PROXY_COUNT": "1",  # 앞단 nginx 1단(prod 필수, 6-5c)
     "CSRF_TRUSTED_ORIGINS": "https://ads.example.com",  # 브라우저가 여는 https 주소(prod 필수, 6-5d)
 }
+
+
+def db_error(wrapper, driver):
+    """Django 가 드라이버(psycopg) 오류를 감싸 올린 모양 그대로의 오류. 분류(`foundation.dberrors`)는 `__cause__` 의 SQLSTATE 를 본다."""
+    error = wrapper(*driver.args)
+    error.__cause__ = driver
+    return error

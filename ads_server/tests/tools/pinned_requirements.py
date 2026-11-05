@@ -2,11 +2,13 @@
 import re
 from importlib.metadata import PackageNotFoundError, requires, version
 from packaging.requirements import Requirement
-seen, todo = {}, []
+seen, todo, extras = {}, [], {}
 for line in open("requirements.txt", encoding="utf-8"):
     line = line.split("#")[0].strip()
     if line:
-        todo.append(Requirement(line).name)
+        req = Requirement(line)
+        todo.append(req.name)
+        extras[req.name] = req.extras  # `psycopg[binary]` 의 binary — 이것으로 끌려오는 의존성도 점검한다
 while todo:
     name = todo.pop()
     key = re.sub(r"[-_.]+", "-", name).lower()
@@ -15,7 +17,7 @@ while todo:
     except PackageNotFoundError: seen[key] = None; continue
     for r in requires(name) or []:
         req = Requirement(r)
-        if req.marker is not None and not req.marker.evaluate({"extra": ""}): continue
+        if req.marker is not None and not any(req.marker.evaluate({"extra": e}) for e in ("", *extras.get(name, ()))): continue
         todo.append(req.name)
 for k in sorted(seen):
     if seen[k]: print(f"{k}=={seen[k]}")

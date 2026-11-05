@@ -6,6 +6,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import InterfaceError, OperationalError, close_old_connections, connection
 from django.utils import timezone
 
+from foundation.api import db_cause_text
 from records.api import inbox_status, process_pending, reset_stuck, stuck_count
 
 HEARTBEAT_SECONDS = 60  # 한가할 때도 이 간격으로 처리 현황을 찍는다 — 아무 출력이 없으면 멈춘 것이다(설계 §10 "반응 처리 현황 노출", 6-3c)
@@ -76,7 +77,7 @@ class Command(BaseCommand):
                         raise  # 한 번 실행은 실패를 그대로 알린다
                     # 상시 처리는 DB 가 잠시 끊겨도(재시작·전환·장애) 죽지 않는다: 연결을 버리고 주기마다 다시 시도한다. 죽으면 복구된 뒤에도 아무도 처리하지 않는다.
                     # 처리하던 반응은 트랜잭션이 되돌려져 RECEIVED 로 남아 있다(유실·이중 과금 없음).
-                    self.stderr.write(stamped(f"DB 연결 문제로 이번 주기를 건너뛴다(다음 주기에 다시): {error}"))
+                    self.stderr.write(stamped(f"DB 연결 문제로 이번 주기를 건너뛴다(다음 주기에 다시): {db_cause_text(error)}"))
                     if not connection.in_atomic_block:  # 상시 처리는 트랜잭션 밖에서 돈다(단위 시험의 열린 트랜잭션을 닫지 않는다)
                         close_old_connections()  # 끊긴 연결을 버린다 — 다음 질의가 새로 연다
                 if options["once"] or stop:

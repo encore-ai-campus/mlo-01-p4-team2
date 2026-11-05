@@ -22,7 +22,7 @@ DEFAULT_MAX_BYTES = 16 * 1024  # 계약: 요청 본문 최대 16 KiB
 DEFAULT_MAX_DEPTH = 8
 _JSON_CT = re.compile(r"^application/json\s*(;.*)?$", re.IGNORECASE)
 # 요청 JSON 숫자의 크기 상한(정수·실수, 중첩 포함 — 설계 §10 "결정 API 세부", 6-2c). JavaScript 가 정수를 정확히 다루는 한계라 금액 상한과 같은 값이다.
-# 이것이 없으면 MySQL JSON 이 2^64 를 넘는 정수를 조용히 실수로 바꾸고, 실수 범위도 넘으면 저장 오류(3140)가 503 이 되어 매체가 같은 요청을 끝없이 재시도했다.
+# 계기는 MySQL JSON 의 저장 문제(2^64 를 넘는 정수가 조용히 실수로 바뀌고, 실수 범위도 넘으면 저장 오류가 503 이 되어 매체가 끝없이 재시도)였지만, 지금은 DB 와 상관없는 계약이다.
 MAX_JSON_NUMBER = MAX_AMOUNT
 
 
@@ -185,7 +185,7 @@ def server_error(request):
 
 
 def transient_db_error(request):
-    """교착·잠금 대기 초과(MySQL 1213·1205)가 뷰 밖으로 나왔을 때: 500 대신 503 + `Retry-After`. 이 두 오류는 서버가 그 트랜잭션을 되돌린 것이라
+    """교착·잠금 대기 초과(PostgreSQL 40P01·55P03)가 뷰 밖으로 나왔을 때: 500 대신 503 + `Retry-After`. 이 두 오류는 서버가 그 트랜잭션을 되돌린 것이라
     같은 요청을 다시 보내면 된다(`is_transient_lock_error`). 커밋 결과가 불명확한 오류(연결 끊김 등)·다른 오류는 여기 오지 않는다(외부 검토 00d3067)."""
     response = error_response(request, Unavailable(retry_after=1), "잠시 혼잡해 처리하지 못했습니다. 잠시 뒤 다시 시도해 주세요.")
     response["Retry-After"] = "1"

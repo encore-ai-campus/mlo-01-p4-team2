@@ -28,21 +28,15 @@ from .facts import later_decisions
 from .models import Decision, Reaction, ReactionStatus, ReactionType
 
 
-def _owner(decision_id):
-    """결정을 만든 매체(없으면 `None`) — **잠금 없는 일반 조회**."""
-    return Decision.objects.filter(pk=decision_id).values_list("media_id", flat=True).first()
-
-
 def lock_for_receipt(decision_id, reporting_media_id):
     """접수 트랜잭션의 **첫 일**: 결정 행을 잠근다(커밋까지). 이 호출 **뒤에** 수신 시각을 정해야 한다.
 
     **결정 소유 매체의 접수만** 잠근다. 접수는 없는 결정·남의 결정에 대한 보고도 저장하지만(존재를 알리지 않으려고) 그런 보고는 어차피 거부되고 판정에 쓰이지도 않는다
-    (`scoped_reactions`) — 그런 보고가 소유 매체의 접수·판정을 기다리게 하거나 막으면 안 된다. 소유 확인은 잠금 **전**의 일반 조회로 한다:
-    `FOR UPDATE` 질의에 `media_id` 조건만 더하면 InnoDB 는 조건에 걸리기 전에 행을 잠그므로 남의 보고도 같은 잠금을 기다린다.
+    (`scoped_reactions`) — 그런 보고가 소유 매체의 접수·판정을 기다리게 하거나 막으면 안 된다. 소유 조건을 잠금 질의에 함께 둔다:
+    PostgreSQL 은 조건(`media_id`)에 맞는 행만 잠그므로 없는 결정·남의 결정에 대한 보고는 아무것도 잠그지도 기다리지도 않는다.
+    결정은 추가 전용이라 `media_id` 가 바뀌지 않는다.
     """
-    if _owner(decision_id) != reporting_media_id:
-        return
-    list(Decision.objects.select_for_update().filter(pk=decision_id).values_list("pk", flat=True))
+    list(Decision.objects.select_for_update().filter(pk=decision_id, media_id=reporting_media_id).values_list("pk", flat=True))
 
 
 def wait_for_inflight_receipts(inbox_id):

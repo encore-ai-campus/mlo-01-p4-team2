@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 
 from django.conf import settings
-from django.db import connection
+from django.db import connection, transaction
 from django.test import SimpleTestCase, TestCase
 
 from config.env import load_env, load_env_for_web
@@ -97,29 +97,34 @@ class TimeAndDatabaseTests(SimpleTestCase):
         self.assertEqual(settings.TIME_ZONE, "UTC")
 
 
-class MysqlSessionTests(Cases, TestCase):
-    """연결이 계획 S5·S7 의 세션 설정으로 열린다(잘림은 오류, 격리 수준, 문자셋·정렬)."""
+class PostgresSessionTests(Cases, TestCase):
+    """연결이 계획 docs/plans/00 P1-1 의 세션 설정으로 열린다(격리 수준, 잠금 대기 제한, 정렬, 시간대)."""
 
     def case_session_settings(self):
-        with connection.cursor() as cur:
-            cur.execute("SELECT @@sql_mode, @@transaction_isolation, @@character_set_connection, @@collation_database, @@time_zone")
-            sql_mode, isolation, charset, collation, tz = cur.fetchone()
-        self.assertIn("STRICT_ALL_TABLES", sql_mode)
-        self.assertEqual(isolation, "READ-COMMITTED")
-        self.assertEqual(charset, "utf8mb4")
-        self.assertEqual(collation, "utf8mb4_0900_as_cs")  # 대소문자·악센트를 구분한다(기본 _ai_ci 는 구분하지 않아 유일 제약이 달라진다)
+        with transaction.atomic(), connection.cursor() as cur:  # 격리 수준은 트랜잭션을 여는 BEGIN 에 붙는다 — 트랜잭션 밖의 값은 서버 기본값이다
+            cur.execute("SELECT current_setting('transaction_isolation'), current_setting('lock_timeout'), current_setting('server_encoding')")
+            isolation, lock_timeout, encoding = cur.fetchone()
+            cur.execute("SELECT 'a' = 'A', 'e' = 'é', 'B' < 'a', 'z' < 'é', upper('é')")
+            case_equal, accent_equal, upper_before_lower, accent_after_z, upper_e = cur.fetchone()
+        self.assertEqual(isolation, "read committed")
+        self.assertEqual(lock_timeout, "5s")  # 넘으면 55P03 → 503 + Retry-After(결정 D9). 기본(0)은 끝없이 기다린다
+        self.assertEqual(encoding, "UTF8")
+        # 정렬 builtin C.UTF-8(결정 D11): 같음은 대소문자·악센트를 구분하고(유일 제약이 MySQL utf8mb4_0900_as_cs 와 같게), 순서는 코드값이다.
+        # 대소문자 변환은 유니코드라 대소문자 무시 검색(icontains)이 ASCII 밖의 글자도 접는다
+        self.assertEqual((case_equal, accent_equal), (False, False))
+        self.assertEqual((upper_before_lower, accent_after_z), (True, True))
+        self.assertEqual(upper_e, "É")
         self.assertEqual(connection.timezone_name, "UTC")
 
     def case_commit_is_durable_on_this_server(self):
-        """수신 2xx 의 약속은 커밋이 디스크에 내려간 뒤다(T25). 서버가 커밋마다 로그를 내리지 않게 설정돼 있으면 알린다."""
+        """수신 2xx 의 약속은 커밋이 디스크에 내려간 뒤다(T25). 서버가 커밋마다 WAL 을 내리지 않게 설정돼 있으면 알린다."""
         with connection.cursor() as cur:
-            cur.execute("SELECT @@innodb_flush_log_at_trx_commit, @@sync_binlog, @@log_bin")
-            flush, sync_binlog, log_bin = cur.fetchone()
-        self.assertEqual(flush, 1)
-        if log_bin:
-            self.assertEqual(sync_binlog, 1)
+            cur.execute("SELECT current_setting('fsync'), current_setting('synchronous_commit'), current_setting('full_page_writes')")
+            fsync, synchronous_commit, full_page_writes = cur.fetchone()
+        self.assertEqual((fsync, full_page_writes), ("on", "on"))
+        self.assertNotEqual(synchronous_commit, "off")
 
-    def test_mysql_session(self):
+    def test_postgres_session(self):
         self.run_cases()
 
 

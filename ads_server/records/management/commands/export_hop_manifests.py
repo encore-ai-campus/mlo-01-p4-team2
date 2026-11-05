@@ -12,14 +12,14 @@ from events import api as events
 from foundation.api import record_audit
 from records.api import source_streams, unresolved_charges
 
-SCOPE = "mysql-repeatable-read-snapshot"
+SCOPE = "postgresql-repeatable-read-snapshot"  # 결정 D5 — 전환 전 manifest 에는 "mysql-…" 가 남아 있다
 
 
 class Command(BaseCommand):
     help = (
         "구간별 정합 manifest(설계 §6.3a)를 낸다: hop_source(원본에서 기대되는 이벤트) / hop_outbox / hop_mongo 세 구간의 (창, 이벤트 이름)별 건수·ids_sha256·content_sha256. "
         "창은 UTC 자정 고정 하루이고 창 끝 + 여유(EVENTS_HOP_GRACE_SECONDS) 뒤에 닫힌다 — 닫히기 전 창은 요약하지 않는다. "
-        "원본과 outbox 는 하나의 MySQL 읽기 스냅샷에서 읽고, 매번 새 세대로 게시한다(previous_sha256 으로 연결, 감사 로그에 고정점을 남긴다)."
+        "원본과 outbox 는 하나의 PostgreSQL 읽기 스냅샷에서 읽고, 매번 새 세대로 게시한다(previous_sha256 으로 연결, 감사 로그에 고정점을 남긴다)."
     )
 
     def add_arguments(self, parser):

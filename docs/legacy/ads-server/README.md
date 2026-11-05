@@ -2,10 +2,10 @@
 
 Django 광고 서버. 구현은 프로젝트 루트의 [ads_server/](../../../ads_server/), 설계·계획·계약은 이 문서와 같은 폴더의 [ads-server-design.md](ads-server-design.md)에 있다.
 
-이 폴더는 이전 프로젝트의 문서 보관 위치다. 로컬 코드·문서 경로는 현재 구조로 갱신했으며, 날짜·커밋·과거 검증 결과는 원본의 이력이다. 이 복사본의 실행 결과를 뜻하지 않는다. 원본에서 분리한 `ads_frontend/`와 `intake/db-standalone/`는 현재 프로젝트에 포함되어 있지 않다. 프론트 화면·전체 통합 시험·측정·두 서버 배포 묶음 도구에는 별도 프론트엔드가 필요하다. 프론트엔드를 추가할 경우 `ads_server/`와 같은 깊이의 `ads_frontend/`에 둔다.
+이 폴더는 이전 프로젝트의 문서 보관 위치다. 로컬 코드·문서 경로는 현재 구조로 갱신했으며, 날짜·커밋·과거 검증 결과는 원본의 이력이다. 이 복사본의 실행 결과를 뜻하지 않는다. `ads_frontend/`는 원본에서 가져왔고(2026-10-31) 원본의 `intake/db-standalone/`은 포함되어 있지 않다 — 시험 DB 는 아래 "DB 시험 환경"의 compose 로 띄운다. 프론트엔드는 `ads_server/`와 같은 깊이의 `ads_frontend/`에 있다.
 
 **프론트·백 분리(6-15, 설계 §6.6 "6-15 분리")**: `ads_server/`는 **백엔드**다 — DB·검증·CSRF·세션·권한·서비스·매체 API(C1)를 맡고, 우리 화면은 HTML 대신 화면 데이터(JSON)를 돌려준다.
-사람이 보는 화면은 **프론트**(`ads_frontend/`, DB 없음, 현재 복사본에는 미포함)가 같은 경로로 받아 그리고, 입력·쿠키는 그대로 이 백엔드로 넘긴다.
+사람이 보는 화면은 **프론트**(`ads_frontend/`, DB 없음)가 같은 경로로 받아 그리고, 입력·쿠키는 그대로 이 백엔드로 넘긴다.
 브라우저는 프론트만 연다. Django admin 자체·이미지·클릭 이동은 프론트가 통과시키고, 매체 API 는 공개하지 않는다(게임 백엔드가 백 서버로 직접).
 
 ## 실행
@@ -18,71 +18,40 @@ python3.14 -m venv .venv          # 처음 한 번. 프로젝트 전용 가상�
 source .venv/bin/activate
 pip install -r requirements.txt
 test -f .env || cp .env.example .env   # 기존 .env 를 보존한다. 처음 만든 경우 DB_USER·DB_PASSWORD 등 값을 채운다
-# MySQL 8.4 가 떠 있어야 한다 — 아래 "MySQL 시험 환경"
+# PostgreSQL·MongoDB 컨테이너가 떠 있어야 한다 — 아래 "DB 시험 환경"
 python manage.py migrate
 python manage.py runserver 127.0.0.1:8000  # 백엔드만 실행. 화면 요청은 JSON 응답
 ```
 
-- **프론트엔드를 별도 준비한 뒤 두 서버를 띄울 때**: `ads_server/`에서 `python tests/tools/run_split.py`를 실행한다(백엔드 8000·프론트 8001). 따로 띄울 때 백엔드는 `python manage.py runserver 127.0.0.1:8000`, 프론트는 `../ads_frontend` 에서 `FRONTEND_DEBUG=1 BACKEND_URL=http://127.0.0.1:8000 python manage.py runserver 127.0.0.1:8001`(관리 사이트 경로 `ADMIN_URL_PATH`·업로드 상한 `ASSET_MAX_BYTES` 는 두 쪽이 같아야 한다 — `run_split.py` 는 이 `.env` 에서 받아 넘긴다). 백엔드 주소를 브라우저로 열면 화면 대신 화면 데이터(JSON)가 보인다.
+- **두 서버를 띄울 때**: `ads_server/`에서 `python tests/tools/run_split.py`를 실행한다(백엔드 8000·프론트 8001). 따로 띄울 때 백엔드는 `python manage.py runserver 127.0.0.1:8000`, 프론트는 `../ads_frontend` 에서 `FRONTEND_DEBUG=1 BACKEND_URL=http://127.0.0.1:8000 python manage.py runserver 127.0.0.1:8001`(관리 사이트 경로 `ADMIN_URL_PATH`·업로드 상한 `ASSET_MAX_BYTES` 는 두 쪽이 같아야 한다 — `run_split.py` 는 이 `.env` 에서 받아 넘긴다). 백엔드 주소를 브라우저로 열면 화면 대신 화면 데이터(JSON)가 보인다.
 - **광고주 화면 검토(6-21)**: `python tests/tools/demo_data.py`(개발 설정에서만 — 개발 DB 에 시연 광고주·캠페인 넷·최근 7일 성과, 계정은 그 파일) → `run_split.py` → `python tests/tools/screens.py OUT --design <시안 폴더>`(headless Chrome 으로 광고주 화면을 찍어 `OUT/<화면>.png`, 시안과 나란히 `OUT/compare-<화면>.png`).
 
-- **실행 환경은 `ads_server/.venv`** 하나다. 의존성은 `requirements.txt`가 전부이고(직접 의존성은 패치 버전까지 고정), `.venv`는 커밋하지 않는다. 다시 만들 때는 `.venv`를 지우고 위 세 줄을 그대로 실행한다. `mysqlclient` 빌드에는 MySQL 클라이언트 개발 파일과 `pkg-config`가 필요하다(macOS: `brew install mysql-client pkg-config`, `requirements.txt` 주석). 이후 명령(`python manage.py …`, `tests/tools/check.sh`)은 모두 이 환경을 활성화한 셸에서 실행한다.
+- **실행 환경은 `ads_server/.venv`** 하나다. 의존성은 `requirements.txt`가 전부이고(직접 의존성은 패치 버전까지 고정), `.venv`는 커밋하지 않는다. 다시 만들 때는 `.venv`를 지우고 위 세 줄을 그대로 실행한다. PostgreSQL 드라이버는 `psycopg[binary]`라 따로 빌드할 것이 없다. 이후 명령(`python manage.py …`, `tests/tools/check.sh`)은 모두 이 환경을 활성화한 셸에서 실행한다.
 - `.env`는 python-dotenv가 읽고, **실제 환경변수가 `.env`보다 우선**한다.
 - 설정은 `config/settings/{dev,prod,test}.py`. `manage.py`는 기본 dev, `manage.py test`는 항상 test, `wsgi/asgi`는 `.env`의 설정 모듈을 따르지 않고 실제 환경변수가 없으면 prod다(아래 "운영 배포").
 - prod는 `SECRET_KEY`(50자 이상)·`ALLOWED_HOSTS`·`DB_NAME`·`DB_USER`·`DB_PASSWORD`·`DB_HOST`·`ADMIN_URL_PATH`(기본값 `admin/` 금지)·`MEDIA_ROOT`·`ASSET_PUBLIC_BASE_URL`·`TRUSTED_PROXY_COUNT`(1 이상)·`CSRF_TRUSTED_ORIGINS`가 없으면 기동하지 않는다.
 - 관리자 계정은 가입 화면이 없다: `python manage.py createsuperuser`.
 - 정적 파일(CSS·JS)은 Django가 WhiteNoise로 서빙한다(설계 §10 "정적 파일 서빙"). 6-15 부터 콘솔·운영 화면과 Django admin 의 정적 파일은 **프론트가** 서빙하고, 이 백엔드에는 직접 오는 경우의 Django admin 것만 남는다. dev에서 `DJANGO_DEBUG=1`이면 `runserver`가 앱 폴더에서 바로 서빙하고, `DEBUG`가 꺼져 있으면(기본) `python manage.py collectstatic --noinput`을 한 번 돌린 뒤 다시 시작해야 화면에 CSS가 붙는다.
 
-## MySQL 시험 환경
+## DB 시험 환경 (Docker)
 
-아래 컨테이너 준비 명령은 원본 프로젝트의 `intake/db-standalone/` 기준이다. 현재 프로젝트에는 해당 인프라 폴더가 없으므로 별도 DB 환경을 준비한 뒤 앱 명령을 실행한다.
-
-DB 는 **MySQL 8.4**다(Step DB). 시험·부하·`check.sh`는 개발 PC의 8.4 컨테이너를 쓴다(공유 인프라 서버에서는 돌리지 않는다). 컨테이너 정의는 `intake/db-standalone/`(인프라 제공, Ubuntu 24.04 + MySQL 8.4 + MongoDB 8.0 Standalone):
+DB 는 **PostgreSQL 18**(업무 데이터)과 **MongoDB 8.0**(이벤트 로그)이다(2026-10-31 MySQL 8.4에서 전환 — 계획 [`docs/plans/00`](../../plans/00_PostgreSQL_Migration_and_Outbox_Extension.md)). 시험·부하·`check.sh`는 개발 PC의 Docker 컨테이너를 쓴다(공유 인프라 서버에서는 돌리지 않는다). 컨테이너 정의는 `ads_server/tests/docker/compose.yaml`이고 접속 값은 `.env`의 `DB_*`·`MONGO_*`다(아래 명령은 `ads_server/`에서 실행):
 
 ```bash
-cd intake/db-standalone && cp .env.example .env     # MYSQL_ROOT_PASSWORD·MONGO_ROOT_PASSWORD 를 채운다
-docker compose up -d --build --wait
+test -f .env || cp .env.example .env                 # 기존 .env 보존. DB_USER·DB_PASSWORD·MONGO_USER·MONGO_PASSWORD 를 채운다
+docker compose --env-file .env -f tests/docker/compose.yaml up -d --wait   # PostgreSQL 18.6 + MongoDB 8.0(데이터는 이름 있는 볼륨, 포트는 127.0.0.1)
+python tests/tools/pg_admin.py                       # 접속·18·정렬(builtin C.UTF-8)·정렬 버전·생성/삭제 권한 점검. 안 되면 이유를 말하고 멈춘다
 ```
 
-앱 쪽 준비(한 번, 아래 명령은 `ads_server/`에서 실행):
-
-```bash
-brew install mysql-client pkg-config                # mysqlclient 를 빌드하는 데 필요
-pip install -r requirements.txt
-test -f .env || cp .env.example .env                 # 기존 .env 보존. 로컬 시험 DB 접속 값을 별도로 확인
-python tests/tools/mysql_admin.py                       # 접속·8.4·생성/삭제 권한 점검. 안 되면 이유를 말하고 멈춘다
-```
-
-- 데이터베이스는 **정렬을 지정해** 만든다. 8.4 기본(`utf8mb4_0900_ai_ci`)은 대소문자·악센트를 구분하지 않아 유일 제약과 비교가 달라진다:
-  `CREATE DATABASE ads_server CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;`
-  (시험이 만드는 `test_ads_server`와 부하 시험의 `ads_load_*`는 코드가 같은 정렬로 만든다.)
-- 시험은 `test_<DB_NAME>` 을 만들고 끝나면 지운다 → 접속 계정에 CREATE/DROP 권한이 필요하다. 시험 설정은 DB 접속 값(`DB_*`)만 환경에서 읽는다.
-- `check --deploy`와 `makemigrations --check`는 이제 **DB 연결이 필요하다**(MySQL 에서는 모델 검사가 서버 정보를 읽는다).
-- 이 컨테이너와 인프라 서버의 차이: 컨테이너는 GTID가 꺼져 있고 서버 기본 정렬이 `_ai_ci`다(인프라의 `infra.cnf` 핵심은 DB-1d의 인프라 서버 통합 확인에서 맞춘다).
-
-## InnoDB Cluster 시험 환경 (운영 후보 구성)
-
-기본 게이트는 단일 노드 MySQL에서 도는 `tests/tools/check.sh`다. 운영 후보 구성인 **InnoDB Cluster**(MySQL 3노드 그룹 복제, 단일 primary, 자동 failover + MySQL Router)에서 같은 점검을 돌릴 때는 아래를 쓴다(Docker 필요, 수 분).
-
-```bash
-env -u DB_NAME tests/tools/cluster_check.sh              # 클러스터를 띄워 check.sh(전체 시험·20 동시 부하·보안 점검)와 150 동시 부하를 돌리고 지운다
-env -u DB_NAME tests/tools/cluster_check.sh --failure    # 거기에 클러스터 장애 시험 8개(자체 클러스터를 따로 띄운다)
-eval "$(python tests/tools/mysql_cluster.py start)"   # 손으로 띄우기: MYSQL_CLUSTER_ID·DB_HOST·DB_PORT(Router 포트)·DB_USER·DB_PASSWORD 를 export
-python tests/tools/mysql_cluster.py status "$MYSQL_CLUSTER_ID"
-python tests/tools/mysql_cluster.py stop "$MYSQL_CLUSTER_ID"
-python tests/tools/failure_test.py --mysql cluster primary-kill switchover   # 클러스터 장애 시나리오를 골라서
-```
-
-- **이미지** `ads-innodb-cluster:8.4`(`tests/docker/innodb-cluster/`, 처음 한 번 빌드에 수 분): 서버 8.4.11(인프라 이미지와 같은 generic tarball), Shell·Router 8.4.10(arm64 tarball이 8.4.10까지).
-- **구성**: 노드 3개(GTID·ROW 바이너리 로그, 일관성 `BEFORE_ON_PRIMARY_FAILOVER`, `expelTimeout` 5초, 자동 재합류) + Router 1대. 앱은 **Router 읽기·쓰기 포트로만** 접속한다. 계정은 운영처럼 나눈다: `root`(노드 안), `failover`(클러스터 관리), `router`(부트스트랩이 만듦), `dev`(앱·시험).
-- 포트·비밀번호는 무작위이고 공유 컨테이너(`db-standalone-*`)는 건드리지 않는다. 시험이 실패해도 클러스터 컨테이너와 네트워크를 지운다. `cluster_check.sh`는 시작 전에 환경에 남은 이전 클러스터 값을 비우고, 기동 명령의 종료 코드를 직접 확인한다. 기동에 실패하면 후속 시험 없이 비정상 종료하고, 정리는 **이번 실행이 만든 클러스터에만** 건다(이전 ID를 지우지 않는다).
-- `env -u DB_NAME`: 클러스터에는 `ads_server` 데이터베이스만 만들어지고, `cluster_check.sh`가 비우는 값은 접속 값(`DB_HOST`·`DB_PORT`·`DB_USER`·`DB_PASSWORD`)뿐이다. 동시 시험 때문에 셸에 `DB_NAME`을 따로 정해 두었다면 빼고 돌린다(클러스터는 따로 띄우므로 이름을 나눌 필요가 없다).
-- **장애 시나리오**: `primary-kill`(자동 failover 뒤 죽은 노드 재합류), `primary-restart`, `switchover`(계획된 전환), `secondary-kill`, `router-restart`, `processor-kill`, `mongo-restart`, `relay-kill`. 끝에서 모든 노드 ONLINE·primary 하나·모든 노드의 GTID 집합과 표별 행 수가 같은지 확인한다.
-- **그룹 복제는 기본 키 없는 표를 거부한다**(오류 3098). 시험에서 표를 만들 때도 기본 키를 둔다. 결과와 해석은 [`docs/legacy/ads-server/load-test.md`](load-test.md) §9, 전제는 설계 §10 "그룹 복제(InnoDB Cluster) 전제".
+- 정렬은 **builtin `C.UTF-8`**(계획 D11): 같음은 대소문자·악센트를 구분하고 순서는 코드값이다. initdb 때만 정해지므로(compose 의 `POSTGRES_INITDB_ARGS`) 바꾸려면 `down -v`로 볼륨을 다시 만든다. 시험이 만드는 `test_<DB_NAME>`과 부하 시험의 `ads_load_*`는 template1 에서 같은 정렬을 물려받는다. 정렬 버전이 기록과 다르면 `pg_admin.py`·`ops_check`(`check_collations`)가 실패한다 — 고치는 순서는 계획 §4.3 V-5.
+- 시험은 `test_<DB_NAME>` 을 만들고 끝나면 지운다 → 접속 계정에 데이터베이스를 만들고 지울 권한이 필요하다(compose 의 `DB_USER`는 그 컨테이너의 관리 계정). 시험 설정은 DB 접속 값(`DB_*`)만 환경에서 읽는다. 같은 서버에서 동시에 시험을 돌리는 셸은 `DB_NAME`을 서로 다르게 둔다.
+- 시험 컨테이너의 `max_connections`는 200이다 — 부하 시험 서버는 요청마다 스레드·연결 하나라 400 동시 버스트에서 기본 100에 닿는다. 운영은 기본 100(계획 D6).
+- 전환 전 코드와 비교하거나 데이터를 옮길 때만 MySQL 8.4를 함께 띄운다: `docker compose --env-file .env -f tests/docker/compose.yaml --profile mysql up -d`(`.env`의 `MYSQL_ROOT_PASSWORD`·`MYSQL_PORT`).
+- 복제·HA 구성(MySQL 때의 InnoDB Cluster 대체)은 정하지 않았다. 클러스터 시험 도구는 지웠고, 그때의 결과는 [load-test.md](load-test.md) §9, 전제는 설계 §10 "그룹 복제(InnoDB Cluster) 전제 — MySQL 때 기록".
 
 ## MongoDB 시험 환경
 
-이벤트 로그(MongoDB `ad_events`, Step 4부터 중계가 씀)는 **MongoDB 8.0**이다. 같은 `intake/db-standalone` 컨테이너(`mongodb` 서비스, Standalone·인증)를 쓴다. 접속 값은 `.env`의 `MONGO_*`(`.env.example`)이고,
+이벤트 로그(MongoDB `ad_events`, Step 4부터 중계가 씀)는 **MongoDB 8.0**이다. 같은 compose 의 `mongodb` 서비스(Standalone·인증)를 쓴다. 접속 값은 `.env`의 `MONGO_*`(`.env.example`)이고,
 시험 설정은 접속 값만 읽고 데이터베이스 이름은 시험마다 무작위로 정해 **그 이름만** 지운다. `check.sh`가 맨 앞에서 `tests/tools/mongo_admin.py`로 접속·쓰기를 점검한다(MongoDB가 없으면 시험을 건너뛰지 않고 멈춘다).
 
 ```bash
@@ -92,20 +61,20 @@ python manage.py check_event_store     # 연결·버전·레플리카셋·쓰기
 
 - 레플리카셋 접속(운영과 같은 방식)을 시험하려면 임시 단일 노드 레플리카셋(인증 켜짐)을 띄운다. 포트·비밀번호는 무작위이고 공유 컨테이너는 건드리지 않는다:
   `eval "$(python tests/tools/mongo_temp_rs.py start)"` → 같은 셸에서 위 명령·`python manage.py test tests.ops.test_event_store` → `python tests/tools/mongo_temp_rs.py stop $MONGO_TEMP_CONTAINER`
-- 앱(웹 프로세스)은 MongoDB를 호출하지 않는다. 요청은 MySQL의 outbox에 이벤트를 쓰기만 하고, MongoDB로 옮기는 일은 상시 중계(`relay_events`, 아래)가 한다. MongoDB가 끊기면 이벤트는 outbox에 쌓였다가 복구 뒤 옮겨진다(짧은 재시작 시험에서 요청 503 0, 장기 장애는 확인하지 않음 — 설계 §10 "MongoDB 장애와 요청").
+- 앱(웹 프로세스)은 MongoDB를 호출하지 않는다. 요청은 업무 DB(PostgreSQL)의 outbox에 이벤트를 쓰기만 하고, MongoDB로 옮기는 일은 상시 중계(`relay_events`, 아래)가 한다. MongoDB가 끊기면 이벤트는 outbox에 쌓였다가 복구 뒤 옮겨진다(짧은 재시작 시험에서 요청 503 0, 장기 장애는 확인하지 않음 — 설계 §10 "MongoDB 장애와 요청").
 
 ## 운영 배포
 
 - **설정 모듈**: 운영 호스트에서 `manage.py`로 실행하는 모든 명령(`migrate`·`process_reactions`·`relay_events` 등)은 `DJANGO_SETTINGS_MODULE=config.settings.prod`를 **실제 환경변수로** 지정한다. `manage.py`의 기본은 dev다. 웹 진입점(`wsgi`·`asgi`)은 **`.env`의 설정 모듈을 따르지 않는다** — 실제 환경변수에 있으면 그 값, 없으면 prod다(`.env`의 다른 값은 그대로 읽는다, Step 6-3a). 그래서 `.env`에 dev가 남아 있어도 웹은 dev로 뜨지 않는다.
-- **두 서버(6-15)**: **프론트 서버**(80·443 공개)에 nginx + 프론트 Django(`../ads_frontend`, 127.0.0.1 바인딩), **백 서버**(내부망)에 이 백엔드와 상시 프로세스를 둔다. 백엔드는 내부망 주소로 열고 인프라 방화벽이 프론트 서버와 게임 백엔드(그리고 상대 Kafka·MySQL 주소)만 허용한다. 브라우저 경로는 nginx → 프론트 → 백의 두 단계라 **`TRUSTED_PROXY_COUNT=2`** 이고, `ALLOWED_HOSTS`·`CSRF_TRUSTED_ORIGINS`·`ASSET_PUBLIC_BASE_URL` 은 브라우저가 여는 공개 주소(프론트가 `Host` 를 그대로 넘긴다) — 게임 백엔드가 부르는 내부 주소도 `ALLOWED_HOSTS` 에 둔다. 프론트의 `ADMIN_URL_PATH`·`ASSET_MAX_BYTES` 는 이 백엔드와 같게, nginx 의 업로드 크기는 `ASSET_MAX_BYTES` + 64KiB 이상. 아래 nginx 문장의 "Django"는 프론트 Django 다.
+- **두 서버(6-15)**: **프론트 서버**(80·443 공개)에 nginx + 프론트 Django(`../ads_frontend`, 127.0.0.1 바인딩), **백 서버**(내부망)에 이 백엔드와 상시 프로세스를 둔다. 백엔드는 내부망 주소로 열고 인프라 방화벽이 프론트 서버와 게임 백엔드(그리고 상대 Kafka·DB 주소)만 허용한다. 브라우저 경로는 nginx → 프론트 → 백의 두 단계라 **`TRUSTED_PROXY_COUNT=2`** 이고, `ALLOWED_HOSTS`·`CSRF_TRUSTED_ORIGINS`·`ASSET_PUBLIC_BASE_URL` 은 브라우저가 여는 공개 주소(프론트가 `Host` 를 그대로 넘긴다) — 게임 백엔드가 부르는 내부 주소도 `ALLOWED_HOSTS` 에 둔다. 프론트의 `ADMIN_URL_PATH`·`ASSET_MAX_BYTES` 는 이 백엔드와 같게, nginx 의 업로드 크기는 `ASSET_MAX_BYTES` + 64KiB 이상. 아래 nginx 문장의 "Django"는 프론트 Django 다.
 - **배포 구성**(설계 §10 "배포 구성"): 광고 서버 앞 nginx(certbot)가 TLS·80→443 리다이렉트·HSTS·관리자 경로(`ADMIN_URL_PATH` 아래 — 관리 사이트·운영 화면)의 접속 허용 목록(우리 강의실 라우터 IP 하나, 6-20 — 사이트의 나머지는 모두에 연다)을 맡고, 요청을 같은 호스트의 Django로 HTTP로 넘기기만 한다. Django는 HTTPS 리다이렉트·HSTS를 하지 않고 `X-Forwarded-Proto`도 읽지 않는다. 세션·CSRF 쿠키는 Secure라 nginx가 HTTP로 열면 로그인이 되지 않는다. `CSRF_TRUSTED_ORIGINS`에는 브라우저가 여는 https 주소를 적는다(Django가 요청을 HTTP로 알아 브라우저의 출처와 맞지 않으므로 필수 — 없으면 기동하지 않는다). nginx 쪽 요구사항(허용 목록과 certbot 검증 경로, 넘길 헤더, 업로드 크기, 바인딩)은 계획 §7.3.4 #9.
 - **올릴 묶음**(계획서 §8.4.20): 개발 로컬에서 `python tests/tools/build_release.py OUT` → `OUT/ads_server-<커밋>.tar.gz`(백 서버)·`OUT/ads_frontend-<커밋>.tar.gz`(프론트 서버). 프로젝트 루트가 Git 저장소이고 두 서버 코드가 모두 HEAD에 커밋되어 있어야 한다(현재 복사본은 Git 저장소가 아니다). 저장소 HEAD 의 커밋한 것만 들어가고, 시험·개발 도구(`tests/`)·README·`.gitignore`·시험·개발 설정·상대 앱은 빠진다. 백 서버 묶음의 `requirements.txt` 는 "운영" 묶음만이다. 개발 설정이 없으므로 운영 호스트에서 `DJANGO_SETTINGS_MODULE=config.settings.prod` 없이 `manage.py` 를 부르면 dev 로 뜨지 않고 실패한다. 서버에서 시험은 돌지 않는다(시험은 저장소에서 `check.sh`).
 - **배포 순서**: `migrate` → `collectstatic --noinput` → `ensure_event_store` → 웹과 상시 프로세스(아래). 웹은 `collectstatic` 뒤에 (다시) 시작한다 — WhiteNoise가 시작할 때 `STATIC_ROOT`를 읽는다. 중계를 먼저 띄우면 MongoDB가 봉투 검증 없는 `ad_events` 컬렉션을 자동으로 만든다(나중에 `ensure_event_store`가 검증을 맞추기는 한다).
 - **서버 실행**(설계 §10 "운영 서버 실행 환경", 계획서 §8.4.21): venv 는 **Python 3.14**(모델 PK 기본값 `uuid.uuid7` 이 3.14 부터 — Ubuntu 24.04 의 시스템 3.12 로는 뜨지 않는다, deadsnakes `python3.14`). 웹은 gunicorn `gunicorn config.wsgi --bind <백 서버 내부 주소>:8000 --workers <2×CPU+1>`. 웹·`process_reactions`·`relay_events` 를 systemd 서비스 셋으로 띄우고(`Restart=on-failure`), 셋 모두 `Environment=DJANGO_SETTINGS_MODULE=config.settings.prod`·`WorkingDirectory=` 이 폴더. 백 서버는 외부로 나가지 못해 `pip install --proxy http://<배스천>:3128/ -r requirements.txt`.
 - **마이그레이션**: 앱마다 `0001_initial` 하나다(운영 시작 전에 합침, 설계 §10 "마이그레이션"). 운영 DB 는 빈 DB 에 `migrate` 로 만든다. **운영이 시작된 뒤에는 적용한 마이그레이션을 지우거나 합치지 않고** 새 마이그레이션을 쌓는다.
-- **배포 후 점검 = 운영 환경 시험 `ops_check`**(설계 §10 "시험 구성" ⑤, 서버마다 5개 이하): 배포 순서를 마친 뒤 `python manage.py ops_check`(prod 설정). ① **설정·파일 저장소** — `check --deploy`, `MEDIA_ROOT` 쓰기 가능 ② **의존성** — 설치된 패키지가 `requirements.txt` 의 운영 묶음(`~=`)과 맞다 ③ **MySQL** — 적용 안 된 마이그레이션 0(`migrate --check`, 접속도 본다)·원장 대조(`check_ledger`) ④ **MongoDB** — 이벤트 저장소(`check_event_store`) ⑤ **상시 처리** — 반응 처리 stuck 0, 반응·outbox 의 가장 오래 기다린 것 ≤ `OPS_CHECK_MAX_WAIT_SECONDS`(600초). 한 줄씩 `OK`/`FAIL` 로 보이고 **하나라도 실패하면 종료 코드 1**이다. 하나가 실패해도 나머지를 모두 본다(한 항목 안의 여러 점검도 모두 보고 이유를 모은다). 운영 데이터는 바꾸지 않는다(MongoDB 점검은 점검용 컬렉션에 문서 하나를 쓰고 지운다). 주기 감시에 써도 된다. 프론트 서버에는 프론트의 `ops_check` 가 있다(설정·의존성·정적 파일·백엔드 닿음·화면 한 장).
+- **배포 후 점검 = 운영 환경 시험 `ops_check`**(설계 §10 "시험 구성" ⑤, 서버마다 5개 이하): 배포 순서를 마친 뒤 `python manage.py ops_check`(prod 설정). ① **설정·파일 저장소** — `check --deploy`, `MEDIA_ROOT` 쓰기 가능 ② **의존성** — 설치된 패키지가 `requirements.txt` 의 운영 묶음(`~=`)과 맞다 ③ **PostgreSQL** — 적용 안 된 마이그레이션 0(`migrate --check`, 접속도 본다)·원장 대조(`check_ledger`)·정렬 버전(`check_collations` — 모든 DB 의 기록 버전과 이 DB 의 객체가 쓰는 정렬) ④ **MongoDB** — 이벤트 저장소(`check_event_store`) ⑤ **상시 처리** — 반응 처리 stuck 0, 반응·outbox 의 가장 오래 기다린 것 ≤ `OPS_CHECK_MAX_WAIT_SECONDS`(600초). 한 줄씩 `OK`/`FAIL` 로 보이고 **하나라도 실패하면 종료 코드 1**이다. 하나가 실패해도 나머지를 모두 본다(한 항목 안의 여러 점검도 모두 보고 이유를 모은다). 운영 데이터는 바꾸지 않는다(MongoDB 점검은 점검용 컬렉션에 문서 하나를 쓰고 지운다). 주기 감시에 써도 된다. 프론트 서버에는 프론트의 `ops_check` 가 있다(설정·의존성·정적 파일·백엔드 닿음·화면 한 장).
 - **배포 점검 — 신뢰할 프록시 수 `TRUSTED_PROXY_COUNT`는 prod 필수이고 1 이상이다**(6-15 부터 nginx + 프론트 2단 = `2`, 설계 §10 "배포 구성"). 없거나 0 이하면 기동하지 않는다. 앱은 `X-Forwarded-For`의 오른쪽에서 이 수만큼째 값을 클라이언트 IP로 쓴다. 실제 프록시 수보다 적으면 모든 요청이 프록시 IP 하나로 보여 로그인 잠금(아이디 + IP 기준)이 아이디만 보는 것과 같아지고(남이 계정을 잠글 수 있다) 감사 로그의 IP가 모두 프록시 IP가 된다. 많으면 `X-Forwarded-For` 앞쪽의 위조 값을 믿게 된다. **백엔드 포트는 프론트 서버와 인프라가 정한 내부 서버(게임 백엔드 등) 밖에 열지 않는다**(내부망 바인딩 + 방화벽) — 열려 있으면 프론트를 거치지 않고 `X-Forwarded-For`를 위조해 IP를 고를 수 있다.
-- **로그**: 시각은 UTC ISO 8601 `Z`(예: `2026-10-12T14:30:01.958Z`)이고 줄마다 `[요청 ID]`가 붙는다(요청 밖의 줄은 `[-]`). 응답 헤더 `X-Request-ID`로 그 요청의 로그를 Django 요약 줄(4xx·5xx)까지 찾을 수 있다. 화면·클릭(`/c/…`)의 503은 원인(오류 종류·MySQL 오류 번호)을 트레이스백 없이 한 줄로 남긴다. 두 상시 명령의 시작·처리·장애 줄 앞에도 같은 형식의 시각이 붙는다(일회성 `--status`는 붙지 않는다).
+- **로그**: 시각은 UTC ISO 8601 `Z`(예: `2026-10-12T14:30:01.958Z`)이고 줄마다 `[요청 ID]`가 붙는다(요청 밖의 줄은 `[-]`). 응답 헤더 `X-Request-ID`로 그 요청의 로그를 Django 요약 줄(4xx·5xx)까지 찾을 수 있다. 화면·클릭(`/c/…`)의 503은 원인(오류 종류·PostgreSQL SQLSTATE)을 트레이스백 없이 한 줄로 남긴다. 두 상시 명령의 시작·처리·장애 줄 앞에도 같은 형식의 시각이 붙는다(일회성 `--status`는 붙지 않는다).
 
 ## 상시·주기 작업
 
@@ -160,7 +129,7 @@ OFFLINE_OK=1 ./tests/tools/check.sh        # 네트워크가 없어 pip-audit �
 
 **시험 하나 = 규칙 하나**(설계 §10 "시험 구성" ④): 시험 클래스의 경우는 `case_…` 메서드이고 `test_<규칙>` 하나가 `run_cases` 로 경우마다 따로(준비·정리·DB 격리) 돈다(`tests/support/cases.py`). 실패는 `test_<규칙> [case_…]` 처럼 경우 이름으로 보인다. 경우 하나만 돌리려면 `python manage.py test tests.ops.test_x.Class.case_y`.
 
-**`tests/` 밖은 운영 코드다**(설계 §10 "시험 구성"). 시험과 개발 도구는 모두 `tests/` 아래에 있다: `ops/`(운영용 시험), `dev/`(개발용 시험), `support/`(공용 도우미·시험용 URL·앱), `tools/`(점검·부하·장애·측정 스크립트), `docker/`(InnoDB Cluster 시험 이미지). 예외는 시험·개발 설정 모듈(`config/settings/test.py`·`dev.py`)이다.
+**`tests/` 밖은 운영 코드다**(설계 §10 "시험 구성"). 시험과 개발 도구는 모두 `tests/` 아래에 있다: `ops/`(운영용 시험), `dev/`(개발용 시험), `support/`(공용 도우미·시험용 URL·앱), `tools/`(점검·부하·장애·측정 스크립트), `docker/`(시험 DB compose). 예외는 시험·개발 설정 모듈(`config/settings/test.py`·`dev.py`)이다.
 
 `check.sh`는 하나라도 실패하면 비정상 종료한다. `pip-audit`이 네트워크 문제로 못 돌 때와 **실제 취약점이 발견됐을 때**를 구분해 알려준다.
 
@@ -187,7 +156,7 @@ python tests/tools/failure_test.py                # 장애 시험: DB 재시작�
 python tests/tools/failure_test.py restart crash  # 시나리오를 골라서. --json out.json 으로 결과 저장
 ```
 
-장애 시험은 Docker로 **임시 MySQL 8.4 컨테이너와 임시 MongoDB 8.0 단일 노드 레플리카셋(인증 켜짐)**을 따로 띄운다(이미지 `db-standalone/mysql:8.4-ubuntu24.04`·MongoDB 이미지, 무작위 포트·비밀번호, 끝나면 삭제). 공유 시험 DB나 다른 컨테이너는 건드리지 않는다. Docker나 이미지가 없으면 건너뛰지 않고 실패하며, 수 분 걸려 `check.sh`에는 넣지 않았다. 끊김 동안 500이 없고, 재시도가 모두 수신 확인되며, 유실 0·이중 과금 0·잔액=원장이어야 한다. 또 상시 처리·중계 프로세스가 살아 있고, **복구 뒤 그 프로세스들만으로 대기열과 미전송 이벤트가 비워져야** 하며, 이벤트가 원본 행·MongoDB와 내용까지 같아야 종료 코드 0이다(시험은 접수 직후 처리를 끄고 별도 명령을 쓰지 않는다). 시나리오는 MySQL 재시작·강제 종료, 처리·중계 프로세스 강제 종료, MongoDB 재시작 다섯 가지다.
+장애 시험은 Docker로 **임시 PostgreSQL 18 컨테이너와 임시 MongoDB 8.0 단일 노드 레플리카셋(인증 켜짐)**을 따로 띄운다(공식 이미지 `postgres:18.6-trixie`·`mongo:8.0`, 무작위 포트·비밀번호, 끝나면 삭제). 공유 시험 DB나 다른 컨테이너는 건드리지 않는다. Docker나 이미지가 없으면 건너뛰지 않고 실패하며, 수 분 걸려 `check.sh`에는 넣지 않았다. 끊김 동안 500이 없고, 재시도가 모두 수신 확인되며, 유실 0·이중 과금 0·잔액=원장이어야 한다. 또 상시 처리·중계 프로세스가 살아 있고, **복구 뒤 그 프로세스들만으로 대기열과 미전송 이벤트가 비워져야** 하며, 이벤트가 원본 행·MongoDB와 내용까지 같아야 종료 코드 0이다(시험은 접수 직후 처리를 끄고 별도 명령을 쓰지 않는다). 시나리오는 MySQL 재시작·강제 종료, 처리·중계 프로세스 강제 종료, MongoDB 재시작 다섯 가지다.
 
 ## `check --deploy`
 

@@ -192,7 +192,7 @@ class WindowedSummaryTests(Cases, TestCase):
 
         def count_rows(execute, sql, params, many, context):
             result = execute(sql, params, many, context)
-            if "FROM `records_reaction`" in sql:
+            if 'FROM "records_reaction"' in sql:
                 fetched.append(context["cursor"].rowcount)
             return result
         with connection.execute_wrapper(count_rows):
@@ -296,7 +296,7 @@ class ExportHopManifestsTests(Cases, MongoDatabaseMixin, TransactionTestCase):
             self.assertEqual((ndjson.verify(path), manifest["source_kind"], manifest["schema_version"]), ([], hop, 1))
             cp = manifest["checkpoint"]
             self.assertEqual((cp["hop"], cp["window"], cp["grace_seconds"], cp["scanned_events"]), (hop, "utc-day", 120, 4))
-        self.assertEqual(ndjson.read_manifest(ndjson.manifest_path(self.dir / "out", "hop_source"))["checkpoint"]["scope"], "mysql-repeatable-read-snapshot")
+        self.assertEqual(ndjson.read_manifest(ndjson.manifest_path(self.dir / "out", "hop_source"))["checkpoint"]["scope"], "postgresql-repeatable-read-snapshot")
         self.assertEqual(ndjson.read_manifest(ndjson.manifest_path(self.dir / "out", "hop_mongo"))["checkpoint"]["scope"], "mongodb-read-outside-snapshot")
 
     def case_open_windows_are_not_summarized_but_listed(self):

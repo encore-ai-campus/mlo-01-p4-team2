@@ -2,7 +2,7 @@
 
     python tests/tools/mongo_admin.py     서버 8.x 에 닿는지, 무작위 이름의 시험 데이터베이스에 쓸 수 있는지(끝나면 그 이름만 지운다)
 
-`check.sh` 가 `mysql_admin.py` 바로 뒤에 부른다 — MongoDB 가 없으면 시험을 건너뛰지 않고 여기서 멈춘다.
+`check.sh` 가 `pg_admin.py` 바로 뒤에 부른다 — MongoDB 가 없으면 시험을 건너뛰지 않고 여기서 멈춘다.
 """
 import os
 import sys
@@ -34,7 +34,7 @@ def preflight():
         mongo.client().drop_database(name)
     except PyMongoError as exc:
         raise SystemExit(f"MongoDB 에 연결하거나 쓰지 못했습니다: {mongo.error_text(exc)}\n"
-                         "시험용 컨테이너가 떠 있는지, .env 의 MONGO_* 가 맞는지 확인하세요(README 'MongoDB 시험 환경').")
+                         "시험용 컨테이너가 떠 있는지(tests/docker/compose.yaml), .env 의 MONGO_* 가 맞는지 확인하세요.")
     finally:
         mongo.close()
     print(f"MongoDB {version} 연결 확인, 데이터베이스 쓰기·삭제 확인")

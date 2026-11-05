@@ -3,7 +3,7 @@ from config.access_map import build_access_map, validate_admin_path
 
 from ._env import env_bool, env_int, env_list, env_str
 from .base import *  # noqa: F401,F403
-from .base import BASE_DIR, INSECURE_DEV_KEY, mongo_config, mysql_config
+from .base import BASE_DIR, INSECURE_DEV_KEY, mongo_config, postgres_config
 
 SECRET_KEY = env_str("SECRET_KEY", default=INSECURE_DEV_KEY)
 DEBUG = env_bool("DJANGO_DEBUG", False)
@@ -20,13 +20,12 @@ BUDGET_DAY_OFFSET_HOURS = env_int("BUDGET_DAY_OFFSET_HOURS", 0)
 ASSET_MAX_BYTES = env_int("ASSET_MAX_BYTES", 2 * 1024 * 1024)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "[::1]"])
 
-DATABASES = {"default": mysql_config(
+DATABASES = {"default": postgres_config(
     env_str("DB_NAME", default="ads_server"),
     env_str("DB_USER", required=True),
     env_str("DB_PASSWORD", required=True),
     env_str("DB_HOST", default="127.0.0.1"),
-    env_int("DB_PORT", 3306),
-    env_str("DB_ISOLATION_LEVEL", default="read committed"),  # 측정으로 확정한 값(base.mysql_config). 바꿔 비교할 때만 쓴다
+    env_int("DB_PORT", 5432),
 )}
 
 # 이벤트 저장소(MongoDB `ad_events`). 웹은 쓰지 않고 중계·내보내기 명령이 쓴다(설계 §10 "이벤트 저장소 설정"). 확인은 `manage.py check_event_store`.

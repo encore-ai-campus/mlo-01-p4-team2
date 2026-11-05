@@ -20,7 +20,7 @@ class Command(BaseCommand):
     help = (
         "창 대사 한 번(파이프라인 계획 P2-2, 설계 01 D14): 파이프라인 manifest 받기(fetch_hop_manifest --name hop_pipeline_<창>) → 받은 checkpoint.since 로 "
         "outbox manifest(export_hop_manifests) → 대조·확정 기록(verify_hops --pipeline). 결과를 상태 파일 <dir>/reconcile-<창>.json 에 남기고 종료 코드로 알린다: "
-        "0 정상, 1 확정 불일치(mismatch), 2 입력 실패(받기·내보내기·입력 검증·--as-of 형식), 3 늦음(받은 since 가 기대보다 이르다 — 대조는 했다), 75 같은 창 크기 대사가 돌고 있어 건너뜀. "
+        "0 정상, 1 확정 불일치(mismatch), 2 입력 실패(받기·내보내기·입력 검증·--as-of 형식), 3 늦음(받은 since 가 기대와 다르다 — 대개 기대보다 이르다(게시가 늦음), 대조는 했다), 75 같은 창 크기 대사가 돌고 있어 건너뜀. "
         "상태 파일을 쓰기 전에 멈추면(설정 오류·작업 폴더 오류 등) Python·Django 기본값 1 이다 — 확정 불일치와는 상태 파일로 구별한다. "
         "기대 since = 그 창 크기의 지금 경계 − 48시간(hour)·8일(day). outbox 의 창 닫힘 기준 시각(--as-of)은 받은 manifest 의 checkpoint.started_at(파이프라인 잡이 닫힘에 쓴 시각)이다 — "
         "since 와 같이 두 쪽이 같은 범위·같은 닫힘을 본다(잡이 늦은 회차에 그 뒤 닫힌 창이 한쪽에만 나와 거짓 불일치가 되지 않게). "

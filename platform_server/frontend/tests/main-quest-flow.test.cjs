@@ -1,5 +1,15 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'../dist/main-quest.js'),'utf8');
+test('guide greeting sends no client inventory and returns the confirmed server result',async()=>{
+ const commands=[];const response={achievements:[{event_uuid:'fragile',name:'부서지기 직전',achieved:true}],newly_completed:['fragile']};
+ const scope={window:{CampusApp:{presence:{command:async(...args)=>{commands.push(args);return response;}}}}};
+ vm.createContext(scope);
+ vm.runInContext(source.slice(source.indexOf('async function greetGuide('),source.indexOf('async function run(')),scope);
+ assert.equal(await scope.greetGuide(),response);
+ assert.deepEqual(JSON.parse(JSON.stringify(commands)),[['guide_talk',{objectId:'campus-guide-kkuwang'}]]);
+ scope.window.CampusApp.presence.command=async()=>{throw new Error('저장 실패');};
+ await assert.rejects(scope.greetGuide(),/저장 실패/);
+});
 test('five-step guidance targets ROOM1 immediately after investigation and keeps the final guide',()=>{
  const scope={state:null,mainGuide:{id:'guide'},portals:[{id:'room1'},{id:'room2'}]};
  vm.createContext(scope);

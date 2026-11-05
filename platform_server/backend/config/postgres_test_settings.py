@@ -20,7 +20,7 @@ def _restore_catalog(sender, **kwargs):
         from django.apps import apps
         from django.db import connection
         from types import SimpleNamespace
-        for name in ('0004_seed_easter_eggs','0005_learning_achievements'):
+        for name in ('0004_seed_easter_eggs','0005_learning_achievements','0013_fragile_pepero_achievement'):
             import_module('event_story.migrations.' + name).seed(apps, SimpleNamespace(connection=connection))
 
 from django.db.models.signals import post_migrate

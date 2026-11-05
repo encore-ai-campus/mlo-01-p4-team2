@@ -21,7 +21,7 @@ from django.utils import timezone
 from accounts.models import get_identity, needs_profile_setup
 from accounts.session_policy import check_session
 from eventing.events import ensure_platform_session, record_floor_transfer, touch_platform_session
-from event_story.achievement_services import record_manager_action
+from event_story.achievement_services import record_manager_action, record_guide_talk
 from event_story.game_services import GameError, start_game
 from . import cluster, session_registry, poke, socket_db
 from campus_control.service import async_state as freeze_state
@@ -672,6 +672,11 @@ class CampusConsumer(AsyncWebsocketConsumer):
                     await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
                     await self.touch_activity()
                     return
+                if action == "guide_talk":
+                    result = await self.talk_to_guide(arguments)
+                    await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
+                    await self.touch_activity()
+                    return
                 if action == "manager_greet":
                     result = await self.greet_manager(arguments)
                     await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
@@ -701,10 +706,10 @@ class CampusConsumer(AsyncWebsocketConsumer):
                 await self.send_packet({"type": "control_result", "requestId": request_id,
                                         "error": "게임을 시작하지 못했어요. 다시 시도해 주세요."})
                 return
-            if action == "manager_greet":
-                logging.getLogger(__name__).exception("Could not save a manager greeting")
-                await self.send_packet({"type": "control_result", "requestId": request_id,
-                                        "error": "인사 기록을 저장하지 못했어요. 다시 시도해 주세요."})
+            if action in {"manager_greet", "guide_talk"}:
+                logging.getLogger(__name__).exception("Could not save an NPC conversation")
+                message = "인사 기록을 저장하지 못했어요. 다시 시도해 주세요." if action == "manager_greet" else "대화 기록을 저장하지 못했어요. 다시 시도해 주세요."
+                await self.send_packet({"type": "control_result", "requestId": request_id, "error": message})
                 return
             if action != "prepare_logout":
                 raise
@@ -779,6 +784,25 @@ class CampusConsumer(AsyncWebsocketConsumer):
     def start_minigame_now(self, code):
         user = self.session_user()
         return start_game(user, code, self.platform_session_uuid) if user is not None else None
+
+    async def talk_to_guide(self, arguments):
+        obj_id = arguments.get("objectId")
+        controller = self.controller
+        obj = controller.world.objects.get(obj_id) if isinstance(obj_id, str) else None
+        if (obj_id != "campus-guide-kkuwang" or not obj or obj.get("action") != "guide"
+                or controller.interior or controller.pending_transfer or controller.pose["floor"] != "campus"
+                or controller.world.distance(obj, controller.pose) > obj.get("interactionRadius", 70)):
+            raise ControlError("18층 꾸왕이 가까이에서 대화해 주세요.")
+        controller.input([])
+        controller.route.clear()
+        result = await socket_db.run(self.guide_talk_now, self.pepero_remaining)
+        if result is None:
+            raise ControlError("로그인 상태를 확인한 뒤 다시 시도해 주세요.")
+        return {"type": "guide_talk", **result}
+
+    def guide_talk_now(self, remaining):
+        user = self.session_user()
+        return record_guide_talk(user, remaining, self.platform_session_uuid) if user is not None else None
 
     async def greet_manager(self, arguments):
         obj_id = arguments.get("objectId")

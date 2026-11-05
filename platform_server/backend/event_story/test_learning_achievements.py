@@ -9,7 +9,7 @@ from django.test import TestCase, TransactionTestCase
 from learning import services
 from learning.models import LearningSession, Question, QuestionChoice, SessionQuestion, UserAnswer
 from .models import EventProgress
-from .achievement_services import PYTHON_ID, SQL_ID, CS_ID, ALL_SUBJECTS_ID, achievement_snapshot
+from .achievement_services import PYTHON_ID, SQL_ID, CS_ID, FRAGILE_ID, achievement_snapshot
 from .test_achievements import seed_definitions
 
 def lesson(user, subject='python', difficulty='intermediate', correct=7, total=10, pending=False, kind='fill_blank'):
@@ -99,18 +99,11 @@ class LearningAchievementTests(TestCase):
         self.assertEqual(self.client.post(url).json()['newly_completed'],[])
         self.assertEqual(len(self.client.get('/api/event-story/achievements/').json()['achievements']),11)
 
-    def test_three_subjects_require_separate_passes_and_allow_mixed_levels_and_types(self):
-        for subject,level,kind in [('python','beginner','multiple_choice'),('python','beginner','fill_blank'),('sql','advanced','fill_blank')]:
-            services.complete_session(self.user,lesson(self.user,subject,level,kind=kind).pk)
-        self.assertFalse(EventProgress.objects.filter(user=self.user,event_id=ALL_SUBJECTS_ID).exists())
-        # Another account's CS pass cannot supply the missing subject.
-        services.complete_session(self.other,lesson(self.other,'cs','beginner').pk)
-        self.assertFalse(EventProgress.objects.filter(user=self.user,event_id=ALL_SUBJECTS_ID).exists())
-        failed=services.complete_session(self.user,lesson(self.user,'cs','beginner',correct=6).pk)
-        self.assertNotIn(str(ALL_SUBJECTS_ID),(failed.achievement_update or {}).get('newly_completed',[]))
-        passed=services.complete_session(self.user,lesson(self.user,'cs','beginner').pk)
-        self.assertEqual(passed.achievement_update['newly_completed'],[str(ALL_SUBJECTS_ID)])
-        self.assertFalse(EventProgress.objects.filter(user=self.user,event_id=CS_ID).exists())
+    def test_three_subject_passes_do_not_award_the_replaced_badge(self):
+        for subject in ['python', 'sql', 'cs']:
+            done = services.complete_session(self.user, lesson(self.user, subject, 'beginner').pk)
+            self.assertEqual(done.achievement_update['newly_completed'], [])
+        self.assertFalse(EventProgress.objects.filter(user=self.user, event_id=FRAGILE_ID).exists())
 
     def test_cs_intermediate_and_advanced_passes_award_once_and_reject_six_or_short_sets(self):
         for level,score,total in [('beginner',10,10),('intermediate',6,10),('advanced',7,7)]:
@@ -123,16 +116,17 @@ class LearningAchievementTests(TestCase):
         self.assertEqual(replay.achievement_update['newly_completed'],[])
         self.assertEqual(EventProgress.objects.get(user=self.user,event_id=CS_ID).completed_at,stamp)
 
-    def test_final_cs_pass_awards_both_and_retries_preserve_timestamps(self):
-        for subject in ['python','sql']:
-            services.complete_session(self.user,lesson(self.user,subject,'beginner').pk)
-        session=lesson(self.user,'cs','intermediate')
-        done=services.complete_session(self.user,session.pk)
-        self.assertEqual(done.achievement_update['newly_completed'],[str(CS_ID),str(ALL_SUBJECTS_ID)])
-        stamps=list(EventProgress.objects.filter(user=self.user).order_by('event_id').values_list('event_id','completed_at'))
-        self.assertEqual(services.complete_session(self.user,session.pk).achievement_update['newly_completed'],[])
-        self.assertEqual(list(EventProgress.objects.filter(user=self.user).order_by('event_id').values_list('event_id','completed_at')),stamps)
-        self.assertEqual(len(done.achievement_update['achievements']),11)
+    def test_final_cs_pass_awards_only_the_subject_badge_and_retries_preserve_timestamps(self):
+        for subject in ['python', 'sql']:
+            services.complete_session(self.user, lesson(self.user, subject, 'beginner').pk)
+        session = lesson(self.user, 'cs', 'intermediate')
+        done = services.complete_session(self.user, session.pk)
+        self.assertEqual(done.achievement_update['newly_completed'], [str(CS_ID)])
+        self.assertFalse(EventProgress.objects.filter(user=self.user, event_id=FRAGILE_ID).exists())
+        stamp = EventProgress.objects.get(user=self.user, event_id=CS_ID).completed_at
+        self.assertEqual(services.complete_session(self.user, session.pk).achievement_update['newly_completed'], [])
+        self.assertEqual(EventProgress.objects.get(user=self.user, event_id=CS_ID).completed_at, stamp)
+        self.assertEqual(len(done.achievement_update['achievements']), 11)
 
     def test_existing_completed_lessons_restore_without_changing_lesson_or_reward_records(self):
         from importlib import import_module
@@ -145,11 +139,13 @@ class LearningAchievementTests(TestCase):
             session=lesson(self.user,subject)
             session.completed_at=timezone.now();session.correct_count=7;session.save()
         before=list(LearningSession.objects.values())
-        restore=import_module('event_story.migrations.0005_learning_achievements').restore
+        migration=import_module('event_story.migrations.0005_learning_achievements')
+        restore=migration.restore
+        legacy_id=migration.ALL
         restore(apps,SimpleNamespace(connection=connection))
-        self.assertEqual(set(EventProgress.objects.filter(user=self.user).values_list('event_id',flat=True)),{CS_ID,ALL_SUBJECTS_ID})
+        self.assertEqual(set(EventProgress.objects.filter(user=self.user).values_list('event_id',flat=True)),{CS_ID,legacy_id})
         self.assertTrue(all(p.started_at<=p.completed_at for p in EventProgress.objects.all()))
-        self.assertEqual(EventProgress.objects.get(event_id=ALL_SUBJECTS_ID).started_at,min(s['started_at'] for s in before))
+        self.assertEqual(EventProgress.objects.get(event_id=legacy_id).started_at,min(s['started_at'] for s in before))
         stamps=list(EventProgress.objects.order_by('event_id').values_list('event_id','completed_at'))
         restore(apps,SimpleNamespace(connection=connection))
         self.assertEqual(list(EventProgress.objects.order_by('event_id').values_list('event_id','completed_at')),stamps)
@@ -176,7 +172,7 @@ class ConcurrentLearningAchievementTests(TransactionTestCase):
         self.assertEqual(sum(len(value) for value in results),2)
         self.assertEqual(EventProgress.objects.filter(user=user,status='COMPLETED').count(),2)
 
-    def test_concurrent_sql_and_cs_passes_complete_the_trio_once(self):
+    def test_concurrent_sql_and_cs_passes_award_only_the_subject_badge(self):
         seed_definitions()
         user=get_user_model().objects.create_user(username='trio-concurrent')
         services.complete_session(user,lesson(user,'python','beginner').pk)
@@ -190,6 +186,6 @@ class ConcurrentLearningAchievementTests(TransactionTestCase):
             finally:connections.close_all()
         with ThreadPoolExecutor(max_workers=2) as pool:
             results=list(pool.map(complete,[s.pk for s in lessons]))
-        self.assertEqual(sum(str(ALL_SUBJECTS_ID) in ids for ids in results),1)
+        self.assertEqual(sum(str(FRAGILE_ID) in ids for ids in results),0)
         self.assertEqual(sum(str(CS_ID) in ids for ids in results),1)
-        self.assertEqual(EventProgress.objects.filter(user=user,status='COMPLETED').count(),2)
+        self.assertEqual(EventProgress.objects.filter(user=user,status='COMPLETED').count(),1)

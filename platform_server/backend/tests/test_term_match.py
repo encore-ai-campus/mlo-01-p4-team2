@@ -38,11 +38,14 @@ class TermMatchTests(TestCase):
         self.assertEqual(first.completion_order, 1)
         self.assertEqual(GamePlay.objects.get(pk=play['play_uuid']).evidence['picks'], data['picks'])
         self.assertEqual(finish_game(self.user, play['play_uuid'], session, data)['newly_completed'], [])
-        for user, rank in ((self.other, 2), (self.user, 1)):
+        for user in (self.other, self.user):
             session, play, data = self.play(user)
-            finish_game(user, play['play_uuid'], session, data)
-            self.assertEqual(EventProgress.objects.get(user=user,event_id=MEMORY_ID).completion_order, rank)
+            replay = finish_game(user, play['play_uuid'], session, data)
+            self.assertEqual((replay['status'], replay['newly_completed']), ('SUCCESS', []))
+            self.assertEqual(GamePlay.objects.get(pk=play['play_uuid']).evidence['picks'], data['picks'])
+        self.assertFalse(EventProgress.objects.filter(user=self.other, event_id=MEMORY_ID).exists())
         first.refresh_from_db();self.assertEqual(first.completed_at, stamp)
+        self.assertEqual(first.completion_order, 1)
 
     def test_late_incomplete_and_reused_cards_cannot_unlock(self):
         session, play, data = self.play(self.user)

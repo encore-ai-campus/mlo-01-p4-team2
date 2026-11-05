@@ -65,6 +65,7 @@
     function render(){
       list.replaceChildren();list.hidden=items===null;
       if(!items)return;
+      const hasAchievement=items.some(item=>item.achieved);
       for(const item of items){
         const row=document.createElement('li'),image=document.createElement('img'),name=document.createElement('strong'),state=document.createElement('span');
         row.className='achievement-item';row.dataset.achieved=String(item.achieved);
@@ -73,7 +74,7 @@
         const discovery=document.createElement('small');discovery.className='first-discoverer';
         discovery.textContent=first?'최초 발견 · '+first.nickname:'최초 발견자를 기다리는 중';
         image.src=item.image_url;image.alt='';image.width=144;image.height=144;image.loading='lazy';
-        name.textContent=item.name;state.textContent=item.achieved?'나도 발견 완료':'나의 기록 · 조사 중';
+        name.textContent=item.name;state.textContent=item.achieved?'나의 달성 완료':first?'달성 마감':hasAchievement?'추가 달성 불가 · 계정당 1개':'도전 가능';
         row.append(image,name,state,discovery);list.append(row);
       }
       status.textContent='';retry.hidden=true;dialog.removeAttribute('aria-busy');

@@ -68,7 +68,7 @@ class FragileAchievementTests(TestCase):
     def test_data_migration_replaces_only_the_old_award_and_preserves_other_progress(self):
         EventDefinition.objects.filter(pk=FRAGILE_ID).update(event_name='삼각지대 탈출')
         complete_achievement(self.user, FRAGILE_ID, timezone.now())
-        complete_achievement(self.user, CS_ID, timezone.now())
+        complete_achievement(self.other, CS_ID, timezone.now())
         other = list(EventProgress.objects.exclude(event_id=FRAGILE_ID).values())
         migration = import_module('event_story.migrations.0013_fragile_pepero_achievement')
         migration.seed(apps, SimpleNamespace(connection=connection))

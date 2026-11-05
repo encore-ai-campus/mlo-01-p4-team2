@@ -65,9 +65,9 @@ class SharedNotebookRaceTests(TransactionTestCase):
                 return complete_achievement(user,GREETING_ID,timezone.now())
             finally: connections.close_all()
         with patch('event_story.achievement_services.publish_discoveries') as notify, ThreadPoolExecutor(max_workers=2) as pool:
-            self.assertEqual(list(pool.map(run,[u.pk for u in users])),[True,True])
+            self.assertEqual(sum(pool.map(run,[u.pk for u in users])),1)
         notify.assert_called_once()
-        self.assertEqual(list(EventProgress.objects.filter(event_id=GREETING_ID).order_by('completion_order').values_list('completion_order',flat=True)),[1,2])
+        self.assertEqual(list(EventProgress.objects.filter(event_id=GREETING_ID).order_by('completion_order').values_list('completion_order',flat=True)),[1])
         self.assertTrue(discovery_snapshot()[0]['discovered'])
 
 class DiscoverySocketTests(SimpleTestCase):

@@ -128,28 +128,34 @@ class StoryTests(TestCase):
 
 
 class StoryGeometryTests(SimpleTestCase):
+    def guide_approach(self):
+        footprint = world('campus').objects['campus-guide-kkuwang']['footprint']
+        return (footprint['x']+footprint['w']/2, footprint['y']+footprint['h']+25)
+
     def test_server_proximity_proof_and_walkable_clue_approaches(self):
-        c=MotionController(dict(floor='campus',x=590,y=445,dir='up'))
-        for target, point in [('wrapper',(590,445)),('count',(700,445)),('board',(1250,185))]:
-            c.pose.update(x=point[0],y=point[1]);self.assertTrue(c.world.walkable(*point))
-            proof=access.issue(7,c,{'target':target})
-            self.assertEqual(signing.loads(proof['ticket'],salt=access.SALT)['target'],target)
-        c.pose.update(x=2000,y=900)
-        with self.assertRaises(ControlError):access.issue(7,c,{'target':'wrapper'})
+        point = self.guide_approach()
+        c = MotionController(dict(floor='campus', x=point[0], y=point[1], dir='up'))
+        for target in ['wrapper', 'count', 'board']:
+            self.assertTrue(c.world.walkable(*point))
+            proof = access.issue(7, c, {'target':target})
+            self.assertEqual(signing.loads(proof['ticket'], salt=access.SALT)['target'], target)
+        c.pose.update(x=2000, y=900)
+        with self.assertRaises(ControlError):access.issue(7, c, {'target':'wrapper'})
 
     def test_uuid_proximity_ticket_roundtrips_and_is_bound_to_one_account(self):
-        account = uuid.uuid4()
-        controller = MotionController(dict(floor='campus',x=590,y=445,dir='up'))
+        account = uuid.uuid4();point = self.guide_approach()
+        controller = MotionController(dict(floor='campus', x=point[0], y=point[1], dir='up'))
         proof = access.issue(account, controller, {'target':'wrapper'})
         self.assertEqual(proof['user'], str(account))
         self.assertEqual(access.verify(SimpleNamespace(pk=account), proof['ticket'], 'wrapper')['user'], str(account))
         with self.assertRaises(learning.LearningError):
             access.verify(SimpleNamespace(pk=uuid.uuid4()), proof['ticket'], 'wrapper')
 
-    def test_table_only_blocks_its_base_and_booth_remains_accessible(self):
-        floor=world('campus')
-        self.assertFalse(floor.walkable(600,380))
-        self.assertTrue(floor.walkable(600,340))
-        self.assertTrue(floor.walkable(750,400))
-        c=MotionController(dict(floor='rooftop',x=692,y=897,dir='up'))
-        self.assertEqual(access.issue(7,c,{'target':'ethics'})['target'],'ethics')
+    def test_guide_blocks_its_base_and_booth_remains_accessible(self):
+        floor = world('campus');rect = floor.objects['campus-guide-kkuwang']['footprint']
+        self.assertFalse(floor.walkable(rect['x']+rect['w']/2, rect['y']+rect['h']/2))
+        self.assertTrue(floor.walkable(*self.guide_approach()))
+        floor_name, object_id = access.TARGETS['ethics']
+        point = world(floor_name).objects[object_id]['interactionPoint']
+        c = MotionController(dict(floor=floor_name, x=point[0], y=point[1], dir='up'))
+        self.assertEqual(access.issue(7, c, {'target':'ethics'})['target'], 'ethics')

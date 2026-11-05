@@ -131,29 +131,21 @@ class GamePlayTests(TestCase):
         csrf_client.force_login(self.user)
         self.assertEqual(csrf_client.post(url, {}, content_type="application/json").status_code, 403)
 
-    def test_success_unlocks_each_game_once_per_account(self):
+    def test_success_keeps_game_results_but_only_one_egg_per_account(self):
         from .models import EventProgress
         from .achievement_services import TIMER_ID, TYPING_ID, achievement_snapshot
-        for code, event_id in (("timer", TIMER_ID), ("typing", TYPING_ID), ("typing", TYPING_ID)):
-            with self.subTest(code=code):
-                play = start_game(self.user, code, self.session.pk)
-                GamePlay.objects.filter(pk=play["play_uuid"]).update(started_at=timezone.now()-timedelta(seconds=12))
-                existed = EventProgress.objects.filter(user=self.user, event_id=event_id).exists()
-                result = self.result(play, status="SUCCESS", duration_ms=11110)
-                self.assertEqual(result["newly_completed"], [] if existed else [str(event_id)])
-                row = EventProgress.objects.get(user=self.user, event_id=event_id)
-                self.assertEqual(row.status, "COMPLETED")
-                first_time = row.completed_at
-                retry = self.result(play, status="SUCCESS", duration_ms=11110)
-                self.assertEqual(retry["newly_completed"], [])
-                self.assertEqual(retry["ended_at"], result["ended_at"])
-                row.refresh_from_db()
-                self.assertEqual(row.completed_at, first_time)
-                if not existed:
-                    self.assertEqual(row.completed_at.isoformat(), result["ended_at"])
-                self.assertEqual(len(result["achievements"]), 11)
-        self.assertEqual(EventProgress.objects.filter(user=self.user).count(), 2)
-        self.assertTrue(all(not row["achieved"] for row in achievement_snapshot(self.other)))
+        for index, code in enumerate(['timer', 'typing', 'timer']):
+            play = start_game(self.user, code, self.session.pk)
+            GamePlay.objects.filter(pk=play['play_uuid']).update(started_at=timezone.now()-timedelta(seconds=12))
+            result = self.result(play, status='SUCCESS', duration_ms=11110)
+            self.assertEqual(result['status'], 'SUCCESS')
+            self.assertEqual(result['newly_completed'], [str(TIMER_ID)] if index == 0 else [])
+            retry = self.result(play, status='SUCCESS', duration_ms=11110)
+            self.assertEqual((retry['ended_at'], retry['newly_completed']), (result['ended_at'], []))
+            self.assertEqual(GamePlay.objects.get(pk=play['play_uuid']).status, 'SUCCESS')
+        self.assertEqual(list(EventProgress.objects.filter(user=self.user).values_list('event_id',flat=True)), [TIMER_ID])
+        self.assertFalse(EventProgress.objects.filter(event_id=TYPING_ID).exists())
+        self.assertTrue(all(not row['achieved'] for row in achievement_snapshot(self.other)))
 
     def test_failure_and_interruption_do_not_unlock_games(self):
         from .models import EventProgress

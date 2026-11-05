@@ -50,7 +50,7 @@ test('the nine implemented achievements render, preserving names and original im
  assert.deepEqual(list.children.map(row=>row.dataset.achieved),Array(9).fill('false'));
  const image=list.children[0].children[0].src;
  f.update(rows(true));assert.equal(list.children[0].dataset.achieved,'true');assert.equal(list.children[0].children[0].src,image);
- assert.equal(list.children[0].children[1].textContent,'수상한 친화력');assert.equal(list.children[0].children[2].textContent,'나도 발견 완료');
+ assert.equal(list.children[0].children[1].textContent,'수상한 친화력');assert.equal(list.children[0].children[2].textContent,'나의 달성 완료');
  const css=fs.readFileSync(path.join(__dirname,'../dist/achievements.css'),'utf8');
  assert.match(css,/\[data-discovered="false"\] img\{filter:brightness\(0\)\}/);assert.match(css,/data-achieved="true"/);
 });
@@ -162,8 +162,22 @@ test('server-wide discovery reveals art without granting personal progress or re
  let row=f.get('achievementsList').children[0];
  assert.equal(row.dataset.discovered,'true');assert.equal(row.dataset.achieved,'false');
  assert.equal(row.children[3].textContent,'최초 발견 · 최초 탐정');
- assert.equal(row.children[2].textContent,'나의 기록 · 조사 중');
+ assert.equal(row.children[2].textContent,'달성 마감');
  assert.equal(f.timers.size,0);
  // An older personal snapshot cannot hide an already confirmed global discovery.
  f.update(rows(false));row=f.get('achievementsList').children[0];assert.equal(row.dataset.discovered,'true');
+});
+
+test('a discovered egg closes for other accounts while unclaimed eggs remain available',async()=>{
+ const f=fixture(),data=rows();data[0].discovered=true;data[0].first_discoverer={nickname:'최초 참여자',completed_at:'2026-11-05T00:00:00Z'};
+ await f.respond(data);
+ const list=f.get('achievementsList');
+ assert.equal(list.children[0].children[2].textContent,'달성 마감');
+ assert.equal(list.children[1].children[2].textContent,'도전 가능');
+});
+test('an account with one completed egg cannot collect any remaining egg',async()=>{
+ const f=fixture();await f.respond(rows(true));
+ const list=f.get('achievementsList');
+ assert.equal(list.children[0].children[2].textContent,'나의 달성 완료');
+ assert.ok(list.children.slice(1).every(row=>row.children[2].textContent==='추가 달성 불가 · 계정당 1개'));
 });

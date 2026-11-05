@@ -37,16 +37,18 @@ class LearningAchievementTests(TestCase):
         self.other=get_user_model().objects.create_user(username='other-learner')
 
     def test_intermediate_and_advanced_passes_use_single_set_and_both_question_types(self):
-        for subject,difficulty,kind in [('python','intermediate','fill_blank'),('python','advanced','multiple_choice'),
-                                         ('sql','intermediate','multiple_choice'),('sql','advanced','fill_blank')]:
-            with self.subTest(subject=subject,difficulty=difficulty,kind=kind):
-                session=lesson(self.user,subject,difficulty,kind=kind)
-                completed=services.complete_session(self.user,session.pk)
-                self.assertEqual(completed.correct_count,7)
-                event=PYTHON_ID if subject=='python' else SQL_ID
-                self.assertTrue(EventProgress.objects.filter(user=self.user,event_id=event,status='COMPLETED').exists())
-        self.assertEqual(EventProgress.objects.filter(user=self.user).count(),2)
-        self.assertFalse(EventProgress.objects.filter(user=self.other).exists())
+        from django.db import transaction
+        for subject, difficulty, kind in [('python','intermediate','fill_blank'),('python','advanced','multiple_choice'),
+                                           ('sql','intermediate','multiple_choice'),('sql','advanced','fill_blank')]:
+            with self.subTest(subject=subject, difficulty=difficulty, kind=kind), transaction.atomic():
+                session = lesson(self.user, subject, difficulty, kind=kind)
+                completed = services.complete_session(self.user, session.pk)
+                self.assertEqual(completed.correct_count, 7)
+                event = PYTHON_ID if subject == 'python' else SQL_ID
+                self.assertTrue(EventProgress.objects.filter(user=self.user, event_id=event, status='COMPLETED').exists())
+                self.assertEqual(EventProgress.objects.filter(user=self.user).count(), 1)
+                transaction.set_rollback(True)
+        self.assertFalse(EventProgress.objects.exists())
 
     def test_beginner_and_two_failed_sets_never_count_as_a_pass(self):
         for difficulty,correct in [('beginner',10),('intermediate',6),('intermediate',6)]:
@@ -154,7 +156,7 @@ class LearningAchievementTests(TestCase):
 
 
 class ConcurrentLearningAchievementTests(TransactionTestCase):
-    def test_different_lessons_share_owner_lock_and_unlock_both_subjects(self):
+    def test_different_lessons_share_owner_lock_and_only_one_subject_can_award(self):
         seed_definitions()
         user=get_user_model().objects.create_user(username='concurrent-achievement')
         lessons=[lesson(user,'python'),lesson(user,'sql')]
@@ -169,8 +171,9 @@ class ConcurrentLearningAchievementTests(TransactionTestCase):
         with ThreadPoolExecutor(max_workers=2) as pool:
             tasks=[pool.submit(complete,item.pk) for item in lessons]
             results=[task.result(timeout=15) for task in tasks]
-        self.assertEqual(sum(len(value) for value in results),2)
-        self.assertEqual(EventProgress.objects.filter(user=user,status='COMPLETED').count(),2)
+        self.assertEqual(sum(len(value) for value in results),1)
+        self.assertEqual(EventProgress.objects.filter(user=user,status='COMPLETED').count(),1)
+        self.assertEqual(LearningSession.objects.filter(pk__in=[item.pk for item in lessons],completed_at__isnull=False).count(),2)
 
     def test_concurrent_sql_and_cs_passes_award_only_the_subject_badge(self):
         seed_definitions()

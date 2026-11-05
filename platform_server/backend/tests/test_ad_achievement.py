@@ -62,11 +62,23 @@ class AdAchievementTests(TestCase):
         return report_impression_once(client=self.client_api, store=store, decision_id=decision.decision_id,
                                       owner_id=user.pk, occurred_at='2026-11-04T01:00:00Z')
 
-    def test_valid_200_and_201_award_the_receipt_owner(self):
-        for user, status in ((self.user, 200), (self.other, 201)):
-            result = self.report(user, self.decision(user), status)
-            self.assertEqual(result.record.achievement_update['newly_completed'], [str(AD_ID)])
-            self.assertTrue(EventProgress.objects.filter(user=user, event_id=AD_ID, status='COMPLETED').exists())
+    def test_valid_200_can_award_the_receipt_owner_when_unclaimed(self):
+        result = self.report(self.user, self.decision(self.user), 200)
+        self.assertEqual(result.record.achievement_update['newly_completed'], [str(AD_ID)])
+        self.assertTrue(EventProgress.objects.filter(user=self.user, event_id=AD_ID, status='COMPLETED').exists())
+
+    def test_valid_201_can_award_the_receipt_owner_when_unclaimed(self):
+        result = self.report(self.user, self.decision(self.user), 201)
+        self.assertEqual(result.record.achievement_update['newly_completed'], [str(AD_ID)])
+        self.assertTrue(EventProgress.objects.filter(user=self.user, event_id=AD_ID, status='COMPLETED').exists())
+
+    def test_second_acknowledgement_is_stored_without_a_second_winner(self):
+        first = self.report(self.user, self.decision(self.user), 200)
+        second = self.report(self.other, self.decision(self.other), 201)
+        self.assertEqual(first.record.achievement_update['newly_completed'], [str(AD_ID)])
+        self.assertEqual(second.record.achievement_update['newly_completed'], [])
+        self.assertEqual(Impression.objects.filter(delivery_state='ACKNOWLEDGED').count(), 2)
+        self.assertFalse(EventProgress.objects.filter(user=self.other).exists())
 
     def test_duplicates_and_other_decisions_never_award_twice(self):
         decision = self.decision(self.user)
@@ -100,15 +112,16 @@ class AdAchievementTests(TestCase):
         self.assertIsNone(result.record.achievement_update)
         self.assertFalse(EventProgress.objects.filter(event_id=AD_ID).exists())
 
-    def test_one_shared_ad_awards_each_viewer_separately(self):
+    def test_one_shared_ad_records_each_viewer_but_awards_only_the_first(self):
         decision = shared_decision()
         remember_decision(decision)
         self.client_api._opener.open.side_effect = lambda request, **kwargs: Response(request, 200)
-        for user in (self.user, self.other):
+        for index, user in enumerate((self.user, self.other)):
             result = report_impression_once(client=self.client_api, store=store, decision_id=decision.decision_id,
                                            owner_id=user.pk, subject_id=uuid4(), occurred_at='2026-11-04T01:00:00Z')
-            self.assertEqual(result.record.achievement_update['newly_completed'], [str(AD_ID)])
-        self.assertEqual(EventProgress.objects.filter(event_id=AD_ID).count(), 2)
+            self.assertEqual(result.record.achievement_update['newly_completed'], [str(AD_ID)] if index == 0 else [])
+        self.assertEqual(EventProgress.objects.filter(event_id=AD_ID).count(), 1)
+        self.assertEqual(Impression.objects.filter(delivery_state='ACKNOWLEDGED').count(), 2)
 
     def test_empty_decisions_and_another_accounts_decisions_cannot_award(self):
         with self.assertRaises(store.NoAdForDecision):
@@ -139,5 +152,7 @@ class AdAchievementTests(TestCase):
         layer = Mock(group_send=AsyncMock())
         with patch('channels.layers.get_channel_layer', return_value=layer), self.captureOnCommitCallbacks(execute=True):
             result = self.report(self.user, self.decision(self.user))
-        layer.group_send.assert_awaited_once_with(session_group('ad-session'),
-            {'type': 'achievement_update', 'result': result.record.achievement_update})
+        personal = [call for call in layer.group_send.await_args_list if call.args[0] == session_group('ad-session')]
+        self.assertEqual(len(personal), 1)
+        self.assertEqual(personal[0].args[1], {'type': 'achievement_update', 'result': result.record.achievement_update})
+        self.assertEqual(sum(call.args[0] == 'event.achievement.discoveries' for call in layer.group_send.await_args_list), 1)

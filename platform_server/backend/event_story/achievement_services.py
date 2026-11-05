@@ -5,7 +5,7 @@ from uuid import UUID
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 from django.db import transaction
-from django.db.models import Max, F, OuterRef, Subquery
+from django.db.models import F, OuterRef, Subquery
 from django.utils import timezone
 
 from campus.motion import geometry, mission_geometry
@@ -102,23 +102,24 @@ def achievement_snapshot(user):
 
 @transaction.atomic
 def complete_achievement(user, event_id, completed_at, *, started_at=None, session_uuid=None):
-    # Lock the shared definition before INSERT takes a foreign-key lock on it.
-    EventDefinition.objects.select_for_update().get(pk=event_id)
+    # Every entry point locks the account before the shared egg definition.
+    get_user_model().objects.select_for_update().get(pk=user.pk)
+    definition = EventDefinition.objects.select_for_update().get(pk=event_id)
+    if definition.event_type != 'EASTER_EGG':
+        raise ValueError('이스터에그 정의를 확인해 주세요.')
+    completed = EventProgress.objects.filter(status=EventProgress.Status.COMPLETED)
+    if (completed.filter(event=definition).exists()
+            or completed.filter(user=user, event__event_type='EASTER_EGG').exists()):
+        return False
     progress, _ = EventProgress.objects.get_or_create(
-        user=user, event_id=event_id,
+        user=user, event=definition,
         defaults={"started_at": started_at} if started_at is not None else {},
     )
-    if progress.status == EventProgress.Status.COMPLETED:
-        return False
-    first_discovery = not EventProgress.objects.filter(
-        event_id=event_id, status=EventProgress.Status.COMPLETED).exists()
-    progress.completion_order = (EventProgress.objects.filter(event_id=event_id).aggregate(
-        last=Max("completion_order"))["last"] or 0) + 1
+    progress.completion_order = 1
     progress.status, progress.completed_at = EventProgress.Status.COMPLETED, completed_at
     progress.session = active_platform_session(user, session_uuid) if session_uuid is not None else None
     progress.save(update_fields=["status", "completed_at", "completion_order", "session"])
-    if first_discovery:
-        transaction.on_commit(publish_discoveries, robust=True)
+    transaction.on_commit(publish_discoveries, robust=True)
     return True
 
 

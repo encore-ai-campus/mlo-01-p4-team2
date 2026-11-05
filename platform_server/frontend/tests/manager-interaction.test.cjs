@@ -143,3 +143,16 @@ test('server poke hit mutates the rendered manager actor and never requests a gr
   assert.equal(translated.length,1);assert.equal(rotated.length,1);
   assert.equal(f.commands.length,0);assert.equal(f.element('detailDialog').open,false);
 });
+
+const missionManagers=JSON.parse(fs.readFileSync(path.join(__dirname,'../../backend/event_story/mission_rooms.json'),'utf8')).npcs;
+for(const id of ['manager-yebin','manager-songhee','manager-huiae','manager-jeonghun','manager-suhyeon'])test(`${id} shows the requested hint count and preserves manager information`,async()=>{
+ const f=fixture(),npc=missionManagers.find(n=>n.id===id),scenes=[];
+ f.window.CampusStory={open:item=>scenes.push(item)};
+ f.context.greetManager({...npc,type:'mission-manager'});
+ assert.equal(f.commands.length,1);
+ f.commands[0].resolve({dialogue,managerName:npc.name,achievements:[],newly_completed:['greeting-earned']});
+ await settle();
+ assert.equal(scenes.length,1);assert.equal(scenes[0].copy.split(dialogue).length-1,['manager-yebin','manager-suhyeon'].includes(id)?0:1);
+ assert.ok(scenes[0].copy.includes(npc.copy));
+ assert.deepEqual(plain(f.events).map(e=>e.type),['campus:achievements','campus:achievement-earned']);
+});

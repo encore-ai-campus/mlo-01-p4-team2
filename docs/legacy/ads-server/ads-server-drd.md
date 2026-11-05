@@ -2,7 +2,7 @@
 
 > Status: **정식 문서**. 광고 서버만 다룬다. **지금 구조만 적는다** — 언제·왜 바뀌었는지는 §11 문서 이력과 [구현 계획](implementation-plan.md)에 있다.
 > 관련 문서: [ads-server-design.md](ads-server-design.md) (설계), [implementation-plan.md](implementation-plan.md) (구현 계획), [threat-model.md](threat-model.md) (위협 모델), [contracts/](contracts/) (OpenAPI 계약)
-> 기준: 2026-10-14(저장소는 2026-10-31 PostgreSQL 전환 0.55, 이벤트는 2026-11-01 Outbox 확장 0.56, 요청 제한 버킷은 2026-11-01 0.57, C1 1.5.0 은 2026-11-02 0.58, 구간 대조 보완은 2026-11-02 0.59, 소재 보관 문구는 2026-11-02 0.60, 사용자 관리 감사는 2026-11-02 0.61, manifest 입력 검증은 2026-11-02 0.62, 처리 대기열 색인은 2026-11-02 0.63, Kafka 확장 경로는 2026-11-02 0.64, 파이프라인 장애 복구 결정(구현 전, [예약])은 2026-11-03 0.65, Kafka 메시지 키 `event_id`·`op` `c`·`r`는 2026-11-04 0.66, `hop_pipeline` 중복·충돌·INSERT 아닌 행·쌍 실패 조건은 2026-11-04 0.67, 구간 규칙 원본 파일은 2026-11-04 0.68, 대사 범위 `since` 구현은 2026-11-04 0.69, outbox → 파이프라인 대조 구현은 2026-11-04 0.70, 창 확정·알려진 예외 구현은 2026-11-04 0.71, 파이프라인 manifest 잡·받기·창 대사 구현은 2026-11-05 0.72) · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
+> 기준: 2026-10-14(저장소는 2026-10-31 PostgreSQL 전환 0.55, 이벤트는 2026-11-01 Outbox 확장 0.56, 요청 제한 버킷은 2026-11-01 0.57, C1 1.5.0 은 2026-11-02 0.58, 구간 대조 보완은 2026-11-02 0.59, 소재 보관 문구는 2026-11-02 0.60, 사용자 관리 감사는 2026-11-02 0.61, manifest 입력 검증은 2026-11-02 0.62, 처리 대기열 색인은 2026-11-02 0.63, Kafka 확장 경로는 2026-11-02 0.64, 파이프라인 장애 복구 결정(구현 전, [예약])은 2026-11-03 0.65, Kafka 메시지 키 `event_id`·`op` `c`·`r`는 2026-11-04 0.66, `hop_pipeline` 중복·충돌·INSERT 아닌 행·쌍 실패 조건은 2026-11-04 0.67, 구간 규칙 원본 파일은 2026-11-04 0.68, 대사 범위 `since` 구현은 2026-11-04 0.69, outbox → 파이프라인 대조 구현은 2026-11-04 0.70, 창 확정·알려진 예외 구현은 2026-11-04 0.71, 파이프라인 manifest 잡·받기·창 대사 구현은 2026-11-05 0.72, C2 운영 경로 = Debezium CDC → Kafka → Bronze는 2026-11-05 0.73) · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
 > 근거: 설계서 `docs/legacy/ads-server/ads-server-design.md`, 계약 `contracts/serving.openapi.yaml`(C1·C3), `contracts/console.openapi.yaml`(C6), 실제 모델 코드(`*/models.py`)
 > 표기: **[예약]** 계약에 자리만 있고 아직 코드 없음 · **[제안]** 이 문서가 처음 제안함(동의 필요) · **[열림]** 정하지 못함. 표기가 없으면 코드에 있다
 
@@ -15,7 +15,7 @@
 | 목적 | 광고 서버가 **어떤 데이터를 어떤 모양으로 갖고, 바깥과 어떤 데이터를 주고받는지**를 한 문서로 고정한다. 구현·계약·파이프라인이 같은 기준을 쓰게 한다 |
 | 범위 | 광고 서버의 저장 데이터(DB·파일), 서버 간 계약(C1~C6)의 데이터 모양, 내부 처리 흐름, 수명주기, 보안 분류, 팀 DRD와의 대응 |
 | 범위 밖 | 매체 서버(메타버스)·데이터 파이프라인의 내부 데이터, 화면 설계, 인프라 구성 |
-| 저장소 | **PostgreSQL 18**(업무 데이터 + 이벤트 outbox, 한 트랜잭션) + **로컬 파일**(소재 이미지) + **MongoDB 8.0**(이벤트 로그 `ad_events` — 중계가 outbox에서 옮긴다). Kafka·Spark는 서버가 감당하지 못할 때의 확장(§2.1) |
+| 저장소 | **PostgreSQL 18**(업무 데이터 + 이벤트 outbox, 한 트랜잭션) + **로컬 파일**(소재 이미지) + **MongoDB 8.0**(이벤트 로그 `ad_events` — 로컬 병행 기간에만 중계가 outbox에서 옮긴다. 운영에는 없다). 운영의 이벤트는 outbox에서 Debezium CDC → Kafka로 파이프라인 쪽에 나간다(§2.1) |
 | 엔터티 | 프로젝트 표 **21개**(계정·감사 2, 마스터 6, 운영 8, 지갑·원장 2, 결정·반응 2, 이벤트 outbox 1) + 프레임워크 표 11개(§4.2) |
 | 핵심 규칙 | **모든 PK는 UUIDv7, 자동 증가 없음**(예외: outbox의 이벤트 ID는 결정적 UUIDv5) · 자연 키는 업무 규칙용 유일 제약 · 시각은 UTC · 금액은 **정수 포인트** · 이력은 **추가 전용**(§3 R-5) · 삭제 없음 · 판정 규칙은 한 곳(`engine`) · 파생값은 저장하지 않는다(잔액만 예외, §4.7) |
 | 먼저 볼 것 | §1.2 **광고 도메인은 이 문서가 팀 DRD보다 우선**. §10 열린 이슈(D-7) |
@@ -58,7 +58,7 @@
 | C3 이미지 | 나감 | 학습자 브라우저 | `GET /assets/{sha256}.{ext}`(프론트 서버가 그대로 통과) |
 | 클릭 관측 | 들어옴 | 학습자 브라우저 | `GET /c/{token}` → 302(프론트 서버가 그대로 통과) |
 | 콘솔·운영 화면 | 들어옴 | 광고주·관리자 브라우저 | 프론트 서버가 받아 백 서버로 넘기고, 백 서버의 **화면 데이터**(JSON)를 그린다. 세션·CSRF 는 백 서버 |
-| C2 이벤트 내보내기 | 나감 | 파이프라인 쪽(읽기) | outbox(업무 DB, 업무 데이터와 한 트랜잭션) → 중계 → MongoDB `ad_events`(멱등). 이 컬렉션과 이벤트 스키마(§5.6)가 계약 면이고 업무 DB 테이블은 읽게 하지 않는다 |
+| C2 이벤트 내보내기 | 나감 | 파이프라인 쪽(읽기) | outbox(업무 DB, 업무 데이터와 한 트랜잭션) → Debezium 일반 CDC(outbox INSERT만, 실을 열은 커넥터 설정으로 고정) → Kafka `ads.outbox.events`(메시지 키 `event_id`, value = Debezium 원본 변경 봉투) → 파이프라인 쪽 Bronze. 이 토픽의 메시지 모양과 이벤트 스키마(§5.6)가 계약 면이고 업무 DB 테이블은 읽게 하지 않는다. 로컬 병행 기간에는 중계 → MongoDB `ad_events`(멱등)도 함께 돈다(운영에는 없다) |
 | 검증·백필 | 내부 | 운영자 | NDJSON + manifest(checksum): `export_integrity`·`verify_ndjson`·`backfill_events`·구간별 정합 manifest(§5.6·§5.9) |
 | 퍼널 집계·분석 | 내부 | 광고주 콘솔 | `records.api`가 조회할 때 계산(업무 DB) |
 
@@ -66,8 +66,8 @@
 
 | 계약 | 방향 | 상대 | 방식 | 상태 |
 |---|---|---|---|---|
-| C2 이벤트 | 나감 | 파이프라인 쪽 | Debezium CDC(outbox INSERT) → Kafka `ads.outbox.events`, 스키마 저장소 | 예정 |
-| 분석 계층 | 파이프라인 | — | Spark → Delta Bronze/Silver/Gold(§2.3 대응 그대로) | 예정 |
+| 스키마 저장소 | 나감 | 파이프라인 쪽 | C2 이벤트 스키마를 레지스트리에 등록(지금 Kafka 값은 스키마 없는 JSON) | 예정 |
+| 분석 계층 | 파이프라인 | — | Spark → Delta Silver/Gold(§2.3 대응 그대로). Bronze는 위 "지금"의 C2 경로에 있다 | 예정 |
 | C4 Insight | 들어옴 | 파이프라인 쪽 | 집계 결과를 광고 서버로(`records.api` 안쪽 교체) | 예정, 방식 미정 |
 
 **내부 흐름**
@@ -102,7 +102,12 @@ flowchart LR
     subgraph STORE[저장소]
         DB[(PostgreSQL 18<br/>READ COMMITTED)]
         FILES[(MEDIA_ROOT<br/>소재 이미지)]
-        MONGO[(MongoDB<br/>ad_events)]
+        MONGO[(MongoDB<br/>ad_events · 로컬 병행 기간만)]
+    end
+
+    subgraph PIPE[파이프라인 쪽 · 인프라]
+        KAFKA[Kafka<br/>ads.outbox.events]
+        BRONZE[(Bronze Delta<br/>S3 · 로컬 RustFS)]
     end
 
     MEDIA -- "C1 POST /decisions<br/>PUT .../reactions/{id}" --> SAPI
@@ -118,7 +123,9 @@ flowchart LR
     CAM --> AST & ENG
     ADS --- DB
     AST --- FILES
-    EVT --> MONGO
+    EVT -. "중계(로컬 병행 기간만)" .-> MONGO
+    DB -. "Debezium CDC(outbox INSERT, 인프라)" .-> KAFKA
+    KAFKA --> BRONZE
 ```
 
 ### 2.2 저장소
@@ -128,19 +135,19 @@ flowchart LR
 | 로컬 디렉터리(`MEDIA_ROOT`) | 소재 이미지(재인코딩된 바이트) | `<해시 앞 2자>/<sha256>.<jpg\|png>`, 임시 파일 → `os.replace`로 원자적 확정, 권한 0640 |
 | 정적 파일 | 화면 CSS·JS(데이터 아님) | 콘솔·운영 화면의 것은 프론트 서버가, Django admin 의 것은 프론트 서버(통과하는 관리 사이트용)와 백 서버가 WhiteNoise로 서빙한다(`collectstatic` 결과, 앞단 nginx는 통로만 — 설계서 §10 "정적 파일 서빙") |
 | PostgreSQL 18 | §4의 모든 엔터티, 세션, 로그인 잠금 기록 + **outbox**(같은 트랜잭션, P3) | UUIDv7 PK(§3 R-2, Django `UUIDField` 는 `uuid` 형), 격리 수준 `READ COMMITTED`, 잠금 대기 제한 `lock_timeout` 5초, 커밋마다 WAL을 디스크에(`fsync`·`full_page_writes` 켬, `synchronous_commit` 끄지 않음), 정렬 builtin `C.UTF-8`(대소문자·악센트 구분, 순서는 코드값) |
-| MongoDB `ad_events` | C2 이벤트 로그(중계가 outbox에서 옮겨 씀, 추가만) | `_id = event_id`, 멱등 저장. 컬렉션은 공통 봉투(`_id`·`event_name`·`schema_version`·`produced_at`·`payload`)가 없는 문서를 거부하고, 색인은 (`event_name`, `produced_at`)·(`payload.decision_id`, `produced_at`). 쓰기는 과반 확인(`w=majority`) |
+| MongoDB `ad_events` | C2 이벤트 로그 — 로컬 병행 기간만(중계가 outbox에서 옮겨 씀, 추가만). 운영에는 없다 | `_id = event_id`, 멱등 저장. 컬렉션은 공통 봉투(`_id`·`event_name`·`schema_version`·`produced_at`·`payload`)가 없는 문서를 거부하고, 색인은 (`event_name`, `produced_at`)·(`payload.decision_id`, `produced_at`). 쓰기는 과반 확인(`w=majority`) |
 | NDJSON 파일 | manifest·검증·백필 대상 목록 **전용**(이벤트 통로 아님) | 한 줄 = 레코드 하나. **게시 = 내용 해시가 이름에 들어간 불변 데이터 파일(`<이름>.<SHA-256 앞 16자>.ndjson`) + manifest(`<이름>.manifest.json`, 현재 게시본을 가리키는 포인터)의 원자적 교체**. manifest에 데이터 파일 이름·SHA-256·행 수·`schema_version`·`source_kind`·`checkpoint`(범위 서술: 스냅샷 종류·시작 시각·훑은 행 수, 재개 위치 아님)·만든 시각. manifest가 가리키는 파일은 언제나 완결. 파일 종류: `ledger_check`·`event_gaps`·`event_delivery`(점검 결과), `backfill_result`(백필 결과), `hop_source`·`hop_outbox`·`hop_mongo`(구간별 정합 manifest), `hop_report`(구간 대조 결과) |
-| Kafka 토픽 | C2 이벤트(확장) | `ads.outbox.events` 하나(여덟 종류 모두), 키 `event_id`(outbox PK — 행마다 다름. 종류별 대상은 `after.aggregate_id`), value = Debezium 원본 변경 봉투(`after` = outbox 봉투 열, `source` = 출처·원천 위치 — §5.6 "전달 방식") — 확장(조건부) |
+| Kafka 토픽 | C2 이벤트(운영 경로 — 파이프라인 쪽 Bronze가 읽는다) | `ads.outbox.events` 하나(여덟 종류 모두), 키 `event_id`(outbox PK — 행마다 다름. 종류별 대상은 `after.aggregate_id`), value = Debezium 원본 변경 봉투(`after` = outbox 봉투 열, `source` = 출처·원천 위치 — §5.6 "전달 방식") |
 
-**저장소를 고르는 기준 [확정]**: 업무 데이터와 outbox는 한 트랜잭션이어야 하므로 업무 DB(PostgreSQL)에, 이벤트 로그는 MongoDB에 둔다(두 DB는 한 트랜잭션으로 묶을 수 없다). 이 문서의 데이터 구조 결정(PK·순번·잠금)은 **PostgreSQL·MongoDB에서 성립하는지**로 판단한다(설계서 §10 "저장소 단계").
+**저장소를 고르는 기준 [확정]**: 업무 데이터와 outbox는 한 트랜잭션이어야 하므로 업무 DB(PostgreSQL)에 둔다. 이벤트는 outbox에서 CDC로 내보내고, 로컬 병행 기간의 이벤트 로그는 MongoDB에 둔다(두 DB는 한 트랜잭션으로 묶을 수 없다). 이 문서의 데이터 구조 결정(PK·순번·잠금)은 **PostgreSQL·MongoDB에서 성립하는지**로 판단한다(설계서 §10 "저장소 단계").
 
 ### 2.3 분석 계층 대응 [확정, 2026-10-08]
 
-분석은 지금 광고 서버가 한다(설계서 §10 "분석 주체"). Bronze/Silver/Gold를 물리적으로 나누지 않고 **대응만** 둔다. Kafka·Spark가 붙으면 이 대응 그대로 Delta 메달리온으로 옮긴다.
+광고 서버 안의 분석(퍼널 집계)은 지금 광고 서버가 하고(설계서 §10 "분석 주체"), 광고 서버 안에서는 Bronze/Silver/Gold를 물리적으로 나누지 않고 **대응만** 둔다. 파이프라인 쪽에는 **운영 Bronze가 따로 있다**: Kafka `ads.outbox.events`를 파이프라인 쪽 Spark가 1분마다 Delta 표(S3 — 로컬은 RustFS)에 봉투 원본 그대로 쌓는다(§2.1 C2 — 2026-11-02 사용자 결정, 설계서 §10 "분석 계층 대응"). Silver·Gold를 Delta로 옮기는 것은 파이프라인 쪽 다음 단계이고, 그때 이 대응 그대로 옮긴다.
 
 | 계층 | 광고 서버에서 해당하는 것 |
 |---|---|
-| Bronze(원문) | MongoDB `ad_events`, 반응 원문(`records_reaction.raw`) |
+| Bronze(원문) | 반응 원문(`records_reaction.raw`), 로컬 병행 기간의 MongoDB `ad_events`. 운영 Bronze는 위의 파이프라인 쪽 Delta 표 |
 | Silver(검증·판정 끝남) | 업무 DB의 결정, 판정된 반응(`ACCEPTED`/`REJECTED`), 원장 |
 | Gold(집계) | `records.api` 퍼널 집계(조회 시점 계산) |
 
@@ -751,7 +758,7 @@ erDiagram
 
 #### P3. 이벤트 outbox `events_outbox`
 
-결정·접수·판정·과금·입찰 정책·입찰·캠페인·광고그룹 변경과 **같은 트랜잭션**에 쓴다(트랜잭션 밖이면 거부). 중계는 "마지막으로 보낸 번호 이후"가 아니라 **`sent_at`이 비어 있는 행**을 보낸다(번호 방식은 늦게 커밋된 행을 건너뛸 수 있다 — 설계서 §6.3, §10 "outbox 쓰기 규약"). 확장 때는 Debezium 일반 CDC가 이 행의 `sent_at`을 뺀 열을 Kafka 메시지(Debezium 원본 변경 봉투)의 `after`에 그대로 싣는다(§5.6 "전달 방식"). Silver가 `after`를 꺼내고 `created_at`을 `produced_at`으로 이름만 바꾼다. 아래 표 설명 끝의 "Kafka"가 그 대응이다.
+결정·접수·판정·과금·입찰 정책·입찰·캠페인·광고그룹 변경과 **같은 트랜잭션**에 쓴다(트랜잭션 밖이면 거부). 운영에서는 Debezium 일반 CDC가 이 행의 `sent_at`을 뺀 열을 Kafka 메시지(Debezium 원본 변경 봉투)의 `after`에 그대로 싣는다(§5.6 "전달 방식" — 운영에는 중계가 없어 `sent_at`은 비어 있다). 로컬 병행 기간의 중계는 "마지막으로 보낸 번호 이후"가 아니라 **`sent_at`이 비어 있는 행**을 보낸다(번호 방식은 늦게 커밋된 행을 건너뛸 수 있다 — 설계서 §6.3, §10 "outbox 쓰기 규약"). Silver가 `after`를 꺼내고 `created_at`을 `produced_at`으로 이름만 바꾼다. 아래 표 설명 끝의 "Kafka"가 그 대응이다.
 
 | 컬럼 | 타입 | NULL | 키·제약 | 설명 |
 |---|---|---|---|---|
@@ -875,7 +882,7 @@ stateDiagram-v2
 | # | 계약 | 방향 | 상대 | 전송·인증 | 데이터 형식 | 상태 |
 |---|---|---|---|---|---|---|
 | C1 | Serving API | 들어옴 | 매체 서버 | 백 서버 `/api/media/v1`(서버 간 내부 경로 — 프론트 서버는 공개하지 않음), 헤더 `X-Media-Key` | JSON(UTF-8), 오류는 `application/problem+json` | 계약 1.5.0 |
-| C2 | 이벤트 | 나감 | 데이터 파이프라인 | MongoDB `ad_events`(계약 면). 확장: Kafka | JSON 이벤트(§5.6) | MongoDB. Kafka 는 확장 |
+| C2 | 이벤트 | 나감 | 데이터 파이프라인 | Kafka `ads.outbox.events`(Debezium CDC, 계약 면). 로컬 병행 기간에는 MongoDB `ad_events`도 | Debezium 원본 변경 봉투(JSON) 안의 이벤트(§5.6) | 운영: Kafka. MongoDB 는 로컬 병행 기간만 |
 | C3 | 이미지 URL | 나감 | 매체·최종 사용자 브라우저 | HTTPS GET(앞단 nginx에서 종단, 프론트 서버가 통과), 인증 없음 | JPEG·PNG | |
 | C4 | Insight 입력 | 들어옴 | 데이터 파이프라인 | [열림] HTTP·Kafka·파일 | JSON 메시지(§5.7 [제안]) | [예약] 확장 |
 | C5 | 포인트 충전 | 들어옴 | 매체 서버 | [열림] | JSON(§5.8 [제안]) | [예약] |
@@ -1078,7 +1085,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 | `produced_at` | 시각(UTC) | 이벤트를 만든 시각: **결정 = 결정 시각, 접수 = 수신 시각, 판정 = 처리 시각, 과금 = 과금을 일으킨 반응의 처리 시각(판정과 같은 처리 트랜잭션의 같은 시각), 입찰 정책 = 정책 버전의 변경 시각, 입찰 = 입찰 버전을 만든 시각, 캠페인·광고그룹 변경 = 변경 시각**. 과금 이벤트의 `produced_at`은 페이로드의 원장 시각(`created_at` = 반응 수신 시각)과 다르다. MongoDB 날짜라 **밀리초까지** |
 | `payload` | 객체 | 아래. 안의 UUID는 문자열, 시각은 UTC ISO 8601 문자열(마이크로초까지) |
 
-**전달 방식**: outbox(업무 DB, 같은 트랜잭션) → 광고 서버 중계가 MongoDB `ad_events`에 멱등 저장(`_id = event_id`), 확장 때는 Debezium 일반 CDC가 Kafka 토픽 `ads.outbox.events` 하나로 보낸다: value = Debezium 원본 변경 봉투 — `before`(늘 null)·`after`(outbox 봉투 열 `event_id`·`event_name`·`schema_version`(정수)·`aggregate_id`·`payload`(DB에 저장된 JSON 원문 문자열 — 소비자가 한 번 더 해석)·`created_at`(마이크로초 UTC `Z`))·`source`(출처 `db`·`schema`·`table`, 원천 위치 `lsn`·`txId`(삽입 트랜잭션 번호 — 함께 커밋된 이벤트 묶음)·`sequence`, 커밋 시각 `ts_ms`·`ts_us`, `snapshot`)·`op`(스트리밍은 `c`, outbox에서 다시 보낸 행(재발행 — 장애 복구, 또는 커넥터 등록이 늦었을 때 첫 창 메우기)은 `r`. 둘은 같은 이벤트다)·`ts_ms`. 커넥터의 변환은 토픽 이름뿐이고, `after` 추출과 MongoDB 봉투 이름 맞춤(`created_at` → `produced_at`)은 Silver가 한다. 헤더에는 봉투를 싣지 않는다. UPDATE·DELETE는 INSERT 전용 publication이라 흐르지 않는다. 스키마 저장소는 확장 항목이다. **최소 한 번 전달**이므로 소비자는 `event_id`로 중복을 제거한다. `op` `c`와 `r`는 같은 문서로 센다. 같은 `event_id`인데 `after`(봉투 6열)가 다르면 중복이 아니라 내용 충돌이다 — 알리고, 구간 대조에서는 그 창을 확정하지 않는다(아래 "대조 결과 분류"). **메시지 키는 `event_id`**(outbox PK, Debezium 기본 키 — 2026-11-04). 처음에는 종류별 대상(`aggregate_id`)을 키로 두었다. 그런데 재발행에 쓰는 Debezium 증분 스냅샷이 같은 키의 행을 하나로 합쳐서, 같은 대상(`aggregate_id`)의 여러 행 중 하나만 남았다(실측: 한 시간 창 68,440행 중 16,489행만 옴 — 대상 수와 같음). 그래서 바꿨다. 종류별 대상은 `after.aggregate_id`로 그대로 실린다(결정·접수·판정·과금은 `decision_id`, 입찰 정책은 `slot_id`, 입찰·광고그룹 변경은 `ad_group_id`, 캠페인 변경은 `campaign_id`). 팀 DRD 6.9는 `user_id`를 키로 쓰지만 광고 서버는 `user_id`를 모른다. **순서는 보장하지 않는다** — 소비자가 다시 맞춘다: 결정·반응·과금은 `decision_id`, 입찰 정책·입찰은 대상별 버전(`slot_id` + `policy_version`, `ad_group_id` + `bid_version` — 잠금 아래에서 매기고 유일 제약이 지키는 단조 값), 캠페인·광고그룹 변경은 `(changed_at, change_id)`. 한 요청의 여러 변경 줄은 `changed_at`이 같고 `event_id`(UUIDv5)는 시간 순서가 아니라 전달 순서가 임의다. **백필**은 결정·접수·판정·과금만 한다 — 나머지 넷은 하지 않는다(설계서 결정 D8). **순서는 보장하지 않는다**: 중계는 오래된 것부터 보내지만 여러 중계가 동시에 돌고 재전송이 있으며, Kafka의 순서 보장도 같은 토픽·같은 파티션 안뿐이다. 소비자는 반응이 결정보다 먼저 보일 수 있다고 보고 `decision_id`로 다시 맞춘다. 토픽·파티션 단위의 순서도 보장하지 않는다. 키가 `event_id`라 한 결정의 이벤트가 여러 파티션에 흩어진다(2026-11-04 정함). **요청 경로는 MongoDB를 호출하지 않는다** — 요청은 outbox에만 쓰고, MongoDB가 끊기면 이벤트는 쌓였다가 복구 뒤 상시 중계가 옮긴다(짧은 재시작 시험에서 요청 503 0은 관찰값이고, 장기 장애는 확인하지 않았다 — 설계서 §10 "MongoDB 장애와 요청").
+**전달 방식**: outbox(업무 DB, 같은 트랜잭션) → 운영에서는 Debezium 일반 CDC가 Kafka 토픽 `ads.outbox.events` 하나로 보내고 파이프라인 쪽 Bronze가 봉투 그대로 쌓는다(로컬 병행 기간에는 광고 서버 중계가 MongoDB `ad_events`에도 멱등 저장한다 — `_id = event_id`): value = Debezium 원본 변경 봉투 — `before`(늘 null)·`after`(outbox 봉투 열 `event_id`·`event_name`·`schema_version`(정수)·`aggregate_id`·`payload`(DB에 저장된 JSON 원문 문자열 — 소비자가 한 번 더 해석)·`created_at`(마이크로초 UTC `Z`))·`source`(출처 `db`·`schema`·`table`, 원천 위치 `lsn`·`txId`(삽입 트랜잭션 번호 — 함께 커밋된 이벤트 묶음)·`sequence`, 커밋 시각 `ts_ms`·`ts_us`, `snapshot`)·`op`(스트리밍은 `c`, outbox에서 다시 보낸 행(재발행 — 장애 복구, 또는 커넥터 등록이 늦었을 때 첫 창 메우기)은 `r`. 둘은 같은 이벤트다)·`ts_ms`. 커넥터의 변환은 토픽 이름뿐이고, `after` 추출과 MongoDB 봉투 이름 맞춤(`created_at` → `produced_at`)은 Silver가 한다. 헤더에는 봉투를 싣지 않는다. UPDATE·DELETE는 INSERT 전용 publication이라 흐르지 않는다. 스키마 저장소는 확장 항목이다. **최소 한 번 전달**이므로 소비자는 `event_id`로 중복을 제거한다. `op` `c`와 `r`는 같은 문서로 센다. 같은 `event_id`인데 `after`(봉투 6열)가 다르면 중복이 아니라 내용 충돌이다 — 알리고, 구간 대조에서는 그 창을 확정하지 않는다(아래 "대조 결과 분류"). **메시지 키는 `event_id`**(outbox PK, Debezium 기본 키 — 2026-11-04). 처음에는 종류별 대상(`aggregate_id`)을 키로 두었다. 그런데 재발행에 쓰는 Debezium 증분 스냅샷이 같은 키의 행을 하나로 합쳐서, 같은 대상(`aggregate_id`)의 여러 행 중 하나만 남았다(실측: 한 시간 창 68,440행 중 16,489행만 옴 — 대상 수와 같음). 그래서 바꿨다. 종류별 대상은 `after.aggregate_id`로 그대로 실린다(결정·접수·판정·과금은 `decision_id`, 입찰 정책은 `slot_id`, 입찰·광고그룹 변경은 `ad_group_id`, 캠페인 변경은 `campaign_id`). 팀 DRD 6.9는 `user_id`를 키로 쓰지만 광고 서버는 `user_id`를 모른다. **순서는 보장하지 않는다** — 소비자가 다시 맞춘다: 결정·반응·과금은 `decision_id`, 입찰 정책·입찰은 대상별 버전(`slot_id` + `policy_version`, `ad_group_id` + `bid_version` — 잠금 아래에서 매기고 유일 제약이 지키는 단조 값), 캠페인·광고그룹 변경은 `(changed_at, change_id)`. 한 요청의 여러 변경 줄은 `changed_at`이 같고 `event_id`(UUIDv5)는 시간 순서가 아니라 전달 순서가 임의다. **백필**은 결정·접수·판정·과금만 한다 — 나머지 넷은 하지 않는다(설계서 결정 D8). **순서는 보장하지 않는다**: 중계는 오래된 것부터 보내지만 여러 중계가 동시에 돌고 재전송이 있으며, Kafka의 순서 보장도 같은 토픽·같은 파티션 안뿐이다. 소비자는 반응이 결정보다 먼저 보일 수 있다고 보고 `decision_id`로 다시 맞춘다. 토픽·파티션 단위의 순서도 보장하지 않는다. 키가 `event_id`라 한 결정의 이벤트가 여러 파티션에 흩어진다(2026-11-04 정함). **요청 경로는 MongoDB를 호출하지 않는다** — 요청은 outbox에만 쓰고, MongoDB가 끊기면 이벤트는 쌓였다가 복구 뒤 상시 중계가 옮긴다(짧은 재시작 시험에서 요청 503 0은 관찰값이고, 장기 장애는 확인하지 않았다 — 설계서 §10 "MongoDB 장애와 요청").
 
 **`ad.decision.v2`** — 결정을 저장할 때 한 건(결정과 같은 트랜잭션, 광고 없음 결정 포함)
 
@@ -1159,7 +1166,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 
 | 항목 | 규칙 |
 |---|---|
-| 구간 | ① 원본 기대(`hop_source`, 업무 DB 원본 행에서 재구성) ② outbox(`hop_outbox`) ③ MongoDB(`hop_mongo`) ④ 파이프라인 수령(확장 — 같은 규칙으로 만든 manifest(`source_kind` = `hop_pipeline`)를 `verify_hops --pipeline`이 **②와 대조**한다(로컬 병행 기간에는 ③과도). 운영에는 ③이 없다 — 설정 `EVENTS_HOP_WITH_MONGO`(운영 끔)가 꺼지면 내보내기는 ③을 내지 않고 대조는 ①·②(·④)만 한다. 이 manifest는 Bronze Delta를 읽는 파이프라인 쪽 잡이 만들어(포인터 이름 `hop_pipeline_hour`·`hop_pipeline_day`) S3 `manifests/hop_pipeline/`에 게시하고(데이터 파일 → 세대 사본 → 포인터 순, 세대 사슬), 광고 서버가 `fetch_hop_manifest`로 받아 온다(§5.9)) |
+| 구간 | ① 원본 기대(`hop_source`, 업무 DB 원본 행에서 재구성) ② outbox(`hop_outbox`) ③ MongoDB(`hop_mongo`) ④ 파이프라인 수령(운영 경로의 구간 — 같은 규칙으로 만든 manifest(`source_kind` = `hop_pipeline`)를 `verify_hops --pipeline`이 **②와 대조**한다(로컬 병행 기간에는 ③과도). 운영에는 ③이 없다 — 설정 `EVENTS_HOP_WITH_MONGO`(운영 끔)가 꺼지면 내보내기는 ③을 내지 않고 대조는 ①·②(·④)만 한다. 이 manifest는 Bronze Delta를 읽는 파이프라인 쪽 잡이 만들어(포인터 이름 `hop_pipeline_hour`·`hop_pipeline_day`) S3 `manifests/hop_pipeline/`에 게시하고(데이터 파일 → 세대 사본 → 포인터 순, 세대 사슬), 광고 서버가 `fetch_hop_manifest`로 받아 온다(§5.9)) |
 | 창 | `produced_at` 기준 **UTC 자정 고정 하루**(예산 일 설정과 무관). 옵션으로 UTC 정시 고정 한 시간. 창 시작 + 크기 + 여유 ≤ 지금이면 닫힌 창이다. 여유는 120초(설정 `EVENTS_HOP_GRACE_SECONDS`, 설계서 H11 A안). 늦은 이벤트가 보이면 잠금 대기 제한으로 상한을 정해 여유를 다시 정한다(B안) |
 | 정규화 문서 | 키 `event_id`·`event_name`·`schema_version`·`produced_at`·`payload`. `event_id`는 **소문자 하이픈 UUID 문자열**, `produced_at`은 **`YYYY-MM-DDTHH:MM:SS.mmmZ`**(UTC, 밀리초는 반올림하지 않고 자름 — MongoDB 날짜 정밀도), `payload`는 저장된 JSON 그대로 |
 | JSON 정규화 | **RFC 8785(JCS)**: 객체 키는 UTF-16 코드 단위 순 정렬, 공백 없음, UTF-8, 문자열은 JSON 이스케이프(비 ASCII는 그대로), 불리언·`null`은 그대로, 정수는 10진수, 실수는 ECMAScript 숫자 표기. **주의**: `300.0`은 `300`이 되므로 정수와 같은 값의 실수는 구분되지 않는다(타입 구분은 중계의 충돌 판정과 `verify_events`가 맡는다) |
@@ -1204,8 +1211,8 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 | `end_expired_campaigns` | O1(`ends_at ≤ now`, 아직 `ENDED` 아님) | O1 `ENDED`·`ended_from`, O6 `CLOSED_ENDED`, O10·P3(`STATUS_CHANGED`), A3 | 예(조건부 UPDATE) | 관리 명령. 주기 실행 방식 [열림 §7-9] |
 | `process_reactions` | P2 `RECEIVED` | P2 상태, B1·B2, P3 | 예(`reaction_ref`) | 상시 |
 | `check_ledger` | B1, B2 | 없음(불일치 목록) | 읽기 전용 | 수시. 불일치 시 비정상 종료 |
-| `relay_events` | P3 미전송(`sent_at` 없음) | MongoDB `ad_events`, P3 `sent_at` | 예(결정적 `_id`, 같은 내용은 통과·다른 내용은 멈춤) | 상시 |
-| `purge_sent_events` | P3 보낸 행 | P3 삭제(보낸 지 7일 지난 행만 — `--days`는 설정보다 짧을 수 없다) | 예 | 주기 |
+| `relay_events` | P3 미전송(`sent_at` 없음) | MongoDB `ad_events`, P3 `sent_at` | 예(결정적 `_id`, 같은 내용은 통과·다른 내용은 멈춤) | 상시 — 로컬 병행 기간만(운영에는 MongoDB 접속 값을 두지 않는다) |
+| `purge_sent_events` | P3 보낸 행 | P3 삭제(보낸 지 7일 지난 행만 — `--days`는 설정보다 짧을 수 없다) | 예 | 주기 — 운영에는 중계가 없어 보낸 행이 없으므로 지우는 것이 없다(운영 outbox 정리는 창 확정 기반 **[예약 — D8, 구현 P1-6]**) |
 | `clearsessions` | 세션 | 만료된 세션 삭제 | 예 | 매일 |
 | `export_integrity` | B1·B2, R1, P2, M3, O5, O10, P3, MongoDB(한 PostgreSQL 읽기 스냅샷) | NDJSON `ledger_check`·`event_gaps`·`event_delivery` + manifest | 읽기 전용(결과 게시만) | 수시, 문제가 있으면 비정상 종료 |
 | `verify_ndjson` | manifest와 가리키는 데이터 파일 | 없음 | 읽기 전용 | |
@@ -1240,8 +1247,8 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 | 결정 | 광고 요청 | **없음** | 보존 기간 후 [열림] | 설정값 [열림 §7-8] |
 | 반응(원문 포함) | 매체 보고·클릭 관측 | 상태만 | 보존 기간 후 [열림] | 설정값 [열림 §7-8] |
 | 감사 로그 | 모든 변경 | **없음** | [열림] | [열림] |
-| 이벤트 outbox | 결정·접수·판정·과금·입찰 정책·입찰·캠페인·광고그룹 변경 트랜잭션 | `sent_at`만(중계가 표시) | **보낸 뒤 7일**이 지난 행을 `purge_sent_events`가 지움. 미전송은 지우지 않음 | 7일(`EVENTS_OUTBOX_RETENTION_DAYS`) |
-| MongoDB 이벤트 로그 | outbox 중계 | 없음(추가만) | 보존 기간 후 | 설정값 [열림 §7-8] |
+| 이벤트 outbox | 결정·접수·판정·과금·입찰 정책·입찰·캠페인·광고그룹 변경 트랜잭션 | `sent_at`만(로컬 병행 기간의 중계가 표시) | 로컬 병행 기간: **보낸 뒤 7일**이 지난 행을 `purge_sent_events`가 지움, 미전송은 지우지 않음. 운영: 중계가 없어 지우지 않는다 — 창 확정 뒤 창 단위 정리 **[예약 — D8, 구현 P1-6]** | 로컬 병행 기간: 7일(`EVENTS_OUTBOX_RETENTION_DAYS`). 운영: 창 확정 정리(P1-6) 전까지 지우지 않음 |
+| MongoDB 이벤트 로그(로컬 병행 기간만) | outbox 중계 | 없음(추가만) | 보존 기간 후 | 설정값 [열림 §7-8] |
 | NDJSON 결과(데이터 파일 세대 + manifest) | 점검·백필 도구 | 없음(세대마다 새 파일, manifest만 교체) | 옛 세대 파일은 자동으로 지우지 않음 | 설정값 [열림 §7-8] |
 | 세션(`django_session`) | 로그인 | 활동 시 갱신 | 로그아웃·`clearsessions`(만료분, 매일). 비활성화는 세션 검증 값(`session_epoch`)으로 끝낸다 | 세션 만료 시간 |
 | 로그인 잠금 기록(axes) | 로그인 실패·로그인·로그아웃 | 실패 횟수 | 로그인 성공이 그 실패 기록을 초기화, 급한 해제는 서버 명령 | [열림] |
@@ -1308,7 +1315,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 | 결정의 `bid_id` | `selected_bid_id` | 이름만 다름 |
 | 결정의 `bid_policy_id` | `selected_bid_policy_id` | 이름만 다름 |
 | 결정의 `applied_amount`·`bid_amount` 스냅샷 | 저장 안 함(계산, 팀 DRD 6.10) | 서버는 과금 근거라 **저장한다**. 팀 DRD D-22가 "서버가 복사해 두는 것은 막지 않는다"고 명시 |
-| 반응 `type`, `occurred_at`, `received_at` / 이벤트 `event_id` / 반응 `media_id`·`reaction_id` | `ad_reaction_type_code`, `occurred_at`, `collected_at` / `bronze_ad_reaction_log.log_id` / (원본 식별 필드로 따로 유지) | `reaction_id`는 **매체 안에서만** 유일해(C1의 유일성은 (`media_id`, `reaction_id`)) 전역 PK인 `log_id`로 옮기면 다른 매체의 같은 ID와 충돌한다. `log_id`에는 이벤트의 `event_id`(MongoDB `_id`와 같음)를 쓰고 `media_id`·`reaction_id`는 별도 필드로 남긴다 |
+| 반응 `type`, `occurred_at`, `received_at` / 이벤트 `event_id` / 반응 `media_id`·`reaction_id` | `ad_reaction_type_code`, `occurred_at`, `collected_at` / `bronze_ad_reaction_log.log_id` / (원본 식별 필드로 따로 유지) | `reaction_id`는 **매체 안에서만** 유일해(C1의 유일성은 (`media_id`, `reaction_id`)) 전역 PK인 `log_id`로 옮기면 다른 매체의 같은 ID와 충돌한다. `log_id`에는 이벤트의 `event_id`(Kafka 메시지 키와 같음, 로컬 병행 기간의 MongoDB `_id`와도 같음)를 쓰고 `media_id`·`reaction_id`는 별도 필드로 남긴다 |
 | 반응의 `subject_id` | `user_id`·`session_id`·`classroom_id`(NOT NULL) | **광고 서버는 사용자·세션·강의실을 모른다.** 필요하면 비밀을 가진 매체가 자기 쪽에서 가명 ↔ 사용자 대응을 내보내고, 파이프라인이 매체의 접근 통제 아래에서 잇는다(그래서 `subject_id`는 매체가 자기 비밀로 만든 광고 전용 가명이어야 한다 — C1 v1.2, 설계 §10) |
 | 지갑·원장·재검토 요청·감사 | 없음 | 서버 내부(팀 DRD 7.1 미반영) |
 
@@ -1357,6 +1364,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 
 | 버전 | 날짜 | 내용 |
 |---|---|---|
+| 0.73 | 2026-11-05 | C2 운영 경로를 지금 구조로(사용자 결정 — 1차 배포 = Bronze까지, 운영에는 MongoDB 중계가 없음 [설계서 D17]): §0 저장소, §2.1 "지금"의 C2 = outbox → Debezium 일반 CDC → Kafka `ads.outbox.events` → 파이프라인 쪽 Bronze(이 토픽의 메시지 모양과 이벤트 스키마가 계약 면), "확장"의 C2 줄은 스키마 저장소 줄로(Bronze는 C2 경로로 옮겨 분석 계층 줄은 Silver/Gold만), §2.2 MongoDB·Kafka 줄과 저장소 기준, §4 P3 설명(운영 CDC 먼저, 중계는 로컬 병행 기간), §5.1 C2 줄, §5.6 "전달 방식" 첫 문장과 구간 ④("확장" → 운영 경로의 구간), §2.1 내부 흐름 그림(Debezium CDC → Kafka → Bronze 점선, MongoDB는 로컬 병행 기간만), §2.3 분석 계층 대응(운영 Bronze = 파이프라인 쪽 Delta 표, 광고 서버 안 대응은 그대로), §5.9 `relay_events`·`purge_sent_events` 실행 칸, §6 outbox·MongoDB 수명주기(운영 outbox는 중계가 없어 지우지 않음 — 창 확정 정리 [예약 D8·P1-6]), §9 `log_id` 설명. MongoDB `ad_events`와 중계는 로컬 병행 기간만. 표·스키마는 그대로 |
 | 0.72 | 2026-11-05 | §5.6·§5.9 파이프라인 쪽을 구현된 규칙으로(P1-8·P2-1·P2-2·P2-2a, 4시간 실행으로 확인): ④ manifest는 파이프라인 잡이 S3 `manifests/hop_pipeline/`에 게시하고 `fetch_hop_manifest`로 받음, `hop_pipeline` 줄·`checkpoint.since`(파이프라인 쪽 주어 — 요약 범위 시작)·`rule_sha256`의 [예약] 걷음, 설정 `EVENTS_HOP_WITH_MONGO`(운영 끔 — ③을 내지도 대조하지도 않음, 창 확정의 MongoDB 조건도 두 설정이 모두 켜졌을 때만), `started_at`·`open_windows`의 뜻(창 닫힘 기준 시각, 놓인 행이 있는 열린 창만), `since`는 파이프라인이 늘 싣는다, `open_window`는 한쪽만 열려도, 이벤트가 없는 창은 판정하지 않음(감사 한도 초과 때의 전 범위 미확정은 빈 창 포함), 예외 창도 미확정이고 파이프라인이 끼지 않은 쌍의 불일치는 예외로 넘기지 않음, §5.9에 `fetch_hop_manifest`·`reconcile_hops`(한 번의 순서, 창 닫힘 = 받은 `started_at`과 지금 가운데 이른 쪽, 종료 코드 0·1·2·3·75와 1의 두 뜻). 표·스키마는 그대로 |
 | 0.71 | 2026-11-04 | §5.6 창 확정(P1-4)·알려진 예외(P1-5)를 구현된 규칙으로: 감사 `events.hop_windows_confirmed`·`events.hop_window_exception`(이름 확정)과 detail 모양, 판정할 수 없을 때 전부 미확정, 확정 창은 예외로 받지 않음, 관리 명령 `record_hop_exception`, `verify_hops`가 창 확정 감사를 쓰고 예외 창의 파이프라인 쌍 불일치를 실패로 세지 않음(종료 코드 뜻 변경). 정리·예외 거두기(P1-6)는 [예약]으로 남김. 표·스키마는 그대로 |
 | 0.70 | 2026-11-04 | §5.6 outbox → 파이프라인 대조를 구현된 규칙으로(P1-3): `verify_hops --pipeline`의 ② 대조, `unsent`를 이 쌍에서 쓰지 않음, 파이프라인 줄·checkpoint 필수 필드와 `rule_sha256` 검증, 원인이 붙은 `mismatch`. `after` 형식이 깨졌으면(시간대 없는 `created_at` 등) 요약하지 않고 멈춤(새 문장). 파이프라인 잡이 만들고 싣는 쪽(P2-1)·S3 받기(P1-8)·창 확정·정리·예외(P1-4·P1-5)는 [예약]으로 남김. 표·스키마는 그대로 |

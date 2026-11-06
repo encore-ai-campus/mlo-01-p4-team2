@@ -8,3 +8,22 @@
 .mq-story-scene[data-setting=rooftop] .mq-story-window,.mq-story-scene[data-setting=rooftop] .mq-story-gift,.mq-story-scene[data-setting=rooftop] .mq-story-desk{display:none}
 @media(max-width:700px){.mq-story-portrait.is-item{top:65px;width:150px;height:165px}}
 @media(max-height:740px) and (min-width:701px){.mq-story-portrait.is-item{top:48px;width:155px;height:170px}}
+
+/* ROOM 01: question and SQL on the left, matching source table on the right. */
+.mq-table-column[hidden]{display:none}
+.has-evidence-table .mq-evidence-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:24px;align-items:start}
+.mq-question-column,.mq-table-column{min-width:0}
+.has-evidence-table .mq-question-column::before{content:'SQL 문제';display:block;margin:0 0 10px;color:#9b7150;font-size:11px;font-weight:700;letter-spacing:1px}
+.has-evidence-table .mq-story-text{font-size:15px;line-height:1.8;min-height:0}
+.has-evidence-table .mq-story-evidence{font-size:12px;line-height:1.8;overflow-wrap:anywhere;padding:14px;margin:12px 0 0;background:#ece0cd;border-color:#b18b59;color:#574635}
+.has-evidence-table .mq-story-controls{max-width:calc(53% - 12px)}
+.has-evidence-table .mq-story-choices{gap:10px}
+.has-evidence-table .mq-story-choices button{min-width:52px;font-size:15px}
+.mq-evidence-table{border-collapse:separate;border-spacing:0;width:100%;margin:0;font:13px/1.6 Consolas,monospace;border:1px solid #bca178;border-radius:9px;overflow:hidden;background:#fff9ec;color:#634b36;box-shadow:0 5px 14px #6b472112}
+.mq-evidence-table caption{text-align:left;caption-side:top;font:700 14px/1.6 Consolas,monospace;color:#735034;padding:0 0 10px}
+.mq-evidence-table thead th{font-weight:600;background:#dfc9a4;padding:11px 8px;white-space:nowrap;text-align:center;color:#5d412c}
+.mq-evidence-table tbody th,.mq-evidence-table tbody td{padding:12px 8px;text-align:center;border-top:1px solid #e3d4bc;font-weight:400}
+.mq-evidence-table tbody th{font-weight:700;color:#704a31}
+.mq-evidence-table tbody tr:nth-child(even){background:#f7edda}
+.has-evidence-table .mq-story-footer{margin-top:16px}
+@media(max-width:700px){.has-evidence-table .mq-evidence-layout{grid-template-columns:1fr;gap:20px}.has-evidence-table .mq-story-controls{max-width:none}.has-evidence-table .mq-story-text{font-size:14px}.mq-evidence-table{font-size:12px}}

@@ -182,7 +182,7 @@ class MainTests(unittest.TestCase):
         self.state_dir = Path(tmp.name) / "pipeline_monitor"  # 아직 없는 폴더 — 설정 오류에서는 만들지 않아야 한다
         self.env = {"MONITOR_PG_NODES": NODES, "MONITOR_S7_POWER": "0"}
         self.sent = []
-        for name, value in (("STATE", self.state_dir / "state.json"), ("SLOTS", ["s1", "s2"]), ("m3", lambda: []), ("m4", lambda: []), ("m5", lambda: []),
+        for name, value in (("STATE", self.state_dir / "state.json"), ("SLOTS", ["s1", "s2"]), ("m3", lambda *args: []), ("m4", lambda: []), ("m5", lambda: []),
                             ("notify", lambda text: self.sent.append(text) or "웹훅 없음(화면에만)")):
             patcher = mock.patch.object(check, name, value)
             patcher.start()

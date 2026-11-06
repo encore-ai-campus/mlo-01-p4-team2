@@ -8,7 +8,9 @@
   이 사용자 것이 아니거나 링크이거나 그룹·다른 사용자가 쓸 수 있음(unsafe_state).
 - PostgreSQL: MONITOR_PG_NODES(host:port 목록)의 노드마다 물어 primary 를 스스로 찾는다. M1·M2 primary 쪽은 그 노드에서, synced 는 대기 서버에서.
   primary 가 정확히 하나가 아니면 M1·M2:run error(지난 값 유지 — 해소로 알리지 않음), S7 clock_skew 도 error.
-- R7(FAILED Task 자동 재시작)은 넣지 않았다. M3 는 FAILED 경보만 낸다. E-K2(계획 02 P0-7) 결과로 R7 (나)가 정해지면 그때 넣는다.
+- R7(FAILED 커넥터·Task 자동 재시작 — 설계 01 R7, 사용자 결정 2026-11-06으로 다시 엶): MONITOR_R7=1 일 때만. 30분에 3번(앞 시도 뒤 최소 0·5·15분),
+  다 쓰면 사람(`check.py --r7-clear <커넥터>` 로 기록을 비움). 같은 회차 M1 에서 그 커넥터의 슬롯이 없음·lost·unreserved 이거나 슬롯 상태를 모르면
+  재시작하지 않는다(설계와 다른 점 — snapshot.mode=no_data 라 새 슬롯으로 조용히 이어 가는 빠짐을 막음). 주기 실행이 없으면 이 스크립트가 돌 때만 효과가 있다.
 비밀값(DB 비밀번호·RustFS 키·웹훅 주소)은 파일·환경 변수로만 받고 출력하지 않는다.
 """
 import json
@@ -21,6 +23,7 @@ import sys
 import tempfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
@@ -67,7 +70,12 @@ class ConfigError(ValueError):
 
 # 필수 모드(MONITOR_REQUIRE_ALL=1)에서 없거나 비면 점검하지 않는 운영 변수 — 기본값이 모두 로컬 시험대를 가리켜, 하나만 빠져도 조용히 lab 을 보고 ok 를 내지 않게
 REQUIRED = ("MONITOR_PG_NODES", "MONITOR_PG_PASSWORD_FILE", "MONITOR_CONNECT_REST", "MONITOR_KAFKA", "MONITOR_KAFKA_BIN", "MONITOR_JAVA_HOME",
-            "MONITOR_BRONZE", "S3_ENDPOINT", "S3_ACCESS_KEY_FILE", "S3_SECRET_KEY_FILE", "MONITOR_SLOTS", "MONITOR_STATE", "MONITOR_S7_POWER")
+            "MONITOR_BRONZE", "S3_ENDPOINT", "S3_ACCESS_KEY_FILE", "S3_SECRET_KEY_FILE", "MONITOR_SLOTS", "MONITOR_STATE", "MONITOR_S7_POWER", "MONITOR_R7")
+# R7(설계 01 R7·:512, 결정 2026-11-06 Q1 (나)·Q4 (나)): 앞 시도 뒤 최소 대기 — 첫 시도는 바로, 둘째 5분, 셋째 15분(셋째는 첫 시도 뒤 20분, 30분 예산 안).
+# 세 번을 다 쓰면 사람 차례다 — 기록은 "FAILED 아님 + 마지막 시도가 30분보다 오래됨" 또는 사람(--r7-clear)만 비운다(깜빡여도 같은 3번 안에 든다)
+R7_WAITS_S = (0, 5 * 60, 15 * 60)
+R7_WINDOW_S = 30 * 60
+R7_BAD_SLOT = ("lost", "unreserved")  # 이 상태나 슬롯 없음이면 재시작하지 않는다(RB-1 몫 — snapshot.mode=no_data 라 새 슬롯으로 조용히 빠질 수 있다)
 
 
 def flag(env, name, default):
@@ -148,20 +156,24 @@ def primary_of(polled):
                        f"닿은 노드 {len(polled) - len(missed)}/{len(polled)}" + (f", 닿지 못함 {missed}" if missed else ""))
 
 
-def m1_m2(state, polled):
+def m1_m2(state, polled, slots_seen=None):
     """M1 슬롯(무효·오래 쉼·붙잡은 WAL), M2 대기 서버(복제 지연·동기 후보·보호 목록 양쪽·failover·synced).
-    primary 가 정확히 하나가 아니면 예외 — main 이 M1·M2:run error 로 두고 지난 M1·M2 값을 그대로 둔다(못 본 것을 해소로 알리지 않는다)."""
+    primary 가 정확히 하나가 아니면 예외 — main 이 M1·M2:run error 로 두고 지난 M1·M2 값을 그대로 둔다(못 본 것을 해소로 알리지 않는다).
+    `slots_seen` 에 슬롯마다 wal_status(없으면 None)를 적는다 — main 은 이 함수가 예외 없이 끝난 회차에만 R7 에 넘긴다(반쯤 찬 값은 쓰지 않음)."""
     primary = primary_of(polled)
     out = []
+    slots_seen = {} if slots_seen is None else slots_seen
     with pg(*primary["node"]) as c:
         limit = c.execute("select pg_size_bytes(current_setting('max_slot_wal_keep_size'))").fetchone()[0]
         for name in SLOTS:
             row = c.execute("select active, inactive_since, extract(epoch from now() - inactive_since)::float, wal_status, failover, "
                             "pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)::bigint from pg_replication_slots where slot_name = %s", (name,)).fetchone()
             if row is None:
+                slots_seen[name] = None
                 out.append(finding("M1", f"slot:{name}", "alert", "슬롯이 없다"))
                 continue
             active, inactive_since, idle_s, wal_status, failover, held = row
+            slots_seen[name] = wal_status
             # 설계 M1: unreserved·lost, 10분 넘게 쉼, 붙잡은 WAL ≥ 한도 50%. 무효(lost)가 되면 restart_lsn 이 NULL 이라 held 도 None 이다
             bad = [w for w, cond in (("wal_status=" + str(wal_status), wal_status in ("unreserved", "lost")),
                                      (f"{int(idle_s or 0)}초 쉼 > {SLOT_INACTIVE_S}초", not active and idle_s is not None and idle_s > SLOT_INACTIVE_S),
@@ -258,13 +270,69 @@ def rest(method, path):
         return json.loads(raw) if raw else None
 
 
-def m3():
-    """M3 커넥터·Task FAILED 경보(재시작은 하지 않는다 — R7 은 E-K2 뒤)."""
-    out = []
-    for name, info in rest("GET", "/connectors?expand=status").items():
+def restart(name):
+    """R7 재시작 요청: 커넥터와 FAILED task 만(includeTasks·onlyFailed — 설계 01 R7). 돌려주는 값은 HTTP 상태."""
+    path = f"/connectors/{urllib.parse.quote(name, safe='')}/restart?includeTasks=true&onlyFailed=true"
+    with urllib.request.urlopen(urllib.request.Request(CONNECT + path, method="POST"), timeout=15) as resp:
+        return resp.status
+
+
+def stamp(ts):
+    return datetime.fromtimestamp(ts, UTC).isoformat(timespec="seconds")
+
+
+def r7_step(state, name, failed, slot, slots_seen, now):
+    """커넥터 하나의 R7: 시도하거나·기다리거나·멈추고, `r7:<이름>` 줄 하나(또는 None)를 돌려준다. 기록은 state["r7"][이름] = 시도 시각 목록."""
+    records, key = state.setdefault("r7", {}), f"r7:{name}"
+    tries = records.get(name, [])
+    if not failed:  # 바로 비우지 않는다 — 깜빡임(재시작 → 잠깐 RUNNING → FAILED)도 같은 3번 안에 들게
+        if not tries:
+            return None
+        if now - tries[-1] > R7_WINDOW_S:
+            records.pop(name)
+            return None
+        return finding("M3", key, "ok", f"FAILED 아님 — 지난 자동 재시작 {len(tries)}번, 마지막 {stamp(tries[-1])}(30분 뒤 기록을 비움)")
+    if slots_seen is None or slot is None or slot not in slots_seen:  # 슬롯을 모르면 재시작하지 않는다(fail closed)
+        why = "이번 회차 M1 이 끝까지 돌지 않음" if slots_seen is None else ("커넥터 설정에 slot.name 없음" if slot is None else "감시 목록(MONITOR_SLOTS) 밖")
+        return finding("M3", key, "error", f"슬롯 상태를 모름({why}) — 자동 재시작 안 함")
+    if slots_seen[slot] is None or slots_seen[slot] in R7_BAD_SLOT:
+        return finding("M3", key, "error", f"슬롯 {slot} {'없음' if slots_seen[slot] is None else slots_seen[slot]} — 자동 재시작 안 함, RB-1")
+    if len(tries) >= len(R7_WAITS_S):
+        return finding("M3", key, "alert", f"자동 재시작 {len(tries)}/{len(R7_WAITS_S)} 다 씀 — 사람 차례(runbook M3, 원인을 고친 뒤 check.py --r7-clear {name})")
+    ready = (tries[-1] if tries else now) + R7_WAITS_S[len(tries)]  # 첫 시도는 now + 0
+    if now < ready:
+        return finding("M3", key, "ok", f"자동 재시작 {len(tries)}/{len(R7_WAITS_S)} 썼음, 다음 가능 {stamp(ready)}")
+    records[name] = tries + [now]
+    try:  # 시도 기록을 먼저 저장하고, 저장이 된 뒤에만 부른다 — 기록 없이 회차마다 다시 부르는 일이 없게.
+        save_state(state)  # 그 순간의 상태 전체가 저장된다: levels 는 아직 지난 회차 값이라 웹훅 실패 규칙(levels 를 미룸)과 어긋나지 않는다
+    except OSError as error:
+        if tries:
+            records[name] = tries
+        else:  # 빈 목록을 남기지 않는다 — --r7-clear 가 없는 기록을 found 로 답하지 않게
+            records.pop(name)
+        return finding("M3", key, "error", f"시도 기록을 저장하지 못해 재시작하지 않음({type(error).__name__})")
+    try:
+        result = f"HTTP {restart(name)}"
+    except urllib.error.HTTPError as error:
+        result = f"HTTP {error.code}"
+    except Exception as error:  # noqa: BLE001 — 실패해도 시도로 센다(URLError·OSError·ValueError·http.client.HTTPException 등, 이름만)
+        result = type(error).__name__
+    return finding("M3", key, "ok", f"자동 재시작 {len(tries) + 1}/{len(R7_WAITS_S)} 시도({result})")
+
+
+def m3(state, slots_seen=None, r7=False, clock=time.time):
+    """M3 커넥터·Task FAILED 경보(늘). r7 이면 FAILED 를 자동 재시작한다(r7_step). 상태와 설정을 한 번에 읽고(expand=status·info),
+    설정에서는 slot.name 만 쓴다 — 설정 전체는 출력·상태에 넣지 않는다."""
+    out, now = [], clock()
+    for name, info in rest("GET", "/connectors?expand=status&expand=info").items():
         s = info["status"]
         states = [s["connector"]["state"]] + [t["state"] for t in s.get("tasks", [])]
         out.append(finding("M3", f"connector:{name}", "alert" if "FAILED" in states else "ok", f"{states}"))
+        if r7:
+            slot = ((info.get("info") or {}).get("config") or {}).get("slot.name")
+            line = r7_step(state, name, "FAILED" in states, slot, slots_seen, now)
+            if line:
+                out.append(line)
     return out
 
 
@@ -480,7 +548,7 @@ def main(env=os.environ):
         missing = missing_config(env)
         if missing:
             refuse("missing_config", "없거나 빈 운영 변수 " + ", ".join(missing), "필수 설정이 없어 점검하지 않았다")
-        nodes, power = pg_nodes(env), flag(env, "MONITOR_S7_POWER", "1")
+        nodes, power, r7 = pg_nodes(env), flag(env, "MONITOR_S7_POWER", "1"), flag(env, "MONITOR_R7", "0")
     except ConfigError as error:
         refuse("bad_config", str(error), "설정 형식이 틀려 점검하지 않았다")
     problem = state_problem()
@@ -491,8 +559,10 @@ def main(env=os.environ):
         polled = survey(nodes)
     except Exception as error:  # noqa: BLE001 — 조회가 통째로 실패해도 끝까지 간다: primary 를 알 수 없음(M1·M2 는 지난 값 그대로, S7 시계는 error)
         polled = f"노드 조회 실패 {type(error).__name__}"
-    findings, failed_checks = [], set()
-    for name, fn in (("M1·M2", lambda: m1_m2(state, polled)), ("M3", m3), ("M4", m4), ("M5", m5), ("S7", lambda: s7(polled, power))):
+    findings, failed_checks, slots_seen = [], set(), {}
+    for name, fn in (("M1·M2", lambda: m1_m2(state, polled, slots_seen)),
+                     ("M3", lambda: m3(state, None if "M1" in failed_checks else slots_seen, r7)),  # 끝까지 돈 M1 의 슬롯 상태만(아니면 모두 모름)
+                     ("M4", m4), ("M5", m5), ("S7", lambda: s7(polled, power))):
         try:
             findings += fn()
         except Exception as error:  # noqa: BLE001 — 점검 하나가 실패해도 나머지는 본다(실패 자체를 결과로)
@@ -525,5 +595,23 @@ def main(env=os.environ):
     sys.exit(1 if alerts else 0)
 
 
+def r7_clear(name):
+    """사람이 R7 기록 하나를 비운다(원인을 고친 뒤 — runbook M3). 상태 파일 경로와 found 를 JSON 으로. 없었으면 rc=1(엉뚱한 MONITOR_STATE 를 드러냄)."""
+    problem = state_problem()
+    if problem:
+        refuse("unsafe_state", problem, "상태 파일 자리가 안전하지 않아 R7 기록을 비우지 않았다")
+    state, _reset = load_state()
+    found = state.get("r7", {}).pop(name, None) is not None
+    if found:
+        save_state(state)
+    print(json.dumps({"t": datetime.now(UTC).isoformat(), "r7_cleared": name, "found": found, "state": str(STATE)}, ensure_ascii=False))
+    sys.exit(0 if found else 1)
+
+
 if __name__ == "__main__":
+    if sys.argv[1:2] == ["--r7-clear"]:
+        if len(sys.argv) != 3:
+            print("사용: check.py --r7-clear <커넥터 이름>", file=sys.stderr)
+            sys.exit(2)
+        r7_clear(sys.argv[2])
     main()

@@ -82,7 +82,7 @@ du -sh "$HOP_RECONCILE_DIR"; df -h "$HOP_RECONCILE_DIR"
 ```bash
 env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
   MONITOR_STATE="$HOME/.local/state/pipeline_monitor/manual.json" \
-  MONITOR_SLOTS=ads_outbox_slot,metaverse_outbox_slot MONITOR_S7_POWER=0 \
+  MONITOR_SLOTS=ads_outbox_slot,metaverse_outbox_slot MONITOR_S7_POWER=0 MONITOR_R7=1 \
   MONITOR_PG_NODES=<LAP1_IP>:5432,<LAP2_IP>:5432,<LAP3_IP>:5432 MONITOR_PG_PASSWORD_FILE=… \
   MONITOR_CONNECT_REST=… MONITOR_KAFKA=… MONITOR_KAFKA_BIN=… MONITOR_JAVA_HOME=… \
   MONITOR_BRONZE=… S3_ENDPOINT=… S3_ACCESS_KEY_FILE=… S3_SECRET_KEY_FILE=… \
@@ -96,6 +96,7 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
 - `<python>`은 `pipeline/requirements.txt`(psycopg, boto3)를 설치한 환경이다.
   - 표준 출력에 JSON 한 줄이 없으면(트레이스백만 나옴 — 모듈 없음 등) 점검 자체가 실패한 것이다.
   - 이때도 rc는 1이다. 경보의 rc 1과는 JSON 줄이 있는지로 가른다.
+  - 상태 파일을 계속 저장하지 못하는 장치(디스크 가득·권한)도 이렇게 끝난다. 이때 R7은 재시작을 부르지 않는다(시도 기록을 저장한 뒤에만 부름).
 
 웹훅 없이 돌린 결과(로컬 시험대에서 확인 — 2026-11-05, rc 2의 설정 경우·primary를 모르는 회차는 2026-11-06):
 
@@ -122,11 +123,13 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
   - 전원(배터리·잠듦): `MONITOR_S7_POWER=0`이라 `unsupported`(끔)다. 관리 장치의 전원은 파이프라인과 관계없다.
   - **운영 노트북 3대의 잠자기는 이 점검 밖이다.** Windows·Linux용 S7이 없다(계획 16 §3.3). P8-2 잠자기 금지와 P2-4b에서 따로 다룬다. 2026-11-05 사고(아래 끝 절)가 그 종류다.
 
-#### M3 FAILED가 보이면 — 재시작은 사용자 확인 뒤에만
+#### M3 FAILED가 보이면 — 자동 3번(check.py) 뒤에는 사용자 확인 뒤에만
 
 - Connect는 FAILED task를 스스로 다시 띄우지 않는다. 그동안 슬롯이 WAL을 붙잡는다(설계 01 §4.2 C3).
-- 자동 재시작(R7)은 두지 않았다. E-K2에서 FAILED가 0이었다(설계 01 R7 (가), 계획 02 진행 기록 2026-11-04).
-- RB 쪽에 이 절차는 없다. 아래 순서로 한다.
+- **자동 재시작(R7)**: ④ 명령은 `MONITOR_R7=1`이라, `check.py`가 FAILED를 30분에 3번까지(앞 시도 뒤 최소 0·5·15분) 사용자 확인 없이 재시작한다(설계 01 R7, 사용자 결정 2026-11-06으로 다시 엶 — 근거: 2026-11-05 잠듦 뒤 FAILED). 자세한 규칙은 `monitor/README.md` R7 절.
+  - 손 점검이 하루 한 번이라 자동 시도도 그때뿐이다. 그 회차에는 첫 시도 하나만 되므로, ④를 첫 시도 5분 뒤에 다시 돌리면 둘째, 둘째 15분 뒤(첫 시도 20분 뒤)에 다시 돌리면 셋째 시도가 된다.
+  - 같은 회차 M1에서 그 커넥터의 슬롯이 없음·`lost`·`unreserved`이거나 슬롯 상태를 모르면 재시작하지 않는다(`r7:<커넥터>` error).
+- **아래 순서는 사람이 할 때다**: `r7:<커넥터>`가 "다 씀"(alert)·슬롯 문제·슬롯 모름·저장 실패(error)일 때, 또는 `MONITOR_R7=0`일 때. RB 쪽에 이 절차는 없다.
 
 1. 원인을 본다: `curl -s "$MONITOR_CONNECT_REST/connectors/<이름>/status"`의 `connector.trace`(커넥터 자체가 FAILED일 때) 또는 `tasks[].trace` 첫 줄을 사건 기록에 적는다.
 2. 원인이 설정·상태 문제면 재시작해도 다시 멈춘다. 재시작하지 말고 Planner·사용자에게 알린다.
@@ -140,6 +143,12 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
    curl -s -X POST "$MONITOR_CONNECT_REST/connectors/<이름>/restart?includeTasks=true&onlyFailed=true"
    ```
 4. ④를 다시 돌려 그 커넥터가 RUNNING인지, 슬롯이 붙잡은 WAL이 줄어드는지 본다.
+5. **원인을 고친 뒤** R7 기록을 비운다. 그래야 다음 FAILED에서 자동 3번을 다시 쓴다(비우지 않아도, FAILED가 아닌 회차에 마지막 자동 시도가 30분보다 오래됐으면 저절로 비워진다).
+   ```bash
+   MONITOR_STATE="$HOME/.local/state/pipeline_monitor/manual.json" <python> pipeline/monitor/check.py --r7-clear <커넥터>
+   ```
+   - JSON의 `found: true`인지 본다. `false`(rc 1)이면 그 상태 파일에 기록이 없다는 뜻이다 — `MONITOR_STATE`가 ④와 같은지 본다.
+- 주기 감시(P2-4b)를 켜면 ④는 `MONITOR_R7=0`으로 바꾼다(상태 파일이 둘이면 시도 기록도 둘이라 예산이 두 배). P2-4b가 도는 동안 비웠으면 다음 회차에 `r7:` 키가 사라졌는지 본다.
 
 ## 규칙 판이 바뀌는 배포(D6 — MVR-1)
 

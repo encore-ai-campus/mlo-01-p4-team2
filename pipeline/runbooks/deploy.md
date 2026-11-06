@@ -76,22 +76,20 @@ du -sh "$HOP_RECONCILE_DIR"; df -h "$HOP_RECONCILE_DIR"
 
 - 어디서: **관리 장치**에서 돌린다. 5432·9092·8083에 닿는 곳이다(계획 16 §2.2).
   - 광고 서버는 9092·8083의 허용 출발지가 아니라 M3~M5가 실패한다.
-- **아래 명령은 노드 목록 변경(작은 코드 Step — 계획 16 §8.1, 이 문서 다음 커밋) 뒤에 쓴다.**
-  - 지금 `check.py`는 `MONITOR_PG_HOST` 한 곳에 `MONITOR_PG_NODE_PORTS`를 붙이는 "한 장치에 노드 셋" 구조다.
-  - 운영은 노드마다 호스트가 달라 M1·M2가 맞게 돌지 않는다. M1은 primary에서만 되고, 대기 서버에서는 `pg_current_wal_lsn()`이 "recovery is in progress"로 실패한다.
-  - 노드 목록 변수와 명령은 그 커밋에서 확정한다.
+- `check.py`는 `MONITOR_PG_NODES`의 노드마다 물어 primary를 스스로 찾는다. M1은 primary에서만 된다(대기 서버에서는 `pg_current_wal_lsn()`이 "recovery is in progress"로 실패). 그래서 HAProxy가 없는 관리 장치에서도 장애 전환 뒤 값을 고칠 필요가 없다.
+- **관리 장치는 로컬 시험대 Mac이라, `check.py`의 기본값이 모두 lab을 가리킨다.** 그래서 `MONITOR_REQUIRE_ALL=1`을 맨 앞에 둔다. 변수 하나라도 없거나 비면 lab을 보고 ok를 내지 않고 rc 2로 멈춘다.
 
 ```bash
-env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE \
+env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
   MONITOR_STATE="$HOME/.local/state/pipeline_monitor/manual.json" \
-  MONITOR_SLOTS=ads_outbox_slot,metaverse_outbox_slot \
-  <노드 목록 — 코드 Step에서 확정> MONITOR_PG_PASSWORD_FILE=… \
+  MONITOR_SLOTS=ads_outbox_slot,metaverse_outbox_slot MONITOR_S7_POWER=0 \
+  MONITOR_PG_NODES=<LAP1_IP>:5432,<LAP2_IP>:5432,<LAP3_IP>:5432 MONITOR_PG_PASSWORD_FILE=… \
   MONITOR_CONNECT_REST=… MONITOR_KAFKA=… MONITOR_KAFKA_BIN=… MONITOR_JAVA_HOME=… \
   MONITOR_BRONZE=… S3_ENDPOINT=… S3_ACCESS_KEY_FILE=… S3_SECRET_KEY_FILE=… \
   <python> pipeline/monitor/check.py; echo "rc=$?"
 ```
 
-- `…`는 운영 값이다(P8-2에서 정한다). 변수 뜻은 `monitor/README.md` 「설정」 절에 있다.
+- `…`·`<LAPn_IP>`는 운영 값이다(P8-2에서 정한다). 변수 뜻은 `monitor/README.md` 「설정」 절에 있다.
 - `MONITOR_KAFKA_BIN`·`MONITOR_JAVA_HOME`은 꼭 준다.
   - 기본값이 이 Mac의 경로(`/opt/kafka/current/bin`, Homebrew openjdk)다.
   - 빠지면 다른 장치에서 M4·M5가 매일 error가 된다.
@@ -99,23 +97,30 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE \
   - 표준 출력에 JSON 한 줄이 없으면(트레이스백만 나옴 — 모듈 없음 등) 점검 자체가 실패한 것이다.
   - 이때도 rc는 1이다. 경보의 rc 1과는 JSON 줄이 있는지로 가른다.
 
-웹훅 없이 돌린 결과(2026-11-05 로컬 시험대에서 확인):
+웹훅 없이 돌린 결과(로컬 시험대에서 확인 — 2026-11-05, rc 2의 설정 경우·primary를 모르는 회차는 2026-11-06):
 
 - 웹훅이 없으면 보내지 않고 화면(표준 출력의 JSON 한 줄)에만 쓴다. 상태 파일은 쓴다.
   - 바뀐 것이 있으면 `notify`가 `"웹훅 없음(화면에만)"`, 없으면 `null`이다.
 - rc
   - 0: 경보 없음
   - 1: 경보(alert·error)가 하나 이상
-  - 2: 상태 파일 자리가 안전하지 않아 점검하지 않음(웹훅 유무와 관계없다)
+  - 2: 점검하지 않음(웹훅 유무와 관계없다). JSON의 `error`가 까닭이다.
+    - `missing_config`: 필수 모드에서 운영 변수가 없거나 빔. 빠진 이름이 `detail`에 있다. 명령을 고쳐 다시 돌린다.
+    - `bad_config`: 설정 형식이 틀림(예: `MONITOR_PG_NODES` 빈 값·중복·포트 범위, `MONITOR_S7_POWER`·`MONITOR_REQUIRE_ALL`이 `0`·`1`이 아님).
+    - `unsafe_state`: 상태 파일 자리가 안전하지 않음.
 - **`alerts`와, `findings` 가운데 `level`이 `alert`·`error`인 줄을 읽는다. `changes`로 판단하지 않는다.**
   - `changes`는 지난 점검 뒤 바뀐 것만 담는다. 그래서 이어지는 경보는 두 번째 점검부터 비어 있다.
   - 확인: 없는 슬롯 이름을 넣어 두 번 돌리면 둘 다 rc 1이고, 둘째의 `changes`는 `[]`이다.
 - 상태 파일은 손 점검 전용(`manual.json`)으로 둔다. 나중에 주기 감시(P2-4b)를 켜면 그쪽 상태와 섞이지 않게 하려는 것이다.
 - `unimplemented`·`unsupported` 줄은 경보가 아니다.
   - M5 Bronze 앱 FAILED(`bronze_app_failed`)는 `unimplemented`다.
-- S7(시계 차이·배터리·잠듦)은 **점검을 돌리는 장치 자신**을 본다. 노트북 3대가 아니다.
-  - 시계 차이는 그 장치와 DB primary 사이의 차이다.
-  - macOS 밖에서는 배터리·잠듦이 `unsupported`다.
+- switchover 직후에는 `M1·M2:run` error("primary 0개 …" 또는 "갈라짐")가 한 번 날 수 있다. 몇 분 뒤 다시 돌려도 이어지면 알린다.
+  - 메시지의 "닿지 못함" 목록으로 "primary에 못 닿음"과 "primary 없음"을 가른다.
+  - 이 회차는 지난 M1·M2 값을 그대로 둔다(해소로 보지 않는다).
+- S7은 **점검을 돌리는 장치 자신**을 본다. 노트북 3대가 아니다.
+  - 시계 차이: 그 장치와 찾은 primary의 차이(노드 조회 순간). primary를 모르면 `clock_skew` error다.
+  - 전원(배터리·잠듦): `MONITOR_S7_POWER=0`이라 `unsupported`(끔)다. 관리 장치의 전원은 파이프라인과 관계없다.
+  - **운영 노트북 3대의 잠자기는 이 점검 밖이다.** Windows·Linux용 S7이 없다(계획 16 §3.3). P8-2 잠자기 금지와 P2-4b에서 따로 다룬다. 2026-11-05 사고(아래 끝 절)가 그 종류다.
 
 #### M3 FAILED가 보이면 — 재시작은 사용자 확인 뒤에만
 

@@ -35,7 +35,7 @@ class FragileAchievementTests(TestCase):
         self.assertFalse(EventProgress.objects.filter(event_id=FRAGILE_ID).exists())
         badge = next(b for b in result['achievements'] if b['event_uuid'] == str(FRAGILE_ID))
         self.assertEqual(badge['name'], '부서지기 직전')
-        self.assertEqual(badge['image_url'], '/static/campus/assets/achievements/kkuwang-last-bite-gift-v1.webp')
+        self.assertEqual(badge['image_url'], '/static/campus/assets/achievements/fragile-pepero-v1.webp')
         self.assertEqual(record_guide_talk(self.user, 1)['newly_completed'], [])
         self.assertFalse(next(b for b in achievement_snapshot(self.other)
                               if b['event_uuid'] == str(FRAGILE_ID))['achieved'])

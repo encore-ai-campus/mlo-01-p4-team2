@@ -48,7 +48,7 @@ class ManagerAchievementTests(TestCase):
         self.assertTrue(all(not row["achieved"] and row["completed_at"] is None for row in snapshot))
         self.assertTrue(all(row["image_url"].startswith("/static/campus/assets/achievements/") for row in snapshot))
         fragile = next(row for row in snapshot if row["event_uuid"] == str(FRAGILE_ID))
-        self.assertEqual(fragile["image_url"], "/static/campus/assets/achievements/kkuwang-last-bite-gift-v1.webp")
+        self.assertEqual(fragile["image_url"], "/static/campus/assets/achievements/fragile-pepero-v1.webp")
 
     def test_six_distinct_greetings_are_per_account_and_idempotent(self):
         manager = self.managers[0]

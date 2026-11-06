@@ -62,8 +62,8 @@ class LastBiteAchievementTests(TestCase):
         rows=achievement_snapshot(winner)
         last_bite=next(row for row in rows if row['event_uuid']==str(FRAGILE_ID))
         self.assertEqual(last_bite['name'],'부서지기 직전')
-        self.assertEqual(last_bite['image_url'],'/static/campus/assets/achievements/kkuwang-last-bite-gift-v1.webp')
-        asset=Path(__file__).resolve().parents[2]/'frontend'/'dist'/'assets'/'achievements'/'kkuwang-last-bite-gift-v1.webp'
+        self.assertEqual(last_bite['image_url'],'/static/campus/assets/achievements/fragile-pepero-v1.webp')
+        asset=Path(__file__).resolve().parents[2]/'frontend'/'dist'/'assets'/'achievements'/'fragile-pepero-v1.webp'
         self.assertTrue(asset.is_file())
         next_row=next(row for row in achievement_snapshot(next_user) if row['event_uuid']==str(FRAGILE_ID))
         self.assertFalse(next_row['achieved'])

@@ -61,7 +61,7 @@ CS 통과는 메인 미션의 Python 초급 객관식 조건을 대신하지 않
 - 기존 학습·답안·포인트 기록은 변경하지 않는다. 업적은 사용자별 `event_progress`에 최초 1회 저장한다.
 - 달성 알림은 차례로 표시하고, 재전송은 최초 달성 시각과 알림을 중복 생성하지 않는다.
 - EE-15는 서버 전체의 단일 완료 기록으로 관리하며, 계정이 이미 다른 이스터에그를 달성했으면 받을 수 없다.
-- EE-15 이미지는 `/static/campus/assets/achievements/kkuwang-last-bite-gift-v1.webp`를 사용한다.
+- EE-15 이미지는 `/static/campus/assets/achievements/fragile-pepero-v1.webp`를 사용한다.
 
 이스터에그 지급 제한 (2026-11-05):
 - 이스터에그마다 한 계정만 달성하고, 한 계정은 이스터에그 하나만 달성할 수 있다.

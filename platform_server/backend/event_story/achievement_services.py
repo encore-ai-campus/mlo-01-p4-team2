@@ -32,7 +32,7 @@ ACHIEVEMENT_IMAGES = {
     SQL_ID: "/static/campus/assets/achievements/sql-intermediate.png",
     TIMER_ID: "/static/campus/assets/achievements/timer.png",
     TYPING_ID: "/static/campus/assets/achievements/code-typing.png",
-    FRAGILE_ID: "/static/campus/assets/achievements/kkuwang-last-bite-gift-v1.webp",
+    FRAGILE_ID: "/static/campus/assets/achievements/fragile-pepero-v1.webp",
     CS_ID: "/static/campus/assets/achievements/cs-intermediate.png",
     RECIPE_ID: "/static/campus/assets/achievements/secret-recipe.png",
     AD_ID: "/static/campus/assets/achievements/ad-impression.png",

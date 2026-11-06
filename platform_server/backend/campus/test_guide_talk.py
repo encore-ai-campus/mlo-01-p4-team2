@@ -132,7 +132,7 @@ class GuideTalkSocketTests(TransactionTestCase):
         self.assertEqual(results[1]['newly_completed'], [])
         badge = next(b for b in results[0]['achievements'] if b['event_uuid'] == str(FRAGILE_ID))
         self.assertEqual((badge['name'], badge['image_url']),
-                         ('부서지기 직전', '/static/campus/assets/achievements/kkuwang-last-bite-gift-v1.webp'))
+                         ('부서지기 직전', '/static/campus/assets/achievements/fragile-pepero-v1.webp'))
         rows = await database_sync_to_async(list)(EventProgress.objects.filter(user=self.user, event_id=FRAGILE_ID)
                                                   .values('status', 'completion_order', 'session_id'))
         self.assertEqual(rows, [])

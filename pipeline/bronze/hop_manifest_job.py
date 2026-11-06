@@ -14,6 +14,8 @@
   HOP_MANIFEST_URI     게시 접두사(s3a://…/, '/' 로 끝남). 운영 manifests/hop_pipeline/, 시험은 다른 접두사
   HOP_SOURCE_DB        원천 DB 이름(Debezium source.db — 다른 출처 행을 가린다)
   HOP_GRACE_SECONDS    창 닫힘 여유(광고 서버 EVENTS_HOP_GRACE_SECONDS 와 같게)
+  HOP_SOURCE           (선택, 기본 ADS) 원천 설정 ADS·METAVERSE(공용 규칙의 원천 설정 — MVR-1). 장치마다 다른 값이 아니라 원천 종류라 기본을 둔다(MVR-2 계획 §2a ②,
+                       Planner 승인). 메타버스 배포에서 빠뜨리면 메타버스 행이 모두 다른 출처(foreign_source_rows)가 되어 대조가 입력 실패로 막는다
   HOP_MAX_PARTITION_BYTES  (선택, 기본 16m) 읽기 파티션 크기 상한 — toLocalIterator 는 파티션 하나를 executor 메모리에 통째로 만든다.
                        Bronze 는 1분마다 작은 파일을 쌓아 기본 128MB 로 묶으면 executor 1G 에서 넘쳤다(e2e 246만 행, Step 기록)
   S3 접속·자격 증명은 Bronze 와 같은 s3a_session(S3_ENDPOINT·S3_REGION·S3_ACCESS_KEY_FILE·S3_SECRET_KEY_FILE)이 읽는다.
@@ -36,6 +38,7 @@ import ndjson
 SPANS = {"hour": timedelta(hours=48), "day": timedelta(days=8)}  # 매시 48시간·매일 8일(설계 01 D14)
 NAMES = {"hour": "hop_pipeline_hour", "day": "hop_pipeline_day"}
 ENV = ("HOP_BRONZE_TABLE", "HOP_MANIFEST_URI", "HOP_SOURCE_DB", "HOP_GRACE_SECONDS")
+SOURCES = {"ADS": hop_rules.ADS, "METAVERSE": hop_rules.METAVERSE}  # HOP_SOURCE 값 → 공용 규칙의 원천 설정
 
 
 class JobError(Exception):
@@ -43,7 +46,7 @@ class JobError(Exception):
 
 
 def settings(environ=os.environ):
-    """필수 설정을 읽는다. 기본값이 없다 — 빠지면 실패한다."""
+    """필수 설정을 읽는다. 기본값이 없다 — 빠지면 실패한다(원천 설정 HOP_SOURCE 만 ADS 가 기본 — 위 설명)."""
     missing = [name for name in ENV if not environ.get(name)]
     if missing:
         raise JobError(f"설정이 없다: {', '.join(missing)}")
@@ -54,7 +57,10 @@ def settings(environ=os.environ):
         grace = int(environ["HOP_GRACE_SECONDS"])
     except ValueError:
         raise JobError(f"HOP_GRACE_SECONDS 는 정수여야 한다: {environ['HOP_GRACE_SECONDS']!r}")
-    return {"table": environ["HOP_BRONZE_TABLE"], "uri": uri, "db": environ["HOP_SOURCE_DB"], "grace": grace}
+    source = environ.get("HOP_SOURCE") or "ADS"
+    if source not in SOURCES:
+        raise JobError(f"HOP_SOURCE 는 {' 또는 '.join(SOURCES)} 이어야 한다: {source!r}")
+    return {"table": environ["HOP_BRONZE_TABLE"], "uri": uri, "db": environ["HOP_SOURCE_DB"], "grace": grace, "source": SOURCES[source]}
 
 
 def plan(window, as_of=None, since=None):
@@ -71,8 +77,8 @@ def plan(window, as_of=None, since=None):
             "read_from": start.date() - timedelta(days=1)}  # 적재 날짜는 하루 여유(Spark 와 원천 서버의 시계가 달라도 빠지지 않게)
 
 
-def summarize(rows, plan_, config):
-    """Bronze 행 (key, value, partition, offset) 을 공용 규칙으로 요약한다. 반환: (줄, checkpoint, 읽은 행 수)."""
+def summarize(rows, plan_, config, source=hop_rules.ADS):
+    """Bronze 행 (key, value, partition, offset) 을 공용 규칙(원천 설정 `source`)으로 요약한다. 반환: (줄, checkpoint, 읽은 행 수)."""
     counter = {"rows": 0}
 
     def counted():
@@ -80,12 +86,34 @@ def summarize(rows, plan_, config):
             counter["rows"] += 1
             yield row
 
-    lines, open_windows, extra = hop_rules.summarize_changes(counted(), config["db"], plan_["now"], config["grace"], plan_["since"], plan_["size"])
+    lines, open_windows, extra = hop_rules.summarize_changes(counted(), config["db"], plan_["now"], config["grace"], plan_["since"], plan_["size"], source=source)
     checkpoint = {"scope": "bronze-delta-snapshot", "hop": "hop_pipeline", "window": plan_["label"], "grace_seconds": config["grace"],
                   "started_at": plan_["now"].isoformat(), "since": hop_rules.format_time(plan_["since"]), "rule_sha256": hop_rules.rule_sha256(),
                   "open_windows": [hop_rules.format_time(w) for w in open_windows], "scanned_rows": counter["rows"],
                   "read_from_ingest_date": plan_["read_from"].isoformat(), **extra}
     return lines, checkpoint, counter["rows"]
+
+
+def summarize_bronze(records, plan_, config):
+    """Bronze 행(`key`·`value`·`topic`·`partition`·`offset` 을 이름으로 읽는 Row) 을 `summarize` 로 요약한다(원천 설정은 `config["source"]`).
+    요약이 예외로 끝나면 잡 로그에 `HOP_MANIFEST_FAILED` 한 줄 — 원천·Bronze 표·그 행의 토픽·partition·offset·예외 종류(값 없음) — 을 남기고 예외를 그대로 올린다
+    (MVR-2 끝 조건, MVR-1 E1 조건 ①: 표 하나에 토픽이 둘일 수 있어 partition·offset 만으로는 위치가 정해지지 않는다).
+    위치는 행을 내보낼 때 적고, 다음 행을 꺼내기 **전에** 지운다(MVR-2 계획 3판 C1). 그래서 규칙이 그 행에서 멈추면 그 행이고, 다음 행을 꺼내다
+    실패하면(`toLocalIterator` 가 다음 파티션을 가져오다 Py4J·S3·executor 오류) 앞의 멀쩡한 행을 가리키지 않고 null 이며, 다 읽은 뒤의 실패도 null 이다."""
+    position = {"topic": None, "partition": None, "offset": None}
+
+    def rows():
+        for record in records:
+            position.update(topic=record["topic"], partition=record["partition"], offset=record["offset"])
+            yield record["key"], record["value"], record["partition"], record["offset"]
+            position.update(topic=None, partition=None, offset=None)  # 다음 행을 꺼내기 전
+
+    try:
+        return summarize(rows(), plan_, config, config["source"])
+    except Exception as error:
+        print("HOP_MANIFEST_FAILED " + json.dumps({"name": plan_["name"], "source": config["source"]["name"], "table": config["table"], **position,
+                                                    "error": type(error).__name__}, ensure_ascii=False), flush=True)
+        raise
 
 
 def publish(store, name, lines, checkpoint, now=None):
@@ -160,9 +188,8 @@ def main(argv=None):
     version = spark.sql(f"DESCRIBE HISTORY delta.`{config['table']}` LIMIT 1").collect()[0]["version"]  # 한 판으로 읽는다
     frame = (spark.read.format("delta").option("versionAsOf", version).load(config["table"])
              .filter(F.col("ingest_date") >= F.lit(plan_["read_from"]))
-             .select(F.col("key_binary").cast("string").alias("key"), F.col("value_binary").cast("string").alias("value"), "partition", "offset"))
-    rows = ((r["key"], r["value"], r["partition"], r["offset"]) for r in frame.toLocalIterator())  # 드라이버로 한꺼번에 모으지 않고 파티션 단위로 흘린다
-    lines, checkpoint, scanned = summarize(rows, plan_, config)
+             .select(F.col("key_binary").cast("string").alias("key"), F.col("value_binary").cast("string").alias("value"), "topic", "partition", "offset"))
+    lines, checkpoint, scanned = summarize_bronze(frame.toLocalIterator(), plan_, config)  # 드라이버로 한꺼번에 모으지 않고 파티션 단위로 흘린다
     checkpoint["delta_version"] = version
     manifest, digest = publish(HadoopStore(spark, config["uri"]), plan_["name"], lines, checkpoint)
     totals = {field: sum(line[field] for line in lines) for field in ("count", *hop_rules.PIPELINE_COUNTS)}

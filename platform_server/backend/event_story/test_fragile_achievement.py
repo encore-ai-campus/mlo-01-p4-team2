@@ -6,13 +6,14 @@ from unittest.mock import patch
 
 from django.apps import apps
 from django.contrib.auth import get_user_model
-from django.db import DatabaseError, close_old_connections, connection, connections
+from django.db import close_old_connections, connection, connections
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 
 from eventing.models import PlatformSession
 from .achievement_services import (
-    FRAGILE_ID, CS_ID, achievement_snapshot, complete_achievement, record_guide_talk,
+    FRAGILE_ID, CS_ID, achievement_snapshot, complete_achievement,
+    complete_global_achievement, record_guide_talk,
 )
 from .game_services import GameError
 from .models import EventDefinition, EventProgress
@@ -28,19 +29,14 @@ class FragileAchievementTests(TestCase):
         self.session = PlatformSession.objects.create(
             user=self.user, started_at=timezone.now(), last_seen_at=timezone.now())
 
-    def test_one_remaining_awards_once_and_keeps_original_asset_session_and_rank(self):
+    def test_guide_talk_does_not_award_before_hidden_story_is_accepted(self):
         result = record_guide_talk(self.user, 1, self.session.pk)
-        self.assertEqual(result['newly_completed'], [str(FRAGILE_ID)])
-        row = EventProgress.objects.get(user=self.user, event_id=FRAGILE_ID)
-        first = (row.completed_at, row.completion_order, row.session_id)
-        self.assertEqual((row.status, row.completion_order, row.session_id), ('COMPLETED', 1, self.session.pk))
+        self.assertEqual(result['newly_completed'], [])
+        self.assertFalse(EventProgress.objects.filter(event_id=FRAGILE_ID).exists())
         badge = next(b for b in result['achievements'] if b['event_uuid'] == str(FRAGILE_ID))
         self.assertEqual(badge['name'], '부서지기 직전')
-        self.assertEqual(badge['image_url'], '/static/campus/assets/achievements/all-subjects.png')
+        self.assertEqual(badge['image_url'], '/static/campus/assets/achievements/kkuwang-last-bite-gift-v1.webp')
         self.assertEqual(record_guide_talk(self.user, 1)['newly_completed'], [])
-        row.refresh_from_db()
-        self.assertEqual((row.completed_at, row.completion_order, row.session_id), first)
-        self.assertEqual(EventProgress.objects.filter(user=self.user, event_id=FRAGILE_ID).count(), 1)
         self.assertFalse(next(b for b in achievement_snapshot(self.other)
                               if b['event_uuid'] == str(FRAGILE_ID))['achieved'])
 
@@ -59,12 +55,6 @@ class FragileAchievementTests(TestCase):
                 record_guide_talk(self.user, 1)
         self.assertFalse(EventProgress.objects.filter(event_id=FRAGILE_ID).exists())
 
-    def test_failed_save_does_not_leave_an_award(self):
-        with patch('event_story.achievement_services.EventProgress.objects.get_or_create', side_effect=DatabaseError('save failed')):
-            with self.assertRaises(DatabaseError):
-                record_guide_talk(self.user, 1)
-        self.assertFalse(EventProgress.objects.filter(event_id=FRAGILE_ID).exists())
-
     def test_data_migration_replaces_only_the_old_award_and_preserves_other_progress(self):
         EventDefinition.objects.filter(pk=FRAGILE_ID).update(event_name='삼각지대 탈출')
         complete_achievement(self.user, FRAGILE_ID, timezone.now())
@@ -75,29 +65,30 @@ class FragileAchievementTests(TestCase):
         self.assertEqual(EventDefinition.objects.get(pk=FRAGILE_ID).event_name, '부서지기 직전')
         self.assertFalse(EventProgress.objects.filter(event_id=FRAGILE_ID).exists())
         self.assertEqual(list(EventProgress.objects.exclude(event_id=FRAGILE_ID).values()), other)
-        self.assertEqual(record_guide_talk(self.user, 1)['newly_completed'], [str(FRAGILE_ID)])
+        self.assertEqual(record_guide_talk(self.user, 1)['newly_completed'], [])
 
 
 @override_settings(DEBUG=True, EVENT_STORY_PREVIEW=True)
 class ConcurrentFragileAchievementTests(TransactionTestCase):
-    def test_repeated_concurrent_talks_award_one_record(self):
+    def test_concurrent_server_claims_award_only_one_account(self):
         if connection.vendor != 'postgresql':
             self.skipTest('PostgreSQL row locks are required')
         seed_definitions()
-        user = get_user_model().objects.create_user(username='fragile-concurrent')
+        winner = get_user_model().objects.create_user(username='fragile-concurrent-winner')
+        next_user = get_user_model().objects.create_user(username='fragile-concurrent-next')
+        user_ids = [winner.pk, next_user.pk]
         start = Barrier(2)
 
-        def talk(_):
+        def claim(user_id):
             close_old_connections()
             try:
-                owner = get_user_model().objects.get(pk=user.pk)
+                owner = get_user_model().objects.get(pk=user_id)
                 start.wait(timeout=8)
-                return record_guide_talk(owner, 1)['newly_completed']
+                return complete_global_achievement(owner, FRAGILE_ID, timezone.now())
             finally:
                 connections.close_all()
 
         with ThreadPoolExecutor(max_workers=2) as pool:
-            results = list(pool.map(talk, range(2)))
-        self.assertEqual(sum(str(FRAGILE_ID) in result for result in results), 1)
-        self.assertEqual(list(EventProgress.objects.filter(user=user, event_id=FRAGILE_ID)
-                              .values_list('status', 'completion_order')), [('COMPLETED', 1)])
+            results = list(pool.map(claim, user_ids))
+        self.assertEqual(sum(results), 1)
+        self.assertEqual(EventProgress.objects.filter(event_id=FRAGILE_ID, status='COMPLETED').count(), 1)

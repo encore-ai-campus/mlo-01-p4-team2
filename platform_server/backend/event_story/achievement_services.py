@@ -32,7 +32,7 @@ ACHIEVEMENT_IMAGES = {
     SQL_ID: "/static/campus/assets/achievements/sql-intermediate.png",
     TIMER_ID: "/static/campus/assets/achievements/timer.png",
     TYPING_ID: "/static/campus/assets/achievements/code-typing.png",
-    FRAGILE_ID: "/static/campus/assets/achievements/all-subjects.png",
+    FRAGILE_ID: "/static/campus/assets/achievements/kkuwang-last-bite-gift-v1.webp",
     CS_ID: "/static/campus/assets/achievements/cs-intermediate.png",
     RECIPE_ID: "/static/campus/assets/achievements/secret-recipe.png",
     AD_ID: "/static/campus/assets/achievements/ad-impression.png",
@@ -123,6 +123,12 @@ def complete_achievement(user, event_id, completed_at, *, started_at=None, sessi
     return True
 
 
+@transaction.atomic
+def complete_global_achievement(user, event_id, completed_at, *, started_at=None, session_uuid=None):
+    """Claim a server-first egg using the shared account/event lock order."""
+    return complete_achievement(user, event_id, completed_at, started_at=started_at, session_uuid=session_uuid)
+
+
 def record_ad_impression(impression):
     """A validated 200/201 impression receipt grants one account-owned badge."""
     if (impression.owner_id is None or impression.delivery_state != 'ACKNOWLEDGED'
@@ -190,13 +196,12 @@ def record_manager_action(user, manager_id, action, session_uuid=None):
 def record_guide_talk(user, remaining, session_uuid=None):
     with transaction.atomic():
         get_user_model().objects.select_for_update().get(pk=user.pk)
-        newly_completed = []
         if type(remaining) is int and remaining == 1:
             from .game_services import require_open
             require_open()
-            if complete_achievement(user, FRAGILE_ID, timezone.now(), session_uuid=session_uuid):
-                newly_completed.append(str(FRAGILE_ID))
-        return {"achievements": achievement_snapshot(user), "newly_completed": newly_completed}
+        # The global one-winner badge is granted only when the user accepts the
+        # hidden last-bite story, not merely by opening the guide dialogue.
+        return {"achievements": achievement_snapshot(user), "newly_completed": []}
 
 
 def record_learning_completion(user, lesson, session_uuid=None):

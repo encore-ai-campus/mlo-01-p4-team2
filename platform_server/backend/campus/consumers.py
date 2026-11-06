@@ -663,6 +663,10 @@ class CampusConsumer(AsyncWebsocketConsumer):
                     result = issue(self.scope["user"].pk, self.controller, arguments)
                     await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
                     return
+                if action == "kkuwang_last_bite":
+                    result = await self.kkuwang_last_bite(arguments)
+                    await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
+                    return
                 if action == "pepero_refill":
                     result = await self.refill_pepero(arguments)
                     await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
@@ -850,6 +854,62 @@ class CampusConsumer(AsyncWebsocketConsumer):
     async def achievement_update(self, event):
         if await self.current_identity() is not None:
             await self.send_packet({'type': 'achievement_update', **event['result']})
+
+    async def kkuwang_last_bite(self, arguments):
+        from event_story.achievement_services import FRAGILE_ID, complete_global_achievement, achievement_snapshot
+        from event_story.models import EventProgress
+        obj = self.controller.world.objects.get("campus-guide-kkuwang")
+        if (self.controller.interior or self.controller.pending_transfer
+                or self.controller.pose["floor"] != "campus" or not obj
+                or self.controller.world.distance(obj, self.controller.pose) > 100):
+            raise ControlError("18층 꾸왕이 가까이에서 말을 걸어 주세요.")
+        if self.pepero_remaining != 1:
+            return {"eligible": False}
+        def claim_state():
+            from event_story.game_services import require_open
+            require_open()
+            already_claimed = EventProgress.objects.filter(
+                event_id=FRAGILE_ID, status=EventProgress.Status.COMPLETED,
+            ).exists()
+            account_limited = EventProgress.objects.filter(
+                user_id=self.user.pk, status=EventProgress.Status.COMPLETED,
+                event__event_type="EASTER_EGG",
+            ).exclude(event_id=FRAGILE_ID).exists()
+            return {"already_claimed": already_claimed, "account_limited": account_limited}
+        state = await socket_db.run(claim_state)
+        if state["already_claimed"]:
+            return {"eligible": False, "already_claimed": True}
+        if state["account_limited"]:
+            return {"eligible": False, "account_limited": True}
+        self.controller.input([])
+        self.controller.route = []
+        if arguments.get("claim") is not True:
+            return {"eligible": True}
+        def save():
+            newly = complete_global_achievement(self.user, FRAGILE_ID, timezone.now(), session_uuid=self.platform_session_uuid)
+            already_claimed = not newly and EventProgress.objects.filter(
+                event_id=FRAGILE_ID, status=EventProgress.Status.COMPLETED,
+            ).exists()
+            account_limited = not newly and not already_claimed and EventProgress.objects.filter(
+                user_id=self.user.pk, status=EventProgress.Status.COMPLETED,
+                event__event_type="EASTER_EGG",
+            ).exclude(event_id=FRAGILE_ID).exists()
+            return {"eligible": newly, "already_claimed": already_claimed,
+                    "account_limited": account_limited,
+                    "achievements": achievement_snapshot(self.user),
+                    "newly_completed": [str(FRAGILE_ID)] if newly else []}
+        result = await socket_db.run(save)
+        if not result["eligible"]:
+            return result
+        self.pepero_remaining = 10
+        self.publish_pepero_inventory()
+        await self.send_packet({"type":"pepero_status", "remaining":10})
+        await self.send_poke_to(self.poke_audience(self.current_poke_scope()), {
+            "type":"pepero_inventory", "actorId":self.player_id,
+            "remaining":10, **self.current_poke_scope()})
+        await self.send_packet({"type":"achievement_update", "result":result, **result})
+        await self.send_control_state()
+        return {"remaining":10, **result}
 
     async def refill_pepero(self, arguments):
         obj_id = arguments.get("objectId")

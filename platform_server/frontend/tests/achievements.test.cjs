@@ -7,7 +7,7 @@ const rows=(earned=false)=>[
  {event_uuid:'sql',name:'데이터의 비밀문',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/sql-intermediate.png'},
  {event_uuid:'timer',name:'찰나의 기적',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/timer.png'},
  {event_uuid:'typing',name:'손가락에 불났다',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/code-typing.png'},
- {event_uuid:'all',name:'부서지기 직전',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/all-subjects.png'},
+ {event_uuid:'all',name:'부서지기 직전',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/kkuwang-last-bite-gift-v1.webp'},
  {event_uuid:'cs',name:'컴퓨터의 속마음',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/cs-intermediate.png'},
  {event_uuid:'recipe',name:'꾸왕이의 비밀 레시피',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/secret-recipe.png'}];
 const plain=value=>JSON.parse(JSON.stringify(value));

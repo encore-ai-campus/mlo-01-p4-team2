@@ -126,22 +126,20 @@ class GuideTalkSocketTests(TransactionTestCase):
                 await socket.disconnect()
         return results
 
-    async def test_real_socket_saves_one_award_with_server_session_and_returns_the_unchanged_asset(self):
+    async def test_real_socket_guide_talk_does_not_award_before_hidden_story_claim(self):
         results = await self.talk(stock=1, supplied=10, repeat=True)
-        self.assertEqual(results[0]['newly_completed'], [str(FRAGILE_ID)])
+        self.assertEqual(results[0]['newly_completed'], [])
         self.assertEqual(results[1]['newly_completed'], [])
         badge = next(b for b in results[0]['achievements'] if b['event_uuid'] == str(FRAGILE_ID))
         self.assertEqual((badge['name'], badge['image_url']),
-                         ('부서지기 직전', '/static/campus/assets/achievements/all-subjects.png'))
+                         ('부서지기 직전', '/static/campus/assets/achievements/kkuwang-last-bite-gift-v1.webp'))
         rows = await database_sync_to_async(list)(EventProgress.objects.filter(user=self.user, event_id=FRAGILE_ID)
                                                   .values('status', 'completion_order', 'session_id'))
-        self.assertEqual(len(rows), 1)
-        self.assertEqual((rows[0]['status'], rows[0]['completion_order']), ('COMPLETED', 1))
-        self.assertIsNotNone(rows[0]['session_id'])
+        self.assertEqual(rows, [])
         revisited = await self.talk(stock=0, supplied=1)
         self.assertEqual(revisited[0]['newly_completed'], [])
-        self.assertTrue(next(b for b in revisited[0]['achievements']
-                             if b['event_uuid'] == str(FRAGILE_ID))['achieved'])
+        self.assertFalse(next(b for b in revisited[0]['achievements']
+                              if b['event_uuid'] == str(FRAGILE_ID))['achieved'])
 
     async def test_real_socket_rejects_forged_client_remaining(self):
         results = await self.talk(stock=2, supplied=1)

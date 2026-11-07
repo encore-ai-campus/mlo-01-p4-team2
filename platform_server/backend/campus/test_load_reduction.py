@@ -13,6 +13,7 @@ from eventing.catalog import class_group_uuid
 - 6b: 주기적인 세션 확인이 DB 오류를 만나도 연결을 끊지 않는다(다음 확인에서 다시 본다).
 """
 import asyncio
+import json
 import time
 from unittest.mock import AsyncMock, patch
 
@@ -20,7 +21,7 @@ from channels.exceptions import ChannelFull
 from channels.testing import WebsocketCommunicator
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import Client, TransactionTestCase, override_settings
+from django.test import Client, TransactionTestCase, override_settings, tag
 
 from accounts.models import Profile
 from . import consumers
@@ -227,21 +228,37 @@ class IdleTrafficTests(TransactionTestCase):
         from . import socket_db
 
         def probe():
-            connections['default'].ensure_connection()
-            return connections['default'].vendor
+            database = connections['default']
+            database.ensure_connection()
+            pool = getattr(database, 'pool', None)
+            return pool.get_stats() if pool else None
+
+        def warm():
+            stats = probe()
+            if stats is not None:
+                database = connections['default']
+                database.close()  # Return the checked-out connection before waiting for idle capacity.
+                database.pool.wait(timeout=2)
+                return database.pool.get_stats()
+            return None
 
         created = []
-
         def count(sender, connection, **kwargs):
             created.append(connection.alias)
 
         connection_created.connect(count)
         try:
+            before = await socket_db.run(warm)  # Warm the real pool before counting.
             for _ in range(10):
-                await socket_db.run(probe)
+                after = await socket_db.run(probe)
         finally:
             connection_created.disconnect(count)
-        self.assertLessEqual(len(created), 1)
+        if before is not None:
+            self.assertEqual(after['requests_num'] - before['requests_num'], 10)
+            self.assertLessEqual(after.get('connections_num', 0) - before.get('connections_num', 0), 1)
+            self.assertLessEqual(after['pool_size'], after['pool_max'])
+        else:
+            self.assertLessEqual(len(created), 1)
 
     async def test_a_resting_player_barely_ticks_and_wakes_on_input(self):
         try:
@@ -263,10 +280,13 @@ class IdleTrafficTests(TransactionTestCase):
         finally:
             await self.disconnect_all()
 
+    @tag("performance")
     async def test_a_slow_position_save_does_not_stall_walking(self):
         original = consumers.CampusConsumer.store_position_now
 
+        slow_calls = []
         def slow(consumer, *args):
+            slow_calls.append(time.monotonic())
             time.sleep(1)
             return original(consumer, *args)
 
@@ -284,6 +304,10 @@ class IdleTrafficTests(TransactionTestCase):
                                 arrivals.append(time.monotonic())
                 await a.send_json_to({'type': 'input', 'keys': []})
                 gaps = [later - earlier for earlier, later in zip(arrivals, arrivals[1:])]
+                self.assertTrue(slow_calls, 'Slow storage must actually run')
+                print('PERFORMANCE_SAMPLE ' + json.dumps({'metric':'movement_state_gap',
+                    'max_ms':max(gaps)*1000 if gaps else None, 'reference_ms':300,
+                    'arrivals':arrivals, 'gaps_ms':[gap*1000 for gap in gaps], 'slow_calls':slow_calls}))
                 self.assertGreater(len(arrivals), 10)
                 self.assertLess(max(gaps), .3)  # 저장(1초)을 기다리면 1초 넘게 멈춘다
         finally:

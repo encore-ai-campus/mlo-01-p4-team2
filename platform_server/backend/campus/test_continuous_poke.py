@@ -21,9 +21,11 @@ from .test_poke import PokeSocketTests
 class ContinuousPokeTests(SimpleTestCase):
     def setUp(self):
         self.clock = [0.0]
+        self.state_times = []
         self.room = consumers.CampusRoom()
         self.consumer = c = consumers.CampusConsumer()
         c.player_id = "self"
+        c.pepero_remaining = 10  # Holding a full pepero is a precondition of this fixture.
         c.controller = MotionController({"floor": "campus", "x": 130, "y": 100, "dir": "right"})
         c.state = {"id": "self", **c.controller.pose}
         c.server_control = True
@@ -63,13 +65,19 @@ class ContinuousPokeTests(SimpleTestCase):
         self.clock[0] = seconds
         if refresh:
             self.consumer.controller.last_input = seconds
+        before = len(self.packets())
         await self.consumer.tick_poke()
+        self.state_times.extend(seconds for row in self.packets()[before:] if row['type']=='poke_state')
 
     async def test_holding_sends_one_start_and_four_hits_per_second_without_database_reads(self):
         for step in range(100):
             await self.tick(step / 100)
         packets = self.packets()
-        self.assertEqual(sum(row["type"] == "poke_state" for row in packets), 1)
+        states = [row for row in packets if row["type"]=="poke_state"]
+        self.assertEqual(self.state_times, [0, .5])
+        self.assertEqual([row["active"] for row in states], [True, True])
+        self.assertEqual(len({row["id"] for row in states}), 1)
+        self.assertEqual([row["phaseMs"] for row in states], [0, 0])
         self.assertEqual(sum(row["type"] == "poke_hit" for row in packets), 4)
         self.assertEqual(self.packets("far"), [])
         self.assertEqual(self.packets("roof"), [])
@@ -77,14 +85,16 @@ class ContinuousPokeTests(SimpleTestCase):
         self.consumer.touch_activity.assert_not_awaited()
         self.consumer.checkpoint.assert_not_awaited()
 
-    async def test_misses_have_no_repeated_network_packets(self):
+    async def test_misses_only_refresh_the_same_stream_twice_per_second(self):
         self.consumer.controller.input(["a"], now=0)
         for step in range(100):
             await self.tick(step / 100)
-        self.assertEqual([row["type"] for row in self.packets()], ["poke_state"])
+        self.assertEqual([row["type"] for row in self.packets()], ["poke_state", "poke_state"])
+        self.assertEqual(self.state_times, [0, .5])
+        self.assertEqual(len({row["id"] for row in self.packets()}), 1)
         self.consumer.poke_requested = False
         await self.tick(1)
-        self.assertEqual([row["active"] for row in self.packets()], [True, False])
+        self.assertEqual([row["active"] for row in self.packets()], [True, True, False])
 
     async def test_input_lease_stops_a_missing_keyup(self):
         await self.tick(0)

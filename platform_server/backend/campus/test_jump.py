@@ -78,10 +78,11 @@ class JumpControlTests(SimpleTestCase):
         self.consumer.session_expired.assert_awaited_once()
 
     async def test_jump_reaches_the_same_floor_nearby_and_never_private_classrooms(self):
+        pose = self.consumer.controller.pose.copy()
         await self.request()
         _, packet = self.share.await_args.args
         floor, x, y, reach = self.share.await_args.kwargs['near']
-        self.assertEqual((floor, x, y, reach), ('campus', 130, 100, consumers.VIEW_RANGE))
+        self.assertEqual((floor, x, y, reach), (pose['floor'], pose['x'], pose['y'], consumers.VIEW_RANGE))
         room = consumers.CampusRoom()
         room.players = {'self':{'floor':'campus','x':130,'y':100},'near':{'floor':'campus','x':900,'y':500},
                         'far':{'floor':'campus','x':130+consumers.VIEW_RANGE+1,'y':100},'roof':{'floor':'rooftop','x':130,'y':100},

@@ -78,19 +78,28 @@ class ReconnectSocketTests(TransactionTestCase):
     async def test_live_old_socket_is_replaced_and_late_disconnect_keeps_new_player(self):
         old=self.socket(self.clients[0]);observer=self.socket(self.clients[1]);new=self.socket(self.clients[0])
         try:
-            await old.connect();old_id=(await self.packets(old,{'welcome'}))['welcome']['selfId']
+            await old.connect()
+            initial=(await self.packets(old,{'welcome'}))['welcome']
+            old_id=initial['selfId']
+            initial_x=next(p['x'] for p in initial['players'] if p['id']==old_id)
             await observer.connect();await self.packets(observer,{'welcome'})
             await old.send_json_to({'type':'input','keys':['d']})
             for _ in range(20):
                 state=(await self.packets(old,{'control_state'}))['control_state']['state']['main']
-                if state['x']>130:break
-            self.assertGreater(state['x'],130)
+                if state['x']>initial_x+10:break
+            self.assertGreater(state['x'],initial_x+10)
+            await old.send_json_to({'type':'input','keys':[]})
+            for _ in range(20):
+                state=(await self.packets(old,{'control_state'}))['control_state']['state']['main']
+                if not state['moving']:break
+            self.assertFalse(state['moving'])
+            stopped_x=state['x']
             self.assertTrue((await new.connect())[0])
             welcome=(await self.packets(new,{'welcome'}))['welcome'];new_id=welcome['selfId']
             self.assertNotEqual(old_id,new_id)
             self.assertNotIn(old_id,{p['id'] for p in welcome['players']})
             self.assertEqual(len(welcome['players']),2)
-            self.assertGreater(next(p['x'] for p in welcome['players'] if p['id']==new_id),130)
+            self.assertAlmostEqual(next(p['x'] for p in welcome['players'] if p['id']==new_id),stopped_x,places=4)
             replaced=await self.packets(observer,{'leave','join'})
             self.assertEqual(replaced['leave']['id'],old_id)
             self.assertEqual(replaced['join']['player']['id'],new_id)
@@ -110,7 +119,10 @@ class ReconnectSocketTests(TransactionTestCase):
     async def test_reconnect_preserves_private_classroom_with_independent_controller(self):
         old=self.socket(self.clients[0]);new=self.socket(self.clients[0])
         try:
-            await old.connect();old_id=(await self.packets(old,{'welcome'}))['welcome']['selfId']
+            await old.connect()
+            initial=(await self.packets(old,{'welcome'}))['welcome']
+            old_id=initial['selfId']
+            initial_x=next(p['x'] for p in initial['players'] if p['id']==old_id)
             original=consumers.room.controllers[old_id]
             gate=geometry()['gates'][0]
             original.interior={'subject':gate['subject'],'gate':gate,

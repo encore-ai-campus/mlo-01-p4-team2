@@ -132,7 +132,10 @@ class ServerMotionTests(SimpleTestCase):
             controller.command('transfer', {'floor': 'rooftop'})
         with self.assertRaises(ControlError):
             controller.command('prepare_transfer', {'objectId': 'campus-roof-stairs'})
-        controller.pose.update(zip(('x', 'y'), controller.world.objects['campus-roof-stairs']['interactionPoint']))
+        portal = next(p for p in controller.world.data['portals'] if p['objectId'] == 'campus-roof-stairs')
+        point = {'x': portal['x'] + portal['w']/2, 'y': portal['y'] + portal['h']/2}
+        self.assertTrue(controller.world.walkable(**point))
+        controller.pose.update(point)
         offer = controller.command('prepare_transfer', {'objectId': 'campus-roof-stairs'})
         self.assertEqual(offer['floor'], 'rooftop')
         before = controller.pose.copy()
@@ -147,7 +150,10 @@ class ServerMotionTests(SimpleTestCase):
         controller = self.controller()
         with self.assertRaises(ControlError):
             controller.command('begin_transfer', {'floor': 'rooftop'})
-        controller.pose.update(zip(('x', 'y'), controller.world.objects['campus-roof-stairs']['interactionPoint']))
+        portal = next(p for p in controller.world.data['portals'] if p['objectId'] == 'campus-roof-stairs')
+        point = {'x': portal['x'] + portal['w']/2, 'y': portal['y'] + portal['h']/2}
+        self.assertTrue(controller.world.walkable(**point))
+        controller.pose.update(point)
         controller.command('prepare_transfer', {'objectId': 'campus-roof-stairs'})
         first = controller.command('begin_transfer', {'floor': 'rooftop'})
         self.assertEqual(first, controller.command('begin_transfer', {'floor': 'rooftop'}))

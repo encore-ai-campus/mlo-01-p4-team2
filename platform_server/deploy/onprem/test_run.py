@@ -16,6 +16,16 @@ spec.loader.exec_module(launcher)
 
 
 class LauncherTests(unittest.TestCase):
+    def test_frontend_backlog_default_override_and_invalid_values(self):
+        for role in ('movement', 'service'):
+            with self.subTest(role=role):
+                self.assertEqual(launcher.parse_args([role]).frontend_backlog, 128)
+        self.assertEqual(launcher.parse_args(['service', '--frontend-backlog', '256']).frontend_backlog, 256)
+        with contextlib.redirect_stderr(io.StringIO()):
+            for value in ('0', '-1'):
+                with self.subTest(value=value), self.assertRaises(SystemExit):
+                    launcher.parse_args(['movement', '--frontend-backlog', value])
+
     def test_role_templates_and_non_default_ports_preserve_boundaries(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(launcher, 'DEPLOY', Path(directory)):
             for role in ('movement', 'service'):

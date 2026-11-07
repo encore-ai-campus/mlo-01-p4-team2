@@ -20,10 +20,13 @@ def parse_args(argv=None):
     parser.add_argument("role", choices=("movement", "service"))
     parser.add_argument("--env-file", type=Path, default=DEPLOY / ".env")
     parser.add_argument("--frontend-port", type=int, default=8004)
+    parser.add_argument("--frontend-backlog", type=int, default=128)
     parser.add_argument("--nginx-port", type=int, default=8000)
     parser.add_argument("--backend-base-port", type=int)
     parser.add_argument("--bind", default="127.0.0.1")
     options = parser.parse_args(argv)
+    if options.frontend_backlog < 1:
+        parser.error("--frontend-backlog must be positive")
     if options.backend_base_port is None:
         options.backend_base_port = 9101 if options.role == "movement" else 9201
     options.backend_ports = list(range(options.backend_base_port, options.backend_base_port + 4))
@@ -170,8 +173,9 @@ def main(argv=None):
         start("nginx", [*nginx_command, "-g", "daemon off;"], ROOT)
         origin_host = "127.0.0.1" if options.bind == "0.0.0.0" else options.bind
         wait_ready([(origin_host, options.nginx_port)], processes)
-        start("frontend", [sys.executable, "-m", "daphne", "-b", options.bind,
-              "-p", str(options.frontend_port), f"config.{options.role}_asgi:application"], ROOT / "frontend")
+        start("frontend", [sys.executable, "-m", "daphne", "-e",
+              f"tcp:port={options.frontend_port}:interface={options.bind}:backlog={options.frontend_backlog}",
+              f"config.{options.role}_asgi:application"], ROOT / "frontend")
         wait_ready([(origin_host, options.frontend_port)], processes)
         if options.role == "service":
             start("jobs", [sys.executable, "manage.py", "campus_jobs"], ROOT / "backend")

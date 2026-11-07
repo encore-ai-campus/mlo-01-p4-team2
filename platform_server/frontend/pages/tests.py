@@ -8,6 +8,11 @@ from .transport import BackendResponse, call_backend, passthrough
 
 
 class TransportTests(SimpleTestCase):
+    def setUp(self):
+        from .http_pool import close_backend_pool
+        close_backend_pool()
+        self.addCleanup(close_backend_pool)
+
     @override_settings(BACKEND_URL='http://127.0.0.1:9003', BACKEND_TIMEOUT=30,
                        MOVEMENT_BACKEND_URL='http://movement.internal:9004')
     def test_post_body_cookie_csrf_origin_and_public_host_are_forwarded(self):
@@ -28,7 +33,7 @@ class TransportTests(SimpleTestCase):
         self.assertEqual(kwargs['headers']['Cookie'], 'campus_sessionid=test-session')
         self.assertEqual(kwargs['headers']['X-CSRFToken'], 'csrf-token')
         self.assertEqual(kwargs['headers']['Origin'], 'http://127.0.0.1:8004')
-        connection.close.assert_called_once()
+        connection.close.assert_not_called()
 
     @override_settings(BACKEND_URL='http://127.0.0.1:9003', BACKEND_TIMEOUT=30,
                        ALLOWED_HOSTS=['43.203.25.153'])

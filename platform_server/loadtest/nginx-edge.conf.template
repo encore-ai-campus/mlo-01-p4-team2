@@ -3,12 +3,15 @@
 # (deploy/campus-multiprocess/README.md §5). TLS 는 두 경우 모두 edge 가 같은 일을 하므로 뺐다.
 map $http_upgrade $edge_connection_upgrade {
     default upgrade;
-    '' close;
+    '' "";
 }
 
 upstream edge_frontends {
     least_conn;
     server frontend:8004 max_fails=2 fail_timeout=10s;
+        keepalive 128;
+        keepalive_timeout 30s;
+        keepalive_requests 1000;
 }
 
 server {

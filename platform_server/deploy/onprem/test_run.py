@@ -51,12 +51,15 @@ class LauncherTests(unittest.TestCase):
         config = Path(__file__).with_name('nginx-entry.conf.example').read_text()
         for path, destination in (
             ('/ws/movement/', '@MOVEMENT_HOST@:@MOVEMENT_NGINX_PORT@'),
-            ('/ws/chat/', '@SERVICE_HOST@:@SERVICE_NGINX_PORT@'),
-            ('/static/', '@SERVICE_HOST@:@SERVICE_NGINX_PORT@'),
-            ('/', '@SERVICE_HOST@:@SERVICE_FRONTEND_PORT@'),
+            ('/ws/chat/', 'service_ingress'),
+            ('/static/', 'service_ingress'),
+            ('/', 'service_frontend'),
         ):
             self.assertIn('location ' + ('= ' if path.startswith('/ws/') else '') +
                           path + ' { proxy_pass http://' + destination + '; }', config)
+        for upstream, address in (('service_ingress', '@SERVICE_HOST@:@SERVICE_NGINX_PORT@'),
+                                  ('service_frontend', '@SERVICE_HOST@:@SERVICE_FRONTEND_PORT@')):
+            self.assertIn('upstream ' + upstream + ' {\n        server ' + address + ';', config)
         for header in ('Cookie $http_cookie', 'Origin $http_origin', 'Host $http_host',
                        'X-Forwarded-Proto $scheme'):
             self.assertIn('proxy_set_header ' + header + ';', config)

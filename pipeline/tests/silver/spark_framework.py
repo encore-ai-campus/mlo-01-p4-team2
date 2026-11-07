@@ -77,6 +77,8 @@ INPUT = [  # (Bronze value, 기대 — None 이면 정상, 아니면 (코드, �
     (value(EIDS[3], raw="not json", table="auth_user"), ("foreign_source", "다른 출처: metaverse_lab.public.auth_user", EIDS[3])),  # ③이 ④보다 먼저
     (value(EIDS[3], raw='{"a":1,"a":2}'), ("decode", "after.raw_data", EIDS[3])),  # ④ 안쪽 JSON 만 틀림
     (value(EIDS[1], op="u"), ("not_insert", "op u", EIDS[1])),  # ③ op
+    (value(EIDS[0])[:-1] + b', "deep": ' + b"[" * 999 + b"]" * 999 + b"}", None),  # 1,000단(봉투 객체 + 배열 999) — Spark 가 해석한다
+    (value(EIDS[0])[:-1] + b', "deep": ' + b"[" * 1000 + b"]" * 1000 + b"}", ("decode", "Spark 가 해석하지 못함", None)),  # ② 1,001단 — 엄격 검사(Python)는 통과, try_parse_json 은 null(2026-11-04 실측)
 ]
 
 
@@ -94,7 +96,7 @@ class Adapter(unittest.TestCase):
     def test_good_adapter_passes_and_follows_the_order(self):
         ok, errors = framework.check_adapted(self.bronze, self.ok, self.errors, "metaverse")
         self.assertEqual([(r["offset"], r["event_id"], r["first_op"], r["src_lsn"], r["payload"]) for r in ok.orderBy("offset").collect()],
-                         [(0, EIDS[0], "c", 123, '{"u":"x"}'), (1, EIDS[1], "r", None, '{"u":"x"}')])
+                         [(0, EIDS[0], "c", 123, '{"u":"x"}'), (1, EIDS[1], "r", None, '{"u":"x"}'), (8, EIDS[0], "c", 123, '{"u":"x"}')])
         found = {r["offset"]: (r["error_code"], r["reason"], r["event_id"]) for r in errors.collect()}
         self.assertEqual(sorted(found), [i for i, (_, expected) in enumerate(INPUT) if expected])
         for offset, (code, needle, event_id) in ((i, e) for i, (_, e) in enumerate(INPUT) if e):

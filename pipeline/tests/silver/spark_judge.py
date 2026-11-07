@@ -86,12 +86,21 @@ class DedupeBronze(unittest.TestCase):
     def test_identical_rows_and_no_duplicates(self):
         kept, dropped = framework.dedupe_bronze(bronze(bronze_fields(1), bronze_fields(1), bronze_fields(2, partition=1), bronze_fields(2)))
         self.assertEqual((kept.count(), dropped), (3, 1))
-        kept, dropped = framework.dedupe_bronze(bronze(bronze_fields(1), bronze_fields(1, topic=TOPIC + ".g2")))
+        frame = bronze(bronze_fields(1), bronze_fields(1, topic=TOPIC + ".g2"))
+        kept, dropped = framework.dedupe_bronze(frame)
+        self.assertIs(kept, frame)  # 위치 중복이 없으면 받은 DF 그대로 — 창(Bronze 전체 열 셔플)을 거치지 않는다(SL-3b 리뷰 권고 1)
         self.assertEqual((kept.count(), dropped), (2, 0))
 
     def test_same_position_with_other_kafka_bytes_stops(self):  # K4 — 같은 이름의 토픽을 다시 만들어 offset 이 겹침
         with self.assertRaisesRegex(framework.BronzeConflictError, f"{TOPIC}/0/1"):
             framework.dedupe_bronze(bronze(bronze_fields(1), bronze_fields(1, value=b"w", ingested=T0 + timedelta(hours=1)), bronze_fields(2)))
+
+    def test_bytes_moved_between_null_and_value_columns_stop(self):  # xxhash64 는 null 을 건너뛰어 두 줄의 지문이 같다 — 값을 그대로 비교한다(참고 4)
+        moved = (None, bytearray(b"x")), (bytearray(b"x"), None)
+        rows = [key_value + bronze_fields(1)[2:] for key_value in moved]
+        self.assertEqual(bronze(*rows).select(F.xxhash64("key_binary", "value_binary").alias("fp")).distinct().count(), 1)
+        with self.assertRaises(framework.BronzeConflictError):
+            framework.dedupe_bronze(bronze(*rows))
 
 
 class Acknowledge(unittest.TestCase):
@@ -228,6 +237,27 @@ class Judge(unittest.TestCase):
         again = framework.judge(self.ok, self.errors, [], self.table, written, self.conflicts)
         self.assertEqual({r["event_id"] for r in again.merge.collect()}, {self.N, self.S})
         self.assertEqual(again.errors.where(F.col("error_code") == "conflict").count(), self.result.errors.where(F.col("error_code") == "conflict").count())
+
+    def test_broadcast_and_shuffle_paths_agree(self):  # SL-3c 결정 S3 — 배치 고유 ID 가 상한을 넘으면 broadcast 없이, 판정은 같다
+        shuffled = framework.judge(self.ok, self.errors, [], self.table, self.silver, self.conflicts, broadcast_limit=0)
+        self.assertEqual((self.result.broadcast, shuffled.broadcast, self.result.ids, shuffled.ids), (True, False, 2 + 4, 2 + 4))  # N·S + H·D·A·M
+        merged = lambda j: sorted((r["event_id"], r["copies"], r["src_offset"]) for r in j.merge.collect())
+        judged = lambda j: sorted((r["offset"], r["error_code"], r["reason"], r["existing_event_id"], r["existing_event_date"]) for r in j.errors.collect())
+        self.assertEqual((merged(shuffled), judged(shuffled)), (merged(self.result), judged(self.result)))
+        self.assertGreaterEqual(self.result.check_seconds, 0)
+        self.assertEqual(len(self.result.cached), 2)
+
+    def test_shuffle_path_has_no_broadcast(self):  # 작은 표는 힌트가 없어도 Spark 가 스스로 broadcast 하므로 자동 broadcast 를 끄고 계획을 본다
+        spark.catalog.clearCache()  # 앞 시험이 persist 한 판정 DF 가 같은 계획으로 잡혀(힌트는 cache 비교에서 빠짐) 그 계획이 보이지 않게
+        spark.conf.set("spark.sql.autoBroadcastJoinThreshold", "-1")
+        try:
+            folded, _ = framework.fold(self.ok)
+            plans = {flag: framework.full_check(folded, self.silver, self.conflicts, broadcast=flag)[1]._jdf.queryExecution().executedPlan().toString()
+                     for flag in (True, False)}
+        finally:
+            spark.conf.unset("spark.sql.autoBroadcastJoinThreshold")
+        self.assertIn("BroadcastExchange", plans[True])
+        self.assertNotIn("Broadcast", plans[False])
 
     def test_stop_then_acknowledged_rerun(self):  # 멈춤이면 일찍 끝나고 진단 행만, 넘김 줄을 더해 다시 돌면 오류 행으로(D4 — 쓰기는 SL-3c)
         errors = errs(error_row(12, "foreign_source"), error_row(9, "decode"))

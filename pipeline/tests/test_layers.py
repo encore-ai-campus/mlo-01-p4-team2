@@ -3,7 +3,8 @@
 1. 잡 코드(pipeline/silver·bronze·monitor·common)는 광고 서버(django, ads_server 의 앱 패키지)를 import 하지 않는다. 대사 규칙은 사본(pipeline/common)을 쓴다.
    시험대 도구(pipeline/tools)는 광고 서버를 import 하므로 범위 밖이다.
 2. pipeline/common 은 표준 라이브러리만 쓴다(광고 서버 원본의 바이트 사본 — 원본과 같은 조건).
-3. Silver 의 드라이버·UDF 쪽 모듈(strict·control)은 표준 라이브러리와 pipeline.* 만 쓴다 — Spark 없이 시험하고, executor 가 UDF 에서 import 한다.
+3. Silver 의 드라이버·UDF 쪽 모듈(strict·control, 어댑터의 UDF 쪽 규칙 `adapters/<원천>_rules.py`)은 표준 라이브러리와 pipeline.* 만 쓴다
+   — Spark 없이 시험하고, executor 가 UDF 에서 import 한다.
    변환 모듈(contracts·framework·adapters 등)은 pyspark 를 쓴다(사용자 결정: Silver 는 Spark).
 4. pipeline/silver 는 상대 import 를 쓰지 않는다(D5: `from pipeline.silver import contracts`).
 
@@ -57,6 +58,7 @@ class LayerRules(unittest.TestCase):
     def test_silver_driver_and_udf_modules_are_stdlib_and_pipeline_only(self):
         files = [path for name in SILVER_STDLIB for path in py_files("silver", name)]
         self.assertEqual(len(files), len(SILVER_STDLIB))
+        files += sorted((PIPELINE / "silver" / "adapters").glob("*_rules.py"))  # 원천별 UDF 쪽 규칙(SL-4 metaverse_rules·SL-8) — 없으면 볼 것이 없다
         self.assertEqual(violations(files, lambda name, level: level == 0 and (name in sys.stdlib_module_names or name == "pipeline")), [])
 
     def test_silver_has_no_relative_imports(self):

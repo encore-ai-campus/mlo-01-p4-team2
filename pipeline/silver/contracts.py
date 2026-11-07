@@ -58,7 +58,9 @@ ERROR_EXTRA_FIELDS = (
 ADAPTER_ERROR_FIELDS = BRONZE_FIELDS + (("error_code", "string", False), ("reason", "string", False), ("event_id", "string", True))  # D1
 WRITE_FIELDS = ("silver_written_at", "silver_release")  # 쓸 때 채운다(SL-3c)
 MERGE_SOURCE_FIELDS = tuple(field for field in SILVER_FIELDS if field[0] not in WRITE_FIELDS)  # 배치 판정의 MERGE 원본(SL-3b)
-JUDGED_ERROR_FIELDS = ADAPTER_ERROR_FIELDS + ERROR_EXTRA_FIELDS[:5]  # 배치 판정의 오류·진단 행 = 오류 표 열 가운데 배치마다 하나인 셋을 뺀 것
+BATCH_ERROR_FIELDS = ("silver_release", "detected_at", "batch_id")  # 오류 표 열 가운데 배치마다 하나인 셋(error_rows 가 붙임)
+JUDGED_EXTRA_FIELDS = tuple(field for field in ERROR_EXTRA_FIELDS if field[0] not in BATCH_ERROR_FIELDS)  # 이름으로 뺀다(자리로 자르면 앞에 열을 더할 때 어긋남 — SL-3b 리뷰 참고 5)
+JUDGED_ERROR_FIELDS = ADAPTER_ERROR_FIELDS + JUDGED_EXTRA_FIELDS  # 배치 판정의 오류·진단 행
 
 BRONZE_SCHEMA = _schema(*BRONZE_FIELDS)
 SILVER_SCHEMA = _schema(*SILVER_FIELDS)

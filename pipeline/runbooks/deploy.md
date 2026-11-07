@@ -150,6 +150,17 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
    - JSON의 `found: true`인지 본다. `false`(rc 1)이면 그 상태 파일에 기록이 없다는 뜻이다 — `MONITOR_STATE`가 ④와 같은지 본다.
 - 주기 감시(P2-4b)를 켜면 ④는 `MONITOR_R7=0`으로 바꾼다(상태 파일이 둘이면 시도 기록도 둘이라 예산이 두 배). P2-4b가 도는 동안 비웠으면 다음 회차에 `r7:` 키가 사라졌는지 본다.
 
+#### 커넥터를 새로 만든 뒤의 WARN 로그(Debezium 3.7.0) — 그대로 둔다
+
+- **현상**: 새로 만든 커넥터의 task가 `WARN [<커넥터>|task-0] Context is null, skipping message processing (PostgresReadOnlyIncrementalSnapshotChangeEventSource)`를 계속 찍는다. 이벤트마다 약 2줄이고, 유입이 없어도 초당 약 9줄 찍힌다(빈 poll마다 — `heartbeat.interval.ms` 10초와 상관없다).
+- **언제 생기나**: 커넥터를 처음 만들거나 지우고 다시 만들 때마다(운영에서 처음 만들 때, 로컬 e2e `--rebuild`). 오래 돈 커넥터(lab)에는 없다.
+- **멈추는 때**: task가 다시 붙을 때(재시작, DB 연결이 끊긴 뒤 재연결) 또는 incremental snapshot signal을 처리한 뒤. 그 전까지 이어진다. 이 로그 때문에 task를 재시작하지 않는다(M3 FAILED가 아니다).
+- **데이터 영향 없음**(로컬 시험대):
+  - 2026-11-07 e2e 다시 만들기 뒤 outbox 24,922행과 Bronze 24,922행의 `event_id` 집합이 같았다.
+  - 이 WARN이 나는 동안에도 signal은 처리됐다(메타버스 2026-11-04).
+- **로그 양**: 한 줄 약 192 B. 로컬 시험대 Connect는 같은 줄을 `connect.log`와 `connect.stdout.log` 두 곳에 쓴다. 유입이 없어도 둘을 합쳐 시간당 약 12 MB, 하루 약 0.3 GB다.
+- **운영 배포 때 볼 것**: Connect 로그 돌리기(rotation)가 `connect.log`뿐 아니라 stdout으로 받는 로그 파일도 덮는지 본다. 로컬 시험대의 `connect.stdout.log`는 log4j가 돌리지 않는다. Connect는 DB와 같은 노트북의 WSL에서 돌므로(계획 16), 이 로그도 매일 점검 ①의 WSL 디스크·Windows C: 여유(< 20%)에 잡힌다.
+
 ## 규칙 판이 바뀌는 배포(D6 — MVR-1)
 
 - `rule_sha256`: 공용 요약 규칙 파일(`hop_rules.py`)의 SHA-256이다.

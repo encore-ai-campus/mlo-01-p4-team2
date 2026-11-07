@@ -118,6 +118,7 @@ lab(`ads_pipeline_lab`·커넥터 `ads-outbox-cdc`·토픽 `ads.outbox.events`)�
 
 ```bash
 python pipeline/tools/e2e_setup.py                 # DB·마이그레이션·권한·publication·토픽·커넥터(다시 돌려도 안전)
+python pipeline/tools/e2e_setup.py --rebuild       # 전체 다시 만들기(Phase 시작 때, 설계 §11.2) 점검만 — rc 0 통과·2 확인 실패. 실행은 --rebuild --execute(되돌릴 수 없음, 사용자 허락 뒤)
 python pipeline/tools/e2e_load.py --duration 1800   # 광고 서버·처리기를 띄우고 초당 20쌍 유입 → J0~J3 판정(J0 시험 유효: 이벤트 8종·광고 없는 결정 ≤ 1%), 결과 JSON. 긴 정지 시험은 --give-up 을 늘린다
 ```
 

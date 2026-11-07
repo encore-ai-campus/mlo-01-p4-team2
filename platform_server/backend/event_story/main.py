@@ -11,7 +11,7 @@ from django.db import transaction
 from django.db.models import Max
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from learning.services import LearningError, learning_write_transaction, active_platform_session
+from learning.services import LearningError, learning_write_transaction, active_platform_session, parse_uuid4
 from eventing.models import PlatformSession
 from .models import EventDefinition, EventProgress, GameDefinition, GamePlay, StoryProgress, StoryRecord
 from .access import verify
@@ -202,6 +202,8 @@ def action(user, data, session_uuid):
         return dict(state=state,**_write_action(user,data,session_uuid))
     catalog()
     result=_write_action(user,data,session_uuid)
+    if data.get('action') in ('game_start','investigate'):
+        return result
     return dict(state=status(user),**result)
 
 
@@ -239,6 +241,7 @@ def _action(user,data,session_uuid):
         require(user,'3');verify(user,data.get('ticket'),'roof-guide')
         return dict(correct=True)
     elif a=='game_start':
+        request_uuid=str(parse_uuid4(data.get('request_uuid'),'invalid_request_uuid'))
         code=data.get('game')
         if code not in dict(GAMES) and code!='kkuwang_touch':raise LearningError('게임을 확인해 주세요.')
         practice=data.get('practice') is True
@@ -246,12 +249,20 @@ def _action(user,data,session_uuid):
         if not practice or code in LOCKED:check_game(user,code)
         if code=='sql_memory' and not room1_briefed(user):
             raise LearningError('먼저 ROOM 01 영석 매니저님에게 말을 걸어 주세요.','manager_briefing_required',409)
-        game=GameDefinition.objects.get(game_code=code)
-        if not game.is_enabled: raise LearningError('이 게임은 현재 이용할 수 없습니다.')
+        game=GameDefinition.objects.filter(game_code=code).first()
+        if game is None or not game.is_enabled: raise LearningError('이 게임은 현재 이용할 수 없습니다.')
         verify(user,data.get('ticket'),'roof-guide' if code=='kkuwang_touch' else 'room1' if code=='sql_memory' else 'room2')
-        session=PlatformSession.objects.filter(pk=session_uuid,user=user).first()
-        if session is None: raise LearningError('접속 정보를 확인할 수 없습니다. 다시 로그인해 주세요.')
-        # A new attempt interrupts an unfinished one, preserving confirmed stages.
+        session=PlatformSession.objects.select_for_update().filter(pk=parse_uuid4(session_uuid,'invalid_platform_session'),user=user,ended_at__isnull=True).first()
+        if session is None: raise LearningError('접속이 종료됐어요. 다시 로그인해 주세요.','session_expired',409)
+        previous=GamePlay.objects.filter(user=user,evidence__request_uuid=request_uuid).first()
+        if previous is not None:
+            receipt=previous.evidence['start_receipt']
+            if previous.game_id!=game.pk or receipt['practice']!=practice:
+                raise LearningError('같은 시작 요청 번호로 다른 게임을 시작할 수 없습니다.','request_conflict',409)
+            if previous.session_id!=session.pk:
+                raise LearningError('게임을 시작한 접속이 달라졌어요. 새 판을 시작해 주세요.','session_conflict',409)
+            return dict(receipt,status=previous.status)
+        # Only a new request interrupts an unfinished attempt.
         for old in GamePlay.objects.select_for_update().filter(user=user,status='RUNNING'):
             old.status='INTERRUPTED';old.ended_at=timezone.now();old.duration_ms=max(0,int((old.ended_at-old.started_at).total_seconds()*1000));old.save()
         challenge={'seed':random.SystemRandom().randrange(1,1000000)}
@@ -264,7 +275,10 @@ def _action(user,data,session_uuid):
             deck=list(range(6))*2;random.SystemRandom().shuffle(deck);challenge['deck']=deck
         play=GamePlay.objects.create(user=user,session=session,game=game,event_id=None if practice else uid('4' if code=='kkuwang_touch' else code),evidence={'challenge':challenge})
         token=signing.dumps({'play':str(play.pk),'user':str(user.pk),'challenge':challenge},salt=SALT)
-        return dict(play=str(play.pk),token=token,challenge=challenge,practice=practice)
+        receipt=dict(play=str(play.pk),token=token,challenge=challenge,practice=practice)
+        play.evidence.update(request_uuid=request_uuid,start_receipt=receipt)
+        play.save(update_fields=['evidence'])
+        return dict(receipt,status=play.status)
     elif a in ('game_finish','game_interrupt'):
         try:play=GamePlay.objects.select_for_update().get(pk=data.get('play'),user=user)
         except (GamePlay.DoesNotExist,ValueError):raise LearningError('게임 기록을 찾을 수 없습니다.')

@@ -95,8 +95,13 @@ def verify_term_match(play, duration, picks, *, success):
         raise GameError('카드 게임 종료 기록을 확인해 주세요.')
 
 
-@transaction.atomic
 def finish_game(user, play_id, session_id, data):
+    result=_finish_game(user,play_id,session_id,data)
+    return {**result,'achievements':achievement_snapshot(user)}
+
+
+@transaction.atomic
+def _finish_game(user,play_id,session_id,data):
     require_open()
     if not isinstance(data, dict) or set(data) not in ({"duration_ms", "status"}, {"duration_ms", "status", "picks"}):
         raise GameError("게임 결과 형식을 확인해 주세요.")
@@ -131,7 +136,7 @@ def finish_game(user, play_id, session_id, data):
         if ((play.status, play.duration_ms) == (status, duration)
                 and (play.game.game_code != 'term_match' or status == 'INTERRUPTED'
                      or play.evidence.get('picks') == data['picks'])):
-            return {**receipt(play), "achievements": achievement_snapshot(user), "newly_completed": []}
+            return {**receipt(play), "newly_completed": []}
         raise GameError("이미 다른 결과로 종료된 게임이에요.", 409)
     if play.game.game_code == "typing" and status == "SUCCESS" and duration > CONFIGS["typing"]["timeLimitMs"]:
         raise GameError("타이핑은 11.11초 안에 완료해야 해요.")
@@ -152,4 +157,4 @@ def finish_game(user, play_id, session_id, data):
         event_id = {"timer": TIMER_ID, "typing": TYPING_ID, "term_match": MEMORY_ID}[play.game.game_code]
         if complete_achievement(user, event_id, play.ended_at, started_at=play.started_at, session_uuid=session.pk):
             newly_completed.append(str(event_id))
-    return {**receipt(play), "achievements": achievement_snapshot(user), "newly_completed": newly_completed}
+    return {**receipt(play), "newly_completed": newly_completed}

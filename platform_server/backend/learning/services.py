@@ -245,8 +245,16 @@ def submit_answer(user, session_id, order, answer, submission_request_uuid=None,
     return result
 
 
-@learning_write_transaction
 def complete_session(user, session_id, platform_session_uuid=None):
+    session=_complete_session(user,session_id,platform_session_uuid)
+    if session.achievement_update is not None:
+        from event_story.achievement_services import achievement_snapshot
+        session.achievement_update={**session.achievement_update,'achievements':achievement_snapshot(user)}
+    return session
+
+
+@learning_write_transaction
+def _complete_session(user,session_id,platform_session_uuid):
     from event_story.achievement_services import record_learning_completion
     # Keep the same owner -> lesson lock order as answer submission.
     get_user_model().objects.select_for_update().get(pk=user.pk)

@@ -191,8 +191,10 @@ class MainFlowTests(TestCase):
         from .models import GameDefinition
         game=GameDefinition.objects.get(game_code='kkuwang_touch');ended=timezone.now()-timedelta(hours=1)
         GamePlay.objects.create(user=self.user,session=self.session,game=game,status='FINISHED',duration_ms=11000,ended_at=ended,evidence={'score':3})
+        main.prepare_status(self.user)
         self.assertEqual(main.status(self.user)['stage'],3)
         GamePlay.objects.create(user=self.user,session=self.session,game=game,event_id=main.uid('4'),status='FINISHED',duration_ms=11000,ended_at=ended,evidence={'score':3})
+        main.prepare_status(self.user)
         self.assertEqual(main.status(self.user)['stage'],4)
         self.assertEqual(EventProgress.objects.get(user=self.user,event_id=main.uid('4')).completed_at,ended)
 
@@ -328,6 +330,7 @@ class MainFlowTests(TestCase):
         EventDefinition.objects.get_or_create(event_uuid=main.uid('2'), defaults={'event_name':'Python 학습교실', 'event_type':'MAIN'})
         old = main.complete(self.user, '2')
         completed_at = old.completed_at
+        main.prepare_status(self.user)
         result = main.status(self.user)
         self.assertEqual(result['stage'], 2)
         self.assertEqual(len(result['steps']), 5)

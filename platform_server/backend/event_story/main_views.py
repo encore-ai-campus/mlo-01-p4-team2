@@ -9,6 +9,7 @@ from . import main
 @ensure_csrf_cookie
 @endpoint('GET')
 def status(request):
+    main.prepare_status(request.user)
     return JsonResponse(main.status(request.user))
 
 @never_cache

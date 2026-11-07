@@ -57,6 +57,25 @@ def coating_timing(c,result,elapsed):
 
 
 def catalog():
+    codes=['campaign',*[code for code,_ in STAGES],*[code for code,_ in GAMES]]
+    definitions=EventDefinition.objects.in_bulk([uid(code) for code in [*codes,'2']])
+    games=dict(GameDefinition.objects.filter(pk__in=[uid('game/'+code) for code in [*[c for c,_ in GAMES],'kkuwang_touch']]).values_list('pk','game_name'))
+    retired=definitions.get(uid('2'))
+    if (all(uid(code) in definitions for code in codes)
+            and all(uid('game/'+code) in games for code,_ in GAMES)
+            and games.get(uid('game/kkuwang_touch'))=='꾸왕이 빼빼로 타격 챌린지'
+            and all(definitions[uid(code)].step_order==order and definitions[uid(code)].event_name==name
+                    for order,(code,name) in enumerate(STAGES,1))
+            and all(definitions[uid(code)].step_order==(1 if code=='sql_memory' else index) and definitions[uid(code)].event_name==name
+                    for index,(code,name) in enumerate(GAMES))
+            and definitions[uid('4')].game_id is not None
+            and (retired is None or (retired.parent_event_id is None and retired.step_order is None and retired.event_type=='ARCHIVED'))):
+        return
+    _initialize_catalog()
+
+
+@learning_write_transaction
+def _initialize_catalog():
     campaign, _ = EventDefinition.objects.get_or_create(event_uuid=uid('campaign'), defaults=dict(event_name='사라진 11번째 빼빼로', event_type='CAMPAIGN', starts_at=datetime(2026,11,9,8,30,tzinfo=TZ), ends_at=datetime(2026,11,11,22,tzinfo=TZ)))
     for code, name in STAGES:
         EventDefinition.objects.get_or_create(event_uuid=uid(code), defaults=dict(parent_event=campaign,event_type='MAIN',event_name=name))
@@ -126,6 +145,14 @@ def room1_briefed(user):
 
 def recover_finished_challenge(user):
     """Existing validated full rounds also satisfy the now-enabled fourth stage."""
+    completed=set(EventProgress.objects.filter(user=user,event_id__in=[uid('3'),uid('4')],status='COMPLETED').values_list('event_id',flat=True))
+    if uid('3') not in completed or uid('4') in completed:return
+    _recover_finished_challenge(user)
+
+
+@learning_write_transaction
+def _recover_finished_challenge(user):
+    get_user_model().objects.select_for_update().get(pk=user.pk)
     if not done(user,'3') or done(user,'4'):return
     play=GamePlay.objects.filter(user=user,game__game_code='kkuwang_touch',event_id=uid('4'),status='FINISHED',ended_at__isnull=False,duration_ms__gte=TOUCH_DURATION_MS-100).order_by('ended_at').first()
     if play:
@@ -134,20 +161,28 @@ def recover_finished_challenge(user):
         progress.save(update_fields=['completed_at','session'])
 
 
-def status(user):
+def prepare_status(user):
     catalog()
     recover_finished_challenge(user)
-    flags={str(p.event_id):p for p in EventProgress.objects.filter(user=user)}
-    steps=[dict(name=name,complete=bool(flags.get(str(uid(code))) and flags[str(uid(code))].status=='COMPLETED')) for code,name in STAGES]
+
+
+def status(user):
+    completed=set(EventProgress.objects.filter(user=user,status='COMPLETED').values_list('event_id',flat=True))
+    steps=[dict(name=name,complete=uid(code) in completed) for code,name in STAGES]
     current=next((i+1 for i,x in enumerate(steps) if not x['complete']),len(STAGES)+1)
-    ranks=ranking(user)
-    return dict(room1Briefed=room1_briefed(user),window=window(),steps=steps,stage=current,started=steps[0]['complete'],completed=steps[-1]['complete'],games={code:done(user,code) for code,_ in GAMES},locked=LOCKED,canPractice=bool(user.is_staff and settings.DEBUG and settings.EVENT_STORY_PREVIEW),ranking=dict(myRank=ranks['myRank'],top3=ranks['entries'][:3]))
+    mine,top3=_ranking(user,0,3)
+    return dict(room1Briefed=room1_briefed(user),window=window(),steps=steps,stage=current,started=steps[0]['complete'],completed=steps[-1]['complete'],games={code:uid(code) in completed for code,_ in GAMES},locked=LOCKED,canPractice=bool(user.is_staff and settings.DEBUG and settings.EVENT_STORY_PREVIEW),ranking=dict(myRank=mine,top3=top3))
+
+def _ranking(user,offset,limit):
+    from accounts.models import get_nickname
+    q=EventProgress.objects.filter(event_id=uid('6'),status='COMPLETED',completion_order__isnull=False).select_related('user__campus_profile').order_by('completion_order')
+    mine=q.filter(user=user).values_list('completion_order',flat=True).first()
+    return mine,[dict(rank=p.completion_order,nickname=get_nickname(p.user)) for p in q[offset:offset+limit]]
+
 
 def ranking(user,page=1):
-    from accounts.models import get_nickname
-    q=EventProgress.objects.filter(event_id=uid('6'),status='COMPLETED',completion_order__isnull=False).select_related('user').order_by('completion_order')
-    mine=q.filter(user=user).first()
-    return dict(myRank=mine.completion_order if mine else None,entries=[dict(rank=p.completion_order,nickname=get_nickname(p.user)) for p in q[(page-1)*25:page*25]],page=page,hasMore=q.count()>page*25)
+    mine,entries=_ranking(user,(page-1)*25,26)
+    return dict(myRank=mine,entries=entries[:25],page=page,hasMore=len(entries)>25)
 
 def check_game(user, code):
     if code=='kkuwang_touch':
@@ -159,33 +194,50 @@ def check_game(user, code):
         codes=[c for c,_ in GAMES][1:];index=codes.index(code)
         if index: require(user,codes[index-1])
 
-@learning_write_transaction
 def action(user, data, session_uuid):
+    if data.get('action')=='notice':
+        prepare_status(user)
+        # Build the one-time notice before consuming it, so a read failure is retryable.
+        state=status(user)
+        return dict(state=state,**_write_action(user,data,session_uuid))
     catalog()
+    result=_write_action(user,data,session_uuid)
+    return dict(state=status(user),**result)
+
+
+@learning_write_transaction
+def _write_action(user,data,session_uuid):
     get_user_model().objects.select_for_update().get(pk=user.pk)
+    recover_finished_challenge(user)
+    result=_action(user,data,session_uuid)
+    recover_finished_challenge(user)
+    return result
+
+
+def _action(user,data,session_uuid):
     a=data.get('action')
     if a=='notice':
         p,_=StoryProgress.objects.get_or_create(user=user,event_key='pepero-2026-ui-notices')
         _,created=StoryRecord.objects.get_or_create(progress=p,key=timezone.now().astimezone(TZ).date().isoformat(),defaults={'kind':'daily_notice'})
-        return dict(state=status(user),show_notice=created)
+        return dict(show_notice=created)
     ensure_open()
     if a=='investigate':
         verify(user,data.get('ticket'),'investigate')
         first=not done(user,'1');complete(user,'1',session_uuid)
-        return dict(state=status(user),first=first,correct=True)
+        return dict(first=first,correct=True)
     elif a=='room1_briefing':
         verify(user,data.get('ticket'),'room1')
         progress,_=StoryProgress.objects.get_or_create(user=user,event_key='pepero-2026-room1-dialogue')
         _,created=StoryRecord.objects.get_or_create(progress=progress,key='yeongseok-intro',defaults={'kind':'npc_dialogue','session_uuid':str(session_uuid),'payload':{'npc_id':'manager-yeongseok','dialogue':'room1-intro-v1'}})
-        return dict(state=status(user),first=created)
+        return dict(first=created)
     elif a=='sql_answer':
         require(user,'sql_memory')
         verify(user,data.get('ticket'),'room1')
-        if data.get('answer')!='C':return dict(state=status(user),correct=False)
+        if data.get('answer')!='C':return dict(correct=False)
         complete(user,'3',session_uuid)
     elif a=='confession':
         require(user,'3');verify(user,data.get('ticket'),'roof-guide')
-        return dict(state=status(user),correct=True)
+        return dict(correct=True)
     elif a=='game_start':
         code=data.get('game')
         if code not in dict(GAMES) and code!='kkuwang_touch':raise LearningError('게임을 확인해 주세요.')
@@ -212,7 +264,7 @@ def action(user, data, session_uuid):
             deck=list(range(6))*2;random.SystemRandom().shuffle(deck);challenge['deck']=deck
         play=GamePlay.objects.create(user=user,session=session,game=game,event_id=None if practice else uid('4' if code=='kkuwang_touch' else code),evidence={'challenge':challenge})
         token=signing.dumps({'play':str(play.pk),'user':str(user.pk),'challenge':challenge},salt=SALT)
-        return dict(state=status(user),play=str(play.pk),token=token,challenge=challenge,practice=practice)
+        return dict(play=str(play.pk),token=token,challenge=challenge,practice=practice)
     elif a in ('game_finish','game_interrupt'):
         try:play=GamePlay.objects.select_for_update().get(pk=data.get('play'),user=user)
         except (GamePlay.DoesNotExist,ValueError):raise LearningError('게임 기록을 찾을 수 없습니다.')
@@ -224,7 +276,7 @@ def action(user, data, session_uuid):
         if not isinstance(result,dict) or len(json.dumps(result))>50000:raise LearningError('게임 결과 형식을 확인하세요.')
         if play.status!='RUNNING':
             if play.evidence.get('result')!=result:raise LearningError('이미 다른 결과로 확정된 판입니다.','result_conflict',409)
-            return dict(state=status(user),success=None if play.status=='FINISHED' else play.status=='SUCCESS',score=play.evidence.get('score'),coatingTiming=play.evidence.get('coatingTiming'))
+            return dict(success=None if play.status=='FINISHED' else play.status=='SUCCESS',score=play.evidence.get('score'),coatingTiming=play.evidence.get('coatingTiming'))
         elapsed=max(0,int((timezone.now()-play.started_at).total_seconds()*1000))
         if play.game.game_code=='kkuwang_touch' and a=='game_finish':
             taps=result.get('taps',[]);duration=signed['challenge']['durationMs']
@@ -233,7 +285,7 @@ def action(user, data, session_uuid):
             if play.event_id is not None:require(user,'3')
             play.status='FINISHED';play.ended_at=timezone.now();play.duration_ms=elapsed;play.evidence={**play.evidence,'result':result,'score':len(taps)};play.save()
             if play.event_id is not None:complete(user,'4',session_uuid)
-            return dict(state=status(user),success=None,score=len(taps))
+            return dict(success=None,score=len(taps))
         success=False if a=='game_interrupt' else judge(play.game.game_code,signed['challenge'],result,elapsed)
         play.status='INTERRUPTED' if a=='game_interrupt' else 'SUCCESS' if success else 'FAILED'
         timing=coating_timing(signed['challenge'],result,elapsed) if play.game.game_code=='coating' and signed['challenge'].get('rulesVersion')==3 else None
@@ -241,7 +293,7 @@ def action(user, data, session_uuid):
         if success and play.event_id is not None:
             check_game(user,play.game.game_code);complete(user,play.game.game_code,session_uuid)
             if all(done(user,c) for c,_ in GAMES[1:]):complete(user,'5',session_uuid)
-        return dict(state=status(user),success=success,coatingTiming=timing)
+        return dict(success=success,coatingTiming=timing)
     elif a=='deliver':
         require(user,'5');verify(user,data.get('ticket'),'final-guide')
         EventDefinition.objects.select_for_update().get(pk=uid('6'))
@@ -249,7 +301,7 @@ def action(user, data, session_uuid):
         if p.completion_order is None:
             p.completion_order=(EventProgress.objects.filter(event_id=uid('6')).aggregate(n=Max('completion_order'))['n'] or 0)+1;p.save()
     else: raise LearningError('지원하지 않는 이벤트 요청입니다.')
-    return dict(state=status(user),correct=True)
+    return dict(correct=True)
 
 def judge(code,c,r,elapsed):
     if code=='topping' and c.get('rulesVersion',0)>=3:

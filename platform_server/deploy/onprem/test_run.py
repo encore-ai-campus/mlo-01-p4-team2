@@ -37,6 +37,23 @@ class LauncherTests(unittest.TestCase):
                     self.assertIn('server 127.0.0.1:9201', config)
                     self.assertIn('location /static/', config)
 
+    def test_entry_routes_bypass_python_for_both_websockets(self):
+        config = Path(__file__).with_name('nginx-entry.conf.example').read_text()
+        for path, destination in (
+            ('/ws/movement/', '@MOVEMENT_HOST@:@MOVEMENT_NGINX_PORT@'),
+            ('/ws/chat/', '@SERVICE_HOST@:@SERVICE_NGINX_PORT@'),
+            ('/static/', '@SERVICE_HOST@:@SERVICE_NGINX_PORT@'),
+            ('/', '@SERVICE_HOST@:@SERVICE_FRONTEND_PORT@'),
+        ):
+            self.assertIn('location ' + ('= ' if path.startswith('/ws/') else '') +
+                          path + ' { proxy_pass http://' + destination + '; }', config)
+        for header in ('Cookie $http_cookie', 'Origin $http_origin', 'Host $http_host',
+                       'X-Forwarded-Proto $scheme'):
+            self.assertIn('proxy_set_header ' + header + ';', config)
+        self.assertIn('location = /ws/campus/ { return 404; }', config)
+        service = Path(__file__).with_name('nginx-service.conf').read_text()
+        self.assertIn('upstream service_chat {\n        hash $cookie_campus_sessionid consistent;', service)
+
     def test_invalid_ports_and_bind_are_rejected_before_start(self):
         with contextlib.redirect_stderr(io.StringIO()):
             for args in (['--frontend-port', '8000'], ['--backend-base-port', '65534'], ['--bind', 'bad;value']):

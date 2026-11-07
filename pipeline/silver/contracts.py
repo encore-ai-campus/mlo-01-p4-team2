@@ -73,9 +73,11 @@ JUDGED_ERROR_SCHEMA = _schema(*JUDGED_ERROR_FIELDS)
 UUID_RE = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z"  # 소문자 하이픈 표기만. Java 의 $ 는 끝 줄바꿈 앞에서도 맞으므로 \z
 SHA256_RE = r"^[0-9a-f]{64}\z"
 _UTC_RE = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,6})?Z\z"  # Debezium ZonedTimestamp(UTC). 소수 6자리 넘으면 잘리므로 거부
+_UTC_OFFSET_RE = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,6})?\+00:00\z"  # 광고 페이로드 시각(isoformat UTC — SL-8 결정 B (가)). Z·다른 오프셋은 거부
 _INTEGER_TYPES_RE = r"^(BIGINT|INT|SMALLINT|TINYINT|DECIMAL\([0-9]+,0\))\z"  # Variant 의 정수 형. DOUBLE(1e2·39자리 정수)과 소수(1.5)는 거부
 _PATH = re.compile(r"\$(\.[A-Za-z_][A-Za-z0-9_]*)+")
-KINDS = ("string", "bigint", "timestamp")
+KINDS = ("string", "bigint", "timestamp", "timestamp_utc_offset")
+_STAMPS = {"timestamp": _UTC_RE, "timestamp_utc_offset": _UTC_OFFSET_RE}  # 시각 형 → 받는 표기. 값은 둘 다 timestamp(UTC 순간)
 
 
 STRICT_REASONS_TYPE = T.StructType([T.StructField("value", T.StringType()), T.StructField("nested", T.StringType())])
@@ -99,6 +101,8 @@ def field(v, path, kind, nullable=False):
     - string: Variant 형이 STRING 일 때만(수·객체를 문자열로 바꾸지 않는다).
     - bigint: Variant 형이 정수(BIGINT·INT·SMALLINT·TINYINT·DECIMAL(p,0))이고 bigint 범위 안일 때만.
     - timestamp: STRING 이고 `YYYY-MM-DDTHH:MM:SS[.1~6자리]Z` 이고 실제 날짜일 때만.
+    - timestamp_utc_offset: STRING 이고 `YYYY-MM-DDTHH:MM:SS[.1~6자리]+00:00` 이고 실제 날짜일 때만(SL-3d — 광고 SL-8 결정 B (가)). 값은 timestamp.
+      `Z`·`-00:00`·다른 오프셋·콜론 없는 오프셋·시간대 없음은 틀림이다 — 표기가 바뀌면 원천이 바뀐 것이라 조용히 받지 않는다.
     JSON null 은 nullable 일 때만 맞음(값 null). 경로가 없으면 늘 틀림."""
     if not _PATH.fullmatch(path) or kind not in KINDS:
         raise ValueError(f"꺼낼 경로·형이 잘못됐다: {path!r} {kind!r}")
@@ -113,10 +117,10 @@ def field(v, path, kind, nullable=False):
     else:
         text = F.when(vtype == "STRING", F.variant_get(v, path, "string"))
         stamp = text.try_cast("timestamp")
-        good = text.rlike(_UTC_RE) & stamp.isNotNull()
+        good = text.rlike(_STAMPS[kind]) & stamp.isNotNull()
         value = F.when(good, stamp)
     ok = F.coalesce(good, F.lit(False)) | (F.lit(nullable) & F.coalesce(vtype == "VOID", F.lit(False)))
-    return value.cast(kind), ok
+    return value.cast("timestamp" if kind in _STAMPS else kind), ok
 
 
 def extract(v, spec):

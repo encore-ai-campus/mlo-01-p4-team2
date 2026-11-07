@@ -87,6 +87,9 @@ DOC = {
     "ts": "2026-11-04T05:55:37.622806Z", "ts0": "2026-11-04T05:55:37Z", "ts1": "2026-11-04T05:55:37.6Z", "ts7": "2026-11-04T05:55:37.6228061Z",
     "tsoff": "2026-11-04T14:55:37.622806+09:00", "tsnz": "2026-11-04T05:55:37.622806", "tsbad": "2026-02-30T00:00:00Z",
     "tssp": "2026-11-04 05:55:37Z", "tsnl": "2026-11-04T05:55:37Z\n",
+    "tsu": "2026-11-04T05:55:37.622806+00:00", "tsu0": "2026-11-04T05:55:37+00:00", "tsu1": "2026-11-04T05:55:37.6+00:00",  # SL-3d +00:00 표기
+    "tsu7": "2026-11-04T05:55:37.6228061+00:00", "tsum": "2026-11-04T05:55:37.622806-00:00", "tsubad": "2026-02-30T00:00:00+00:00",
+    "tsunl": "2026-11-04T05:55:37+00:00\n", "tsu24": "2026-11-04T24:00:00+00:00", "tsunc": "2026-11-04T05:55:37+0000", "tsusp": "2026-11-04 05:55:37+00:00",
 }
 NUMBERS = {"big": "9223372036854775807", "under": "-9223372036854775809", "half": "1.5", "one0": "1.0", "e2": "1e2", "i39": INT39, "i1000": "1" + "0" * 999}
 TEXT = json.dumps(DOC, ensure_ascii=False)[:-1] + "".join(f',"{k}":{v}' for k, v in NUMBERS.items()) + "}"
@@ -130,11 +133,23 @@ class Extract(unittest.TestCase):
             ("$.ts1", False, (datetime(2026, 11, 4, 5, 55, 37, 600000), True)),
             ("$.ts7", False, (None, False)), ("$.tsoff", False, (None, False)), ("$.tsnz", False, (None, False)), ("$.tsbad", False, (None, False)),
             ("$.tssp", False, (None, False)), ("$.tsnl", False, (None, False)), ("$.n", False, (None, False)), ("$.nul", True, (None, True)),
+            ("$.tsu", False, (None, False)),  # +00:00 표기는 이 형이 아니다(SL-3d 형)
+        ])
+
+    def test_timestamps_with_utc_offset(self):  # SL-3d — 광고 SL-8 결정 B (가): +00:00 만, 소수 6자리 이하, 실제 날짜
+        self.check("timestamp_utc_offset", [
+            ("$.tsu", False, (datetime(2026, 11, 4, 5, 55, 37, 622806), True)), ("$.tsu0", False, (datetime(2026, 11, 4, 5, 55, 37), True)),
+            ("$.tsu1", False, (datetime(2026, 11, 4, 5, 55, 37, 600000), True)),
+            ("$.ts", False, (None, False)), ("$.ts0", False, (None, False)),  # Z 는 받지 않는다(광고 페이로드에 없음)
+            ("$.tsoff", False, (None, False)), ("$.tsum", False, (None, False)), ("$.tsunc", False, (None, False)), ("$.tsnz", False, (None, False)),
+            ("$.tsu7", False, (None, False)), ("$.tsubad", False, (None, False)), ("$.tsu24", False, (None, False)), ("$.tsunl", False, (None, False)),
+            ("$.tsusp", False, (None, False)), ("$.n", False, (None, False)), ("$.nul", False, (None, False)), ("$.nul", True, (None, True)),
+            ("$.missing", True, (None, False)),
         ])
 
     def test_result_types_and_bad_specs(self):
         selected = self.frame.select(*[contracts.field(F.col("v"), "$.s", kind)[0].alias(kind) for kind in contracts.KINDS])
-        self.assertEqual(columns(selected.schema), [("string", "string"), ("bigint", "bigint"), ("timestamp", "timestamp")])
+        self.assertEqual(columns(selected.schema), [("string", "string"), ("bigint", "bigint"), ("timestamp", "timestamp"), ("timestamp_utc_offset", "timestamp")])
         for path, kind in (("after.s", "string"), ("$.a-b", "string"), ("$.s", "double"), ("$", "string")):
             with self.subTest(path=path, kind=kind):
                 with self.assertRaises(ValueError):

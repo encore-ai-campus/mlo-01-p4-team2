@@ -197,3 +197,8 @@ ADS_PORTAL_RIGHT_SLOT_ID = os.environ.get("ADS_PORTAL_RIGHT_SLOT_ID", "")
 # Event main story: production follows the KST event day; local preview is explicit.
 EVENT_STORY_DATE = os.environ.get("EVENT_STORY_DATE", "2026-11-11")
 EVENT_STORY_PREVIEW = os.environ.get("EVENT_STORY_PREVIEW", "0") == "1"
+
+# Optional future --lookup mode only. Default click delivery uses the existing reaction PUT.
+ADS_CLICK_LOOKUP_BACKEND = os.environ.get("ADS_CLICK_LOOKUP_BACKEND", "")
+
+ADS_CLICK_LOOKUP_PATH = os.environ.get("ADS_CLICK_LOOKUP_PATH", "")

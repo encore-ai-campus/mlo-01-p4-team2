@@ -93,3 +93,15 @@
 | [src/frontend/tests/ad-visibility.test.cjs](../src/frontend/tests/ad-visibility.test.cjs) | `frontend/tests/ad-visibility.test.cjs` |
 | [src/frontend/tests/campus-ads.test.cjs](../src/frontend/tests/campus-ads.test.cjs) | `frontend/tests/campus-ads.test.cjs` |
 | [src/frontend/tests/isometric.test.cjs](../src/frontend/tests/isometric.test.cjs) | `frontend/tests/isometric.test.cjs` |
+| [src/backend/ad_bridge/click_records.py](../src/backend/ad_bridge/click_records.py) | `backend/ad_bridge/click_records.py` |
+| [src/backend/ad_bridge/click_worker.py](../src/backend/ad_bridge/click_worker.py) | `backend/ad_bridge/click_worker.py` |
+| [src/backend/ad_bridge/management/commands/confirm_ad_clicks.py](../src/backend/ad_bridge/management/commands/confirm_ad_clicks.py) | `backend/ad_bridge/management/commands/confirm_ad_clicks.py` |
+| [src/backend/ad_bridge/migrations/0006_adclick.py](../src/backend/ad_bridge/migrations/0006_adclick.py) | `backend/ad_bridge/migrations/0006_adclick.py` |
+| [src/backend/ad_bridge/tests/test_click_records.py](../src/backend/ad_bridge/tests/test_click_records.py) | `backend/ad_bridge/tests/test_click_records.py` |
+| [src/backend/config/settings.py](../src/backend/config/settings.py) | `backend/config/settings.py` |
+| [src/backend/ad_bridge/api/click_lookup.py](../src/backend/ad_bridge/api/click_lookup.py) | `backend/ad_bridge/api/click_lookup.py` |
+| [src/backend/ad_bridge/click_lookup.py](../src/backend/ad_bridge/click_lookup.py) | `backend/ad_bridge/click_lookup.py` |
+| [src/backend/ad_bridge/tests/test_click_lookup.py](../src/backend/ad_bridge/tests/test_click_lookup.py) | `backend/ad_bridge/tests/test_click_lookup.py` |
+| [src/backend/ad_bridge/click_reporting.py](../src/backend/ad_bridge/click_reporting.py) | `backend/ad_bridge/click_reporting.py` |
+| [src/backend/ad_bridge/migrations/0007_click_confirmation_source.py](../src/backend/ad_bridge/migrations/0007_click_confirmation_source.py) | `backend/ad_bridge/migrations/0007_click_confirmation_source.py` |
+| [src/backend/ad_bridge/tests/test_click_reporting.py](../src/backend/ad_bridge/tests/test_click_reporting.py) | `backend/ad_bridge/tests/test_click_reporting.py` |

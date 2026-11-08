@@ -1,5 +1,6 @@
 """발급한 광고의 이동 주소를 로그인 계정에 묶어 서명한다."""
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
+from uuid import UUID
 
 from django.core import signing
 
@@ -20,3 +21,11 @@ def click_target(token, decision_id, owner_id):
     if parsed.scheme not in ('http', 'https') or not parsed.netloc:
         raise signing.BadSignature('광고 주소를 확인해 주세요.')
     return url
+
+
+def shared_click_subject(url):
+    """이미 서명 검증한 shared 클릭 URL에서 발급 당시 가명을 읽는다."""
+    values = parse_qs(urlsplit(url).query, keep_blank_values=True).get('s', [])
+    if len(values) != 1:
+        raise ValueError('공유 광고의 클릭 사용자를 확인할 수 없습니다.')
+    return UUID(values[0])

@@ -1,5 +1,6 @@
 """feat;#17 게임의 로그인 프로필과 기존 광고 요청 모듈을 연결한다."""
 
+import logging
 import hashlib
 import hmac
 from datetime import timezone as utc_timezone
@@ -14,7 +15,7 @@ from django.db.models import Q
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 from ..routing import RoutedAdsClient as AdsClient
 from ..api.config import AdsConfig
@@ -24,7 +25,12 @@ from ..decisions.service import create_decision
 from ..impressions import store as impression_store
 from ..impressions.service import report_impression_once
 from ..results.service import refresh_result
-from ..clicks import click_target, click_token
+from ..clicks import click_target, click_token, shared_click_subject
+from ..click_records import ClickNotFound, click_status, record_click
+from ..click_reporting import configured_report
+from ..click_worker import check_pending_clicks
+
+logger = logging.getLogger(__name__)
 
 
 @transaction.non_atomic_requests
@@ -101,10 +107,8 @@ def request_decision(request):
 @login_required
 @require_POST
 def report_click(request, decision_id):
-    """폼을 제출한 새 탭은 업적 저장이 끝난 뒤 광고 서버로 이동한다."""
-    from event_story.achievement_services import record_ad_click
+    """클릭 접수를 커밋하고 PUT 저장 확인을 시도한 뒤 이동한다. 실패분은 작업자가 재시도한다."""
     from eventing.events import SESSION_KEY
-    from learning.services import LearningError
     from ..models import IssuedDecision
 
     try:
@@ -112,22 +116,46 @@ def report_click(request, decision_id):
         if owner_id is None:
             raise ValueError('로그인 프로필을 확인해 주세요.')
         target = click_target(request.POST.get('token', ''), decision_id, owner_id)
-        known = IssuedDecision.objects.filter(pk=decision_id, has_ad=True).filter(
+        decision = IssuedDecision.objects.filter(pk=decision_id, has_ad=True).filter(
             Q(audience='shared') | Q(audience='individual', owner_id=owner_id),
-        ).exists()
-        if not known:
-            return HttpResponse('광고를 확인할 수 없습니다. 게임 화면에서 광고를 다시 눌러 주세요.',
-                                status=404, content_type='text/plain; charset=utf-8')
-        record_ad_click(request.user, request.session.get(SESSION_KEY))
+        ).first()
+        if decision is None:
+            raise ClickNotFound
+        subject = shared_click_subject(target) if decision.audience == 'shared' else None
+        record, _ = record_click(user=request.user, owner_id=owner_id, decision_id=decision_id,
+                     subject_id=subject, session_uuid=request.session.get(SESSION_KEY))
+    except ClickNotFound:
+        return HttpResponse('광고를 확인할 수 없습니다. 게임 화면에서 광고를 다시 눌러 주세요.',
+                            status=404, content_type='text/plain; charset=utf-8')
     except (signing.BadSignature, ValueError):
         return HttpResponse('광고 링크를 확인할 수 없습니다. 게임 화면에서 광고를 다시 눌러 주세요.',
                             status=400, content_type='text/plain; charset=utf-8')
-    except LearningError as error:
-        return HttpResponse(str(error), status=error.status, content_type='text/plain; charset=utf-8')
     except DatabaseError:
-        return HttpResponse('업적 저장을 확인하지 못했습니다. 게임 화면에서 광고를 다시 눌러 주세요.',
+        return HttpResponse('클릭 저장을 확인하지 못했습니다. 게임 화면에서 광고를 다시 눌러 주세요.',
                             status=503, content_type='text/plain; charset=utf-8')
+    if record.state == 'PENDING':
+        try:
+            check_pending_clicks(report=configured_report(), limit=1, record_id=record.pk)
+        except Exception as error:
+            # 접수는 이미 커밋됐다. 보고/업적 장애로 정상 광고 이동을 막지 않는다.
+            logger.warning('광고 클릭 보고 보류 record=%s error_type=%s', record.pk, type(error).__name__)
     return HttpResponseRedirect(target, status=303, headers={'Referrer-Policy': 'no-referrer'})
+
+
+@never_cache
+@login_required
+@require_GET
+def click_result(request, decision_id):
+    try:
+        owner = _owner_id(request.user)
+        if owner is None:
+            raise ClickNotFound
+        record = click_status(user=request.user, owner_id=owner, decision_id=decision_id)
+    except (ClickNotFound, ValueError):
+        return JsonResponse({'error': 'click_not_found'}, status=404)
+    return JsonResponse({'decision_id': str(record.decision_id), 'state': record.state,
+                         'clicked_at': record.clicked_at.isoformat(),
+                         'confirmed_at': record.confirmed_at.isoformat() if record.confirmed_at else None})
 
 
 @transaction.non_atomic_requests

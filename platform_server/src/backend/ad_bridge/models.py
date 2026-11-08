@@ -2,6 +2,7 @@
 
 import uuid
 
+from django.conf import settings
 from django.db import models
 
 
@@ -68,3 +69,38 @@ class PlacementBatch(models.Model):
     state = models.CharField(max_length=16, default="PENDING")
     payload = models.JSONField(default=list)
     expires_at = models.DateTimeField()
+
+
+class AdClick(models.Model):
+    """클릭 접수와 광고 서버 확인을 분리한다. 업적 지급 여부와 별개인 이력이다."""
+
+    class State(models.TextChoices):
+        PENDING = "PENDING"
+        CONFIRMED = "CONFIRMED"
+        BLOCKED = "BLOCKED"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    decision = models.ForeignKey(IssuedDecision, on_delete=models.PROTECT)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    owner_id = models.UUIDField(editable=False)
+    subject_id = models.UUIDField(editable=False)
+    session_uuid = models.UUIDField(null=True, editable=False)
+    clicked_at = models.DateTimeField(editable=False)
+    state = models.CharField(max_length=16, choices=State.choices, default=State.PENDING)
+    confirmed_at = models.DateTimeField(null=True)
+    confirmation_source = models.CharField(max_length=16, null=True)
+    server_reaction_id = models.UUIDField(null=True)
+    server_clicked_at = models.DateTimeField(null=True)
+    server_received_at = models.DateTimeField(null=True)
+    server_status = models.CharField(max_length=16, null=True)
+    attempts = models.PositiveIntegerField(default=0)
+    next_check_at = models.DateTimeField(null=True)
+    lease_token = models.UUIDField(null=True)
+    lease_expires_at = models.DateTimeField(null=True)
+    last_error = models.CharField(max_length=64, null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["decision", "owner_id"], name="ad_bridge_click_owner"),
+        ]
+        indexes = [models.Index(fields=["state", "next_check_at"], name="ad_bridge_click_due")]

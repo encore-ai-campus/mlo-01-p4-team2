@@ -1,6 +1,7 @@
-"""옥상 공통 회차와 서버가 승인한 포털 이동의 광고를 발급·보관한다."""
+"""사용자별 옥상 회차와 서버가 승인한 포털 이동의 광고를 발급·보관한다."""
 
 from dataclasses import asdict
+from hashlib import sha256
 from datetime import datetime, timezone as utc, timedelta
 from uuid import UUID
 
@@ -31,11 +32,12 @@ def transfer_identity(token, user_id):
 def get_batch(*, client, owner_id, subject_id, transfer_id=None, now=None):
     from .models import PlacementBatch
 
+    owner_id, subject_id = UUID(str(owner_id)), UUID(str(subject_id))
     now = now or timezone.now()
-    shared = transfer_id is None
-    if shared:
+    rooftop = transfer_id is None
+    if rooftop:
         epoch = int(now.timestamp()) // ROUND_SECONDS * ROUND_SECONDS
-        key = f"roof:{epoch}"
+        key = f"roof:{owner_id}:{epoch}"
         expires = datetime.fromtimestamp(epoch + ROUND_SECONDS, tz=utc.utc)
         slots = [getattr(settings, "ADS_ROOFTOP_SLOT_ID", "")]
     else:
@@ -45,16 +47,16 @@ def get_batch(*, client, owner_id, subject_id, transfer_id=None, now=None):
     # 모든 슬롯을 발급 전에 검증해 부분 설정으로 외부 결정을 낭비하지 않는다.
     slots = [str(UUID(slot)) for slot in slots]
     batch, created = PlacementBatch.objects.get_or_create(
-        key=key, defaults={"owner_id": None if shared else owner_id, "expires_at": expires},
+        key=key, defaults={"owner_id": owner_id, "expires_at": expires},
     )
-    if not shared and batch.owner_id != owner_id:
-        raise ValueError("이동 소유자가 일치하지 않습니다.")
+    if batch.owner_id != owner_id:
+        raise ValueError("광고 배치 소유자가 일치하지 않습니다.")
     if created:
         payload = []
         try:
             for slot in slots:
                 decision = create_decision(client=client, store=store, slot_id=slot,
-                    owner_id=None if shared else owner_id, subject_id=None if shared else subject_id)
+                    owner_id=owner_id, subject_id=subject_id)
                 item = asdict(decision)
                 # 같은 소재는 결정과 클릭 URL까지 통일하여 별도 결정의 선행 노출 누락을 막는다.
                 canonical = next((old for old in payload if old["ad"] and item["ad"]
@@ -71,6 +73,9 @@ def get_batch(*, client, owner_id, subject_id, transfer_id=None, now=None):
 
 
 def public_batch(batch, subject_id, *, owner_id):
+    owner_id = UUID(str(owner_id))
+    if batch.owner_id is not None and batch.owner_id != owner_id:
+        raise ValueError("광고 배치 소유자가 일치하지 않습니다.")
     ads = []
     for entry in batch.payload:
         ad = entry["ad"]
@@ -79,5 +84,9 @@ def public_batch(batch, subject_id, *, owner_id):
             "creative_id": ad["creative_id"], "title": ad["title"], "image_url": ad["image_url"],
             "click_url": url, "click_token": click_token(entry["decision_id"], url, owner_id),
         }})
-    return {"batch_id": batch.key, "state": batch.state, "ads": ads,
+    # 내부 사용자 UUID가 포함된 옥상 키를 브라우저에 그대로 노출하지 않는다.
+    public_key = batch.key
+    if batch.key.startswith("roof:") and batch.owner_id is not None:
+        public_key = sha256(batch.key.encode("utf-8")).hexdigest()
+    return {"batch_id": public_key, "state": batch.state, "ads": ads,
             "server_time": timezone.now().isoformat(), "expires_at": batch.expires_at.isoformat()}

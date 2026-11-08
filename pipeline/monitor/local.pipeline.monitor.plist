@@ -3,7 +3,8 @@
 <!-- 주기 감시(P2-4b, 임시 D18)를 1분마다 — 로컬 시험대용 사용자 LaunchAgent 견본. 운영은 같은 check.py 를 systemd 타이머로(결정 B — 디스크는 그 장치에서).
      자리 표시: __PYTHON__ = psycopg·boto3 가 있는 python, __REPO__ = 실행 전용 clone(결정 A — 작업 저장소가 아님), __HOME__ = 홈 폴더,
      __COMMIT__ = 그 clone 이 checkout 한 리뷰된 커밋 40자(다르거나 clone 이 더러우면 check.py 가 점검하지 않고 알림 + rc 2 code_pin).
-     설치·올리기·끄기는 monitor/README.md 「주기 실행」. 웹훅 주소는 여기에 쓰지 않는다 — MONITOR_WEBHOOK_FILE 로 저장소 밖 파일 경로만 준다.
+     설치·올리기·끄기는 monitor/README.md 「주기 실행」. 로컬은 웹훅 없이 둔다(사용자 결정 2026-11-08 — 경보는 로그의 JSON 줄로만, 웹훅은 운영 감시 서버만).
+     MONITOR_WEBHOOK_FILE 을 두고 파일이 없으면 회차마다 "웹훅 실패"가 되어 경보 수준·공백·rc 2 표시가 갱신되지 않으므로 키를 두지 않는다.
      필수 모드라 운영 변수(check.REQUIRED)가 하나라도 없거나 비면 점검하지 않는다. MONITOR_CODE_COMMIT·MONITOR_GAP_S 는 빠지면 그 확인이 조용히 꺼지므로 지우지 않는다. -->
 <plist version="1.0">
 <dict>
@@ -24,8 +25,8 @@
     <key>MONITOR_CODE_COMMIT</key><string>__COMMIT__</string>
     <key>MONITOR_STATE</key><string>__HOME__/.local/state/pipeline_monitor/periodic.json</string>
     <key>MONITOR_LOG</key><string>__HOME__/Library/Logs/pipeline-monitor.log</string>
-    <key>MONITOR_WEBHOOK_FILE</key><string>__HOME__/.config/pipeline-monitor/webhook</string>
     <key>MONITOR_PG_NODES</key><string>127.0.0.1:5432,127.0.0.1:5433,127.0.0.1:5434</string>
+    <key>MONITOR_PG_USER</key><string>postgres</string>
     <key>MONITOR_PG_PASSWORD_FILE</key><string>/opt/postgresql/config/postgres-password</string>
     <key>MONITOR_SLOTS</key><string>ads_outbox_slot,ads_e2e_slot,metaverse_outbox_slot</string>
     <key>MONITOR_CONNECT_REST</key><string>http://127.0.0.1:8083</string>

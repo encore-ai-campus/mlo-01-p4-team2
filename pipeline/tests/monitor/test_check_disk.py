@@ -199,7 +199,9 @@ class MainRounds(unittest.TestCase):
         self.env = {"MONITOR_PG_NODES": NODES, "MONITOR_S7_POWER": "0"}
         self.bad = {**self.env, "MONITOR_R7": "yes"}  # bad_config
         self.sent, self.result = [], "웹훅 200"
+        self.reach = []
         for name, value in (("STATE", self.state_dir / "periodic.json"), ("SLOTS", ["s1", "s2"]), ("pg", cluster()), ("m3", lambda *args: []),
+                            ("m3_reach", lambda: self.reach),
                             ("m4", lambda: []), ("m5", lambda: []), ("d1", lambda *args: []), ("d2", lambda *args: []), ("notify", self.notify)):
             patcher = mock.patch.object(check, name, value)
             patcher.start()
@@ -232,6 +234,17 @@ class MainRounds(unittest.TestCase):
         self.assertNotIn("gap_open", self.state())
         _, out = self.run_main(env, T0 + 720)
         self.assertTrue([c for c in out["changes"] if c.startswith("[해소] S7 gap: 지난 점검 뒤 60초")], out["changes"])
+
+    def test_a_silent_connect_worker_alerts_then_resolves(self):  # Planner 2026-11-08 (나) — main 이 m3_reach 를 부르고, m3 가 실패해도 그 줄이 남는다
+        key = "connect_rest:http://10.0.0.2:8088"
+        self.reach = [check.finding("M3", key, "alert", "GET / 응답 없음")]
+        with mock.patch.object(check, "m3", mock.Mock(side_effect=TimeoutError("모든 주소"))):
+            _, out = self.run_main(self.env, T0)
+        self.assertIn(f"[경보] M3 {key}: GET / 응답 없음", out["changes"])
+        self.assertEqual(self.state()["levels"][key], "alert")
+        self.reach = [check.finding("M3", key, "ok", "GET / 응답")]
+        _, out = self.run_main(self.env, T0 + 60)
+        self.assertIn(f"[해소] M3 {key}: GET / 응답", out["changes"])
 
     def test_refusal_is_sent_once_then_hourly(self):
         self.state_dir.mkdir(mode=0o700)
@@ -336,13 +349,14 @@ class Sample(unittest.TestCase):
     def test_plist_has_every_setting_and_the_values_parse(self):
         data = plistlib.loads((MONITOR / "local.pipeline.monitor.plist").read_bytes())
         env = data["EnvironmentVariables"]
-        need = set(check.REQUIRED) | {"MONITOR_REQUIRE_ALL", "MONITOR_CODE_COMMIT", "MONITOR_GAP_S", "MONITOR_LOG", "MONITOR_WEBHOOK_FILE"}  # 리뷰 R7
+        need = set(check.REQUIRED) | {"MONITOR_REQUIRE_ALL", "MONITOR_CODE_COMMIT", "MONITOR_GAP_S", "MONITOR_LOG"}  # 리뷰 R7
         self.assertEqual(need - set(env), set())
         self.assertEqual((env["MONITOR_REQUIRE_ALL"], env["MONITOR_R7"], env["MONITOR_GAP_S"], data["StartInterval"]), ("1", "1", "300", 60))
         self.assertIs(data["RunAtLoad"], True)
         self.assertEqual(data["ProgramArguments"], ["__REPO__/pipeline/monitor/run-monitor.sh", "__PYTHON__"])
         self.assertNotIn("StandardOutPath", data)  # 로그는 래퍼가 연다(리뷰 R3)
         self.assertNotIn("MONITOR_WEBHOOK_URL", env)
+        self.assertNotIn("MONITOR_WEBHOOK_FILE", env)  # 로컬은 웹훅 없음(사용자 결정 2026-11-08) — 키가 있고 파일이 없으면 회차마다 "웹훅 실패"
         filled = {k: v.replace("__HOME__", "/Users/x").replace("__COMMIT__", "0" * 40) for k, v in env.items()}
         self.assertEqual(check.missing_config(filled), [])
         check.pg_nodes(filled)

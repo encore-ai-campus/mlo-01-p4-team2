@@ -86,17 +86,20 @@ du -sh "$HOP_RECONCILE_DIR"; df -h "$HOP_RECONCILE_DIR"
 env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
   MONITOR_STATE="$HOME/.local/state/pipeline_monitor/manual.json" \
   MONITOR_SLOTS=ads_outbox_slot,metaverse_outbox_slot MONITOR_S7_POWER=0 MONITOR_R7=1 MONITOR_DISK=none \
-  MONITOR_PG_NODES=<LAP1_IP>:5437,<LAP2_IP>:5437,<LAP3_IP>:5437 MONITOR_PG_PASSWORD_FILE=… \
-  MONITOR_CONNECT_REST=http://<LAPn_IP>:8088 MONITOR_KAFKA=<LAP1_IP>:9097,<LAP2_IP>:9097,<LAP3_IP>:9097 MONITOR_KAFKA_BIN=… MONITOR_JAVA_HOME=… \
-  MONITOR_BRONZE=… S3_ENDPOINT=… S3_ACCESS_KEY_FILE=… S3_SECRET_KEY_FILE=… \
+  MONITOR_PG_NODES=<LAP1_IP>:5437,<LAP2_IP>:5437,<LAP3_IP>:5437 MONITOR_PG_USER=pipeline_monitor MONITOR_PG_PASSWORD_FILE=… \
+  MONITOR_CONNECT_REST=http://<LAP1_IP>:8088,http://<LAP2_IP>:8088,http://<LAP3_IP>:8088 \
+  MONITOR_KAFKA=<LAP1_IP>:9097,<LAP2_IP>:9097,<LAP3_IP>:9097 MONITOR_KAFKA_BIN=… MONITOR_JAVA_HOME=… \
+  MONITOR_BRONZE=none \
   MONITOR_OUTBOX="ads|ads|public.events_outbox,metaverse|<메타버스 DB>|public.eventing_eventoutbox" \
   <python> pipeline/monitor/check.py; echo "rc=$?"
 ```
 
 - `…`·`<LAPn_IP>`·`<메타버스 DB>`는 운영 값이다(P8-2에서 정한다). 변수 뜻은 `monitor/README.md` 「설정」 절에 있다.
-- `MONITOR_CONNECT_REST`는 주소 하나만 받는다. 그 노트북이 꺼져 있으면 M3가 `M3:run` error가 된다 — 다른 노트북 주소로 바꿔 다시 돌린다.
+- `MONITOR_PG_USER`: 읽기 전용 감시 역할 `pipeline_monitor`(pg_monitor 회원 — Ops 2026-11-08). `MONITOR_PG_PASSWORD_FILE`은 그 역할의 비밀번호 파일이다.
+- `MONITOR_CONNECT_REST`: 쉼표 목록이다. 회차마다 앞에서부터 처음 응답한 곳을 쓴다(R7 재시작 요청도 그곳). 앞 주소가 응답하지 않았으면 M3 `connect_rest` ok 줄에 그 주소만 남는다. 경보는 따로 낸다: 회차마다 목록의 모든 주소에 `GET /`(5초)를 보내, 응답하지 않는 주소마다 `connect_rest:<주소>` alert(Connect Worker 프로세스만 멈춘 것도 — 그 Task는 남은 Worker로 옮겨져 커넥터 줄은 RUNNING일 수 있다). 셋 모두 응답하지 않으면 그 셋의 alert와 `M3:run` error다.
+- `MONITOR_BRONZE=none`: 운영 Bronze(k3s·S3)가 아직 없다. M5는 `bronze` `unsupported` 한 줄이고, S3 세 변수(`S3_ENDPOINT`·`S3_ACCESS_KEY_FILE`·`S3_SECRET_KEY_FILE`)는 필요 없다. Bronze가 생기면 `MONITOR_BRONZE` 목록과 S3 세 변수를 넣는다.
 - `MONITOR_DISK=none`: 관리 장치에는 볼 디스크가 없다(D1은 `unsupported` 한 줄). 노트북 디스크는 ①로 본다.
-- `MONITOR_OUTBOX`(D2): ②의 outbox 크기를 같은 postgres 계정·같은 노드로 함께 본다. 5 GiB를 넘으면 "P1-6 정리를 할 때" 경보다.
+- `MONITOR_OUTBOX`(D2): ②의 outbox 크기를 같은 감시 계정(`MONITOR_PG_USER`)·같은 노드로 함께 본다 — 그 계정에 두 DB의 CONNECT와 `public` 스키마 USAGE(둘 다 기본은 PUBLIC에 있다)가 있어야 한다. 표 권한은 필요 없다(`pg_total_relation_size`·`pg_class`만 읽는다). USAGE가 없으면 표 이름을 풀지 못해 D2가 error(InsufficientPrivilege)다. 5 GiB를 넘으면 "P1-6 정리를 할 때" 경보다.
 - `MONITOR_GAP_S`·`MONITOR_CODE_COMMIT`은 두지 않는다(하루 한 번 손 실행 — 공백 경보가 날마다 울리지 않게, 작업 저장소에서 돎).
 - `MONITOR_KAFKA_BIN`·`MONITOR_JAVA_HOME`은 꼭 준다.
   - 기본값이 이 Mac의 경로(`/opt/kafka/current/bin`, Homebrew openjdk)다.
@@ -139,7 +142,7 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
   - 같은 회차 M1에서 그 커넥터의 슬롯이 없음·`lost`·`unreserved`이거나 슬롯 상태를 모르면 재시작하지 않는다(`r7:<커넥터>` error).
 - **아래 순서는 사람이 할 때다**: `r7:<커넥터>`가 "다 씀"(alert)·슬롯 문제·슬롯 모름·저장 실패(error)일 때, 또는 `MONITOR_R7=0`일 때. RB 쪽에 이 절차는 없다.
 
-1. 원인을 본다: `curl -s "$MONITOR_CONNECT_REST/connectors/<이름>/status"`의 `connector.trace`(커넥터 자체가 FAILED일 때) 또는 `tasks[].trace` 첫 줄을 사건 기록에 적는다.
+1. 원인을 본다: `curl -s "http://<응답하는 노트북>:8088/connectors/<이름>/status"`(`MONITOR_CONNECT_REST`는 목록이라 그대로 쓰지 않는다)의 `connector.trace`(커넥터 자체가 FAILED일 때) 또는 `tasks[].trace` 첫 줄을 사건 기록에 적는다.
 2. 원인이 설정·상태 문제면 재시작해도 다시 멈춘다. 재시작하지 말고 Planner·사용자에게 알린다.
    - 설정·상태 문제: 인증 실패, publication 없음, 슬롯 무효, R1 불일치.
    - 슬롯 무효는 `README.md` RB-1이다.
@@ -148,7 +151,7 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
    - 2026-11-05의 `Failed to create TypeRegistry`(잠듦 뒤)도 이쪽이고, 재시작으로 회복했다.
    - C3의 "재시도 불가"는 Connect가 스스로 다시 시도하지 않는다는 뜻이다. 재시작해도 안 된다는 뜻이 아니다.
    ```bash
-   curl -s -X POST "$MONITOR_CONNECT_REST/connectors/<이름>/restart?includeTasks=true&onlyFailed=true"
+   curl -s -X POST "http://<응답하는 노트북>:8088/connectors/<이름>/restart?includeTasks=true&onlyFailed=true"
    ```
 4. ④를 다시 돌려 그 커넥터가 RUNNING인지, 슬롯이 붙잡은 WAL이 줄어드는지 본다.
 5. **원인을 고친 뒤** R7 기록을 비운다. 그래야 다음 FAILED에서 자동 3번을 다시 쓴다(비우지 않아도, FAILED가 아닌 회차에 마지막 자동 시도가 30분보다 오래됐으면 저절로 비워진다).
@@ -156,7 +159,7 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
    MONITOR_STATE="$HOME/.local/state/pipeline_monitor/manual.json" <python> pipeline/monitor/check.py --r7-clear <커넥터>
    ```
    - JSON의 `found: true`인지 본다. `false`(rc 1)이면 그 상태 파일에 기록이 없다는 뜻이다 — `MONITOR_STATE`가 ④와 같은지 본다.
-- 운영 클러스터를 보는 주기 감시를 감시 서버에 적용하면 ④는 `MONITOR_R7=0`으로 바꾼다(상태 파일이 둘이면 시도 기록도 둘이라 예산이 두 배). 이 Mac의 로컬 설치(P2-4b)는 운영을 보지 않으므로 지금 ④는 `MONITOR_R7=1` 그대로다. 주기 감시가 도는 동안 비웠으면 다음 회차에 `r7:` 키가 사라졌는지 본다.
+- **감시 서버 주기 감시를 켜면 ④ 손 점검은 `MONITOR_R7=0`**으로 바꾼다(상태 파일이 둘이면 시도 기록도 둘이라 예산이 두 배). 이 Mac의 로컬 설치(P2-4b)는 운영을 보지 않으므로, 감시 서버 주기 감시를 켜기 전까지 ④는 `MONITOR_R7=1` 그대로다. 주기 감시가 도는 동안 비웠으면 다음 회차에 `r7:` 키가 사라졌는지 본다.
 
 #### 커넥터를 새로 만든 뒤의 WARN 로그(Debezium 3.7.0) — 그대로 둔다
 

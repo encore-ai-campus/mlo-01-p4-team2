@@ -8,6 +8,8 @@
   상태 파일 자리(MONITOR_STATE, 기본 ~/.local/state/pipeline_monitor/state.json)가 이 사용자 것이 아니거나 링크이거나 그룹·다른 사용자가 쓸 수 있음(unsafe_state).
   rc 2 알림은 처음 한 번 바로, 같은 거부가 이어지면 한 시간에 한 번(P2-4b 결정 F (나) — 표시 파일 <상태 파일>.refused, unsafe_state 는 늘).
 - D1 디스크(MONITOR_DISK — 이 장치의 경로마다 파일 시스템 여유), D2 outbox 표 크기(MONITOR_OUTBOX — primary 에서), S7 gap(지난 회차 뒤 공백 — MONITOR_GAP_S).
+- 운영 적용(Ops 2026-11-08): DB 계정 MONITOR_PG_USER, MONITOR_BRONZE=none(M5 unsupported·S3 설정 필요 없음), MONITOR_CONNECT_REST 쉼표 목록(앞에서부터 처음 응답한 곳),
+  목록의 모든 Connect 주소에 GET /(응답 없으면 connect_rest:<주소> alert — Planner (나)), 웹훅 User-Agent(Discord 가 기본 UA 를 거절).
 - PostgreSQL: MONITOR_PG_NODES(host:port 목록)의 노드마다 물어 primary 를 스스로 찾는다. M1·M2 primary 쪽은 그 노드에서, synced 는 대기 서버에서.
   primary 가 정확히 하나가 아니면 M1·M2:run error(지난 값 유지 — 해소로 알리지 않음), S7 clock_skew 도 error.
 - R7(FAILED 커넥터·Task 자동 재시작 — 설계 01 R7, 사용자 결정 2026-11-06으로 다시 엶): MONITOR_R7=1 일 때만. 30분에 3번(앞 시도 뒤 최소 0·5·15분),
@@ -38,6 +40,7 @@ import psycopg
 E = os.environ.get
 # PostgreSQL 노드 목록·S7 전원·필수 모드는 main() 이 읽는다(pg_nodes·flag·missing_config) — 형식이 틀려도 불러올 때 죽지 않고 JSON + rc=2 로 끝나게
 PG_PASSWORD_FILE = E("MONITOR_PG_PASSWORD_FILE", "/opt/postgresql/config/postgres-password")
+PG_USER = E("MONITOR_PG_USER", "postgres")  # 운영은 읽기 전용 감시 역할(pg_monitor 회원 — Ops 2026-11-08). 비밀번호 파일은 그 역할의 것
 SLOTS = E("MONITOR_SLOTS", "ads_outbox_slot,ads_e2e_slot").split(",")
 REPLICA_LAG_BYTES = int(E("MONITOR_REPLICA_LAG_BYTES", str(64 * 1024 * 1024)))  # 임시 기준
 SLOT_INACTIVE_S = int(E("MONITOR_SLOT_INACTIVE_S", "600"))  # 설계 M1: 10분 넘게 쉼(R2 재시도 약 3분 + R3 재배치 60초보다 넉넉히)
@@ -48,13 +51,20 @@ SYNCED_GRACE_S = int(E("MONITOR_SYNCED_GRACE_S", "120"))
 # 실측(2026-11-04): 정상이면 xmax 보다 2~4 뒤에서 약 20초마다 따라 움직인다. 트랜잭션 heartbeat 하나만으로 10분에 약 60개 는다
 CXMIN_STALL_S = int(E("MONITOR_CATALOG_XMIN_STALL_S", "600"))
 CXMIN_STALL_XIDS = int(E("MONITOR_CATALOG_XMIN_STALL_XIDS", "50"))
-CONNECT = E("MONITOR_CONNECT_REST", "http://127.0.0.1:8083")
+CONNECT = E("MONITOR_CONNECT_REST", "http://127.0.0.1:8083")  # 쉼표 목록 — 회차마다 앞에서부터 처음 응답한 곳을 쓴다(운영: 노트북 셋, Ops 2026-11-08)
+CONNECT_SEEN = {}  # 이번 회차에 응답한 곳(base)과 그 앞의 응답하지 않은 주소(skipped) — R7 POST 도 같은 곳으로
 KAFKA = E("MONITOR_KAFKA", "127.0.0.1:9092,127.0.0.1:9192,127.0.0.1:9292")
 KAFKA_BIN = Path(E("MONITOR_KAFKA_BIN", "/opt/kafka/current/bin"))
 JAVA_HOME = E("MONITOR_JAVA_HOME", "/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home")
-# Bronze: "이름|토픽|checkpoint s3a 경로" 를 쉼표로
-BRONZE = [b.split("|") for b in E("MONITOR_BRONZE", "lab|ads.outbox.events|s3a://ads-lake/checkpoints/bronze_ads_outbox,"
-                                                     "e2e|ads.e2e.outbox.events|s3a://ads-lake/checkpoints/bronze_e2e_ads_outbox").split(",") if b]
+
+
+def parse_bronze(raw):
+    """Bronze: "이름|토픽|checkpoint s3a 경로" 를 쉼표로. `none` 이면 None(Bronze 가 아직 없음 — M5 unsupported, S3 설정 필요 없음)."""
+    return None if raw.strip() == "none" else [b.split("|") for b in raw.split(",") if b]
+
+
+BRONZE = parse_bronze(E("MONITOR_BRONZE", "lab|ads.outbox.events|s3a://ads-lake/checkpoints/bronze_ads_outbox,"
+                                          "e2e|ads.e2e.outbox.events|s3a://ads-lake/checkpoints/bronze_e2e_ads_outbox"))
 # 설계 M5: 아직 읽지 않은 첫 데이터 레코드가 5분 넘게 기다림. 시각은 그 레코드의 Kafka 타임스탬프 — 두 토픽 모두 message.timestamp.type=CreateTime(기본),
 # Connect 생산자가 보낸 시각이다(재발행 op=r 도 다시 보낸 시각, 원래 created_at 아님 — 2026-11-04 확인). read_committed 로 읽어 EOS 표식·중단된 레코드는 빠진다
 BRONZE_STALE_S = int(E("MONITOR_BRONZE_STALE_S", "300"))
@@ -76,7 +86,8 @@ class ConfigError(ValueError):
 # 필수 모드(MONITOR_REQUIRE_ALL=1)에서 없거나 비면 점검하지 않는 운영 변수 — 기본값이 모두 로컬 시험대를 가리켜, 하나만 빠져도 조용히 lab 을 보고 ok 를 내지 않게
 REQUIRED = ("MONITOR_PG_NODES", "MONITOR_PG_PASSWORD_FILE", "MONITOR_CONNECT_REST", "MONITOR_KAFKA", "MONITOR_KAFKA_BIN", "MONITOR_JAVA_HOME",
             "MONITOR_BRONZE", "S3_ENDPOINT", "S3_ACCESS_KEY_FILE", "S3_SECRET_KEY_FILE", "MONITOR_SLOTS", "MONITOR_STATE", "MONITOR_S7_POWER", "MONITOR_R7",
-            "MONITOR_DISK", "MONITOR_OUTBOX")
+            "MONITOR_DISK", "MONITOR_OUTBOX", "MONITOR_PG_USER")
+S3_SETTINGS = ("S3_ENDPOINT", "S3_ACCESS_KEY_FILE", "S3_SECRET_KEY_FILE")  # MONITOR_BRONZE=none 이면 필수가 아니다(M5 를 보지 않음)
 # P2-4b 기본값(로컬 시험대). D1 은 이 장치의 경로만 본다 — 디스크가 없는 장치(관리 장치 ④·감시 서버)는 MONITOR_DISK=none(결정 B·리뷰 C2)
 DEFAULT_DISK = "pg|/opt/postgresql,reconcile_ads|~/Library/Caches/ads-pipeline/reconcile|du"
 DEFAULT_OUTBOX = ("ads_lab|ads_pipeline_lab|public.events_outbox,ads_e2e|ads_pipeline_e2e|public.events_outbox,"
@@ -106,7 +117,8 @@ def missing_config(env):
     """필수 모드일 때 없거나 빈(공백만 포함) 운영 변수의 이름. 필수 모드가 아니면 빈 목록."""
     if not flag(env, "MONITOR_REQUIRE_ALL", "0"):
         return []
-    return [name for name in REQUIRED if not env.get(name, "").strip()]
+    no_bronze = env.get("MONITOR_BRONZE", "").strip() == "none"
+    return [name for name in REQUIRED if not env.get(name, "").strip() and not (no_bronze and name in S3_SETTINGS)]
 
 
 def pg_nodes(env):
@@ -208,7 +220,7 @@ def addr(node):
 
 
 def pg(host, port, dbname="postgres"):
-    return psycopg.connect(host=host, port=port, user="postgres", password=Path(PG_PASSWORD_FILE).read_text().strip(), dbname=dbname,
+    return psycopg.connect(host=host, port=port, user=PG_USER, password=Path(PG_PASSWORD_FILE).read_text().strip(), dbname=dbname,
                            connect_timeout=5, autocommit=True)
 
 
@@ -350,17 +362,52 @@ def standby_slots(c):
     return listed, {r[0] for r in rows}, {r[0] for r in rows if r[1] == "streaming"}
 
 
+def connect_bases():
+    return [base.strip() for base in CONNECT.split(",") if base.strip()]
+
+
 def rest(method, path):
-    req = urllib.request.Request(CONNECT + path, method=method, headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        raw = resp.read()
+    """Connect REST 를 목록 앞에서부터 — 처음 응답한 곳을 쓰고 CONNECT_SEEN 에 남긴다(노트북 하나가 꺼져도 M3·R7 이 멈추지 않게).
+    연결 실패·HTTP 오류는 다음 곳으로 넘어가고, 모두 실패하면 마지막 예외를 낸다(main 이 M3:run error 로 둔다)."""
+    skipped, last = [], None
+    for base in connect_bases():
+        try:
+            with urllib.request.urlopen(urllib.request.Request(base + path, method=method, headers={"Content-Type": "application/json"}), timeout=15) as resp:
+                raw = resp.read()
+        except (urllib.error.URLError, OSError) as error:  # HTTPError 는 URLError — 그곳이 고장이면 다음 곳
+            skipped.append(base)
+            last = error
+            continue
+        CONNECT_SEEN.update(base=base, skipped=skipped)
         return json.loads(raw) if raw else None
+    raise last if last is not None else ValueError("MONITOR_CONNECT_REST 에 주소가 없다")
+
+
+CONNECT_PROBE_TIMEOUT_S = 5
+
+
+def m3_reach():
+    """M3 Connect Worker 응답(Planner 2026-11-08 (나)): 목록의 모든 주소에 GET / — 응답하지 않는 주소마다 `connect_rest:<주소>` alert, 돌아오면 해소.
+    Worker 프로세스만 멈추면 PG·Kafka 는 멀쩡해 M2·M4 가 울리지 않고, 그 Task 는 scheduled.rebalance.max.delay.ms(기본 300초) 뒤 남은 Worker 로 옮겨져
+    RUNNING 이라 커넥터 줄도 울리지 않는다 — 이중화가 조용히 줄지 않게. /connectors 조회·R7 은 rest() 가 처음 응답한 곳으로 한다."""
+    out = []
+    for base in connect_bases():
+        try:
+            with urllib.request.urlopen(urllib.request.Request(base + "/", method="GET"), timeout=CONNECT_PROBE_TIMEOUT_S) as resp:
+                resp.read()
+        except (urllib.error.URLError, OSError, ValueError) as error:  # 연결 거절·시간 초과(읽기 포함)·HTTP 오류·주소 형식 — 값·비밀은 적지 않는다
+            out.append(finding("M3", f"connect_rest:{base}", "alert", f"GET / 응답 없음({CONNECT_PROBE_TIMEOUT_S}초 안, {type(error).__name__}) — 이 Connect Worker 가 멈췄거나 "
+                               "장치가 꺼짐(Task 는 남은 Worker 로 옮겨져 커넥터 줄은 RUNNING 일 수 있다)"))
+            continue
+        out.append(finding("M3", f"connect_rest:{base}", "ok", "GET / 응답"))
+    return out
 
 
 def restart(name):
-    """R7 재시작 요청: 커넥터와 FAILED task 만(includeTasks·onlyFailed — 설계 01 R7). 돌려주는 값은 HTTP 상태."""
+    """R7 재시작 요청: 커넥터와 FAILED task 만(includeTasks·onlyFailed — 설계 01 R7). 이번 회차에 응답한 곳으로. 돌려주는 값은 HTTP 상태."""
     path = f"/connectors/{urllib.parse.quote(name, safe='')}/restart?includeTasks=true&onlyFailed=true"
-    with urllib.request.urlopen(urllib.request.Request(CONNECT + path, method="POST"), timeout=15) as resp:
+    base = CONNECT_SEEN.get("base") or connect_bases()[0]
+    with urllib.request.urlopen(urllib.request.Request(base + path, method="POST"), timeout=15) as resp:
         return resp.status
 
 
@@ -411,7 +458,11 @@ def m3(state, slots_seen=None, r7=False, clock=time.time):
     """M3 커넥터·Task FAILED 경보(늘). r7 이면 FAILED 를 자동 재시작한다(r7_step). 상태와 설정을 한 번에 읽고(expand=status·info),
     설정에서는 slot.name 만 쓴다 — 설정 전체는 출력·상태에 넣지 않는다."""
     out, now = [], clock()
-    for name, info in rest("GET", "/connectors?expand=status&expand=info").items():
+    CONNECT_SEEN.clear()
+    connectors = rest("GET", "/connectors?expand=status&expand=info")
+    if CONNECT_SEEN.get("skipped"):  # 주소만 적는다(Planner 2026-11-08). 응답하지 않는 주소의 경보는 m3_reach 가 낸다(주소마다, 순서와 상관없이)
+        out.append(finding("M3", "connect_rest", "ok", f"응답한 Connect REST {CONNECT_SEEN['base']} — 응답하지 않은 앞 주소 {CONNECT_SEEN['skipped']}"))
+    for name, info in connectors.items():
         s = info["status"]
         states = [s["connector"]["state"]] + [t["state"] for t in s.get("tasks", [])]
         out.append(finding("M3", f"connector:{name}", "alert" if "FAILED" in states else "ok", f"{states}"))
@@ -487,7 +538,9 @@ def first_unread(topic, partition, offset):
 
 
 def m5():
-    """M5 Bronze 신선도: checkpoint 의 마지막 확정 배치(commits/N 의 시각, offsets/N 의 위치)와 Kafka 끝 offset."""
+    """M5 Bronze 신선도: checkpoint 의 마지막 확정 배치(commits/N 의 시각, offsets/N 의 위치)와 Kafka 끝 offset. MONITOR_BRONZE=none 이면 unsupported 한 줄."""
+    if BRONZE is None:  # S3 키를 읽지도, boto3 를 부르지도 않는다
+        return [finding("M5", "bronze", "unsupported", "끔(MONITOR_BRONZE=none) — 이 장치가 볼 Bronze 가 아직 없다")]
     import boto3
 
     keys = [Path(f).read_text().strip() for f in S3_KEY_FILES]
@@ -647,6 +700,10 @@ def unimplemented():
             finding("M8", "outbox_unconfirmed_age", "unimplemented", "outbox 미확정 창 나이 — P1-4·P1-6 뒤")]
 
 
+# Discord 웹훅은 urllib 기본 UA(Python-urllib/3.x)를 403 으로 거절한다 — UA 를 더하면 204(Ops alarnt 실측 2026-11-08). 없으면 웹훅이 늘 실패해 경보가 하나도 가지 않는다
+WEBHOOK_USER_AGENT = "pipeline-monitor/1"
+
+
 def notify(text):
     try:  # 주소 파일이 없거나 못 읽어도 점검은 끝까지 간다(전송 실패로 다룬다 — 다음 점검이 다시 보낸다)
         url = E("MONITOR_WEBHOOK_URL") or (Path(E("MONITOR_WEBHOOK_FILE")).read_text().strip() if E("MONITOR_WEBHOOK_FILE") else None)
@@ -655,7 +712,8 @@ def notify(text):
     if not url:
         return "웹훅 없음(화면에만)"
     try:
-        req = urllib.request.Request(url, method="POST", data=json.dumps({"text": text, "content": text}).encode(), headers={"Content-Type": "application/json"})
+        req = urllib.request.Request(url, method="POST", data=json.dumps({"text": text, "content": text}).encode(),
+                                     headers={"Content-Type": "application/json", "User-Agent": WEBHOOK_USER_AGENT})
         with urllib.request.urlopen(req, timeout=10) as resp:
             return f"웹훅 {resp.status}"
     except (urllib.error.URLError, OSError, ValueError) as error:  # ValueError: 주소 형식이 틀림
@@ -775,6 +833,7 @@ def main(env=os.environ, clock=time.time):
     findings, failed_checks, slots_seen = [], set(), {}
     for name, fn in (("M1·M2", lambda: m1_m2(state, polled, slots_seen)),
                      ("M3", lambda: m3(state, None if "M1" in failed_checks else slots_seen, r7)),  # 끝까지 돈 M1 의 슬롯 상태만(아니면 모두 모름)
+                     ("M3", m3_reach),  # 따로 — 모든 Connect 주소가 응답하지 않아 m3 가 실패해도 주소마다 줄이 남는다
                      ("M4", m4), ("M5", m5), ("S7", lambda: s7(polled, power)), ("S7", lambda: s7_gap(state, extra.gap_s, started)),  # 공백은 따로(전원 줄이 실패해도 봄)
                      ("D1", lambda: d1(extra.disk, extra.min_free)), ("D2", lambda: d2(extra.outbox, extra.max_bytes, polled))):
         try:

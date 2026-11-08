@@ -1,0 +1,76 @@
+{
+  "databases": [
+    "query_http128_a1_20261107",
+    "query_http128_a1_20261107_v2",
+    "query_http128_a2_20261107",
+    "query_http128_b1_20261107",
+    "query_http128_b2_20261107"
+  ],
+  "active_processes": [
+    {
+      "role": "movement",
+      "pid": 30356,
+      "command": "/private/tmp/platform-event-postgres-venv/bin/python -B -m daphne -b 127.0.0.1 -p 9551 runtime:movement_app"
+    },
+    {
+      "role": "movement",
+      "pid": 30357,
+      "command": "/private/tmp/platform-event-postgres-venv/bin/python -B -m daphne -b 127.0.0.1 -p 9552 runtime:movement_app"
+    },
+    {
+      "role": "movement",
+      "pid": 30358,
+      "command": "/private/tmp/platform-event-postgres-venv/bin/python -B -m daphne -b 127.0.0.1 -p 9553 runtime:movement_app"
+    },
+    {
+      "role": "movement",
+      "pid": 30359,
+      "command": "/private/tmp/platform-event-postgres-venv/bin/python -B -m daphne -b 127.0.0.1 -p 9554 runtime:movement_app"
+    },
+    {
+      "role": "service",
+      "pid": 30360,
+      "command": "/private/tmp/platform-event-postgres-venv/bin/python -B -m daphne -b 127.0.0.1 -p 9561 runtime:service_app"
+    },
+    {
+      "role": "service",
+      "pid": 30361,
+      "command": "/private/tmp/platform-event-postgres-venv/bin/python -B -m daphne -b 127.0.0.1 -p 9562 runtime:service_app"
+    },
+    {
+      "role": "service",
+      "pid": 30362,
+      "command": "/private/tmp/platform-event-postgres-venv/bin/python -B -m daphne -b 127.0.0.1 -p 9563 runtime:service_app"
+    },
+    {
+      "role": "service",
+      "pid": 30363,
+      "command": "/private/tmp/platform-event-postgres-venv/bin/python -B -m daphne -b 127.0.0.1 -p 9564 runtime:service_app"
+    },
+    {
+      "role": "jobs",
+      "pid": 30364,
+      "command": "/private/tmp/platform-event-postgres-venv/bin/python -B /private/tmp/platform-http128-20261107/harness/runtime.py"
+    },
+    {
+      "role": "front-movement",
+      "pid": 30365,
+      "command": "/private/tmp/platform-event-postgres-venv/bin/python -B -m daphne -e tcp:port=9581:interface=127.0.0.1:backlog=128 config.movement_asgi:application"
+    },
+    {
+      "role": "front-service",
+      "pid": 30407,
+      "command": "/private/tmp/platform-event-postgres-venv/bin/python -B -m daphne -e tcp:port=9582:interface=127.0.0.1:backlog=128 config.service_asgi:application"
+    },
+    {
+      "role": "entry.pid",
+      "pid": 30379,
+      "command": "nginx: master process /opt/homebrew/bin/nginx -p /private/tmp/platform-http128-20261107/a2/ -c /private/tmp/platform-http128-20261107/a2/entry.conf"
+    },
+    {
+      "role": "internal.pid",
+      "pid": 30375,
+      "command": "nginx: master process /opt/homebrew/bin/nginx -p /private/tmp/platform-http128-20261107/a2/ -c /private/tmp/platform-http128-20261107/a2/internal.conf"
+    }
+  ]
+}

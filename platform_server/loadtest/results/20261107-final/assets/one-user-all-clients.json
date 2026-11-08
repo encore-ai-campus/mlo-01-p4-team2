@@ -1,0 +1,10 @@
+[
+  {
+    "user": 0,
+    "start_ms": 6.008500000461936,
+    "seconds": 0.095,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  }
+]

@@ -1,0 +1,137 @@
+[
+  {
+    "phase": "connect:timer",
+    "users": 100,
+    "seconds": 2.12,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "standalone:timer",
+    "users": 100,
+    "seconds": 15.69,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "far_guide_rejection:timer",
+    "users": 100,
+    "seconds": 0.55,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "disconnect:timer",
+    "users": 100,
+    "seconds": 0.01,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "connect:typing",
+    "users": 100,
+    "seconds": 2.1,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "standalone:typing",
+    "users": 100,
+    "seconds": 10.46,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "far_guide_rejection:typing",
+    "users": 100,
+    "seconds": 0.8,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "disconnect:typing",
+    "users": 100,
+    "seconds": 0.01,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "connect:term_match",
+    "users": 100,
+    "seconds": 2.14,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "standalone:term_match",
+    "users": 100,
+    "seconds": 10.52,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "far_guide_rejection:term_match",
+    "users": 100,
+    "seconds": 0.53,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "main_games_and_final_rank",
+    "users": 100,
+    "seconds": 98.1,
+    "passed": 98,
+    "errors": {
+      "main:investigate: 500 {'error': 'non-json response'}": 2
+    }
+  },
+  {
+    "phase": "recipe_full_branches",
+    "users": 100,
+    "seconds": 10.64,
+    "passed": 96,
+    "errors": {
+      "recipe:acquire: 409 {'error': 'main_quest_required', 'message': '메인 미션을 완료하면 주울 것 같이 생겼어요'}": 2,
+      "recipe:acquire: 500 {'error': 'non-json response'}": 2
+    }
+  },
+  {
+    "phase": "learning_all_subjects_and_types",
+    "users": 100,
+    "seconds": 69.18,
+    "passed": 98,
+    "errors": {
+      "learning:start: 500 {'error': 'non-json response'}": 2
+    }
+  },
+  {
+    "phase": "disconnect:final",
+    "users": 100,
+    "seconds": 0.02,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "reconnect:restore",
+    "users": 100,
+    "seconds": 2.12,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "state_after_reconnect",
+    "users": 100,
+    "seconds": 5.59,
+    "passed": 98,
+    "errors": {
+      "main:restore: 500 {'error': 'non-json response'}": 2
+    }
+  },
+  {
+    "phase": "disconnect:cleanup",
+    "users": 100,
+    "seconds": 0.01,
+    "passed": 100,
+    "errors": {}
+  }
+]

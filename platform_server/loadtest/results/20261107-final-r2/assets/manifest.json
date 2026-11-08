@@ -1,0 +1,1137 @@
+[
+  {
+    "path": "achievements.css",
+    "bytes": 14662,
+    "sha256": "a45a5b18f78debbb42f581901592065ab74a3109127794a91c3e12abd019b22e"
+  },
+  {
+    "path": "achievements.js",
+    "bytes": 5808,
+    "sha256": "6a368af5b5b5a0b6348fa18f549f27bd6ef62140bb7bfe664763888d7bbc1fe2"
+  },
+  {
+    "path": "ad-visibility.js",
+    "bytes": 1746,
+    "sha256": "d2092c37a281f81c5d60834bd48e52d12ea538c6c32fef8a4c9e4937105e88d3"
+  },
+  {
+    "path": "assets/achievements/ad-impression.png",
+    "bytes": 1647387,
+    "sha256": "dda80a884b02d7fd6e0e51b92638a0594e2a3ec5a7312458b9d2b6dee1f8f113"
+  },
+  {
+    "path": "assets/achievements/all-subjects.png",
+    "bytes": 1681341,
+    "sha256": "f2094d9cb7a2c046816692758c0b77af5ab9ec600cc2723ec17ad1a1d53d9b7c"
+  },
+  {
+    "path": "assets/achievements/code-typing.png",
+    "bytes": 1642370,
+    "sha256": "b2add0785b9aa15161047765ee66d5549708edfb8f6359e8929b68d4e153d5de"
+  },
+  {
+    "path": "assets/achievements/cs-intermediate.png",
+    "bytes": 1640043,
+    "sha256": "804a790e56a58698219145f3b6140dcc9aac7c60e2f3bee0950e0a3ee396b631"
+  },
+  {
+    "path": "assets/achievements/detective-notebook-worn-v1.prompt.txt",
+    "bytes": 361,
+    "sha256": "41ee49825597695dc85ca7ed94c79c55f2aeae0d5787fa54e9e5dbcd12676c68"
+  },
+  {
+    "path": "assets/achievements/detective-notebook-worn-v1.webp",
+    "bytes": 267234,
+    "sha256": "ea887841245954193c9aa400e1adaaa3e53de092a09ac924870b9be062bfda48"
+  },
+  {
+    "path": "assets/achievements/fragile-pepero-v1.prompt.txt",
+    "bytes": 896,
+    "sha256": "1e8bfa5facefdf2865f2f94f989a0ddda8451417c86fee39cbaeeaec8a39b8fd"
+  },
+  {
+    "path": "assets/achievements/fragile-pepero-v1.webp",
+    "bytes": 58260,
+    "sha256": "41d0381edbdabdffc618d1d495709c409428e49dcffdb83be93339eaaddb7ff7"
+  },
+  {
+    "path": "assets/achievements/kkuwang-last-bite-gift-v1.webp",
+    "bytes": 83686,
+    "sha256": "afc1748dffafeaae92eb6fbee34b28c6b61ded11117c56aa7fc9dd2ec2baadc3"
+  },
+  {
+    "path": "assets/achievements/manager-greeting.png",
+    "bytes": 1746538,
+    "sha256": "719a823f42802071cb542961efddc0bde1921500c5773a69aae718336502bd80"
+  },
+  {
+    "path": "assets/achievements/manager-poking.png",
+    "bytes": 1825891,
+    "sha256": "549bfc38119bdaa5822ef1db6cdf5ad2037dc9f2449f43e85ff372b4385fd980"
+  },
+  {
+    "path": "assets/achievements/python-intermediate.png",
+    "bytes": 1638699,
+    "sha256": "305b9bb750553cbb213d0f3be50ae116e5cf84fc0a118cbe734b0e892db28f91"
+  },
+  {
+    "path": "assets/achievements/secret-recipe.png",
+    "bytes": 384521,
+    "sha256": "4795b1da4b05aa6fc7bb7ecc579544506e2086870dfaa1f18b8f8cd7a090ac92"
+  },
+  {
+    "path": "assets/achievements/sql-intermediate.png",
+    "bytes": 1745486,
+    "sha256": "49cffc941934ece6c579adcbe216787a1e15e07d870e073035a64a465753cbf7"
+  },
+  {
+    "path": "assets/achievements/term-match.png",
+    "bytes": 1775974,
+    "sha256": "9a4d64ebcc48201e75c038f2eb4e4422cf1c99844b3f17a947dd1a117eddcf1c"
+  },
+  {
+    "path": "assets/achievements/timer.png",
+    "bytes": 1678002,
+    "sha256": "b2dde7b92f6c600d4dfa84cedf6480a268421e7f7fde2c0350db8c45c81959c9"
+  },
+  {
+    "path": "assets/blueprint.png",
+    "bytes": 45737,
+    "sha256": "80893cc1916ba3765ea52d1ac3fc15c435d0702014617015159baf661c9b0c42"
+  },
+  {
+    "path": "assets/books.png",
+    "bytes": 578529,
+    "sha256": "1bd01e8cb9f69db57c009215a7314966f0a9df933848c8144d9a712a7d5e58f1"
+  },
+  {
+    "path": "assets/campus-map.png",
+    "bytes": 3160540,
+    "sha256": "e7ac566b5a075146711c3aff56fd6b1f0503d2c7c66668f6d301b7a3ddd64e46"
+  },
+  {
+    "path": "assets/characters/female-1-guard-v1.webp",
+    "bytes": 286848,
+    "sha256": "e946b59c21cbaf6e5d8a0dd0b8075907c6c325fb60ded13bbe9052f5b0b5a5e7"
+  },
+  {
+    "path": "assets/characters/female-1-idle-v1.png",
+    "bytes": 71881,
+    "sha256": "821875647e9cfb5a90f39dbca0615bad5f317745126eed5d86571693151e7800"
+  },
+  {
+    "path": "assets/characters/female-1-preview.png",
+    "bytes": 16619,
+    "sha256": "bd41baaf8b91e7bcd1ef5ef9dcb83bfd7e972a5444e3a9e57932a1bbe2c0eab7"
+  },
+  {
+    "path": "assets/characters/female-1-walk-v5.png",
+    "bytes": 228102,
+    "sha256": "0763e87cc76040736a954de1f1c6bbf71d92122648d05dd4545eda74c16b22f8"
+  },
+  {
+    "path": "assets/characters/female-2-guard-v1.webp",
+    "bytes": 359532,
+    "sha256": "7741c7adf9034f5bcb94f29bdf5aeb5d8f898b006c8f4b99e43b25a10d64bf54"
+  },
+  {
+    "path": "assets/characters/female-2-idle-v1.png",
+    "bytes": 73360,
+    "sha256": "b827571b7b1de2704df75d3ce46e2649544b4c6e5d83c4076673acb778077a36"
+  },
+  {
+    "path": "assets/characters/female-2-preview.png",
+    "bytes": 18234,
+    "sha256": "af08818cab1e8ec11fa5ab648be831d91b469ddf2b95bab1913a860982566898"
+  },
+  {
+    "path": "assets/characters/female-2-walk-v5.png",
+    "bytes": 232932,
+    "sha256": "274b84c0642873c56763d21942b0550773daa399b2dbf31ca2ac398597d5aa3b"
+  },
+  {
+    "path": "assets/characters/female-face.png",
+    "bytes": 1431336,
+    "sha256": "e96d38985ff630b0f120adf10fb3b29079efd936808c84156b88c48904dc98e3"
+  },
+  {
+    "path": "assets/characters/idle-v1-generation.json",
+    "bytes": 5217,
+    "sha256": "e575eeb0779dcc54601c8908c9bbec4ec6c2d2f9252ecac7cb9fff8288640ccd"
+  },
+  {
+    "path": "assets/characters/male-1-guard-v1.webp",
+    "bytes": 297496,
+    "sha256": "ed06746ec0cbd85cabf07db46a854370063d945d8c206bfe41120665ce8706a2"
+  },
+  {
+    "path": "assets/characters/male-1-idle-v1.png",
+    "bytes": 67536,
+    "sha256": "e411a56b29ab1282b22d6fbaf793d9efbfc36ae48c43504a942235702f6f46f3"
+  },
+  {
+    "path": "assets/characters/male-1-preview.png",
+    "bytes": 17301,
+    "sha256": "ee37afa79fe75c907e64b7a286b5d1c627698fd9be5b05de4d232eb2f5405e4a"
+  },
+  {
+    "path": "assets/characters/male-1-walk-v5.png",
+    "bytes": 236697,
+    "sha256": "586064d928d377f12d138343c64815a1ede227b5da315224770a3db1421338a9"
+  },
+  {
+    "path": "assets/characters/male-2-guard-v1.webp",
+    "bytes": 317160,
+    "sha256": "da7bc5f3015112c8ba34020d2f821904d76177dd26f93be021022117443c62e4"
+  },
+  {
+    "path": "assets/characters/male-2-idle-v1.png",
+    "bytes": 68025,
+    "sha256": "4c0c31462db6e70ca9f877c6a939e360062e3f4b95a96f71ca47bb1a2f952b9a"
+  },
+  {
+    "path": "assets/characters/male-2-preview.png",
+    "bytes": 19652,
+    "sha256": "7018379db31894fde99c04daf863fb01fe27ae21cdc0588871e8887aaa837610"
+  },
+  {
+    "path": "assets/characters/male-2-walk-v5.png",
+    "bytes": 241718,
+    "sha256": "fba9c4dd053d6cb199a3d5a1a1091404331ac6e66e6bcd3420e18677be02dc21"
+  },
+  {
+    "path": "assets/characters/male-face.png",
+    "bytes": 1373073,
+    "sha256": "85132e2096ad5b9766b6888b7067d465dc7a48e0f73f4cafe2f7dbbb8b8f9255"
+  },
+  {
+    "path": "assets/characters/manager-huiae-idle-v1.png",
+    "bytes": 596192,
+    "sha256": "26b4448cad253348cbe88ab5e6df5982d3b3ca600d694dee62a5d07235f8359d"
+  },
+  {
+    "path": "assets/characters/manager-jeonghun-idle-v1.png",
+    "bytes": 504385,
+    "sha256": "f321e09df19710aab4a43fdcad5e31d6ab5a62a55a48a1520cff301996e96ef0"
+  },
+  {
+    "path": "assets/characters/manager-songhee-idle-v1.png",
+    "bytes": 591842,
+    "sha256": "7dbb672c65ab2a70c2ab418d20f2be038915340cf4f152b1eedfb9b368e662c0"
+  },
+  {
+    "path": "assets/characters/manager-suhyeon-idle-v1.png",
+    "bytes": 64458,
+    "sha256": "0b192f904dfbd600f91f679cff1de6baae26a8cb0f301094e3292d36ef07e3a6"
+  },
+  {
+    "path": "assets/characters/manager-yebin-idle-v1.png",
+    "bytes": 73149,
+    "sha256": "e984b7c92f7c6b9a7a0213be5d63e2577b36ae628fea0dee1d17283d27585d78"
+  },
+  {
+    "path": "assets/characters/manager-yeongseok-idle-v1.png",
+    "bytes": 60808,
+    "sha256": "0c7e8291f06c27ac49b205b5c78730cd7657793c58ea9b545f0c9d88dd8268c4"
+  },
+  {
+    "path": "assets/characters/manager-yuhyeong-idle-v1.png",
+    "bytes": 61623,
+    "sha256": "1028e47d9adc3077f9a1e53275cc2a6f7248813e5ebe8a7127ffa839eb617869"
+  },
+  {
+    "path": "assets/consult.png",
+    "bytes": 236197,
+    "sha256": "7e2c6b1ac981564840ffeebe8ef326a4eef02212d28996bd3c13fe5e46cb15ea"
+  },
+  {
+    "path": "assets/encore-time-logo.png",
+    "bytes": 680646,
+    "sha256": "482ff212ebfc91d8a7b94de683981b41aac6ed68cae1ab911843905332ff6995"
+  },
+  {
+    "path": "assets/fonts/PressStart2P-OFL.txt",
+    "bytes": 4413,
+    "sha256": "172c7cfc7e60165cab231417c0bbd73809b72a8e8e1e89ac9538607c5293a780"
+  },
+  {
+    "path": "assets/fonts/PressStart2P-Regular.ttf",
+    "bytes": 118204,
+    "sha256": "034c77f1f05ec89421e4a63f0e3a4ca1ecf852cc6d2bf611f126f275728e017d"
+  },
+  {
+    "path": "assets/guide/campus-20261020.png",
+    "bytes": 609427,
+    "sha256": "17aa6a8139b1a6006507e9fceeb2395222aa2135731b8244ef35d6c2c5c5708b"
+  },
+  {
+    "path": "assets/guide/campus.jpg",
+    "bytes": 123381,
+    "sha256": "593074b4b5df244533caeecd0d0e60769edb56e10a24a7970c0735003fbaf438"
+  },
+  {
+    "path": "assets/guide/classroom-20261020.png",
+    "bytes": 70372,
+    "sha256": "d1f89163aec2a4da9347ef06e60da55fdfa7aa12615e498af9f0266e94103eef"
+  },
+  {
+    "path": "assets/guide/classroom.jpg",
+    "bytes": 70141,
+    "sha256": "4aed169921542bbff46fa2eef1d8a79e0c4e1172f26b3cdf640651ee4f173587"
+  },
+  {
+    "path": "assets/guide/community-20261020.png",
+    "bytes": 108389,
+    "sha256": "102e710c5abe36d6792d9e20a848b0ba8d36f385884258a4dffe7d1fbd658eca"
+  },
+  {
+    "path": "assets/guide/community.jpg",
+    "bytes": 50034,
+    "sha256": "d505aa5d13d5f5195f25653f78e7744fc2c35f8837da9351971be1e536ac308e"
+  },
+  {
+    "path": "assets/guide/floor-movement-20261020.png",
+    "bytes": 546913,
+    "sha256": "fc7007775547b5e8002fdf0815a9eb69035948a99b522e3416bd7d29dd614d24"
+  },
+  {
+    "path": "assets/guide/floor-movement.jpg",
+    "bytes": 81165,
+    "sha256": "dc7845314d563bddd6ee6fc4087ea802d235dacd173716ebbfeb15aaf6fcfd8d"
+  },
+  {
+    "path": "assets/guide/pepero-campus-20261023.png",
+    "bytes": 1027648,
+    "sha256": "51c3c0085915357b426553c7b9b7b28e5a579874882fc5e868946a1857050b06"
+  },
+  {
+    "path": "assets/guide/pepero-refill-20261023.png",
+    "bytes": 897980,
+    "sha256": "e3b68c22402ff06a8e12f34e74d3b9d5d773c76a1bc042fff9ad823ccc1714b1"
+  },
+  {
+    "path": "assets/guide/pepero-rooftop-20261023.png",
+    "bytes": 959239,
+    "sha256": "187d83b852d65281efd0aa579263cc4fdf9bf57080776be70a9d029e3c702b7b"
+  },
+  {
+    "path": "assets/guide/points-20261020.png",
+    "bytes": 611681,
+    "sha256": "b7dbc1465f7499e1c0765a8855cddeab572be321cda86dbb85295c4be324207b"
+  },
+  {
+    "path": "assets/guide/points.jpg",
+    "bytes": 122057,
+    "sha256": "297dda8eb85c9c753a62d1305820899fb9b80aadbd194234c93578f37b715dfa"
+  },
+  {
+    "path": "assets/guide/quiz-20261020.png",
+    "bytes": 201223,
+    "sha256": "3b6fdacce6a94d78101a28cdfc4eb5a2a448fd11502d570a392e9274ee6eef22"
+  },
+  {
+    "path": "assets/guide/quiz.jpg",
+    "bytes": 56951,
+    "sha256": "3293bf01f723bef0611a2fe6bd9a1b4e248415812ac8a45fd1b600b59ad506f8"
+  },
+  {
+    "path": "assets/guide/rooftop-20261020.png",
+    "bytes": 604428,
+    "sha256": "0cb9cda47e4e6de7bbb0c74904aa300b939d52a359911b4c2708e83da52d15a0"
+  },
+  {
+    "path": "assets/guide/rooftop.jpg",
+    "bytes": 129604,
+    "sha256": "755f23b78d23f826981fa9e8eec2170698bdac9b4176ce9caef5ce7991fd3834"
+  },
+  {
+    "path": "assets/guide/settings-20261020.png",
+    "bytes": 223673,
+    "sha256": "d71325ffb8ed1998d38e10bd39467a15d343cd6230eed52d0111affa0f1f1005"
+  },
+  {
+    "path": "assets/guide/settings.jpg",
+    "bytes": 53418,
+    "sha256": "4ae3217b90a19f903e51aa543313a61925ab3b17245f89b7bde3682f8f17098d"
+  },
+  {
+    "path": "assets/guide-kkuwang-detective-v1.png",
+    "bytes": 935784,
+    "sha256": "778a49df7b60f9d51739cc8c1e30174f9f386e5b422df34281b055d673369d58"
+  },
+  {
+    "path": "assets/guide-kkuwang-refined-v3.png",
+    "bytes": 716485,
+    "sha256": "bb20b85ce54d0550fb0ab5181389af60963e3f3337751754e879e9a514f39dc4"
+  },
+  {
+    "path": "assets/kkuwang-chat-happy.png",
+    "bytes": 2555403,
+    "sha256": "97f2670418a172f4a6f8c6e2d541c4463f1466fb03750f63cd931590056315e9"
+  },
+  {
+    "path": "assets/kkuwang-chat-sheet.png",
+    "bytes": 2169693,
+    "sha256": "1cee86e7ba4978ff256a7706f27b4b6c1a0e7d4fb3bc9c2b5d9a0ae07651e22f"
+  },
+  {
+    "path": "assets/kkuwang-cover-head-v1.webp",
+    "bytes": 57624,
+    "sha256": "06f3826ce41acde242e078a1625fce8ba1b03656101556e5b9898e69caa37af1"
+  },
+  {
+    "path": "assets/login-foliage.png",
+    "bytes": 1463230,
+    "sha256": "21c1a7e7b5002c8062cbc39c7bcfdcd9f9f6b44fee9e18820d2f67981b42d1bc"
+  },
+  {
+    "path": "assets/login-quokka.png",
+    "bytes": 1811797,
+    "sha256": "7b5f939448b474a3e9d9767c69201b61ca48cab791347fb8c0bec4934cf2c3d4"
+  },
+  {
+    "path": "assets/logo.png",
+    "bytes": 556959,
+    "sha256": "45e5f63d9169a9deb26757407e391aec381dd760bf1df16f29d1f17afa83ae58"
+  },
+  {
+    "path": "assets/lounge1.png",
+    "bytes": 377306,
+    "sha256": "6fef190016119b02b05cd64faf5de16ee9417e802729487a036bdf8b54803cbb"
+  },
+  {
+    "path": "assets/lounge2.png",
+    "bytes": 137914,
+    "sha256": "0c24da69ddc6b52ca30f223c9c9c556b5ef5da2feeaa6a88975df6d10084cee1"
+  },
+  {
+    "path": "assets/lunch-wheel-stand.svg",
+    "bytes": 1390,
+    "sha256": "6c36552f61fb3e18a137849e0f2a808b5ec1924e021f9fbf714e8bc3898c81a9"
+  },
+  {
+    "path": "assets/minigames/pairing-garden-east-v1.png",
+    "bytes": 662281,
+    "sha256": "c9dec97b03ba79bd3c9dc813e0e3a4916e2c10546486711c7cdf2f27ec813588"
+  },
+  {
+    "path": "assets/minigames/pairing-garden-east-v1.prompt.txt",
+    "bytes": 1759,
+    "sha256": "d9c6aa61d2a366283fd6475eae864ceb6d7e841f38cebcbaf595d028cefc8c9e"
+  },
+  {
+    "path": "assets/minigames/pairing-garden-east-v2.prompt.txt",
+    "bytes": 1111,
+    "sha256": "b85791f5f1cfe37ddb32271fe138a1a99a6a31bce25060ce82303235a988b760"
+  },
+  {
+    "path": "assets/minigames/pairing-garden-east-v2.webp",
+    "bytes": 121892,
+    "sha256": "bdcd2b16fb385889ec8fb9422c6bc29b7e5f411a8219680f68615b729c7e59cc"
+  },
+  {
+    "path": "assets/minigames/timer-station-east-v1.webp",
+    "bytes": 68848,
+    "sha256": "65e6d937d4c587b7dd4413b24b68598061745d42c691b94cbe779d7ea4a382a2"
+  },
+  {
+    "path": "assets/minigames/timer-station-v1.webp",
+    "bytes": 69804,
+    "sha256": "6b3ccc3f9692d85161b88909a026cc777fa4349b21f1f0aa13a7937fc1aa51dc"
+  },
+  {
+    "path": "assets/minigames/typing-station-east-v1.webp",
+    "bytes": 80900,
+    "sha256": "adeddd2e55b577ddc5db55d66ff1a7d0ed6263cb3f25208f82483726d1ed7020"
+  },
+  {
+    "path": "assets/minigames/typing-station-v1.webp",
+    "bytes": 81544,
+    "sha256": "c1e7b8a4cf7a72dfb52ce186c9f01cbacf85e1f05ed1511b5e7eecb1b39c6e0c"
+  },
+  {
+    "path": "assets/mission-rooms/workshop-coating-v1.webp",
+    "bytes": 165014,
+    "sha256": "bf175dfaf22ade9f0d937dc891ee0d4368316188973c0d2b4e8ed7bbad364c9f"
+  },
+  {
+    "path": "assets/mission-rooms/workshop-coating-v2.webp",
+    "bytes": 149614,
+    "sha256": "67cf4a5a7611da806a705660280f54cf7e2a976d0963809f629c909ce97f8d2f"
+  },
+  {
+    "path": "assets/mission-rooms/workshop-ingredients-v1.webp",
+    "bytes": 201854,
+    "sha256": "a174b3f65a736662b653ab0f4f386fdc37771b647055011f0fa9a6219ea2ba5c"
+  },
+  {
+    "path": "assets/mission-rooms/workshop-ingredients-v2.webp",
+    "bytes": 183442,
+    "sha256": "a46316a7644ef893c78010ba545687ab781f4b5ac871976bc0d7afe3ec024575"
+  },
+  {
+    "path": "assets/mission-rooms/workshop-topping-v1.webp",
+    "bytes": 192848,
+    "sha256": "e740231761de3c4523d076c5b59180d7ea2f6338494d9c516fa072ccf9d9688f"
+  },
+  {
+    "path": "assets/mission-rooms/workshop-topping-v2.webp",
+    "bytes": 209772,
+    "sha256": "e9561e4710c438f2d66c5be9f6261b7493a4cd725731bbec18e3e850a31f46f9"
+  },
+  {
+    "path": "assets/mission-rooms/workshop-wrapping-v1.webp",
+    "bytes": 182782,
+    "sha256": "7f362750f522fd66abb2f5c4a98a3c82ff2701fab84ba8307cc4bc30ecd2fdcd"
+  },
+  {
+    "path": "assets/mission-rooms/workshop-wrapping-v2.webp",
+    "bytes": 188756,
+    "sha256": "1e823f7ace2f0d698d0557035196c3b424cbaede98ec0822619f792af5ef944e"
+  },
+  {
+    "path": "assets/point-coin.svg",
+    "bytes": 1270,
+    "sha256": "589b717cca17376a27757fa37f65e5018e36891ffd6f669fa1e5cb8a06c28d27"
+  },
+  {
+    "path": "assets/recipe-card-atlas-v1.webp",
+    "bytes": 195394,
+    "sha256": "9b7bde3e37d96ad1034b489a587eb7c4c512f8dc652a2ae360177857e0ce6793"
+  },
+  {
+    "path": "assets/roof-slides/playdata-community-20261016.png",
+    "bytes": 2644702,
+    "sha256": "e8aabe96204d72fe3d0c973628a844a5b586fbb9d4a178858412e8efc54a24f6"
+  },
+  {
+    "path": "assets/roof-slides/playdata-learning-20261016.png",
+    "bytes": 2559860,
+    "sha256": "6e0c2e239460dd183798b21d15d6ff7bf3749bbb2b472233e53a85afbe9031bc"
+  },
+  {
+    "path": "assets/roof-slides/playdata-poke-20261016.png",
+    "bytes": 2376483,
+    "sha256": "3982520f65cd13052dfc557aee1c2435043c42d96f6dd22e4ba0df56950b19ec"
+  },
+  {
+    "path": "assets/roof-slides/playdata-together-20261016.png",
+    "bytes": 2418191,
+    "sha256": "04677882cb2f373affc0b1a902a7db7e28ac20cdff2c4546a0843860e53a9ffc"
+  },
+  {
+    "path": "assets/rooftop-ad.svg",
+    "bytes": 1192,
+    "sha256": "e112a6766c3d45078ef338dd0d5f2fa327ef8ac50a0775035c0bf2ab45f02d29"
+  },
+  {
+    "path": "assets/rooftop-event-poster.jpg",
+    "bytes": 875850,
+    "sha256": "0357b9bec0001e95bcd9d892de3e18c502a16530f80be25a1d4decceb76fc8c9"
+  },
+  {
+    "path": "assets/rooftop-map.png",
+    "bytes": 9238278,
+    "sha256": "af7c422bd275999498f1d6ba85c8f0cf67a27a53d6d2a2514b0891ed0e67cf51"
+  },
+  {
+    "path": "assets/seasonal/pepero/asset-notes.json",
+    "bytes": 3717,
+    "sha256": "05f739ea1d1c5b051c2cf2849116c305ecc429a8a2eb538e778d7002866347d4"
+  },
+  {
+    "path": "assets/seasonal/pepero/cart.png",
+    "bytes": 2306287,
+    "sha256": "097cc606ed7be1033465f3c04e63979f50d66a15c8fe8eebb99ac7cf0b77cfde"
+  },
+  {
+    "path": "assets/seasonal/pepero/gifts.png",
+    "bytes": 2425614,
+    "sha256": "e725753026cd2f563ecf4890bda1b036a0680460c152d78c4392c2ae7bc8875d"
+  },
+  {
+    "path": "assets/seasonal/pepero/monument.png",
+    "bytes": 2012930,
+    "sha256": "d934b7e2b784809a77a7c89e31ed405d8d7aadd4753c7de8f1c7d7017c13fd25"
+  },
+  {
+    "path": "assets/seasonal/pepero/previews/avatar-combo-prompts.json",
+    "bytes": 2828,
+    "sha256": "0b050a2a885fef2394df76c1ee7ac9d3f8112e4d05bffd1717b51e462794649d"
+  },
+  {
+    "path": "assets/seasonal/pepero/previews/direction-atlas.json",
+    "bytes": 4954,
+    "sha256": "3a5b857ad2a2fcdaa2c891c7f70d58ee78a992fa61c31bac14f65b487674c2ab"
+  },
+  {
+    "path": "assets/seasonal/pepero/previews/direction-prompts.json",
+    "bytes": 9491,
+    "sha256": "19d7dc25aff9b75a459886643dce7cc6581fb2e5d1ec8e2d192f47a44c441c7f"
+  },
+  {
+    "path": "assets/seasonal/pepero/previews/female-1-back-combo-v3.png",
+    "bytes": 1986477,
+    "sha256": "80ecbfaa0a53461ec1fcf27935bf4dc34c2353e55e8db02f94af287c8012140a"
+  },
+  {
+    "path": "assets/seasonal/pepero/previews/female-1-combo-v2.png",
+    "bytes": 1970130,
+    "sha256": "4a24f43f10849ef333402e311f0be5622d552416fcbc1468ca8e5a81657e2467"
+  },
+  {
+    "path": "assets/seasonal/pepero/previews/female-1-front-combo-v3.png",
+    "bytes": 2077980,
+    "sha256": "458807a782cebad6ded138f6b0397f635488ea383cd7f2265867040486b9d3d6"
+  },
+  {
+    "path": "assets/seasonal/pepero/previews/female-2-back-combo-v3.png",
+    "bytes": 1945529,
+    "sha256": "95b06a517ebba1ee81e72d0321efd0bd703aa52349f0a3cca4afd59476aa7221"
+  },
+  {
+    "path": "assets/seasonal/pepero/previews/female-2-combo-v2.png",
+    "bytes": 1999100,
+    "sha256": "4906e970779abd5fb65589e2a88bdb1dd52ee2f4e3b19ebecc05a7d00a359433"
+  },
+  {
+    "path": "assets/seasonal/pepero/previews/female-2-front-combo-v3.png",
+    "bytes": 2053370,
+    "sha256": "3803d4a5724c6912d03d72b4a6ea70933a2d7dfcc94b307c08d51ef6c2801785"
+  },
+  {
+    "path": "assets/seasonal/pepero/previews/male-1-back-combo-v3.png",
+    "bytes": 1844114,
+    "sha256": "f8941848363cc6b1b8aad0c9f7ae77d2aa3eb73824d93d112a4a110a13de03fd"
+  },
+  {
+    "path": "assets/seasonal/pepero/previews/male-1-front-combo-v3.png",
+    "bytes": 1963804,
+    "sha256": "47b6f18a807a40a12ed4ce2d6a89f00239e3a723b211577c24e8ca5ea8688436"
+  },
+  {
+    "path": "assets/seasonal/pepero/previews/male-2-back-combo-v3.png",
+    "bytes": 1796926,
+    "sha256": "d8505e5b953abdcc09064e2d9eb2a8c93801a85e22fc8a9db17d6c462dc935d5"
+  },
+  {
+    "path": "assets/seasonal/pepero/previews/male-2-combo-v2.png",
+    "bytes": 1931286,
+    "sha256": "ecf3b81657fe736c38f55d3d18a36288dd12e9e375a62f33eb9ee0e857db9ab9"
+  },
+  {
+    "path": "assets/seasonal/pepero/previews/male-2-front-combo-v3.png",
+    "bytes": 1952344,
+    "sha256": "a044b6bbc5f9741f74c0257ded3651d97a0b41cf9c5eeda9cf224c913bddc48a"
+  },
+  {
+    "path": "assets/seasonal/pepero/previews/mint-combo-v2-prompt.txt",
+    "bytes": 2270,
+    "sha256": "77f9513bb7b0706f33066bd8f34527d535d4545d7f748e8e30c98e77aac63912"
+  },
+  {
+    "path": "assets/seasonal/pepero/previews/mint-combo-v2.png",
+    "bytes": 1841993,
+    "sha256": "8dd940ce62d35d3ec4ba0ed295f80dc8478984633899c6350c63797745ef13a3"
+  },
+  {
+    "path": "assets/seasonal/pepero/previews/mint-swing-v1-prompt.txt",
+    "bytes": 2232,
+    "sha256": "8fa5a86304d0827ea6b26e1002ecc3791e720ef2f4eda1830ac797c88531dc08"
+  },
+  {
+    "path": "assets/seasonal/pepero/previews/mint-swing-v1.png",
+    "bytes": 844736,
+    "sha256": "4ce5ad455446ebb8008f9a06c3fcdc65933bdaaca59d6de61ce3d83072ef32d4"
+  },
+  {
+    "path": "assets/seasonal/pepero/recipe-note.png",
+    "bytes": 1887106,
+    "sha256": "f9475dca964607be63151e8baae202425ad57ec57ca2e5c0277d380aeed54015"
+  },
+  {
+    "path": "assets/seasonal/pepero/reference/cafe.png",
+    "bytes": 1176762,
+    "sha256": "e0899dcf80de12ed88fafb64f905556808b823c7e60671ddbf41d234e80c65f1"
+  },
+  {
+    "path": "assets/seasonal/pepero/reference/flowerbox.png",
+    "bytes": 2034594,
+    "sha256": "f2e5af530eaf4ab4f985cb6fb6e8ccf4ae183eef56751ab6db74103ccb110437"
+  },
+  {
+    "path": "assets/seasonal/pepero/reference/gate.png",
+    "bytes": 980555,
+    "sha256": "1c57a961e24eb59bc8b45f4d6d277361b9f4a478e530eeb3eb9d5a66732b237d"
+  },
+  {
+    "path": "assets/seasonal/pepero/reference/hero.png",
+    "bytes": 1766328,
+    "sha256": "761f5cd7a67369efe7a667839d8220762c351ebf66f983a6e06ad713ce1260a4"
+  },
+  {
+    "path": "assets/seasonal/pepero/reference/manifest.json",
+    "bytes": 942,
+    "sha256": "ce5a10a64b3a15a5d2796ae5f802be20a48436ee031ae93d03d0866696042a69"
+  },
+  {
+    "path": "assets/seasonal/pepero/reference/pedestal.png",
+    "bytes": 1247557,
+    "sha256": "4e00a4e61e952c19d59d9ce1265759a70d7d014a6a04dc7293c25088c5885a0b"
+  },
+  {
+    "path": "assets/seasonal/pepero/reference/stall.png",
+    "bytes": 1845661,
+    "sha256": "bf10b90a2c713b3faf7251db2f9e89910a4015c831a0e299b52553795fa2a7cc"
+  },
+  {
+    "path": "assets/seasonal/pepero/reference/workbench.png",
+    "bytes": 1903553,
+    "sha256": "7b61f0ca2a0915824a9c1741c639409af4e34de1a889e1eb6c80481cfb276288"
+  },
+  {
+    "path": "assets/seasonal/pepero/refill-chest.png",
+    "bytes": 2128693,
+    "sha256": "e4296be4e0abdd57c4f2a2775c369bfdf3874b2b554987625b1bb8d3e969301f"
+  },
+  {
+    "path": "assets/seasonal/pepero/secret-recipe-pixel-v1.prompt.txt",
+    "bytes": 289,
+    "sha256": "240ab4abe167537b2e919246ee833dc48df11c5bdc891f032e4db32fe7ab553e"
+  },
+  {
+    "path": "assets/seasonal/pepero/secret-recipe-pixel-v1.webp",
+    "bytes": 49398,
+    "sha256": "fc24ffc57d3969f4f16296d2c3d73097de2d75c23c70800290059dd4576a97fc"
+  },
+  {
+    "path": "avatars.css",
+    "bytes": 396,
+    "sha256": "362afcda687f416aa3b2e6d2d8c4953d61afc205cb600ca892ea4886e7368a95"
+  },
+  {
+    "path": "avatars.js",
+    "bytes": 2562,
+    "sha256": "e4596fbb10425d6c060f3c5bccabe62c01882841dca91ec6e0e3e2ef80da09d5"
+  },
+  {
+    "path": "board-shortcut.css",
+    "bytes": 2677,
+    "sha256": "125fd20f88bbf6fe8475cb2739ae7e44be791bf0594b95b101bb2f1e540854c3"
+  },
+  {
+    "path": "booth-assets.js",
+    "bytes": 16053,
+    "sha256": "92d010cf659eb2c7f915b6ba6459af0b1e3f66b6cec294a34185ac151f50e8b0"
+  },
+  {
+    "path": "booth-panel.js",
+    "bytes": 8312,
+    "sha256": "5ac5359d49ae4c5b64e784644847442b8b519e6b78c3f5aa25676e4348a674c0"
+  },
+  {
+    "path": "campus-ads.js",
+    "bytes": 7254,
+    "sha256": "be6994d5d18852e05428a1d35cc70425d5c58297246a63295774181509d286f4"
+  },
+  {
+    "path": "campus-background.js",
+    "bytes": 4225,
+    "sha256": "09ec947579a4d7f3bb8c271d6ff0d09f16aff836399b430ed843e00118a09a56"
+  },
+  {
+    "path": "campus-brand.css",
+    "bytes": 10087,
+    "sha256": "4d3be9a4969f954065c1a46d05fa792648407b6261a35bd12011b1518127cd5e"
+  },
+  {
+    "path": "campus-freeze.js",
+    "bytes": 7162,
+    "sha256": "14821b540489932f7fce277041b62a0d447c217125b1fd7a51ae221551eb63ff"
+  },
+  {
+    "path": "campus-guide.css",
+    "bytes": 6979,
+    "sha256": "901e14c81650ae7c0e3ec57fa604f3951af44a0a0832e678a61724a6a76654d0"
+  },
+  {
+    "path": "campus-guide.js",
+    "bytes": 12794,
+    "sha256": "9184e1ccfc39a91a07cc90a999e4d8e7fce2422a8d25e595829a1e1b2fc93a7e"
+  },
+  {
+    "path": "campus-layout.css",
+    "bytes": 7114,
+    "sha256": "fd4b011e7dd4af3dfab0689ef67f8f35f40d858fe0ab7287e6b05241b21482c4"
+  },
+  {
+    "path": "campus-loading.css",
+    "bytes": 2830,
+    "sha256": "0f7d880fe0584154988e222ea17a2ac74cedf6becd1690d90059e3dd82514683"
+  },
+  {
+    "path": "campus-loading.js",
+    "bytes": 5179,
+    "sha256": "bb3999a2fcc64c99a0fce0215dff43e5c872603e6a0b6079c062e5a672278a90"
+  },
+  {
+    "path": "campus-snb.css",
+    "bytes": 19416,
+    "sha256": "2004b3b7dfac1ee4103b4afe5e3755e1cfb56b3346056b1f28ebf7a072ea10bb"
+  },
+  {
+    "path": "campus-snb.js",
+    "bytes": 6840,
+    "sha256": "5912abf6e43f3e0e26eda79a258959bf4b77592cf611432cf7a069a499e2f332"
+  },
+  {
+    "path": "campus-space-guide.css",
+    "bytes": 3916,
+    "sha256": "bc0aaf2b14983ea3d1580aa32801032cfb345e469e31c1bd22e0d8397260fb21"
+  },
+  {
+    "path": "campus-space-guide.js",
+    "bytes": 3455,
+    "sha256": "fd928628247f6071e94b2f506738209f277d23a69e41cad4286ac416484b8314"
+  },
+  {
+    "path": "campus-world-actions.js",
+    "bytes": 4921,
+    "sha256": "bc8dcbf3481d2e49be040dbc089bd9412e36afcbb8a2f668de760eaad26aa2eb"
+  },
+  {
+    "path": "campus.js",
+    "bytes": 36075,
+    "sha256": "b218e403886e238ad1fe1dbe35ccef6b331494a5581d76bc5df8f5a2bdf9f0f0"
+  },
+  {
+    "path": "community.css",
+    "bytes": 17860,
+    "sha256": "6f52c6042bae410a00f981d50f3603b276613e346323e2a25543fbdb3323a5ad"
+  },
+  {
+    "path": "community.js",
+    "bytes": 25643,
+    "sha256": "59fca98f052fe639a95ad32cbba2bf3d8b5e356f4c6c3112f3f730eb432b3bde"
+  },
+  {
+    "path": "easter-egg-erd.html",
+    "bytes": 53772,
+    "sha256": "0e198ed93f9c55c1063e0ed9f2cc53248b273aa7f75df3df3dd4e4692a49b6a1"
+  },
+  {
+    "path": "event-games/card.html",
+    "bytes": 70250,
+    "sha256": "71479712b91d9c3433ff36eace4cad16f330fe3fbec88895d25d0b723e06c40f"
+  },
+  {
+    "path": "event-games/sql-memory.html",
+    "bytes": 22609,
+    "sha256": "3769f9dc1b6608811956c0f460982ee0914aa9b632a0558c5914236e8f619cbd"
+  },
+  {
+    "path": "event-games/timer.857197c07c59157f.html",
+    "bytes": 38624,
+    "sha256": "098a3fdd35923c25d655b6cba0fca84b4fe4c98bb8eafb3d51cf09271c8bc702"
+  },
+  {
+    "path": "event-games/timer.html",
+    "bytes": 39159,
+    "sha256": "6f2beb321813c0faaac67ad7f4a6f174943f61bbd81307a308445589072af537"
+  },
+  {
+    "path": "event-games/typing.93cd848777ae3cd7.html",
+    "bytes": 49771,
+    "sha256": "93cd848777ae3cd7d45e7bc99cb43ca174f6339c759a4ed5f222b158ee13e133"
+  },
+  {
+    "path": "event-games/typing.html",
+    "bytes": 50306,
+    "sha256": "5f2e5197520ff11ad84fc496415c150322111e9fb9764a005736172bf7c6d37c"
+  },
+  {
+    "path": "event-map.js",
+    "bytes": 66298,
+    "sha256": "a3cf82d77ccfc41d553e017da2c5318ec5feea101c7a71310573c8809dbd6544"
+  },
+  {
+    "path": "floor-transition-portal.js",
+    "bytes": 3232,
+    "sha256": "0e3581e6f842b2a358f15eaf98ce0e06583be8746312444368028add061fbe51"
+  },
+  {
+    "path": "floor-transition.css",
+    "bytes": 4159,
+    "sha256": "77fb0077080a260bed46f068002dc53104347501e399740cf47e5776e0cd6328"
+  },
+  {
+    "path": "floor-transition.js",
+    "bytes": 6977,
+    "sha256": "12e7581953d26740529351e0b6ed3b65723d881dbb8554000f12e1c431db0f07"
+  },
+  {
+    "path": "game-booth.html",
+    "bytes": 22477,
+    "sha256": "5ddb92e2b69f5573d14e5ab802a14e137ffdf138cd944b8b76127f21a24eb504"
+  },
+  {
+    "path": "index.html",
+    "bytes": 61410,
+    "sha256": "772e39d109a6f4eb6e2906b9f29a8d7e79c2d266497cabd6fa469f1b1f1aeecb"
+  },
+  {
+    "path": "isometric.js",
+    "bytes": 98053,
+    "sha256": "26c7113f263b370275de6ffbd33d354f20cffe4adbb19e6b3ed7a4aa698282c2"
+  },
+  {
+    "path": "jump.js",
+    "bytes": 3225,
+    "sha256": "2acf1b9f88d73001b0be2a384c1275cc4e5aacde1a8b3f8678c4a1bfaca6f91b"
+  },
+  {
+    "path": "keyboard.js",
+    "bytes": 5418,
+    "sha256": "bee886b4a88484a745d85bf8758f9b9cccc82f819c3042cb53ef768d4764fc6a"
+  },
+  {
+    "path": "last-bite-dialogue.js",
+    "bytes": 2064,
+    "sha256": "786ce24d7233b1344ae9fe27ec692f08db3fd8ce3e5730d6729689b99b8700ab"
+  },
+  {
+    "path": "lunch-wheel.css",
+    "bytes": 3223,
+    "sha256": "1d4a000494db4efbe595cd4935dfb7ae59a62ca070332b71fb2d9e61f114f976"
+  },
+  {
+    "path": "lunch-wheel.js",
+    "bytes": 5778,
+    "sha256": "a1357aed750c5e7126a4cdaf93b36797182db4a0fcdfecdeeaac9d553ba5250d"
+  },
+  {
+    "path": "main-quest.css",
+    "bytes": 17844,
+    "sha256": "0ed756e1224398d49fababb147b72ce3344d3aaf7ffa8ffab5678221e09ae886"
+  },
+  {
+    "path": "main-quest.js",
+    "bytes": 63707,
+    "sha256": "c02e8305df3392e104320933423242df2bee5b368a4700e092e9d16c8f16aa06"
+  },
+  {
+    "path": "map-data.js",
+    "bytes": 20255,
+    "sha256": "a8c8b5619804ff98d65ad7439e4ac74773dfd8cdb6e72ccea5cb9adc555e83ae"
+  },
+  {
+    "path": "messages.css",
+    "bytes": 4184,
+    "sha256": "34f52d50fa833318bd15e128a4418c4f9643016e70482660522eec214354f432"
+  },
+  {
+    "path": "messages.js",
+    "bytes": 13180,
+    "sha256": "2b72ff8b48b67cf301d562ad28ff4d00c4103e7c9c5296626d8452ce67a99067"
+  },
+  {
+    "path": "minigames/term_match.html",
+    "bytes": 74272,
+    "sha256": "2c6dddd5313f6a1f77afa463f99fa4b4c0453ccd5ef866e9eabb401e1140d8dc"
+  },
+  {
+    "path": "minigames/timer.html",
+    "bytes": 38370,
+    "sha256": "218ae50533d923fd40428f6a17a91b2152a6d5a5b8cf26886ed0eccdaa954fdc"
+  },
+  {
+    "path": "minigames/typing.html",
+    "bytes": 51122,
+    "sha256": "de95986719763e3545cdaf410a2ed63f2e452a2ec45c509e29be3cd4e922deff"
+  },
+  {
+    "path": "minigames.css",
+    "bytes": 545,
+    "sha256": "c0129827011e676ea16f896f8a6ab61ec402408f04128f81bdf0c2de14da7208"
+  },
+  {
+    "path": "minigames.js",
+    "bytes": 5727,
+    "sha256": "5c3a299d8f2ab535b8f439ee9a6b03e81e8fdba521236cd9073696bf1a7507cb"
+  },
+  {
+    "path": "mission-room-map.js",
+    "bytes": 14084,
+    "sha256": "c7b9c2f1f729a71c90cb6a20598e3cc47d205367a9c21f8bb3c73a813310c887"
+  },
+  {
+    "path": "navigation.js",
+    "bytes": 3234,
+    "sha256": "2d5dbad4d6aa5ff8418721deef18d04e794b652877b2b4ba3ae3fa674f2ea50b"
+  },
+  {
+    "path": "notice-notifications.css",
+    "bytes": 3479,
+    "sha256": "f27cac89365897796c0653e356fce3aa6038b17ed087e108c328d3ad5549142f"
+  },
+  {
+    "path": "notice-notifications.js",
+    "bytes": 6291,
+    "sha256": "73e9b6a2bd6b0eeccc59528adc3b73dac087028eaad516cc20edf768750d6462"
+  },
+  {
+    "path": "pepero-layout.js",
+    "bytes": 7689,
+    "sha256": "78b15d6cecfaf5d4034172da56dd07c1800e1292b17eabae179f414bd57ad5f9"
+  },
+  {
+    "path": "pepero-play-preview.html",
+    "bytes": 3366,
+    "sha256": "d7ddf9d53a993b0e182a3b011978d95d9c312f21dc1d49862971a80ca33cdcc0"
+  },
+  {
+    "path": "pepero-preview.html",
+    "bytes": 8008,
+    "sha256": "bddb111d36b6c5c3368c7e8a18bfc6aaaa6a30faefba6eabe29bd79803608b7c"
+  },
+  {
+    "path": "pepero-swing-preview.html",
+    "bytes": 7704,
+    "sha256": "183da0550dcbcaf3439790b58b39cdbfa38dabe7406c878469987d3af2dd59dc"
+  },
+  {
+    "path": "pepero-swing.js",
+    "bytes": 7679,
+    "sha256": "2dabe11c60b29e52659393a299f71fee0677835f79fe62fe67045323b5d10b09"
+  },
+  {
+    "path": "pepero-theme.css",
+    "bytes": 3374,
+    "sha256": "04a4c9fdf472a21631150b12a25e121d94f4a0c2c1fa293e1ee588f1b21d5a72"
+  },
+  {
+    "path": "pepero-theme.js",
+    "bytes": 22377,
+    "sha256": "633eb21a503696f3ff7adbcb88fa5bd5238265bce612a3f4e3a39e811021f158"
+  },
+  {
+    "path": "point-wallet.css",
+    "bytes": 5077,
+    "sha256": "e756f4e8c75bf954cd8fff7396b9e68ed782ecea13ff94b5ddab67e91f205f07"
+  },
+  {
+    "path": "point-wallet.js",
+    "bytes": 9125,
+    "sha256": "632d43dbf1cfc02bfac99071572336fa4c7fe75ebc8175c6640f716510acbdbc"
+  },
+  {
+    "path": "poke.css",
+    "bytes": 1047,
+    "sha256": "9085e14c6d0150f57fa94b43c348f7f8257581055da71d0df4e054f116c093d6"
+  },
+  {
+    "path": "poke.js",
+    "bytes": 21266,
+    "sha256": "a6f78615309413a18e7678e27607dab6b0f1e3ad0229ba8ee818cf313c051526"
+  },
+  {
+    "path": "presence.js",
+    "bytes": 25776,
+    "sha256": "c8580c90575c1feac24a4637a3e7ac79819dd44b949cb20477c8bbd316086877"
+  },
+  {
+    "path": "quest-dialogue.css",
+    "bytes": 8160,
+    "sha256": "eee2db3a6c296d2252fe484304cc3ea908f993ea23e6dc5539075decd10baaf0"
+  },
+  {
+    "path": "quest-dialogue.js",
+    "bytes": 5872,
+    "sha256": "16081b6903d9800a18bc47ec58e15dfd7e5ee1d44936531fb2c67051a2279a50"
+  },
+  {
+    "path": "quest-topping.css",
+    "bytes": 4083,
+    "sha256": "e4fe4c59b439ec0af56081c7555a22ffa7bdeae2ab49549988fd416eb511184e"
+  },
+  {
+    "path": "quest-topping.js",
+    "bytes": 9927,
+    "sha256": "fcf76ed43974b837beafbd2d88857b320bf740ef4a97ced8afc2e29f0fec447a"
+  },
+  {
+    "path": "recipe-discovery.css",
+    "bytes": 1736,
+    "sha256": "ed0ed887f7152e230c8123f219b53c9207efe33919b0da441d742212cc27a1ec"
+  },
+  {
+    "path": "recipe-discovery.js",
+    "bytes": 2771,
+    "sha256": "9f09065d8a06a9d409d77a29ccf389a3d3a9036e2fd5e3005885661e1e5b331a"
+  },
+  {
+    "path": "roof-slideshow-config.js",
+    "bytes": 427,
+    "sha256": "09c3b2a1768bee8fd09802b7f69a33c0bcb7788828ba53c935c63a4d51093334"
+  },
+  {
+    "path": "roof-slideshow.js",
+    "bytes": 5477,
+    "sha256": "ba3943709a166c553d4766b992c71daa1406dfdd1151b3942fdd637115face53"
+  },
+  {
+    "path": "rooftop-city.js",
+    "bytes": 9602,
+    "sha256": "5572791d658063066378097d7ef9c794fbe007b666357029feaebca41375db27"
+  },
+  {
+    "path": "rooftop-data.js",
+    "bytes": 11597,
+    "sha256": "48cd5a40d4483a2ec3fe0603aed402b7c6edc70b543a11cd86322796bc9274a7"
+  },
+  {
+    "path": "session-policy.css",
+    "bytes": 1298,
+    "sha256": "708fdc00318fdbb5a6b441cfb1825d3257f6b65ed7372065e6b958ace8190e7c"
+  },
+  {
+    "path": "session-policy.js",
+    "bytes": 8098,
+    "sha256": "1d330ab0f06a3794fca0f36d348d97614b32667aba78a45936893bb306860a67"
+  },
+  {
+    "path": "social.css",
+    "bytes": 8072,
+    "sha256": "1cb7135019a8cdf11bbc2ae499fa907b3597ea0be471b651fdf774275be1457b"
+  },
+  {
+    "path": "social.js",
+    "bytes": 20913,
+    "sha256": "dfb08a68675d95e66c27fb8eab7995076bf9badbe37eaae8bc0f66a9872388de"
+  },
+  {
+    "path": "stair-motion.js",
+    "bytes": 5325,
+    "sha256": "ebd7e2f098b04ca1cb9557ece744388b7bc716d663a70ffb5aeb623a5778071a"
+  },
+  {
+    "path": "story.css",
+    "bytes": 5232,
+    "sha256": "f1070e80f11870ff83ebe5813d5386dd8a78cc47d300f66331ac012163970c2e"
+  },
+  {
+    "path": "story.js",
+    "bytes": 22071,
+    "sha256": "a1f33e1db1ce6bfb1447b7b41a9a1e761bbdceb672acbf3e1b32d873fec91e0d"
+  },
+  {
+    "path": "style.css",
+    "bytes": 23113,
+    "sha256": "5cd0d28bdb594d1f39ac3db365efcdacf6bb9a3718f2640dd245a27292981db4"
+  },
+  {
+    "path": "swing-combo.js",
+    "bytes": 1196,
+    "sha256": "acbd703a5cf48aae1873f2bff843a054ec7e01cbf6db1fcbe94136f5a4a089c5"
+  }
+]

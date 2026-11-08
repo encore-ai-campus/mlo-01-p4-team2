@@ -1,0 +1,31 @@
+{
+  "label": "100-users-all",
+  "users": 100,
+  "parallel_per_user": 4,
+  "files_per_user": 225,
+  "bytes_per_user": 117585991,
+  "requests": 22500,
+  "success": 22248,
+  "errors": 252,
+  "completed_users": 100,
+  "successful_users": 1,
+  "user_start_spread_ms": 1.328,
+  "downloaded_bytes": 10929309585,
+  "elapsed_seconds": 34.694,
+  "user_seconds_p50": 34.091,
+  "user_seconds_p95": 34.685,
+  "user_seconds_max": 34.693,
+  "request_ms_p95": 1673.952,
+  "status_counts": {
+    "200": 22288,
+    "network_error": 212
+  },
+  "nginx_cpu_one_core_pct_mean": 13.02,
+  "nginx_cpu_one_core_pct_peak": 41.41,
+  "nginx_rss_mib_peak": 36.08,
+  "generator_rss_mib_peak": 691.55,
+  "generator_monitor_overrun_ms_max": 306.74,
+  "health_probe_count": 80,
+  "health_probe_errors": 0,
+  "health_probe_ms_p95": 283.112
+}

@@ -1,0 +1,17 @@
+{
+  "scope": "real rendered frontend; mock account/APIs; no backend/WS capacity validation",
+  "loading_gate_blocked_before_completion": {
+    "percent": "14",
+    "app": false,
+    "hidden": false
+  },
+  "preloaded_games": 5,
+  "all_three_blob_games_reported_ready_from_same_origin": true,
+  "game_files_fetched_again_on_open": false,
+  "timer_started_through_the_real_minigame_controller": true,
+  "mobile_loading_card_fits_viewport": true,
+  "badges_and_slides_absent_at_entry": true,
+  "notebook_loads_images_on_open": true,
+  "floor_transition_loads_two_slides_on_open": true,
+  "runtime_errors": []
+}

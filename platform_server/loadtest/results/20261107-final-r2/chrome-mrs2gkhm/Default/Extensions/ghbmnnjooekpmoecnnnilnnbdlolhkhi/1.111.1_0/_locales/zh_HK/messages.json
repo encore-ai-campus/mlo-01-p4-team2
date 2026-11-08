@@ -1,0 +1,23 @@
+{
+  "createnew": {
+    "message": "建立新項目"
+  },
+  "explanationofflinedisabled": {
+    "message": "您處於離線狀態。如要在沒有互聯網連線的情況下使用「Google 文件」，請前往「Google 文件」首頁的設定，並在下次連接互聯網時開啟離線同步功能。"
+  },
+  "explanationofflineenabled": {
+    "message": "您處於離線狀態，但您仍可以編輯可用檔案或建立新檔案。"
+  },
+  "extdesc": {
+    "message": "編輯、建立及查看您的文件、試算表和簡報，完全不需使用互聯網。"
+  },
+  "extname": {
+    "message": "「Google 文件」離線版"
+  },
+  "learnmore": {
+    "message": "瞭解詳情"
+  },
+  "popuphelptext": {
+    "message": "無論是否連接互聯網，都能撰寫、編輯內容以及與他人協作。"
+  }
+}

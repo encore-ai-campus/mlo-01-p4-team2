@@ -1,0 +1,5 @@
+{
+  "reason": "Independent design review: verify another account remains connected after logout; require two logout close checks. Security script has not executed in either variant. Mixed benchmark source is unchanged.",
+  "old_sha256": "ba72cdd368178033c12768cfdd0dee6e103e022832d977b81153a630f5777d0c",
+  "execution_sha256": "10187b3e272512efd36ad8a273db6fbc0d8bbb8bb97232d121779afb04a2599d"
+}

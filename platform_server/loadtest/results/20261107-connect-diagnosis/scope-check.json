@@ -1,0 +1,12 @@
+{
+  "product_source_changed": [],
+  "existing_stress_report_unchanged": true,
+  "exported_files": 131,
+  "private_files_excluded": [
+    "clients.json",
+    "environment.json",
+    "expected-api.json",
+    "metadata.json",
+    "sessions.json"
+  ]
+}

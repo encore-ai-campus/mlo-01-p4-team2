@@ -1,0 +1,8 @@
+{
+  "test_ports_closed": {
+    "8055": true,
+    "9055": true,
+    "55479": true
+  },
+  "live_frontend_http_status": 200
+}

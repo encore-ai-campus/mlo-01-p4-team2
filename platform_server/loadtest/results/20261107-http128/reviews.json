@@ -1,0 +1,41 @@
+{
+  "status": "approved",
+  "rounds": [
+    {
+      "round": 1,
+      "decisions": [
+        {
+          "agent": "/root/conn128_review1",
+          "decision": "rejected",
+          "findings": "동일 API 경로 정규화와 준비 실패 DB 누락 보완 필요"
+        },
+        {
+          "agent": "/root/conn128_review2",
+          "decision": "rejected",
+          "findings": "METHOD와 경로 매개변수 정규화 후 합산 P95 재계산 필요"
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "report_sha256": "9630012fc0a66f12bafbd68d5277ce2e0238ba207750ecc1bb52c4bcab8335ba",
+      "decisions": [
+        {
+          "agent": "/root/conn128_review1",
+          "decision": "approved",
+          "report_sha256": "9630012fc0a66f12bafbd68d5277ce2e0238ba207750ecc1bb52c4bcab8335ba",
+          "findings": "정규화 API42행·P95·분모·DB5개·준비 실패·긴 지연 재검산 일치"
+        },
+        {
+          "agent": "/root/conn128_review2",
+          "decision": "approved",
+          "report_sha256": "9630012fc0a66f12bafbd68d5277ce2e0238ba207750ecc1bb52c4bcab8335ba",
+          "findings": "원본 계정수·분류·합산P95·한계·복구·보존자원 일치"
+        }
+      ],
+      "allowed_change": "검토 상태 줄만 승인 표시로 변경"
+    }
+  ],
+  "final_sha256": "0099a6d92a94673182b58c9f85739b5719b005805ff6dc31213573f0ca6baad2",
+  "finalized_at": "2026-11-07T15:16:09.961008+09:00"
+}

@@ -1,0 +1,31 @@
+{
+  "label": "100-users-code",
+  "users": 100,
+  "parallel_per_user": 1,
+  "files_per_user": 89,
+  "bytes_per_user": 1435632,
+  "requests": 8900,
+  "success": 8900,
+  "errors": 0,
+  "completed_users": 100,
+  "successful_users": 100,
+  "user_start_spread_ms": 0.881,
+  "downloaded_bytes": 143563200,
+  "elapsed_seconds": 0.42,
+  "user_seconds_p50": 0.395,
+  "user_seconds_p95": 0.419,
+  "user_seconds_max": 0.419,
+  "request_ms_p95": 10.73,
+  "request_ms_p99": 18.585,
+  "status_counts": {
+    "200": 8900
+  },
+  "nginx_cpu_one_core_pct_mean": 72.42,
+  "nginx_cpu_one_core_pct_peak": 87.07,
+  "nginx_rss_mib_peak": 12.14,
+  "generator_rss_mib_peak": 84.44,
+  "generator_monitor_overrun_ms_max": 0,
+  "health_probe_count": 2,
+  "health_probe_errors": 0,
+  "health_probe_ms_p95": 3.762
+}

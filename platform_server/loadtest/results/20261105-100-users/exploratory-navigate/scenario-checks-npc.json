@@ -1,0 +1,69 @@
+[
+  {
+    "phase": "connect:npc",
+    "users": 100,
+    "seconds": 2.1,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "pepero_refill",
+    "users": 100,
+    "seconds": 0.62,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "walk:manager",
+    "users": 100,
+    "seconds": 99.96,
+    "passed": 0,
+    "errors": {
+      "navigation did not reach target": 9,
+      "": 91
+    }
+  },
+  {
+    "phase": "manager_greet",
+    "users": 100,
+    "seconds": 0.0,
+    "passed": 0,
+    "errors": {
+      "received 1011 (internal error); then sent 1011 (internal error)": 100
+    }
+  },
+  {
+    "phase": "manager_poke_with_inventory",
+    "users": 100,
+    "seconds": 0.0,
+    "passed": 0,
+    "errors": {
+      "received 1011 (internal error); then sent 1011 (internal error)": 100
+    }
+  },
+  {
+    "phase": "walk:guide",
+    "users": 100,
+    "seconds": 0.0,
+    "passed": 0,
+    "errors": {
+      "received 1011 (internal error); then sent 1011 (internal error)": 100
+    }
+  },
+  {
+    "phase": "guide_talk_one_remaining",
+    "users": 100,
+    "seconds": 0.0,
+    "passed": 0,
+    "errors": {
+      "server inventory=10": 100
+    }
+  },
+  {
+    "phase": "close:npc",
+    "users": 100,
+    "seconds": 0.0,
+    "passed": 100,
+    "errors": {}
+  }
+]

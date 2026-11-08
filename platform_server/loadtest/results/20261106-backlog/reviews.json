@@ -1,0 +1,44 @@
+{
+  "status": "approved",
+  "rounds": [
+    {
+      "round": 1,
+      "report_sha256": "239ca2f9d5a730c515383afa02381a6e523a7e58f852a099ddd184ed3c6d0e7b",
+      "decisions": [
+        {
+          "agent": "/root/stress_report_review2",
+          "decision": "approved",
+          "report_sha256": "239ca2f9d5a730c515383afa02381a6e523a7e58f852a099ddd184ed3c6d0e7b",
+          "note": "All outcome accounting, drain, Chrome aggregation, logs and limits verified; report approval only."
+        },
+        {
+          "agent": "/root/stress_report_review",
+          "decision": "withheld_pending_environment_note",
+          "note": "Raw metrics and hashes passed; requested explicit test-time policy before final approval."
+        }
+      ],
+      "superseded_reason": "Added omitted test-only main.window=open override and DEBUG/ads/session-cleanup settings; measurements unchanged."
+    },
+    {
+      "round": 2,
+      "report_sha256": "cee3461ca1b0b97003e9c57b88139ac8248610bc577bb807561e4f6bfaab7cbf",
+      "decisions": [
+        {
+          "agent": "/root/stress_report_review",
+          "decision": "approved",
+          "report_sha256": "cee3461ca1b0b97003e9c57b88139ac8248610bc577bb807561e4f6bfaab7cbf",
+          "note": "Time-policy note, raw counts, P95, response accounting, logs and hashes verified; no required changes."
+        },
+        {
+          "agent": "/root/stress_report_review2",
+          "decision": "approved",
+          "report_sha256": "cee3461ca1b0b97003e9c57b88139ac8248610bc577bb807561e4f6bfaab7cbf",
+          "note": "Environment note matches code/process settings; raw verification passed again."
+        }
+      ]
+    }
+  ],
+  "final_sha256": "50cc71ead8899212974cdbe40d674c70c0a8c02ef2eacb7184b7a1c351652b80",
+  "report_approval_only": true,
+  "post_approval_changes": "Only the review-status line changed; all measured values and report content retained."
+}

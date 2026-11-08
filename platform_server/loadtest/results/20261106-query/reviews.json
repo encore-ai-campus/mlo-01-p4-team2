@@ -1,0 +1,27 @@
+{
+  "status": "approved",
+  "rounds": [
+    {
+      "round": 1,
+      "report_sha256": "4b9bb857276c4dfaca1b63b3870a39f6ddf30724070d4b81badec7cabfeff836",
+      "decisions": [
+        {
+          "agent": "/root/stress_report_review",
+          "decision": "approved",
+          "report_sha256": "4b9bb857276c4dfaca1b63b3870a39f6ddf30724070d4b81badec7cabfeff836",
+          "allowed_metadata_change": "Review status line only after both approvals.",
+          "findings": "원본 요청 수·P95·504 세 건·미도달 계정·해시·측정 코드를 검산했습니다. 필수 수정 없음. 운영 성능 통과와 구분합니다."
+        },
+        {
+          "agent": "/root/stress_report_review2",
+          "decision": "approved",
+          "report_sha256": "4b9bb857276c4dfaca1b63b3870a39f6ddf30724070d4b81badec7cabfeff836",
+          "allowed_metadata_change": "Review status line only after both approvals.",
+          "findings": "네 조건의 P95·분모·예상 거절·실제 오류·코드·저장 보존 검사·로그·해시를 검산했습니다. 필수 수정 없음. 운영 성능 통과와 구분합니다."
+        }
+      ]
+    }
+  ],
+  "final_sha256": "ccf8b92e6c1a5793f4afab3222a10cce1b235487143e7630f063167de36fc27e",
+  "finalized_at": "2026-11-06T16:34:14+09:00"
+}

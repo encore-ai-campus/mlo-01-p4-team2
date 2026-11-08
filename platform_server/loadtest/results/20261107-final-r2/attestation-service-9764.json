@@ -1,0 +1,16 @@
+{
+  "pid": 52212,
+  "worker": "service-9764",
+  "db": "receipt_final_20261107_r2",
+  "port": "55500",
+  "pool": {
+    "min_size": 1,
+    "max_size": 10
+  },
+  "debug": false,
+  "windowOverride": true,
+  "files": {
+    "backend/event_story/main.py": "241dddfc0f7ebc5d16bd71291be6166c85c724f43a8865513672a455a1eb23d9",
+    "frontend/dist/main-quest.js": "c02e8305df3392e104320933423242df2bee5b368a4700e092e9d16c8f16aa06"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "platform": "macOS-14.6.1-arm64-arm-64bit",
+  "python": "3.12.11",
+  "cpu": "Apple M1 Pro",
+  "logical_cpus": "8",
+  "memory_bytes": "17179869184"
+}

@@ -1,0 +1,25 @@
+{
+  "both_approved": true,
+  "approved_at": "2026-11-06T12:39:54+09:00",
+  "rounds": [
+    {
+      "round": 1,
+      "document_sha256": "fa124a32d1539edc39e8607b0b4bf2268f2133d29f34202a4e3a03f5bbda85fc",
+      "reviews": {
+        "stress_report_review": "REJECTED: add shareable backend log evidence for error counts",
+        "stress_report_review2": "APPROVED"
+      }
+    },
+    {
+      "round": 2,
+      "document_sha256": "568181de89546b66cd69bfaa10621f29492aef3899d0f6dd58a1cdf2e52632a2",
+      "reviews": {
+        "stress_report_review": "APPROVED: concise report, raw counts, full redacted logs, excerpts and hashes verified",
+        "stress_report_review2": "APPROVED: concise report, limitations, contradictory 502 results and offline recalculation verified"
+      }
+    }
+  ],
+  "meaning": "Report approved. Operational acceptance remains withheld.",
+  "finalization_changes": "Only approval metadata and review links added after both reviewers approved the concise report.",
+  "final_document_sha256": "7ad39c3f7fd4187a7eee43aa6822c1f2f902b4667092f0935c1aba646783bdf9"
+}

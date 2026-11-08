@@ -1,0 +1,13 @@
+{
+  "worker": "service-9564",
+  "pid": 55574,
+  "database": "local44_nopool_final_20261106",
+  "db_port": "55480",
+  "movement_redis": "redis://127.0.0.1:56393/0",
+  "service_redis": "redis://127.0.0.1:56394/0",
+  "secret_fingerprint": "REDACTED",
+  "debug": false,
+  "event_window_override": true,
+  "pool_options": null,
+  "connection_max_age": 0
+}

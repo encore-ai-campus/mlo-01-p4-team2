@@ -1,0 +1,104 @@
+{
+  "achievements:restore": {
+    "n": 100,
+    "p50": 294.33,
+    "p95": 525.67,
+    "p99": 564.24,
+    "max": 567.66,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "learning:answer": {
+    "n": 721,
+    "p50": 861.8,
+    "p95": 1625.49,
+    "p99": 7640.21,
+    "max": 25929.81,
+    "unexpected": 6,
+    "statuses": {
+      "201": 715,
+      "timeout": 6
+    }
+  },
+  "learning:answer_retry": {
+    "n": 715,
+    "p50": 444.37,
+    "p95": 1253.28,
+    "p99": 25909.06,
+    "max": 25929.74,
+    "unexpected": 12,
+    "statuses": {
+      "201": 703,
+      "timeout": 12
+    }
+  },
+  "learning:complete": {
+    "n": 69,
+    "p50": 460.46,
+    "p95": 742.67,
+    "p99": 904.6,
+    "max": 904.6,
+    "unexpected": 0,
+    "statuses": {
+      "200": 69
+    }
+  },
+  "learning:question": {
+    "n": 734,
+    "p50": 420.65,
+    "p95": 1336.5,
+    "p99": 25911.93,
+    "max": 25927.65,
+    "unexpected": 13,
+    "statuses": {
+      "200": 721,
+      "timeout": 13
+    }
+  },
+  "learning:start": {
+    "n": 100,
+    "p50": 1854.55,
+    "p95": 3007.27,
+    "p99": 3020.16,
+    "max": 3029.49,
+    "unexpected": 0,
+    "statuses": {
+      "201": 100
+    }
+  },
+  "main:restore": {
+    "n": 100,
+    "p50": 380.95,
+    "p95": 807.82,
+    "p99": 812.05,
+    "max": 812.17,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "recipe:restore": {
+    "n": 100,
+    "p50": 501.6,
+    "p95": 610.14,
+    "p99": 641.94,
+    "max": 644.52,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "ws_connect": {
+    "n": 200,
+    "p50": 617.65,
+    "p95": 777.36,
+    "p99": 800.75,
+    "max": 802.2,
+    "unexpected": 0,
+    "statuses": {
+      "101": 200
+    }
+  }
+}

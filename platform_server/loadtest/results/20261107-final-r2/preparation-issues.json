@@ -1,0 +1,8 @@
+[
+  {
+    "issue": "macOS spawn re-imported final_repeat without main guard",
+    "effect": "RecipeLive setUpClass failed before two tests ran; product test DB deletion denied by PostgreSQL",
+    "resolution": "Added main guard to the test runner; entire backend suite rerun",
+    "product_code_changed": false
+  }
+]

@@ -1,0 +1,110 @@
+[
+  {
+    "subject": "cs",
+    "difficulty": "advanced",
+    "question_type": "fill_blank",
+    "n": 200
+  },
+  {
+    "subject": "cs",
+    "difficulty": "advanced",
+    "question_type": "multiple_choice",
+    "n": 200
+  },
+  {
+    "subject": "cs",
+    "difficulty": "beginner",
+    "question_type": "fill_blank",
+    "n": 200
+  },
+  {
+    "subject": "cs",
+    "difficulty": "beginner",
+    "question_type": "multiple_choice",
+    "n": 200
+  },
+  {
+    "subject": "cs",
+    "difficulty": "intermediate",
+    "question_type": "fill_blank",
+    "n": 200
+  },
+  {
+    "subject": "cs",
+    "difficulty": "intermediate",
+    "question_type": "multiple_choice",
+    "n": 200
+  },
+  {
+    "subject": "python",
+    "difficulty": "advanced",
+    "question_type": "fill_blank",
+    "n": 200
+  },
+  {
+    "subject": "python",
+    "difficulty": "advanced",
+    "question_type": "multiple_choice",
+    "n": 200
+  },
+  {
+    "subject": "python",
+    "difficulty": "beginner",
+    "question_type": "fill_blank",
+    "n": 200
+  },
+  {
+    "subject": "python",
+    "difficulty": "beginner",
+    "question_type": "multiple_choice",
+    "n": 200
+  },
+  {
+    "subject": "python",
+    "difficulty": "intermediate",
+    "question_type": "fill_blank",
+    "n": 200
+  },
+  {
+    "subject": "python",
+    "difficulty": "intermediate",
+    "question_type": "multiple_choice",
+    "n": 200
+  },
+  {
+    "subject": "sql",
+    "difficulty": "advanced",
+    "question_type": "fill_blank",
+    "n": 200
+  },
+  {
+    "subject": "sql",
+    "difficulty": "advanced",
+    "question_type": "multiple_choice",
+    "n": 200
+  },
+  {
+    "subject": "sql",
+    "difficulty": "beginner",
+    "question_type": "fill_blank",
+    "n": 200
+  },
+  {
+    "subject": "sql",
+    "difficulty": "beginner",
+    "question_type": "multiple_choice",
+    "n": 200
+  },
+  {
+    "subject": "sql",
+    "difficulty": "intermediate",
+    "question_type": "fill_blank",
+    "n": 200
+  },
+  {
+    "subject": "sql",
+    "difficulty": "intermediate",
+    "question_type": "multiple_choice",
+    "n": 200
+  }
+]

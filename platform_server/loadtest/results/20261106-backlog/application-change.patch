@@ -1,0 +1,61 @@
+diff --git a/deploy/onprem/README.md b/deploy/onprem/README.md
+index 9c580df..a1f302e 100644
+--- a/deploy/onprem/README.md
++++ b/deploy/onprem/README.md
+@@ -84,6 +84,7 @@ PC 2에서 화면·HTTP·채팅 역할을 실행한다.
+ 
+ - 서비스 시작 시 `collectstatic`으로 전체 파일을 수집한다.
+ - Front·Backend는 같은 가상환경의 Python으로 실행한다.
++- Front 연결 대기열은 기본128개다. `--frontend-backlog`로 변경하며, 실제 상한은 OS 설정도 제한한다.
+ - Backend는 loopback에서만 수신한다. Front·Nginx의 기본 바인딩도 loopback이다.
+ - 사설 주소로 바인딩하면 Front는 해당 PC의 Nginx 사설 주소로 연결한다.
+ - 다른 입구 장비가 연결하면 `--bind`에 사설 주소를 지정하고 방화벽을 제한한다.
+diff --git a/deploy/onprem/run.py b/deploy/onprem/run.py
+index 29b4c3b..affc98f 100644
+--- a/deploy/onprem/run.py
++++ b/deploy/onprem/run.py
+@@ -20,10 +20,13 @@ def parse_args(argv=None):
+     parser.add_argument("role", choices=("movement", "service"))
+     parser.add_argument("--env-file", type=Path, default=DEPLOY / ".env")
+     parser.add_argument("--frontend-port", type=int, default=8004)
++    parser.add_argument("--frontend-backlog", type=int, default=128)
+     parser.add_argument("--nginx-port", type=int, default=8000)
+     parser.add_argument("--backend-base-port", type=int)
+     parser.add_argument("--bind", default="127.0.0.1")
+     options = parser.parse_args(argv)
++    if options.frontend_backlog < 1:
++        parser.error("--frontend-backlog must be positive")
+     if options.backend_base_port is None:
+         options.backend_base_port = 9101 if options.role == "movement" else 9201
+     options.backend_ports = list(range(options.backend_base_port, options.backend_base_port + 4))
+@@ -170,8 +173,9 @@ def main(argv=None):
+         start("nginx", [*nginx_command, "-g", "daemon off;"], ROOT)
+         origin_host = "127.0.0.1" if options.bind == "0.0.0.0" else options.bind
+         wait_ready([(origin_host, options.nginx_port)], processes)
+-        start("frontend", [sys.executable, "-m", "daphne", "-b", options.bind,
+-              "-p", str(options.frontend_port), f"config.{options.role}_asgi:application"], ROOT / "frontend")
++        start("frontend", [sys.executable, "-m", "daphne", "-e",
++              f"tcp:port={options.frontend_port}:interface={options.bind}:backlog={options.frontend_backlog}",
++              f"config.{options.role}_asgi:application"], ROOT / "frontend")
+         wait_ready([(origin_host, options.frontend_port)], processes)
+         if options.role == "service":
+             start("jobs", [sys.executable, "manage.py", "campus_jobs"], ROOT / "backend")
+diff --git a/deploy/onprem/test_run.py b/deploy/onprem/test_run.py
+index c722733..44605aa 100644
+--- a/deploy/onprem/test_run.py
++++ b/deploy/onprem/test_run.py
+@@ -16,6 +16,14 @@ spec.loader.exec_module(launcher)
+ 
+ 
+ class LauncherTests(unittest.TestCase):
++    def test_frontend_backlog_default_override_and_invalid_values(self):
++        self.assertEqual(launcher.parse_args(['movement']).frontend_backlog, 128)
++        self.assertEqual(launcher.parse_args(['service', '--frontend-backlog', '256']).frontend_backlog, 256)
++        with contextlib.redirect_stderr(io.StringIO()):
++            for value in ('0', '-1'):
++                with self.subTest(value=value), self.assertRaises(SystemExit):
++                    launcher.parse_args(['movement', '--frontend-backlog', value])
++
+     def test_role_templates_and_non_default_ports_preserve_boundaries(self):
+         with tempfile.TemporaryDirectory() as directory, patch.object(launcher, 'DEPLOY', Path(directory)):
+             for role in ('movement', 'service'):

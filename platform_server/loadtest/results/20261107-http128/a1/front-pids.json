@@ -1,0 +1,12 @@
+[
+  {
+    "role": "front-movement",
+    "port": 9581,
+    "pid": 28542
+  },
+  {
+    "role": "front-service",
+    "port": 9582,
+    "pid": 28543
+  }
+]

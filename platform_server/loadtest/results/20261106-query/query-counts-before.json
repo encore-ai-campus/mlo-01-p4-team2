@@ -1,0 +1,12 @@
+{
+  "status_response": {
+    "queries": 56,
+    "writes": 1,
+    "payload_sha256": "817a77d4f9edf9ac32f396625b958cb16b8402cbcab273fb1daad7abf5027ffb"
+  },
+  "ranking": {
+    "queries": 28,
+    "writes": 0,
+    "payload_sha256": "1064f3216ccf1d1d60aa043a4b33fc02254f246bb7fa5195b3deee8f81711762"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "variants": {
+    "front": {
+      "row_counts": {
+        "auth_user": 100,
+        "django_session": 100,
+        "learning_question": 3600,
+        "event_progress": 906
+      },
+      "sessions_sha256": "3e6b21194abf985c3ffde555f7b61555a931ccadf8f45ccbd24f3d0cc4dea74d",
+      "redis_initial": 0,
+      "database": "query_ws_front_20261106_v2"
+    },
+    "direct": {
+      "row_counts": {
+        "auth_user": 100,
+        "django_session": 100,
+        "learning_question": 3600,
+        "event_progress": 906
+      },
+      "sessions_sha256": "3e6b21194abf985c3ffde555f7b61555a931ccadf8f45ccbd24f3d0cc4dea74d",
+      "redis_initial": 0,
+      "database": "query_ws_direct_20261106_v2"
+    }
+  },
+  "private_ip": "192.168.0.76",
+  "same_physical_host": true
+}

@@ -1,0 +1,29 @@
+{
+  "attestations": 9,
+  "probes": [
+    {
+      "port": 9761,
+      "status": 200,
+      "worker": "service-9761",
+      "window_open": true
+    },
+    {
+      "port": 9762,
+      "status": 200,
+      "worker": "service-9762",
+      "window_open": true
+    },
+    {
+      "port": 9763,
+      "status": 200,
+      "worker": "service-9763",
+      "window_open": true
+    },
+    {
+      "port": 9764,
+      "status": 200,
+      "worker": "service-9764",
+      "window_open": true
+    }
+  ]
+}

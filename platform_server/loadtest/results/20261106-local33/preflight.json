@@ -1,0 +1,101 @@
+{
+  "attestations": [
+    {
+      "worker": "movement-9552",
+      "pid": 30305,
+      "database": "local33_20261106",
+      "db_port": "55480",
+      "movement_redis": "redis://127.0.0.1:56391/0",
+      "service_redis": "redis://127.0.0.1:56392/0",
+      "secret_fingerprint": "REDACTED",
+      "debug": false,
+      "event_window_override": false
+    },
+    {
+      "worker": "service-9562",
+      "pid": 30308,
+      "database": "local33_20261106",
+      "db_port": "55480",
+      "movement_redis": "redis://127.0.0.1:56391/0",
+      "service_redis": "redis://127.0.0.1:56392/0",
+      "secret_fingerprint": "REDACTED",
+      "debug": false,
+      "event_window_override": false
+    },
+    {
+      "worker": "service-9563",
+      "pid": 30309,
+      "database": "local33_20261106",
+      "db_port": "55480",
+      "movement_redis": "redis://127.0.0.1:56391/0",
+      "service_redis": "redis://127.0.0.1:56392/0",
+      "secret_fingerprint": "REDACTED",
+      "debug": false,
+      "event_window_override": false
+    },
+    {
+      "worker": "movement-9553",
+      "pid": 30306,
+      "database": "local33_20261106",
+      "db_port": "55480",
+      "movement_redis": "redis://127.0.0.1:56391/0",
+      "service_redis": "redis://127.0.0.1:56392/0",
+      "secret_fingerprint": "REDACTED",
+      "debug": false,
+      "event_window_override": false
+    },
+    {
+      "worker": "jobs",
+      "pid": 30310,
+      "database": "local33_20261106",
+      "db_port": "55480",
+      "movement_redis": "redis://127.0.0.1:56391/0",
+      "service_redis": "redis://127.0.0.1:56392/0",
+      "secret_fingerprint": "REDACTED",
+      "debug": false,
+      "event_window_override": false
+    },
+    {
+      "worker": "movement-9551",
+      "pid": 30304,
+      "database": "local33_20261106",
+      "db_port": "55480",
+      "movement_redis": "redis://127.0.0.1:56391/0",
+      "service_redis": "redis://127.0.0.1:56392/0",
+      "secret_fingerprint": "REDACTED",
+      "debug": false,
+      "event_window_override": false
+    },
+    {
+      "worker": "service-9561",
+      "pid": 30307,
+      "database": "local33_20261106",
+      "db_port": "55480",
+      "movement_redis": "redis://127.0.0.1:56391/0",
+      "service_redis": "redis://127.0.0.1:56392/0",
+      "secret_fingerprint": "REDACTED",
+      "debug": false,
+      "event_window_override": false
+    }
+  ],
+  "real_event_window_rejects_early_action": 423,
+  "movement_rejects_http_api": true,
+  "distinct_movement_workers": [
+    "movement-9551",
+    "movement-9552"
+  ],
+  "cross_worker_movement": true,
+  "cross_worker_jump": true,
+  "cross_worker_poke": true,
+  "distinct_chat_workers": [
+    "service-9561",
+    "service-9562"
+  ],
+  "cross_worker_chat": true,
+  "cross_worker_achievement_discovery": true,
+  "logout_from_third_service_worker_closes_movement_and_chat": [
+    4401,
+    4401
+  ],
+  "other_account_remains_connected": true
+}

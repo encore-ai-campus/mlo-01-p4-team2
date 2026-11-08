@@ -1,0 +1,57 @@
+[
+  {
+    "role": "movement-9751",
+    "pid": 54582,
+    "marker": "port=9751"
+  },
+  {
+    "role": "movement-9752",
+    "pid": 54583,
+    "marker": "port=9752"
+  },
+  {
+    "role": "movement-9753",
+    "pid": 54584,
+    "marker": "port=9753"
+  },
+  {
+    "role": "movement-9754",
+    "pid": 54585,
+    "marker": "port=9754"
+  },
+  {
+    "role": "service-9761",
+    "pid": 54586,
+    "marker": "port=9761"
+  },
+  {
+    "role": "service-9762",
+    "pid": 54587,
+    "marker": "port=9762"
+  },
+  {
+    "role": "service-9763",
+    "pid": 54588,
+    "marker": "port=9763"
+  },
+  {
+    "role": "service-9764",
+    "pid": 54589,
+    "marker": "port=9764"
+  },
+  {
+    "role": "jobs",
+    "pid": 54590,
+    "marker": "/private/tmp/platform-connect-diagnosis-20261107/runtime.py"
+  },
+  {
+    "role": "front-movement",
+    "pid": 54591,
+    "marker": "port=9601"
+  },
+  {
+    "role": "front-service",
+    "pid": 54592,
+    "marker": "port=9602"
+  }
+]

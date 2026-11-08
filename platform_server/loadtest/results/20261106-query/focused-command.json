@@ -1,0 +1,22 @@
+[
+  "/private/tmp/platform-event-postgres-venv/bin/python",
+  "-B",
+  "manage.py",
+  "test",
+  "tests.test_query_responses",
+  "event_story.test_main",
+  "tests.test_recipe_story",
+  "tests.test_recipe_note",
+  "event_story.test_games",
+  "event_story.test_learning_achievements",
+  "event_story.test_achievement_exclusivity",
+  "event_story.test_achievements",
+  "event_story.test_fragile_achievement",
+  "event_story.test_last_bite",
+  "tests.test_typing_deadline",
+  "tests.test_term_match",
+  "tests.test_event_progress_session",
+  "tests.test_connection_pool",
+  "--noinput",
+  "--keepdb"
+]

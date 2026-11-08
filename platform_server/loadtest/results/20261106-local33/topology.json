@@ -1,0 +1,266 @@
+{
+  "containers": {
+    "platform-local33-pg-20261106": {
+      "image": "platform-pipeline-patroni:17.7-4.1.0",
+      "running": true,
+      "ports": {
+        "5432/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "55480"
+          }
+        ]
+      }
+    },
+    "platform-local33-movement-redis-20261106": {
+      "image": "redis:7.0.15",
+      "running": true,
+      "ports": {
+        "6379/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "56391"
+          }
+        ]
+      }
+    },
+    "platform-local33-service-redis-20261106": {
+      "image": "redis:7.0.15",
+      "running": true,
+      "ports": {
+        "6379/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "56392"
+          }
+        ]
+      }
+    }
+  },
+  "current_attestations": [
+    {
+      "worker": "jobs",
+      "pid": 51029,
+      "database": "local33_20261106",
+      "db_port": "55480",
+      "movement_redis": "redis://127.0.0.1:56391/0",
+      "service_redis": "redis://127.0.0.1:56392/0",
+      "secret_fingerprint": "REDACTED",
+      "debug": false,
+      "event_window_override": true
+    },
+    {
+      "worker": "movement-9551",
+      "pid": 51023,
+      "database": "local33_20261106",
+      "db_port": "55480",
+      "movement_redis": "redis://127.0.0.1:56391/0",
+      "service_redis": "redis://127.0.0.1:56392/0",
+      "secret_fingerprint": "REDACTED",
+      "debug": false,
+      "event_window_override": true
+    },
+    {
+      "worker": "movement-9552",
+      "pid": 51024,
+      "database": "local33_20261106",
+      "db_port": "55480",
+      "movement_redis": "redis://127.0.0.1:56391/0",
+      "service_redis": "redis://127.0.0.1:56392/0",
+      "secret_fingerprint": "REDACTED",
+      "debug": false,
+      "event_window_override": true
+    },
+    {
+      "worker": "movement-9553",
+      "pid": 51025,
+      "database": "local33_20261106",
+      "db_port": "55480",
+      "movement_redis": "redis://127.0.0.1:56391/0",
+      "service_redis": "redis://127.0.0.1:56392/0",
+      "secret_fingerprint": "REDACTED",
+      "debug": false,
+      "event_window_override": true
+    },
+    {
+      "worker": "service-9561",
+      "pid": 51026,
+      "database": "local33_20261106",
+      "db_port": "55480",
+      "movement_redis": "redis://127.0.0.1:56391/0",
+      "service_redis": "redis://127.0.0.1:56392/0",
+      "secret_fingerprint": "REDACTED",
+      "debug": false,
+      "event_window_override": true
+    },
+    {
+      "worker": "service-9562",
+      "pid": 51027,
+      "database": "local33_20261106",
+      "db_port": "55480",
+      "movement_redis": "redis://127.0.0.1:56391/0",
+      "service_redis": "redis://127.0.0.1:56392/0",
+      "secret_fingerprint": "REDACTED",
+      "debug": false,
+      "event_window_override": true
+    },
+    {
+      "worker": "service-9563",
+      "pid": 51028,
+      "database": "local33_20261106",
+      "db_port": "55480",
+      "movement_redis": "redis://127.0.0.1:56391/0",
+      "service_redis": "redis://127.0.0.1:56392/0",
+      "secret_fingerprint": "REDACTED",
+      "debug": false,
+      "event_window_override": true
+    }
+  ],
+  "worker_pids_during_measurement": {
+    "walk": {
+      "sample_at": 1793928163.7030709,
+      "movement_connections": {
+        "9551": 32,
+        "9552": 35,
+        "9553": 33
+      },
+      "processes": {
+        "30792": {
+          "role": "movement",
+          "port": 9551,
+          "pid": 30792,
+          "cpu": 10.9,
+          "rss_mib": 66.921875
+        },
+        "30793": {
+          "role": "movement",
+          "port": 9552,
+          "pid": 30793,
+          "cpu": 14.8,
+          "rss_mib": 67.6875
+        },
+        "30794": {
+          "role": "movement",
+          "port": 9553,
+          "pid": 30794,
+          "cpu": 10.0,
+          "rss_mib": 67.328125
+        },
+        "30795": {
+          "role": "service",
+          "port": 9561,
+          "pid": 30795,
+          "cpu": 10.0,
+          "rss_mib": 91.25
+        },
+        "30796": {
+          "role": "service",
+          "port": 9562,
+          "pid": 30796,
+          "cpu": 6.6,
+          "rss_mib": 91.140625
+        },
+        "30797": {
+          "role": "service",
+          "port": 9563,
+          "pid": 30797,
+          "cpu": 3.2,
+          "rss_mib": 70.21875
+        },
+        "30798": {
+          "role": "jobs",
+          "pid": 30798,
+          "cpu": 0.0,
+          "rss_mib": 16.15625
+        },
+        "30311": {
+          "role": "front-movement",
+          "port": 9581,
+          "pid": 30311,
+          "cpu": 18.6,
+          "rss_mib": 70.640625
+        },
+        "30312": {
+          "role": "front-service",
+          "port": 9582,
+          "pid": 30312,
+          "cpu": 7.9,
+          "rss_mib": 67.109375
+        }
+      }
+    },
+    "real": {
+      "sample_at": 1793928396.330333,
+      "movement_connections": {
+        "9551": 33,
+        "9552": 32,
+        "9553": 35
+      },
+      "processes": {
+        "30792": {
+          "role": "movement",
+          "port": 9551,
+          "pid": 30792,
+          "cpu": 34.7,
+          "rss_mib": 68.671875
+        },
+        "30793": {
+          "role": "movement",
+          "port": 9552,
+          "pid": 30793,
+          "cpu": 38.2,
+          "rss_mib": 68.734375
+        },
+        "30794": {
+          "role": "movement",
+          "port": 9553,
+          "pid": 30794,
+          "cpu": 39.3,
+          "rss_mib": 71.0625
+        },
+        "30795": {
+          "role": "service",
+          "port": 9561,
+          "pid": 30795,
+          "cpu": 19.9,
+          "rss_mib": 99.875
+        },
+        "30796": {
+          "role": "service",
+          "port": 9562,
+          "pid": 30796,
+          "cpu": 16.4,
+          "rss_mib": 97.921875
+        },
+        "30797": {
+          "role": "service",
+          "port": 9563,
+          "pid": 30797,
+          "cpu": 14.0,
+          "rss_mib": 93.0625
+        },
+        "30798": {
+          "role": "jobs",
+          "pid": 30798,
+          "cpu": 0.0,
+          "rss_mib": 16.140625
+        },
+        "30311": {
+          "role": "front-movement",
+          "port": 9581,
+          "pid": 30311,
+          "cpu": 49.0,
+          "rss_mib": 86.359375
+        },
+        "30312": {
+          "role": "front-service",
+          "port": 9582,
+          "pid": 30312,
+          "cpu": 20.2,
+          "rss_mib": 68.46875
+        }
+      }
+    }
+  },
+  "environment_file_sha256": "e50559fc808bb84c91c33723ad34800e863f850e8f4a1ce65ff9516669f948b8"
+}

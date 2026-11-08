@@ -69,7 +69,7 @@ _CHOICES = {
     "input_kind": {"KEYBOARD"},
     "question_type": {"MULTIPLE_CHOICE", "FILL_BLANK"},
 }
-CONTENT_COLUMNS = ("event_uuid", "event_type", "topic", "message_key", "raw_data", "occurred_at", "payload_json", "created_at")
+CONTENT_COLUMNS = ("outbox_uuid", "event_type", "topic", "message_key", "raw_data", "occurred_at", "payload_json", "created_at")
 _UTC_RE = re.compile(r"([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]{1,6}))?Z")  # contracts._UTC_RE 와 같은 모양
 
 
@@ -155,11 +155,11 @@ def content_sha256(row):
     return hashlib.sha256(hop_rules.canonical_json(content).encode("utf-8")).hexdigest()
 
 
-def adapter_result(event_uuid, event_type, schema_version, topic, message_key, raw_data, payload_json, occurred_at, created_at):
+def adapter_result(outbox_uuid, event_type, schema_version, topic, message_key, raw_data, payload_json, occurred_at, created_at):
     """어댑터 UDF 의 몸통. 받는 값은 Spark 가 꺼낸 문자열이다(JSON 열은 원문, 시각은 Debezium 문자열).
     반환: (계약 사유 또는 None, content_sha256 또는 None) — 사유가 있으면 해시는 None. 어떤 입력에도 예외를 내지 않는다:
     Spark 는 조건식 안의 Python UDF 도 모든 행에 부르므로, 앞 순서에서 이미 오류로 간 행(값 없음·JSON 아님)도 여기 온다."""
-    values = (event_uuid, event_type, schema_version, topic, message_key, raw_data, payload_json, occurred_at, created_at)
+    values = (outbox_uuid, event_type, schema_version, topic, message_key, raw_data, payload_json, occurred_at, created_at)
     if not all(isinstance(value, str) for value in values):
         return "꺼낸 값이 없다", None
     try:
@@ -167,7 +167,7 @@ def adapter_result(event_uuid, event_type, schema_version, topic, message_key, r
         reason = contract_reason(event_type, schema_version, topic, message_key, raw)
         if reason is not None:
             return reason, None
-        row = {"event_uuid": event_uuid, "event_type": event_type, "topic": topic, "message_key": message_key, "raw_data": raw,
+        row = {"outbox_uuid": outbox_uuid, "event_type": event_type, "topic": topic, "message_key": message_key, "raw_data": raw,
                "occurred_at": parse_utc(occurred_at), "payload_json": envelope, "created_at": parse_utc(created_at)}
         return None, content_sha256(row)
     except (ValueError, RecursionError) as error:  # JSON 아님·NaN(엄격 검사가 먼저 decode 로 보냄)·시각 모양

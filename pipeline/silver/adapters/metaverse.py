@@ -20,7 +20,7 @@ from pipeline.silver.adapters import metaverse_rules as rules
 DOMAIN = "metaverse"
 NESTED = (("after", "raw_data"), ("after", "payload_json"))
 ENVELOPE_SPEC = [  # (열, 경로, 형, NULL 허용) — 15 §2.1a 메타버스 열. "_" 로 시작하는 열은 Silver 열이 아니다(source_meta·UDF 입력)
-    ("event_id", "$.after.event_uuid", "string", False), ("event_type", "$.after.event_type", "string", False),
+    ("event_id", "$.after.outbox_uuid", "string", False), ("event_type", "$.after.event_type", "string", False),
     ("occurred_at", "$.after.occurred_at", "timestamp", False), ("produced_at", "$.after.created_at", "timestamp", False),
     ("payload", "$.after.raw_data", "string", False), ("envelope", "$.after.payload_json", "string", True),
     ("src_lsn", "$.source.lsn", "bigint", True), ("src_txid", "$.source.txId", "bigint", True), ("first_op", "$.op", "string", False),

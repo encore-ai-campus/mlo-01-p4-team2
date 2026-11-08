@@ -29,9 +29,10 @@ Silver 잡(`pipeline/silver/silver_job.py`)은 원천 하나·세대 하나의 B
 ## 손 실행
 
 ```bash
-SILVER_CODE_COMMIT=<커밋 40자> bash "$HOME/pipeline-run/silver/mlo_01_p4_team2/pipeline/silver/run-silver.sh" metaverse 1
+SILVER_CODE_COMMIT=<커밋 40자> bash "$HOME/pipeline-run/silver/mlo_01_p4_team2/pipeline/silver/run-silver.sh" metaverse 2
 ```
 
+- 메타버스 세대 2(MVR-3a — 원천 열 `outbox_uuid`)는 **새 이름 Bronze 경로가 정해진 뒤에만** 돌린다. 지금 래퍼의 메타버스 Bronze 기본 경로(`bronze/metaverse/outbox_events`)에는 옛 이름(`event_uuid`) 행만 있어, 돌리면 모두 오류 표(`contract`, `event_id` 없음)로 간다. 경로가 정해지면 래퍼의 그 줄을 바꾸는 커밋을 먼저 한다(계획 26 결정 G).
 - Standalone 1코어다. 다른 예약 잡 시각(:05~:10, 메타버스 manifest·대사 :15·:17, 하루 잡 00:35 UTC)을 피한다.
 - 종료 코드:
 

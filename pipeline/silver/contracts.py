@@ -97,7 +97,7 @@ def strict_reasons(value, nested=()):
 
 
 def field(v, path, kind, nullable=False):
-    """Variant `v` 의 `path`(예 "$.after.event_uuid")를 `kind` 로 꺼낸다. 반환: (값 열, 맞음 열 — null 이 아닌 참·거짓).
+    """Variant `v` 의 `path`(예 "$.after.outbox_uuid")를 `kind` 로 꺼낸다. 반환: (값 열, 맞음 열 — null 이 아닌 참·거짓).
     - string: Variant 형이 STRING 일 때만(수·객체를 문자열로 바꾸지 않는다).
     - bigint: Variant 형이 정수(BIGINT·INT·SMALLINT·TINYINT·DECIMAL(p,0))이고 bigint 범위 안일 때만.
     - timestamp: STRING 이고 `YYYY-MM-DDTHH:MM:SS[.1~6자리]Z` 이고 실제 날짜일 때만.

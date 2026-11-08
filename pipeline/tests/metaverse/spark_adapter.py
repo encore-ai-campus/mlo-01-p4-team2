@@ -16,7 +16,7 @@ T0 = datetime(2026, 11, 4, 9, 39, 0, 7000, tzinfo=timezone.utc)
 TOPIC = "metaverse.outbox.events"
 LAB = {"db": "metaverse_lab", "schema": "public", "table": "eventing_eventoutbox"}
 REAL = json.loads((Path(__file__).resolve().parent / "bronze_values.json").read_text(encoding="utf-8"))
-SHA = "f9b0cc28f3ca5b5c157b24671ad2c3c793a357c97a09661befb3ae34e72e561c"  # test_rules 의 고정값(POINT_C)
+SHA = "c07d33f2095085f28c5be70a1cecef9a162f613e47dab9558f6cd88b92deb8dc"  # test_rules 의 고정값(POINT_C)
 OTHER = "4a4827af-3c42-442d-8cfa-e0d406912720"
 DEEP = "__deep__"  # changed() 가 이 자리에 배열 1,000단을 넣는다(바깥 객체를 더하면 합계 1,001단 이상) — strict 는 통과하고, Spark try_parse_json 은 합계 1,001단부터 null(1,000단까지 해석)
 NESTED_1000 = ("[" * 1000 + "]" * 1000).encode()
@@ -55,6 +55,13 @@ def bronze(values):
     return spark.createDataFrame(rows, contracts.BRONZE_SCHEMA)
 
 
+def old_name(name="POINT_C"):
+    """MVR-3 전 이름: after 의 outbox_uuid 를 event_uuid 로(나머지 바이트 뜻은 그대로)."""
+    doc = json.loads(REAL[name])
+    doc["after"] = {("event_uuid" if key == "outbox_uuid" else key): value for key, value in doc["after"].items()}
+    return json.dumps(doc).encode("utf-8")
+
+
 POINT_ID = "0bd85828-86a1-4fea-9db9-fd2a27f8aeb8"
 INPUT = [  # (Bronze value, 기대 — None 이면 정상, 아니면 (코드, 사유에 든 말, event_id))
     (REAL["POINT_C"].encode(), None),  # 0
@@ -76,7 +83,7 @@ INPUT = [  # (Bronze value, 기대 — None 이면 정상, 아니면 (코드, �
     (changed(message_key=OTHER), ("contract", "계약: message_key", POINT_ID)),  # 16
     (changed(raw={"note": "x"}), ("contract", '계약: raw_data 필드가 계약과 다르다(빠짐 [], 더 있음 ["note"])', POINT_ID)),  # 17
     (changed(occurred_at="2026-11-04T05:55:38.1500351Z"), ("contract", "꺼낼 수 없는 열: occurred_at", POINT_ID)),  # 18 7자리
-    (changed(event_uuid=POINT_ID.upper()), ("contract", "event_id 가 소문자 UUID 가 아니다", None)),  # 19
+    (changed(outbox_uuid=POINT_ID.upper()), ("contract", "event_id 가 소문자 UUID 가 아니다", None)),  # 19
     (changed(retry_count="0"), ("contract", "꺼낼 수 없는 열: _retry_count", POINT_ID)),  # 20
     (changed(published_at="2026-11-04T05:56:00.1Z", retry_count=2), None),  # 21 배달 2열만 다름
     (changed(created_at="2026-11-04T05:55:38.151911Z"), None),  # 22 내용이 다름(1µs)
@@ -89,14 +96,15 @@ INPUT = [  # (Bronze value, 기대 — None 이면 정상, 아니면 (코드, �
     (changed(raw={"delta": DEEP}), ("decode", "after.raw_data: Spark 가 해석하지 못함", POINT_ID)),  # 29 ④
     (changed(payload={"extra": DEEP}), ("decode", "after.payload_json: Spark 가 해석하지 못함", POINT_ID)),  # 30 ④
 ]
+INPUT += [(old_name(), ("contract", "꺼낼 수 없는 열: event_id", None))]  # 31 MVR-3 전 이름(event_uuid) — g2 는 새 이름 행만 받는다(계획 26 결정 G (나))
 KINDS = sorted(key for key in REAL if key.islower())  # 나머지 11종의 실제 행(키 = 종류) — 위 5행과 합쳐 15종마다 정상 1 이상(15 §2 SL-4 끝 조건)
-INPUT += [(REAL[key].encode(), None) for key in KINDS]  # 31~41
+INPUT += [(REAL[key].encode(), None) for key in KINDS]  # 32~42
 
 
 def python_result(value):
     a = json.loads(value)["after"]
     version = json.loads(a["payload_json"])["raw_manifest"]["schema_version"]
-    return rules.adapter_result(a["event_uuid"], a["event_type"], version, a["topic"], a["message_key"], a["raw_data"], a["payload_json"],
+    return rules.adapter_result(a["outbox_uuid"], a["event_type"], version, a["topic"], a["message_key"], a["raw_data"], a["payload_json"],
                                 a["occurred_at"], a["created_at"])
 
 

@@ -169,19 +169,21 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
 - **로그 양**: 한 줄 약 192 B. 로컬 시험대 Connect는 같은 줄을 `connect.log`와 `connect.stdout.log` 두 곳에 쓴다. 유입이 없어도 둘을 합쳐 시간당 약 12 MB, 하루 약 0.3 GB다.
 - **운영 배포 때 볼 것**: Connect 로그 돌리기(rotation)가 `connect.log`뿐 아니라 stdout으로 받는 로그 파일도 덮는지 본다. 로컬 시험대의 `connect.stdout.log`는 log4j가 돌리지 않는다. Connect는 DB와 같은 노트북의 WSL에서 돌므로(계획 16), 이 로그도 매일 점검 ①의 WSL 디스크·Windows C: 여유(< 20%)에 잡힌다.
 
-## 규칙 판이 바뀌는 배포(D6 — MVR-1)
+## 규칙 판이 바뀌는 배포(D6 — MVR-1·MVR-3a)
 
 - `rule_sha256`: 공용 요약 규칙 파일(`hop_rules.py`)의 SHA-256이다.
-  - 지금 값: `4043ed001c944ed5328cc617b590eb5d937e70933e5fcad53340a03335e369c3`
-- 이 값이 바뀌는 커밋은 **manifest 잡과 광고 서버를 함께 배포한다.**
-  - manifest 잡: 이미지 안의 `pipeline/common/hop_rules.py`
+  - 지금 값: `09c7f8c4e2f7ba931f6d9d1a19b4835b8d0913a7482c788c799285e050d765c7`(MVR-3a — 메타버스 outbox 키 열 `event_uuid` → `outbox_uuid`. 앞 값 `4043ed001c944ed5328cc617b590eb5d937e70933e5fcad53340a03335e369c3`)
+- 이 값이 바뀌는 커밋은 **세 곳을 함께 배포한다.** 광고 동작이 바뀌지 않는 커밋(MVR-3a처럼 메타버스 설정만 바뀜)이어도 광고 서버를 다시 배포한다.
+  - manifest 잡: 이미지 안의 `pipeline/common/hop_rules.py`(광고·메타버스 잡 둘 다)
   - 광고 서버: `ads_server/events/hop_rules.py`
+  - 메타버스 대사(MVR-2): 실행 사본의 `pipeline/common/hop_rules.py`. `pipeline/reconcile/metaverse_hops.py`도 받은 manifest의 `rule_sha256`이 자기 판과 다르면 그 회차를 rc 2(입력 실패)로 끝낸다.
 - 판이 다르면 광고 서버는 그 manifest를 대조하지 않는다(`events/hopcheck.py`의 `_pipeline_problems` → `HopInputError`).
   - 그 회차 대사는 rc 2(입력 실패, 단계 `verify`)다. 광고 서버 시험 `case_input_failures_are_told_apart_from_mismatches`가 고정한다.
   - 창은 확정되지 않고, 판이 맞은 다음 회차가 판정한다.
 - 배포 시각
   - 시간 잡은 :05, 대사는 :07이다. 하루 잡은 00:35, 대사는 00:50 UTC다.
-  - 둘을 한 번에 배포하면서 :05~:07과 00:35~00:50 UTC를 피하면 rc 2 회차가 없다.
+  - 메타버스는 로컬 견본 기준 시간 잡 :15·대사 :17, 하루 잡 00:40·대사 00:55 UTC(09:40·09:55 KST)다.
+  - 셋을 한 번에 배포하면서 :05~:07, :15~:17, 00:35~00:55 UTC를 피하면 rc 2 회차가 없다.
   - 따로 배포하면 그 사이 매시 회차가 rc 2다.
   - 배포 뒤 첫 시간 잡이 늦거나 실패하면, :07 회차는 지난 포인터(옛 판)를 받아 rc 2가 한 번 더 난다(늦음 rc 3이 아니다).
 

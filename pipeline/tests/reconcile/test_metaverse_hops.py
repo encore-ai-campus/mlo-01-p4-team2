@@ -58,7 +58,7 @@ def db_row(after):
     """Debezium after(10열) → DB 에서 읽은 8열(`_COLUMNS` 순서): UUID 객체, +09:00 datetime, 다른 jsonb 텍스트."""
     def moment(text):
         return hop_rules._utc_text_time(text).astimezone(KST)
-    return (uuid.UUID(after["event_uuid"]), after["event_type"], after["topic"], uuid.UUID(after["message_key"]), jsonb_text(after["raw_data"]),
+    return (uuid.UUID(after["outbox_uuid"]), after["event_type"], after["topic"], uuid.UUID(after["message_key"]), jsonb_text(after["raw_data"]),
             moment(after["occurred_at"]), jsonb_text(after["payload_json"]), moment(after["created_at"]))
 
 
@@ -197,7 +197,7 @@ class OutboxSideTests(unittest.TestCase):
                 self.assertIsNone(mh.outbox_after(row)["payload_json"] and json.loads(mh.outbox_after(row)["payload_json"]))
 
     def test_two_db_rows_with_one_id_are_an_impossible_state(self):
-        """PK 라 같은 event_uuid 가 둘일 수 없다 — 요약에 duplicates·conflicts 가 생기면 조용히 줄을 내지 않고 멈춘다."""
+        """PK 라 같은 outbox_uuid 가 둘일 수 없다 — 요약에 duplicates·conflicts 가 생기면 조용히 줄을 내지 않고 멈춘다."""
         rows = unique_db_rows()
         fill = next(row for row in rows if row[1] == "quiz_answered")  # 11-02 04시 — 닫힌 창
         changed = fill[:4] + (jsonb_text('{"x": 1}'),) + fill[5:]
@@ -221,12 +221,13 @@ class OutboxSideTests(unittest.TestCase):
         with self.assertRaises(mh.InputError) as caught:
             mh.summarize_outbox([deep], DB, NOW, 120, None, hop_rules.HOUR)
         self.assertIn("원천 METAVERSE", str(caught.exception))
-        self.assertIn(after["event_uuid"], str(caught.exception))
+        self.assertIn(after["outbox_uuid"], str(caught.exception))
 
     def test_the_read_is_one_snapshot_both_branches_and_closed_before_summarizing(self):
         """두 갈래 술어가 모두 있고(Reviewer C5 (b)), 읽기 전용·REPEATABLE READ 한 트랜잭션에서 다 받은 뒤 닫는다(R4)."""
         self.assertIn("published_at IS NULL AND created_at >= %(since)s", mh.QUERY)
         self.assertIn("published_at IS NOT NULL AND created_at >= %(since)s", mh.QUERY)
+        self.assertEqual(mh._COLUMNS.replace("::text", "").split(", "), list(mh.SOURCE["content"]))  # 읽는 열 = 공용 규칙의 내용 8열(이름·순서 — MVR-3a)
         rows = unique_db_rows()
         connect, events = fake_db(table_of(rows[:10]) + table_of(rows[10:], datetime(2026, 11, 4, tzinfo=UTC)))  # 둘째 갈래(발행된 행)에도 행
         since = datetime(2026, 11, 1, tzinfo=UTC)
@@ -244,7 +245,7 @@ class OutboxSideTests(unittest.TestCase):
         after = dict(real_afters()[4][1])  # CONTENT 2026-11-02T04:08:14Z
         since = datetime(2026, 11, 2, 4, tzinfo=UTC)
         row = db_row({**after, "created_at": "2026-11-02T04:00:00.000000Z"})
-        before = db_row({**after, "event_uuid": str(uuid.uuid4()), "created_at": "2026-11-02T03:59:59.999999Z"})
+        before = db_row({**after, "outbox_uuid": str(uuid.uuid4()), "created_at": "2026-11-02T03:59:59.999999Z"})
         for published_at in (None, datetime(2026, 11, 3, tzinfo=UTC)):
             with self.subTest(published_at=published_at):
                 connect, _ = fake_db([(row, published_at), (before, published_at)])

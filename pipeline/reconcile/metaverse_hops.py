@@ -44,7 +44,7 @@ FIELDS = ("count", "ids_sha256", "content_sha256")
 STATEMENT_TIMEOUT_MS = 300_000  # 한 문장으로 다 받으므로(아래 QUERY) 읽기 전체의 한도다
 
 # 8열(내용 비교 열 — 공용 규칙 METAVERSE["content"] 순서). JSON 열은 jsonb 텍스트로 받는다(Debezium 이 싣는 문자열과 해석 값이 같다).
-_COLUMNS = "event_uuid, event_type, topic, message_key, raw_data::text, occurred_at, payload_json::text, created_at"
+_COLUMNS = "outbox_uuid, event_type, topic, message_key, raw_data::text, occurred_at, payload_json::text, created_at"
 # created_at 만의 색인이 없다(6dcb4b1 모델 — 색인은 PK 와 (published_at, created_at)). 있는 색인으로 두 갈래를 읽는다(계획 V6 (가)).
 # 두 갈래는 겹치지 않고 합치면 전부다(published_at 은 NULL 이거나 아니다). 발행기를 끈 동안(늘 NULL) 둘째 갈래는 빈 범위다.
 QUERY = (f"SELECT {_COLUMNS} FROM {'.'.join(SOURCE['table'])} WHERE published_at IS NULL AND created_at >= %(since)s "
@@ -161,14 +161,14 @@ def _utc_text(moment):
 
 def outbox_after(row):
     """DB 행(8열, `_COLUMNS` 순서) → Debezium 모양 `after`(Bronze 와 같은 문서가 되게 — 계획 §4.2). JSON 열 NULL 은 None(공용 규칙이 JSON null 로 센다, E3)."""
-    event_uuid, event_type, topic, message_key, raw_data, occurred_at, payload_json, created_at = row
-    return {"event_uuid": _uuid_text(event_uuid), "event_type": event_type, "topic": topic, "message_key": _uuid_text(message_key), "raw_data": raw_data,
+    outbox_uuid, event_type, topic, message_key, raw_data, occurred_at, payload_json, created_at = row
+    return {"outbox_uuid": _uuid_text(outbox_uuid), "event_type": event_type, "topic": topic, "message_key": _uuid_text(message_key), "raw_data": raw_data,
             "occurred_at": _utc_text(occurred_at), "payload_json": payload_json, "created_at": _utc_text(created_at)}
 
 
 def summarize_outbox(rows, database, as_of, grace, since, size):
     """DB 행을 Bronze 와 **같은 함수**(`summarize_changes`, METAVERSE)로 요약한다(MVR-1 D5). 행은 op `r` 봉투로 흘려 넣는다(목록을 다시 만들지 않는다).
-    반환: (hop_outbox 줄, 열린 창). PK 라 같은 event_uuid 가 둘일 수 없다 — 파이프라인 쪽 건수가 0 이 아니면 있을 수 없는 상태라 InputError."""
+    반환: (hop_outbox 줄, 열린 창). PK 라 같은 outbox_uuid 가 둘일 수 없다 — 파이프라인 쪽 건수가 0 이 아니면 있을 수 없는 상태라 InputError."""
     origin = {"db": database, "schema": SOURCE["table"][0], "table": SOURCE["table"][1]}
     envelopes = ((None, json.dumps({"op": "r", "source": origin, "after": outbox_after(row)}), 0, number) for number, row in enumerate(rows))
     try:

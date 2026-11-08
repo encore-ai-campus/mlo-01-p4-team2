@@ -173,8 +173,8 @@ EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
 #   "content" = 내용 비교 열 객체(`content` 열, `json` 열은 해석한 값, `times` 열은 UTC 마이크로초) — 내용 정체성과 같은 객체.
 ADS = {"name": "ADS", "table": ("public", "events_outbox"), "id": "event_id", "kind": "event_name", "time": "created_at", "document": "normal"}
 METAVERSE = {
-    "name": "METAVERSE", "table": ("public", "eventing_eventoutbox"), "id": "event_uuid", "kind": "event_type", "time": "created_at", "document": "content",
-    "content": ("event_uuid", "event_type", "topic", "message_key", "raw_data", "occurred_at", "payload_json", "created_at"),  # 배달 2열(published_at·retry_count)은 뺀다(04 §25)
+    "name": "METAVERSE", "table": ("public", "eventing_eventoutbox"), "id": "outbox_uuid", "kind": "event_type", "time": "created_at", "document": "content",
+    "content": ("outbox_uuid", "event_type", "topic", "message_key", "raw_data", "occurred_at", "payload_json", "created_at"),  # 배달 2열(published_at·retry_count)은 뺀다(04 §25)
     "json": ("raw_data", "payload_json"), "times": ("occurred_at", "created_at"),
 }
 # Debezium ZonedTimestamp(UTC, 소수 0~6자리) — Silver 메타버스 규칙(pipeline/silver/adapters/metaverse_rules.py `_UTC_RE`·`parse_utc`)과 같은 받기

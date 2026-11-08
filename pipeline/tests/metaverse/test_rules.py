@@ -33,7 +33,7 @@ EXTRA = {  # 종류마다 실제 행의 raw_data(공통 3필드 밖)
 }
 VERSION = {"quiz_answered": "1.1"}
 # 실제 Bronze 행(point_granted op c, MD-2 리허설)의 after — 해시 고정값의 입력
-AFTER = {"event_uuid": "0bd85828-86a1-4fea-9db9-fd2a27f8aeb8", "event_type": "point_granted", "topic": "raw.points",
+AFTER = {"outbox_uuid": "0bd85828-86a1-4fea-9db9-fd2a27f8aeb8", "event_type": "point_granted", "topic": "raw.points",
          "message_key": "f8fcaae5-a894-4b8e-82f8-6dc083223f1e",
          "raw_data": '{"delta": 20, "user_uuid": "f8fcaae5-a894-4b8e-82f8-6dc083223f1e", "ledger_uuid": "bb222fbb-b056-4dc1-882f-0fb7e84d60ca", '
                      '"attempt_uuid": "f77a77ab-066a-4390-bdba-e4205d64eee0", "session_uuid": "4a4827af-3c42-442d-8cfa-e0d406912720", '
@@ -42,11 +42,11 @@ AFTER = {"event_uuid": "0bd85828-86a1-4fea-9db9-fd2a27f8aeb8", "event_type": "po
          "payload_json": '{"raw_data": {"delta": 20, "user_uuid": "f8fcaae5-a894-4b8e-82f8-6dc083223f1e", "ledger_uuid": "bb222fbb-b056-4dc1-882f-0fb7e84d60ca", '
                          '"attempt_uuid": "f77a77ab-066a-4390-bdba-e4205d64eee0", "session_uuid": "4a4827af-3c42-442d-8cfa-e0d406912720", '
                          '"balance_after": 20, "class_group_uuid": "11447094-0d6e-4a23-af95-046197f09176"}, '
-                         '"event_uuid": "0bd85828-86a1-4fea-9db9-fd2a27f8aeb8", "raw_manifest": {"source": "platform_server_1", '
+                         '"outbox_uuid": "0bd85828-86a1-4fea-9db9-fd2a27f8aeb8", "raw_manifest": {"source": "platform_server_1", '
                          '"event_type": "point_granted", "fingerprint": "97daaf628928be23", "occurred_at": "2026-11-04T05:55:38.150Z", '
                          '"schema_version": "1.0", "fingerprint_algorithm": "xxh3_64"}}',
          "created_at": "2026-11-04T05:55:38.151910Z"}
-SHA = "f9b0cc28f3ca5b5c157b24671ad2c3c793a357c97a09661befb3ae34e72e561c"  # 고정값 — MVR-1 이 같은 행에 같은 바이트를 내야 한다(15 §2.2)
+SHA = "c07d33f2095085f28c5be70a1cecef9a162f613e47dab9558f6cd88b92deb8dc"  # 고정값 — MVR-1 이 같은 행에 같은 바이트를 내야 한다(15 §2.2). MVR-3a 에서 첫 열 이름이 outbox_uuid 로 바뀌어 다시 잼(전 값 f9b0cc28)
 
 
 def raw(event_type, **changes):
@@ -62,7 +62,7 @@ def reason(event_type, data=None, *, version=None, topic=None, key=None):
 
 def result(**changes):
     after = {**AFTER, **changes}
-    return rules.adapter_result(after["event_uuid"], after["event_type"], "1.0", after["topic"], after["message_key"], after["raw_data"],
+    return rules.adapter_result(after["outbox_uuid"], after["event_type"], "1.0", after["topic"], after["message_key"], after["raw_data"],
                                 after["payload_json"], after["occurred_at"], after["created_at"])
 
 
@@ -145,11 +145,11 @@ class Times(unittest.TestCase):
 
 class ContentHash(unittest.TestCase):
     def test_eight_columns_by_hand(self):  # 정수·ASCII 키뿐인 값이라 JCS = sort_keys·공백 없는 json.dumps
-        content = {**{k: AFTER[k] for k in ("event_uuid", "event_type", "topic", "message_key", "occurred_at", "created_at")},
+        content = {**{k: AFTER[k] for k in ("outbox_uuid", "event_type", "topic", "message_key", "occurred_at", "created_at")},
                    "raw_data": json.loads(AFTER["raw_data"]), "payload_json": json.loads(AFTER["payload_json"])}
         expected = hashlib.sha256(json.dumps(content, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")).hexdigest()
         self.assertEqual(result(), (None, expected))
-        self.assertEqual(rules.CONTENT_COLUMNS, ("event_uuid", "event_type", "topic", "message_key", "raw_data", "occurred_at", "payload_json", "created_at"))
+        self.assertEqual(rules.CONTENT_COLUMNS, ("outbox_uuid", "event_type", "topic", "message_key", "raw_data", "occurred_at", "payload_json", "created_at"))
 
     def test_pinned_value(self):
         self.assertEqual(result()[1], SHA)
@@ -166,7 +166,7 @@ class ContentHash(unittest.TestCase):
         changed = {"created_at": "2026-11-04T05:55:38.151911Z", "occurred_at": "2026-11-04T05:55:39.150035Z",
                    "payload_json": AFTER["payload_json"].replace("97daaf628928be23", "97daaf628928be24"),
                    "raw_data": AFTER["raw_data"].replace('"delta": 20', '"delta": 21').replace('"balance_after": 20', '"balance_after": 21'),
-                   "event_uuid": "1bd85828-86a1-4fea-9db9-fd2a27f8aeb8"}
+                   "outbox_uuid": "1bd85828-86a1-4fea-9db9-fd2a27f8aeb8"}
         for name, value in changed.items():
             with self.subTest(name=name):
                 changed_reason, changed_sha = result(**{name: value})

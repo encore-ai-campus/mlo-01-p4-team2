@@ -532,7 +532,7 @@ class RunTests(unittest.TestCase):
 
 class LayerTests(unittest.TestCase):
     def test_reconcile_tools_use_only_stdlib_psycopg_boto3_and_pipeline(self):
-        """`test_layers.py` 는 이번 Step 에서 고치지 않는다(통합 미커밋 — SL-3c 뒤 JOB_DIRS 에 reconcile). 그 사이 같은 함수로 본다."""
+        """광고 서버 import 금지는 `test_layers.py` 규칙 1(JOB_DIRS 의 reconcile)이 본다. 여기서는 그보다 좁은 허용 목록이다."""
         files = sorted((ROOT / "pipeline" / "reconcile").glob("*.py"))
         self.assertIn(ROOT / "pipeline" / "reconcile" / "metaverse_hops.py", files)
         allowed = set(sys.stdlib_module_names) | {"pipeline", "psycopg", "boto3", "botocore"}

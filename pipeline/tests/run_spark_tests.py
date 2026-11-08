@@ -18,6 +18,8 @@ from pyspark.sql import SparkSession  # noqa: E402
 
 def main():
     spark = (SparkSession.builder.appName("pipeline_spark_tests").config("spark.sql.session.timeZone", "UTC")
+             .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")  # 잡(silver_job.main)과 같은 Delta 설정 — spark_job 의 file:// 표
+             .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
              .config("spark.sql.shuffle.partitions", "2").getOrCreate())
     spark.sparkContext.setLogLevel("WARN")  # INFO 로그가 시험 결과 줄 사이에 끼지 않게
     here = Path(__file__).resolve().parent

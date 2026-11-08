@@ -3,10 +3,13 @@
 - 넘김 목록(C4): 사람이 확인한 Bronze 위치. 파일은 `pipeline/silver/acknowledged/<domain>.json`(파일 자체는 SL-3c·SL-5 에서 둔다).
 - Delta 멱등 표시 appId 와 checkpoint 정체성(SL-2 ①~⑨, D4).
 - `silver_release`(코드 판).
+- (SL-3c) 시작 검사(checkpoint 식별자 ①~④), 어댑터 출처 설정, 잡 설정(환경변수 — 기본값 없음).
 WIP(temp/review/SL-3a_wip-stdlib_r1.patch 의 framework.py)에서 그대로 옮겼다.
 """
 import hashlib
+import json
 import re
+from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
 
@@ -17,6 +20,7 @@ STOP_CODES = ("foreign_source", "not_insert")  # 설정 이상 — 배치를 멈
 _ACK_COMMON = ("topic", "partition", "error_code", "reason", "incident", "acknowledged_by", "acknowledged_at")
 _ACK_POINT = frozenset(_ACK_COMMON + ("offset",))
 _ACK_RANGE = frozenset(_ACK_COMMON + ("offset_start", "offset_end", "row_count"))
+_UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 _NAME = re.compile(r"[a-z0-9-]+")  # appId 조각(도메인·checkpoint 식별자) — ':' 가 들어가면 접두사 비교가 깨진다
 TXN_TABLES = ("events", "errors", "stops")  # Silver MERGE, 오류 append, 멈춤 진단 append(D4 — 같은 오류 표, 다른 appId)
 
@@ -84,6 +88,83 @@ def foreign_checkpoints(app_ids, domain, generation, checkpoint_id):
     checkpoint 를 지우고 같은 세대 표에 다시 돌리면 copies 가 조용히 두 배가 된다(SL-2 ⑨). 규칙: checkpoint 를 새로 만들면 새 세대."""
     prefix = f"silver:{domain}:g{generation}:"
     return sorted(app_id for app_id in app_ids if app_id.startswith(prefix) and app_id.rsplit(":", 1)[-1] != checkpoint_id)
+
+
+class IdentityError(RuntimeError):
+    """checkpoint 와 표가 같은 실행 이력이 아니다 — 시작 전에 멈춘다(15 §2.1 시작 검사 ①~④). 규칙: checkpoint 를 새로 만들면 새 세대."""
+
+
+def checkpoint_id(text):
+    """Spark checkpoint `metadata` 파일(`{"id":"<query id>"}`)에서 식별자를 꺼낸다. checkpoint 를 새로 만들면 바뀌고 다시 시작해도 같다(SL-3c 결정 S2).
+    모양이 다르면 ValueError — Spark 판을 올려 형식이 바뀌면 시험(spark_job)과 함께 여기서 멈춘다."""
+    try:
+        document = json.loads(text)
+    except (TypeError, ValueError) as error:
+        raise ValueError(f"checkpoint metadata 가 JSON 이 아니다: {text!r}") from error
+    value = document.get("id") if isinstance(document, dict) else None
+    if not isinstance(value, str) or not _UUID.fullmatch(value):
+        raise ValueError(f"checkpoint metadata 에 소문자 UUID id 가 없다: {text!r}")
+    return value
+
+
+def start_check(silver_ids, error_ids, *, domain, generation, checkpoint, finished):
+    """시작 검사(SL-3c 결정 S2 (가)). `silver_ids`·`error_ids`: 두 표의 txn appId, `checkpoint`: metadata 식별자(없으면 None),
+    `finished`: checkpoint 에 끝난 배치(commits/)가 있나. 어긋나면 IdentityError.
+    ① checkpoint 없음 + appId 없음 → 새로 시작  ② checkpoint 없음 + appId 있음 → 멈춤  ③ 다른 checkpoint 식별자 → 멈춤
+    ④ 끝난 배치가 있는데 Silver 표에 이 식별자의 events appId 가, 또는 오류 표에 errors appId 가 없음 → 멈춤(표를 지웠거나 경로가 바뀜 —
+       Silver 쪽은 지난 배치의 Bronze 가 조용히 빠지고, 오류 쪽은 지난 오류 행과 conflict 보호((a))가 사라진다. 빈 배치도 MERGE 하고 빈 오류
+       append 도 하므로 끝난 배치는 늘 두 appId 를 남긴다 — SL-3c 리뷰 R1)."""
+    prefix = f"silver:{domain}:g{generation}:"
+    ours = sorted(app_id for app_id in set(silver_ids) | set(error_ids) if app_id.startswith(prefix))
+    if checkpoint is None:
+        if ours or finished:
+            raise IdentityError(f"checkpoint 가 없는데(또는 metadata 가 없는데) 이 세대 표에 실행 기록이 있다 — 새 세대로 돌린다: {ours}")
+        return
+    foreign = foreign_checkpoints(ours, domain, generation, checkpoint)
+    if foreign:
+        raise IdentityError(f"표에 다른 checkpoint 의 기록이 있다 — checkpoint 를 새로 만들었으면 새 세대로 돌린다: {foreign}")
+    missing = [label for label, table, ids in (("Silver", "events", silver_ids), ("오류", "errors", error_ids))
+               if txn_app_id(domain, generation, table, checkpoint) not in set(ids)]
+    if finished and missing:
+        raise IdentityError(f"checkpoint 에 끝난 배치가 있는데 {'·'.join(missing)} 표에 그 기록이 없다 — 표를 지웠거나 경로가 바뀌었다(그대로 가면 지난 배치가 빠진다)")
+
+
+SOURCE_KEYS = ("db", "schema", "table")
+
+
+def source_settings(data):
+    """어댑터 `settings` = 출처 dict `{"db","schema","table"}`(SL-3c 결정 S1 — 키는 정확히 셋, 값은 빈 문자열이 아닌 str). 잡 입구가 Spark 전에 한 번 검사한다."""
+    if not isinstance(data, dict) or set(data) != set(SOURCE_KEYS):
+        raise ValueError(f"출처 설정은 키 {SOURCE_KEYS} 만 갖는 dict 다: {data!r}")
+    if not all(isinstance(data[key], str) and data[key].strip() == data[key] and data[key] for key in SOURCE_KEYS):
+        raise ValueError(f"출처 이름은 앞뒤 공백 없는 빈 문자열이 아닌 str 이다: {data!r}")
+    return {key: data[key] for key in SOURCE_KEYS}
+
+
+JobSettings = namedtuple("JobSettings", "domain generation silver errors checkpoint bronze source acknowledged code_root max_files")
+_ENV = ("SILVER_LAKE_ROOT", "SILVER_BRONZE_TABLE", "SILVER_SOURCE_DB", "SILVER_SOURCE_SCHEMA", "SILVER_SOURCE_TABLE",
+        "SILVER_ACKNOWLEDGED", "SILVER_CODE_ROOT", "SILVER_MAX_FILES_PER_TRIGGER")
+
+
+def job_settings(environ, domain, generation):
+    """잡 설정(SL-3c 정한 것 1): 환경변수, 기본값 없음 — 하나라도 없거나 비면 ValueError(모두 적음). 표 경로는 15 §5.5 (가):
+    `<root>/silver/<d>/events/g<N>`·`<root>/silver/<d>/errors/g<N>`·`<root>/checkpoints/silver/<d>/events/g<N>`."""
+    if not _NAME.fullmatch(str(domain)) or type(generation) is not int or generation < 1:
+        raise ValueError(f"domain 은 [a-z0-9-]+, generation 은 1 이상의 정수다: {domain!r} {generation!r}")
+    missing = [name for name in _ENV if not environ.get(name, "").strip()]
+    if missing:
+        raise ValueError(f"Silver 잡 설정이 없다(기본값 없음): {', '.join(missing)}")
+    value = {name: environ[name] for name in _ENV}  # 앞뒤 공백을 지우지 않는다 — 출처 이름이 조용히 바뀌지 않게(source_settings 가 거부)
+    root = value["SILVER_LAKE_ROOT"].rstrip("/")
+    for name in ("SILVER_LAKE_ROOT", "SILVER_BRONZE_TABLE"):
+        if "`" in value[name] or value[name] != value[name].strip() or not value[name].rstrip("/"):  # 경로는 SQL 의 delta.`<경로>` 에 들어간다
+            raise ValueError(f"{name} 에 쓸 수 없는 경로다: {value[name]!r}")
+    if not value["SILVER_MAX_FILES_PER_TRIGGER"].isdigit() or int(value["SILVER_MAX_FILES_PER_TRIGGER"]) < 1:
+        raise ValueError(f"SILVER_MAX_FILES_PER_TRIGGER 는 1 이상의 정수다: {value['SILVER_MAX_FILES_PER_TRIGGER']!r}")
+    source = source_settings({"db": value["SILVER_SOURCE_DB"], "schema": value["SILVER_SOURCE_SCHEMA"], "table": value["SILVER_SOURCE_TABLE"]})
+    return JobSettings(domain, generation, f"{root}/silver/{domain}/events/g{generation}", f"{root}/silver/{domain}/errors/g{generation}",
+                       f"{root}/checkpoints/silver/{domain}/events/g{generation}", value["SILVER_BRONZE_TABLE"], source,
+                       value["SILVER_ACKNOWLEDGED"], value["SILVER_CODE_ROOT"], int(value["SILVER_MAX_FILES_PER_TRIGGER"]))
 
 
 def silver_release(root=None):

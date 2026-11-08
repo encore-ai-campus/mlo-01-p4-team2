@@ -78,6 +78,82 @@ class TxnIds(unittest.TestCase):
         self.assertEqual(control.foreign_checkpoints(mine + others + stale, "metaverse", 1, self.CK), sorted(stale))
 
 
+class StartCheck(unittest.TestCase):  # SL-3c 결정 S2 (가) — 시작 검사 ①~④
+    CK, OLD = "3f0e6a52-1b7c-4d1e-9a3b-5c6d7e8f9a0b", "0aabe9c8-6b77-4b20-9e52-3360a8f0b86c"
+
+    def check(self, silver_ids=(), error_ids=(), *, checkpoint=None, finished=False):
+        control.start_check(silver_ids, error_ids, domain="metaverse", generation=1, checkpoint=checkpoint, finished=finished)
+
+    def ids(self, table, checkpoint=None):
+        return [control.txn_app_id("metaverse", 1, table, checkpoint or self.CK)]
+
+    def test_new_start_and_normal_restart(self):
+        self.check()  # ① 처음
+        self.check(["silver:metaverse:g2:events:x", "silver:ads:g1:events:x"], checkpoint=None)  # ① 다른 세대·원천 기록은 상관없음
+        self.check(self.ids("events"), self.ids("errors") + self.ids("stops"), checkpoint=self.CK, finished=True)  # 다시 시작
+        self.check((), self.ids("stops"), checkpoint=self.CK, finished=False)  # 첫 배치가 멈춘 뒤(끝난 배치 없음)
+        self.check((), (), checkpoint=self.CK, finished=False)  # checkpoint 만 만들어지고 배치 전에 죽음
+
+    def test_stops(self):
+        cases = [
+            ("checkpoint 가 없는데", dict(silver_ids=self.ids("events"))),  # ② checkpoint 를 지움
+            ("checkpoint 가 없는데", dict(error_ids=self.ids("stops"))),  # ② 멈춘 기록만 있어도
+            ("checkpoint 가 없는데", dict(finished=True)),  # metadata 없이 commits 만 있음(깨진 checkpoint)
+            ("다른 checkpoint", dict(silver_ids=self.ids("events", self.OLD) + self.ids("events"), checkpoint=self.CK, finished=True)),  # ③
+            ("다른 checkpoint", dict(error_ids=self.ids("errors", self.OLD), checkpoint=self.CK)),  # ③ 오류 표에만
+            ("Silver 표에 그 기록이 없다", dict(error_ids=self.ids("errors"), checkpoint=self.CK, finished=True)),  # ④ Silver 표를 지움
+            ("오류 표에 그 기록이 없다", dict(silver_ids=self.ids("events"), checkpoint=self.CK, finished=True)),  # ④ 오류 표를 지움(SL-3c 리뷰 R1)
+            ("Silver·오류 표에 그 기록이 없다", dict(silver_ids=self.ids("stops"), error_ids=self.ids("stops"), checkpoint=self.CK, finished=True)),  # ④ events·errors appId 만 센다
+        ]
+        for needle, kwargs in cases:
+            with self.subTest(kwargs=kwargs), self.assertRaisesRegex(control.IdentityError, needle):
+                self.check(**kwargs)
+
+    def test_checkpoint_id(self):
+        self.assertEqual(control.checkpoint_id('{"id":"%s"}' % self.CK), self.CK)
+        self.assertEqual(control.checkpoint_id('{"id":"%s"}\n' % self.CK), self.CK)
+        for text in ("", "{}", '{"id": 1}', '{"id":"%s"}' % self.CK.upper(), '{"id":"%s\\n"}' % self.CK, '["%s"]' % self.CK, None, '{"id":"x:y"}'):
+            with self.subTest(text=text), self.assertRaises(ValueError):
+                control.checkpoint_id(text)
+
+
+ENV = {"SILVER_LAKE_ROOT": "s3a://ads-lake/", "SILVER_BRONZE_TABLE": "s3a://ads-lake/bronze/metaverse/outbox_events", "SILVER_SOURCE_DB": "metaverse_lab",
+       "SILVER_SOURCE_SCHEMA": "public", "SILVER_SOURCE_TABLE": "eventing_eventoutbox", "SILVER_ACKNOWLEDGED": "/code/pipeline/silver/acknowledged/metaverse.json",
+       "SILVER_CODE_ROOT": "/code", "SILVER_MAX_FILES_PER_TRIGGER": "200"}
+
+
+class Settings(unittest.TestCase):  # SL-3c 결정 S1·정한 것 1
+    def test_source_settings(self):
+        source = {"db": "metaverse_lab", "schema": "public", "table": "eventing_eventoutbox"}
+        self.assertEqual(control.source_settings(dict(source)), source)
+        for bad in (None, [], {"db": "a", "schema": "b"}, {**source, "extra": "x"}, {**source, "db": ""}, {**source, "db": 1}, {**source, "table": " t"}):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                control.source_settings(bad)
+
+    def test_job_settings(self):
+        settings = control.job_settings(ENV, "metaverse", 1)
+        self.assertEqual((settings.silver, settings.errors, settings.checkpoint),
+                         ("s3a://ads-lake/silver/metaverse/events/g1", "s3a://ads-lake/silver/metaverse/errors/g1",
+                          "s3a://ads-lake/checkpoints/silver/metaverse/events/g1"))
+        self.assertEqual(settings.source, {"db": "metaverse_lab", "schema": "public", "table": "eventing_eventoutbox"})
+        self.assertEqual((settings.bronze, settings.max_files, settings.code_root), (ENV["SILVER_BRONZE_TABLE"], 200, "/code"))
+
+    def test_no_defaults(self):
+        with self.assertRaisesRegex(ValueError, "SILVER_LAKE_ROOT, SILVER_BRONZE_TABLE"):
+            control.job_settings({k: v for k, v in ENV.items() if k not in ("SILVER_LAKE_ROOT", "SILVER_BRONZE_TABLE")}, "metaverse", 1)
+        for name in control._ENV:
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, name):
+                control.job_settings({**ENV, name: " "}, "metaverse", 1)
+
+    def test_bad_values(self):
+        for env, domain, generation in (({**ENV, "SILVER_MAX_FILES_PER_TRIGGER": "0"}, "metaverse", 1), ({**ENV, "SILVER_MAX_FILES_PER_TRIGGER": "-1"}, "metaverse", 1),
+                                        ({**ENV, "SILVER_LAKE_ROOT": "s3a://a`b"}, "metaverse", 1), ({**ENV, "SILVER_BRONZE_TABLE": "x`"}, "metaverse", 1),
+                                        ({**ENV, "SILVER_LAKE_ROOT": "///"}, "metaverse", 1), ({**ENV, "SILVER_BRONZE_TABLE": "s3a://b "}, "metaverse", 1), ({**ENV, "SILVER_SOURCE_DB": "a "}, "metaverse", 1),
+                                        (ENV, "Meta", 1), (ENV, "metaverse", 0), (ENV, "metaverse", "1")):
+            with self.subTest(env=env, domain=domain, generation=generation), self.assertRaises(ValueError):
+                control.job_settings(env, domain, generation)
+
+
 class SilverRelease(unittest.TestCase):
     def setUp(self):
         folder = tempfile.TemporaryDirectory()

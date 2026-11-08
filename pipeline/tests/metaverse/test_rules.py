@@ -4,12 +4,10 @@
 """
 import hashlib
 import json
-import sys
 import unittest
 from datetime import datetime, timedelta, timezone
 
 from pipeline.silver.adapters import metaverse_rules as rules
-from pipeline.tests.test_layers import py_files, violations
 
 U = ["6211c9c3-3ae5-4856-b8b2-b2b493f8623c", "bb157f2b-9335-46ae-903b-d945617df4bb", "f6ca7b43-bc09-4c82-a7e4-f1a48bdc21f3",
      "8549763d-e235-481f-b189-43fdacf839e6", "e389216d-067b-4716-aebd-43173921983a", "b4845343-2701-481f-8cb3-1ce4290fea3f"]
@@ -184,13 +182,6 @@ class ContentHash(unittest.TestCase):
                 found_reason, found_sha = result(**case)
                 self.assertTrue(found_reason)
                 self.assertIsNone(found_sha)
-
-
-class Layer(unittest.TestCase):
-    def test_rules_module_is_stdlib_and_pipeline_only(self):  # executor 가 UDF 에서 import 한다(test_layers 규칙 3과 같은 조건)
-        files = py_files("silver", "adapters", "metaverse_rules.py")
-        self.assertEqual(len(files), 1)
-        self.assertEqual(violations(files, lambda name, level: level == 0 and (name in sys.stdlib_module_names or name == "pipeline")), [])
 
 
 if __name__ == "__main__":

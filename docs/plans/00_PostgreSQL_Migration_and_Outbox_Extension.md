@@ -293,7 +293,7 @@ PostgreSQL은 기본값 없는 NULL 열 추가가 표를 다시 쓰지 않는다
 
 ## 11. 범위 밖·후속
 
-- **Kafka 전환 때 바꿀 곳:** `events/relay.py:84-96`(성공 뒤 `sent_at` UPDATE), `events/management/commands/purge_sent_events.py`(보낸 지 N일 뒤 DELETE), `events/relay.py:107-132`(MongoDB 대조). 확장은 Debezium 일반 CDC로 한다(2026-11-02 결정, 설계서 §6.3). publication을 INSERT 전용으로 만들어 이 UPDATE·DELETE가 Kafka로 흐르지 않게 한다. → **[2026-11-03 D8·D17, 사용자] 정해졌다**: `sent_at` UPDATE·MongoDB 대조는 운영에 없다(로컬 병행만). `purge_sent_events`는 창 대사 확정 기준의 창 단위 정리로 바뀐다(설계서 §6.3 게이트 1·§6.3a, 구현 `docs/legacy/ads-server/implementation-plan.md` §8.4.26).
+- **Kafka 전환 때 바꿀 곳:** `events/relay.py:84-96`(성공 뒤 `sent_at` UPDATE), `events/management/commands/purge_sent_events.py`(보낸 지 N일 뒤 DELETE), `events/relay.py:107-132`(MongoDB 대조). 확장은 Debezium 일반 CDC로 한다(2026-11-02 결정, 설계서 §6.3). publication을 INSERT 전용으로 만들어 이 UPDATE·DELETE가 Kafka로 흐르지 않게 한다. → **[2026-11-03 D8·D17, 사용자] 정해졌다**: `sent_at` UPDATE·MongoDB 대조는 운영에 없다(로컬 병행만). `purge_sent_events`는 창 대사 확정 기준의 창 단위 정리로 바뀐다(설계서 §6.3 게이트 1·§6.3a, 구현 계획 §8.4.26).
 - PgBouncer 도입(D6): 요청이 늘어 앱 서버·워커를 늘릴 때. `lock_timeout`·`idle_in_transaction_session_timeout`(60초, 2026-11-02 버그 탐색 K3) 전달 방식을 함께 정한다.
 - 반응이 많이 쌓인 DB 에 서비스 중 색인을 더할 때(예: `records/0002_reaction_queue_idx`, 2026-11-02): `AddIndex` 는 `CREATE INDEX`(동시 아님)라 만드는 동안 표 쓰기가 막힌다 — 트래픽이 적은 때 올리거나 `AddIndexConcurrently`(atomic=False 마이그레이션)로 바꾼다. 운영 데이터가 없는 지금은 그대로 둔다.
 - PostgreSQL 복제·HA [결정 2026-11-03 D12, 사용자 — 파이프라인 설계 문서]

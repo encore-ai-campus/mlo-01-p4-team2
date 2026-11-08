@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- 메타버스 Bronze manifest 잡(MVR-2, 창 hour) 매시 :15 — 로컬 시험대용 사용자 LaunchAgent 견본. 운영은 같은 잡을 ScheduledSparkApplication(concurrencyPolicy: Forbid, schedule 은 UTC,
+     환경 HOP_SOURCE=METAVERSE — 운영은 래퍼를 거치지 않는다)으로. :15 는 광고 시간 잡(:05)·Silver(:10)를 피한 시각이다(MVR-2 계획 V4 (가)).
+     설치는 사용자 승인 뒤: 자리 표시 두 가지(__REPO__ = 저장소 경로, __HOME__ = 홈 폴더)를 이 장치에 맞게 바꿔 ~/Library/LaunchAgents/ 에 두고
+     launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.pipeline.metaverse.hop-manifest-hour.plist
+     제거: launchctl bootout gui/$(id -u)/local.pipeline.metaverse.hop-manifest-hour 뒤 파일 삭제. 상태: launchctl print gui/$(id -u)/local.pipeline.metaverse.hop-manifest-hour
+     같은 창 크기 메타버스 잡이 아직 돌고 있으면 잠금이 그 회차를 건너뛴다(rc 75). -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>local.pipeline.metaverse.hop-manifest-hour</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__REPO__/pipeline/bronze/run-hop-manifest-metaverse.sh</string>
+    <string>hour</string>
+  </array>
+  <key>StartCalendarInterval</key><dict><key>Minute</key><integer>15</integer></dict>
+  <key>StandardOutPath</key><string>__HOME__/Library/Logs/pipeline-metaverse-hop-manifest-hour.log</string>
+  <key>StandardErrorPath</key><string>__HOME__/Library/Logs/pipeline-metaverse-hop-manifest-hour.log</string>
+</dict>
+</plist>

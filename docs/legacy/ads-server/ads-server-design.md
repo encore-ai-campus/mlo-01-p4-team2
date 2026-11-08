@@ -7,7 +7,7 @@
 
 **문서·코드 위치 [확정]**: 문서는 `docs/legacy/ads-server/`(이 폴더, 계약 파일은 `contracts/`), 구현은 `ads_server/`다. 2026-10-07에 승인 전 문서 폴더(`intake/`)에서 승격했다.
 
-관련 문서: [console-ui-benchmark.md](console-ui-benchmark.md) (화면 벤치마킹), [implementation-plan.md](implementation-plan.md) (구현 계획), [ads-server-drd.md](ads-server-drd.md) (데이터 요구사항: 데이터 구조·서버 간 데이터 상호작용)
+관련 문서: [console-ui-benchmark.md](console-ui-benchmark.md) (화면 벤치마킹), [ads-server-drd.md](ads-server-drd.md) (데이터 요구사항: 데이터 구조·서버 간 데이터 상호작용)
 
 ---
 

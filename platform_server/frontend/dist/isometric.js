@@ -1269,16 +1269,17 @@
       drawLabels(ctx,actors);
       for(const actor of drawnActors)if(actor===actors[0]||actor.managerNpc||(showNicknames&&actor.nickname))drawName(ctx,actor,camera.zoom,actor.nickname||(actor===actors[0]?'나':''),actor===actors[0],t);
     }
-    // 확대·카메라 이동 전 광고 이미지의 실제 사각형을 투영한다. 테두리는 포함하지 않는다.
-    function displayPolygon(id){
+    // 기본값은 실제 이미지 영역만 반환한다. 사전 요청은 placeholder로 이미지 없는 광고판도 투영한다.
+    // 크기 미지정 광고판은 로딩 전 추정 크기를 사용하며, 테두리는 포함하지 않는다.
+    function displayPolygon(id,{placeholder=false}={}){
       const o=D.objects.find(o=>o.id===id),image=displayImages.get(id);
-      if(!o||!image)return null;
+      if(!o||(!image&&!placeholder)||!['wall-poster','plaza-display'].includes(o.type))return null;
       if(o.type==='wall-poster'){
-        const base=groundHeight(o.x+o.w/2,o.y+o.h/2),height=o.posterHeight||o.w*image.height/image.width,z=base+(o.posterBottom||0);
+        const base=groundHeight(o.x+o.w/2,o.y+o.h/2),height=o.posterHeight||(image?o.w*image.height/image.width:o.w*9/16),z=base+(o.posterBottom||0);
         return [p(o.x,o.y,z+height),p(o.x+o.w,o.y,z+height),p(o.x+o.w,o.y,z),p(o.x,o.y,z)];
       }
       const q=projectGround(o.x+o.w/2,o.y+o.h/2),sw=o.screenWidth||250;
-      const sh=o.imageOnly?sw*image.height/image.width:o.screenHeight||150;
+      const sh=o.imageOnly&&image?sw*image.height/image.width:o.screenHeight||150;
       const v=o.displayAxis==='y'?P.vector(0,-1):{x:1,y:0};
       return [[-sw/2,-44-sh],[sw/2,-44-sh],[sw/2,-44],[-sw/2,-44]].map(([x,y])=>({x:q.x+v.x*x,y:q.y+v.y*x+y}));
     }

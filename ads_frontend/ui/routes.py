@@ -12,6 +12,7 @@ CONSOLE = [  # 백엔드 console/urls.py
     ("advertiser/ad-groups/<str:ad_group_id>/bid", "ad_group_bid"),
     ("advertiser/ad-groups/<str:ad_group_id>/name", "ad_group_name"),
     ("advertiser/ad-groups/<str:ad_group_id>/slots", "ad_group_slots"),
+    ("advertiser/ad-groups/<str:ad_group_id>/segments", "ad_group_segments"),
     ("advertiser/ad-groups/<str:ad_group_id>/enabled", "ad_group_enabled"),
     ("advertiser/ad-groups/<str:ad_group_id>/creatives", "ad_group_creative_upload"),
     ("advertiser/ad-groups/<str:ad_group_id>/creatives/select", "ad_group_creative_select"),

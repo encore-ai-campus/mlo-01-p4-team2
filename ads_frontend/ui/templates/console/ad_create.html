@@ -45,6 +45,21 @@
           {% endfor %}
         </fieldset>
         {{ form.slot_ids.errors }}
+        <fieldset class="slots">
+          <legend>대상 그룹(선택)</legend>
+          {% regroup segments by 0 as by_media %}
+          {% for media in by_media %}
+          <p class="media">{{ media.grouper }}</p>
+          {% for media_name, g in media.list %}
+          <label class="slot"><input type="checkbox" name="segment_ids" value="{{ g.segment_id }}"{% if g.segment_id|stringformat:"s" in form.segment_ids.value %} checked{% endif %}>
+            <span class="name">{{ g.name }}</span><span class="muted">{{ g.code }}</span></label>
+          {% endfor %}
+          {% empty %}
+          <p class="muted">등록된 대상 그룹이 없습니다.</p>
+          {% endfor %}
+        </fieldset>
+        {{ form.segment_ids.errors }}
+        <p class="helptext">고르지 않으면 모든 사용자에게 나갑니다. 고르면 그 그룹의 사용자에게만 나갑니다 — 고른 구성의 매체 그룹만 고를 수 있습니다.</p>
         <div class="bid">
           <div class="field">{{ form.bid_amount.as_field_group }}</div>
           <button type="submit" name="action" value="preview" class="tonal">구성별 적용금액 계산 {% icon "arrow" 14 %}</button>

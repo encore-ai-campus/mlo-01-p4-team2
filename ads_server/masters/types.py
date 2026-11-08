@@ -77,14 +77,14 @@ class SlotView:
 
 @dataclass(frozen=True)
 class SegmentView:
-    """대상 그룹의 현재 값(DRD M7)과 그 판 번호(바꿀 때 `expected_version` 으로 되돌려 보낸다)."""
+    """대상 그룹의 현재 값(DRD M7)과 그 판 번호(운영 화면이 바꿀 때 `expected_version` 으로 되돌려 보낸다 — 광고주 쪽 읽기는 판을 읽지 않아 `None`)."""
 
     segment_id: uuid.UUID
     media_id: uuid.UUID
     code: str
     name: str
     is_active: bool
-    version: int
+    version: int | None
     created_at: datetime
 
 

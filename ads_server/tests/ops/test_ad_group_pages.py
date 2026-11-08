@@ -122,6 +122,70 @@ class GroupEditTests(Cases, AdGroupPageBase):
         self.run_cases()
 
 
+@tag("security")
+class SegmentSectionTests(Cases, AdGroupPageBase):
+    """TG-S2 광고 상세의 "대상 그룹": 고른 구성의 매체에 속한 살아 있는 그룹 + 이미 연결된 그룹(보관 표시)을 고르고, 경고 둘을 보인다."""
+
+    def setUp(self):
+        super().setUp()
+        self.mlo = masters.create_segment(self.w.admin, self.w.slot.media_id, "mlo", "<b>MLO</b>")
+        self.skn = masters.create_segment(self.w.admin, self.w.slot.media_id, "skn", "SKN")
+
+    def save(self, *segment_ids):
+        return self.client.post(reverse("ad_group_segments", args=[self.gid]), {"segment_ids": [str(s) for s in segment_ids], "updated_at": self.seen()})
+
+    def case_choices_are_live_groups_of_the_chosen_slot_media_and_saving_links_them(self):
+        elsewhere = masters.create_segment(self.w.admin, make_slot(self.w.admin).media_id, "aio", "AIO")
+        html = self.html()
+        self.assertIn(f'name="segment_ids" value="{self.mlo.segment_id}"', html)
+        self.assertNotIn(str(elsewhere.segment_id), html)  # 고른 구성에 없는 매체의 그룹
+        self.assertNotIn("<b>MLO</b>", html)  # 이름은 이스케이프된다
+        r = self.save(self.mlo.segment_id)
+        self.assertRedirects(r, self.detail, fetch_redirect_response=False)  # 안내 메시지는 다음 화면에서 읽는다
+        self.assertEqual(self.group().segment_ids, (self.mlo.segment_id,))
+        self.assertContains(self.client.get(self.detail), "대상 그룹을 바꿨습니다.")
+        self.assertRedirects(self.save(), self.detail)  # 모두 풀면 전체가 대상
+        self.assertEqual(self.group().segment_ids, ())
+
+    def case_an_archived_linked_group_is_shown_and_warned_and_cannot_be_chosen_anew(self):
+        self.save(self.mlo.segment_id)
+        masters.update_segment(self.w.admin, self.mlo.segment_id, 1, is_active=False)
+        html = self.html()
+        self.assertIn("보관됨", html)
+        self.assertIn("고른 대상 그룹이 모두 보관됐습니다", html)
+        self.assertRedirects(self.save(self.mlo.segment_id, self.skn.segment_id), self.detail)  # 연결된 보관 그룹은 남는다
+        self.assertNotIn("모두 보관됐습니다", self.html())
+        self.save(self.skn.segment_id)
+        r = self.save(self.mlo.segment_id)  # 뺀 뒤 다시 고르기 — 보관돼 고를 수 없다(화면에 없는 값을 보냄)
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(self.group().segment_ids, (self.skn.segment_id,))
+
+    def case_a_slot_media_without_any_chosen_group_is_warned(self):
+        other = make_slot(self.w.admin, name="다른 매체 위치")
+        self.client.post(reverse("ad_group_slots", args=[self.gid]), {"slot_ids": [str(self.w.slot.slot_id), str(other.slot_id)], "updated_at": self.seen()})
+        self.assertNotIn("대상 그룹이 없는 매체", self.html())  # 대상 그룹을 고르지 않았으면 전체가 대상 — 경고 없음
+        self.save(self.mlo.segment_id)
+        warning = f"대상 그룹이 없는 매체: {masters.get_slot(other.slot_id).media_name}"
+        self.assertIn(warning, self.html())
+        aio = masters.create_segment(self.w.admin, other.media_id, "aio", "AIO")
+        self.save(self.mlo.segment_id, aio.segment_id)
+        self.assertNotIn("대상 그룹이 없는 매체", self.html())
+        masters.update_segment(self.w.admin, aio.segment_id, 1, is_active=False)  # 그 매체의 연결 그룹이 보관되면 다시 경고(모두 보관은 아니라 다른 경고는 없다 — 리뷰 R1)
+        html = self.html()
+        self.assertIn(warning, html)
+        self.assertNotIn("모두 보관됐습니다", html)
+
+    def case_a_stale_form_is_refused(self):
+        seen = self.seen()
+        self.save(self.mlo.segment_id)
+        r = self.client.post(reverse("ad_group_segments", args=[self.gid]), {"segment_ids": [str(self.skn.segment_id)], "updated_at": seen})
+        self.assertEqual(r.status_code, 409)
+        self.assertEqual(self.group().segment_ids, (self.mlo.segment_id,))
+
+    def test_segment_section(self):
+        self.run_cases()
+
+
 class ImageSectionTests(Cases, AdGroupPageBase):
     def case_the_image_section_only_selects_and_the_upload_section_only_uploads(self):
         """6-11(사용자 요청): 광고 상세의 "이미지"는 내 이미지(보관하지 않은 것 전부) 중 하나를 고르기만 하고, "이미지 업로드"는 올리기만 한다.

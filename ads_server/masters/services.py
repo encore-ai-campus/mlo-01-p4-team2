@@ -390,6 +390,30 @@ def list_segments(actor, media_id):
     return [_segment_view(s, s.version) for s in rows]
 
 
+def segments(segment_ids=(), media_ids=()):
+    """광고주 화면용 대상 그룹(코드순, 보관 포함, 판은 읽지 않음): `segment_ids` 의 그룹과 `media_ids` 매체의 그룹. 형식이 틀린 ID 는 없다고 본다. 질의 한 번."""
+    ids, medias = parse_uuids(segment_ids), parse_uuids(media_ids)
+    if not ids and not medias:
+        return []
+    rows = Segment.objects.filter(Q(pk__in=ids) | Q(media_id__in=medias)).order_by("code", "segment_id")
+    return [_segment_view(s, None) for s in rows]
+
+
+def lock_segments(segment_ids):
+    """대상 그룹 행을 **공유 잠금**(`FOR SHARE`, ID 순)으로 읽는다 — 광고그룹이 대상 그룹을 고르는 사이 보관되는 경쟁만 막는다(설계 §10 "대상 그룹 타기팅" ⑧,
+    잠금 순서의 마지막). 보관(`update_segment`)은 그 행을 배타 잠금으로 쥐므로 서로 기다린다. 호출한 트랜잭션이 끝날 때 놓인다. {segment_id: SegmentView}(판은 `None`).
+    ORM 에 `FOR SHARE` 가 없어 ORM 이 만든 조회에 잠금 절만 붙인다(`media_active_for_share` 와 같다)."""
+    ids = sorted(set(parse_uuids(segment_ids)), key=str)
+    if not ids:
+        return {}
+    query = Segment.objects.filter(pk__in=ids).order_by("segment_id").values_list("segment_id", "media_id", "code", "name", "is_active", "created_at")
+    sql, params = query.query.sql_with_params()
+    with connection.cursor() as cursor:
+        cursor.execute(f"{sql} FOR SHARE", params)
+        rows = cursor.fetchall()
+    return {row[0]: SegmentView(segment_id=row[0], media_id=row[1], code=row[2], name=row[3], is_active=row[4], version=None, created_at=row[5]) for row in rows}
+
+
 def segment_versions():
     """모든 대상 그룹 판(`SegmentVersionView`)을 훑는다 — 이벤트 누락 점검·기대 이벤트용 읽기."""
     return (_segment_version_view(v, v.segment) for v in SegmentVersion.objects.select_related("segment").iterator(chunk_size=2000))

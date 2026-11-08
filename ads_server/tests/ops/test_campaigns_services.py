@@ -10,14 +10,14 @@ from django.test.utils import CaptureQueriesContext
 from assets.api import ImageRejected, asset_exists
 from campaigns import api
 from campaigns.changes import record_change
-from campaigns.models import AdGroup, Bid, ChangeLog, Creative
+from campaigns.models import AdGroup, AdGroupSegment, Bid, ChangeLog, Creative
 from events.api import OutsideTransaction, event_id_for
 from events.models import EventOutbox
 from foundation.errors import Forbidden, InvalidRequest, StaleVersion
 from foundation.models import AuditLog
 from masters import api as masters
 from tests.support import image_factory
-from tests.support.concurrency import run_together
+from tests.support.concurrency import overlap, run_together
 from tests.support.factories import DAY, NOW, SUBJECT, World, make_admin, make_advertiser, make_slot, png_file
 from tests.support.cases import Cases
 
@@ -212,7 +212,7 @@ class CampaignServiceTests(Cases, TestCase):
         second = api.create_creative(adv, gid, "둘째", "https://example.com/2", png_file((9, 9, 9)), now=NOW + 4 * SEC)  # 선택된 소재가 있어 연결만
         api.link_creative(adv, gid, second.creative_id, now=NOW + 5 * SEC, select=True)
         self.assertEqual(changes(gid), [
-            ("CREATED", None, {"enabled": True, "slot_ids": [str(slot.slot_id)], "creative_id": None}),
+            ("CREATED", None, {"enabled": True, "slot_ids": [str(slot.slot_id)], "creative_id": None, "segment_ids": []}),  # 대상 그룹 없음 = 전체
             ("CREATIVE_SELECTED", {"creative_id": None}, {"creative_id": str(first)}),  # 소재가 없을 때의 자동 선택
             ("ENABLED_CHANGED", {"enabled": True}, {"enabled": False}),
             ("SLOTS_CHANGED", {"slot_ids": [str(slot.slot_id)]}, {"slot_ids": sorted([str(slot.slot_id), str(other.slot_id)])}),  # 지우기 전의 목록이 이전 값
@@ -694,3 +694,113 @@ class CampaignEndsAtTests(Cases, TestCase):
 
     def test_campaign_ends_at(self):
         self.run_cases()
+
+
+@tag("security")
+class AdGroupSegmentTests(Cases, TestCase):
+    """TG-S2 광고그룹의 대상 그룹 T(DRD O11, 설계 §10 "대상 그룹 타기팅" ③·⑧): 0개 이상, 비면 전체. **새로 고르는** 그룹은 살아 있고 고른 구성의 매체 것이어야 한다.
+    이미 연결된 그룹은 보관되거나 구성이 바뀌어도 남는다. 바꿀 때마다 변경 로그 `SEGMENTS_CHANGED` + 이벤트(값이 그대로면 없음)."""
+
+    def setUp(self):
+        self.w = World(ends_in=None)
+        self.adv, self.gid, self.media_id = self.w.adv, self.w.group.ad_group_id, self.w.slot.media_id
+        self.mlo = masters.create_segment(self.w.admin, self.media_id, "mlo", "MLO")
+        self.skn = masters.create_segment(self.w.admin, self.media_id, "skn", "SKN")
+
+    def logs(self, ad_group_id, kind):
+        return list(ChangeLog.objects.filter(target_id=ad_group_id, change_type=kind).order_by("changed_at", "change_id").values_list("previous_value", "new_value"))
+
+    def links(self, ad_group_id):
+        return sorted(AdGroupSegment.objects.filter(ad_group_id=ad_group_id).values_list("segment_id", flat=True), key=str)
+
+    def case_create_links_targets_and_the_created_log_carries_them(self):
+        g = api.create_ad_group(self.adv, self.w.campaign.campaign_id, "대상", [self.w.slot.slot_id], segment_ids=[self.skn.segment_id, self.mlo.segment_id], now=NOW)
+        expected = sorted([self.mlo.segment_id, self.skn.segment_id], key=str)
+        self.assertEqual((list(g.segment_ids), self.links(g.ad_group_id)), (expected, expected))
+        self.assertEqual(self.logs(g.ad_group_id, "CREATED")[0][1]["segment_ids"], [str(s) for s in expected])  # 정렬한 UUID 문자열
+        self.assertEqual(api.get_ad_group(self.adv, g.ad_group_id).segment_ids, tuple(expected))
+        everyone = api.create_ad_group(self.adv, self.w.campaign.campaign_id, "전체", [self.w.slot.slot_id], now=NOW)
+        self.assertEqual((everyone.segment_ids, self.logs(everyone.ad_group_id, "CREATED")[0][1]["segment_ids"]), ((), []))
+
+    def case_new_targets_must_be_live_and_of_a_chosen_slot_media(self):
+        other_media = masters.create_segment(self.w.admin, make_slot(self.w.admin).media_id, "aio", "AIO")
+        archived = masters.create_segment(self.w.admin, self.media_id, "old", "옛 과정")
+        masters.update_segment(self.w.admin, archived.segment_id, 1, is_active=False)
+        groups = AdGroup.objects.count()
+        for bad in ([other_media.segment_id], [archived.segment_id], [uuid.uuid4()], ["not-a-uuid"], [self.mlo.segment_id, self.mlo.segment_id], "mlo"):
+            with self.subTest(bad=bad):
+                with self.assertRaises(InvalidRequest) as caught:
+                    api.create_ad_group(self.adv, self.w.campaign.campaign_id, "x", [self.w.slot.slot_id], segment_ids=bad)
+                self.assertEqual(caught.exception.errors[0]["pointer"], "/segment_ids")
+                with self.assertRaises(InvalidRequest):
+                    api.update_ad_group(self.adv, self.gid, {"segment_ids": bad})
+        self.assertEqual((AdGroup.objects.count(), self.links(self.gid), self.logs(self.gid, "SEGMENTS_CHANGED")), (groups, [], []))  # 아무것도 쓰지 않았다
+
+    def case_update_replaces_targets_and_logs_each_change_once(self):
+        seen = api.get_ad_group(self.adv, self.gid).updated_at
+        api.update_ad_group(self.adv, self.gid, {"segment_ids": [self.mlo.segment_id]}, now=NOW + DAY, expected_updated_at=seen)
+        api.update_ad_group(self.adv, self.gid, {"segment_ids": [self.mlo.segment_id]}, now=NOW + 2 * DAY)  # 같은 값 — 로그 없음
+        api.update_ad_group(self.adv, self.gid, {"segment_ids": [self.skn.segment_id, self.mlo.segment_id]}, now=NOW + 3 * DAY)
+        api.update_ad_group(self.adv, self.gid, {"segment_ids": []}, now=NOW + 4 * DAY)
+        both = sorted([str(self.mlo.segment_id), str(self.skn.segment_id)])
+        self.assertEqual(self.logs(self.gid, "SEGMENTS_CHANGED"), [
+            ({"segment_ids": []}, {"segment_ids": [str(self.mlo.segment_id)]}),
+            ({"segment_ids": [str(self.mlo.segment_id)]}, {"segment_ids": both}),
+            ({"segment_ids": both}, {"segment_ids": []}),
+        ])
+        for change_id in ChangeLog.objects.filter(target_id=self.gid, change_type="SEGMENTS_CHANGED").values_list("change_id", flat=True):
+            self.assertTrue(EventOutbox.objects.filter(pk=event_id_for("ad.ad_group_changed", change_id)).exists())
+        self.assertEqual(self.links(self.gid), [])
+        with self.assertRaises(StaleVersion):  # 옛 화면
+            api.update_ad_group(self.adv, self.gid, {"segment_ids": [self.mlo.segment_id]}, expected_updated_at=seen)
+
+    def case_a_linked_target_stays_when_archived_or_when_its_media_leaves_the_slots(self):
+        api.update_ad_group(self.adv, self.gid, {"segment_ids": [self.mlo.segment_id]})
+        masters.update_segment(self.w.admin, self.mlo.segment_id, 1, is_active=False)
+        api.update_ad_group(self.adv, self.gid, {"segment_ids": [self.mlo.segment_id, self.skn.segment_id]})  # 보관된 mlo 는 이미 연결돼 있어 남는다
+        elsewhere = make_slot(self.w.admin)
+        api.update_ad_group(self.adv, self.gid, {"slot_ids": [elsewhere.slot_id]})  # 그 매체가 구성에서 빠져도 연결은 남는다(화면이 경고)
+        self.assertEqual(self.links(self.gid), sorted([self.mlo.segment_id, self.skn.segment_id], key=str))
+        api.update_ad_group(self.adv, self.gid, {"segment_ids": [self.skn.segment_id]})  # 빼기는 언제나 된다
+        for again in ([self.mlo.segment_id], [self.skn.segment_id, self.mlo.segment_id]):  # 뺀 뒤 다시 고르면 새로 고르는 것 — 보관됐다
+            with self.assertRaises(InvalidRequest):
+                api.update_ad_group(self.adv, self.gid, {"segment_ids": again})
+
+    def case_create_ad_links_targets_and_points_errors_at_the_ad_group(self):
+        ad = {"name": "광고", "slot_ids": [self.w.slot.slot_id], "bid_amount": 300, "segment_ids": [self.mlo.segment_id]}
+        created = api.create_ad(self.adv, self.w.campaign.campaign_id, ad, creative_id=self.w.creative.creative_id, now=NOW)
+        self.assertEqual(self.links(created.ad_group.ad_group_id), [self.mlo.segment_id])
+        masters.update_segment(self.w.admin, self.skn.segment_id, 1, is_active=False)
+        groups = AdGroup.objects.count()
+        with self.assertRaises(InvalidRequest) as caught:
+            api.create_ad(self.adv, self.w.campaign.campaign_id, {**ad, "segment_ids": [self.skn.segment_id]}, creative_id=self.w.creative.creative_id, now=NOW)
+        self.assertEqual((caught.exception.errors[0]["pointer"], AdGroup.objects.count()), ("/ad_group/segment_ids", groups))  # 한 트랜잭션 — 광고그룹도 남지 않는다
+
+    def case_listing_reads_every_groups_targets_in_one_query(self):
+        api.update_ad_group(self.adv, self.gid, {"segment_ids": [self.mlo.segment_id]})
+        def listed():
+            with CaptureQueriesContext(connection) as q:
+                rows = api.list_ad_groups(self.adv, self.w.campaign.campaign_id)
+            return rows, len(q)
+        rows, one = listed()
+        for i in range(3):
+            api.create_ad_group(self.adv, self.w.campaign.campaign_id, f"더 {i}", [self.w.slot.slot_id], segment_ids=[self.skn.segment_id])
+        rows, four = listed()
+        self.assertEqual(one, four)  # 질의 수는 광고그룹 수와 무관
+        self.assertEqual([r.segment_ids for r in rows], [(self.mlo.segment_id,)] + [(self.skn.segment_id,)] * 3)
+
+    def test_ad_group_segment(self):
+        self.run_cases()
+
+
+class ConcurrentSegmentChoiceTests(TransactionTestCase):
+    def test_choosing_waits_for_an_archive_in_progress_and_then_refuses(self):
+        """고르는 동안 보관되는 경쟁(설계 §10 "대상 그룹 타기팅" ⑧): 보관이 그룹 행을 쥔 사이 고르기는 공유 잠금에서 기다리고, 보관이 커밋된 뒤 400 이다
+        (잠그지 않고 읽으면 보관 전 값을 보고 연결해 보관된 그룹이 새로 골라진다)."""
+        w = World(ends_in=None)
+        g = masters.create_segment(w.admin, w.slot.media_id, "mlo", "MLO")
+        archive, choose = overlap(self, lambda: masters.update_segment(w.admin, g.segment_id, 1, is_active=False), "INSERT", "masters_segment_version",
+                                  lambda: api.update_ad_group(w.adv, w.group.ad_group_id, {"segment_ids": [g.segment_id]}))
+        self.assertEqual(archive.errors, [])
+        self.assertEqual([type(e) for e in choose.errors], [InvalidRequest])
+        self.assertFalse(AdGroupSegment.objects.exists())

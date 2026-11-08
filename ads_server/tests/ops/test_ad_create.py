@@ -249,6 +249,23 @@ class AdCreatePageTests(Cases, AdCreateBase, TestCase):
         masters.set_slot_active(self.w.admin, self.click_slot.slot_id, False)
         self.assertNotIn(str(self.click_slot.slot_id), self.client.get(URL).content.decode())
 
+    def case_target_groups_of_slot_media_are_offered_and_created_with_the_ad(self):
+        """TG-S2: 대상 그룹(선택)은 켜진 구성의 매체에 속한 살아 있는 그룹을 보이고, 고른 것을 광고와 함께 만든다. 보관된 그룹은 선택지에 없어 폼이 400,
+        고른 구성의 매체가 아닌 그룹은 서비스가 400 이고 그 칸 옆에 오류가 붙는다(`/ad_group/segment_ids`)."""
+        mlo = masters.create_segment(self.w.admin, self.w.slot.media_id, "mlo", "MLO")
+        other = masters.create_segment(self.w.admin, self.click_slot.media_id, "aio", "AIO")  # 켜진 다른 구성의 매체 — 선택지에는 있다
+        old = masters.create_segment(self.w.admin, self.w.slot.media_id, "old", "옛 과정")
+        masters.update_segment(self.w.admin, old.segment_id, 1, is_active=False)
+        html = self.client.get(URL).content.decode()
+        self.assertIn(f'name="segment_ids" value="{mlo.segment_id}"', html)
+        self.assertNotIn(str(old.segment_id), html)
+        self.assertEqual(self.client.post(URL, self.fields(segment_ids=[str(old.segment_id)])).status_code, 400)
+        r = self.client.post(URL, self.fields(segment_ids=[str(other.segment_id)]))  # 고른 구성(w.slot)의 매체가 아니다
+        self.assertContains(r, "고를 수 없는 대상 그룹", status_code=400)
+        self.assertFalse(self.created().exists())
+        self.client.post(URL, self.fields(segment_ids=[str(mlo.segment_id)]))
+        self.assertEqual(campaigns.get_ad_group(self.w.adv, self.created().get().ad_group_id).segment_ids, (mlo.segment_id,))
+
     def test_ad_create_page(self):
         self.run_cases()
 

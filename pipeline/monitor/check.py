@@ -3,9 +3,14 @@
 사용: check.py   (주기 실행은 launchd·systemd 타이머가 1분마다 부른다. 결과는 표준 출력에 JSON 한 줄)
 - 점검마다 결과(ok·alert·error·unimplemented·unsupported)를 낸다. 상태가 바뀐 것만 알린다(새 경보, 경보 해소) — 상태 파일 MONITOR_STATE.
 - 알림: MONITOR_WEBHOOK_URL 또는 MONITOR_WEBHOOK_FILE(주소를 담은 저장소 밖 파일)에 POST {"text","content"}. 없으면 화면에만 쓴다. 주소는 출력하지 않는다.
-- 끝: 경보가 하나라도 있으면 rc=1. 상태 파일 자리(MONITOR_STATE, 기본 ~/.local/state/pipeline_monitor/state.json)가 이 사용자 것이 아니거나
-  링크이거나 그룹·다른 사용자가 쓸 수 있으면 점검하지 않고 알린 뒤 rc=2.
-- R7(FAILED Task 자동 재시작)은 넣지 않았다. M3 는 FAILED 경보만 낸다. E-K2(계획 02 P0-7) 결과로 R7 (나)가 정해지면 그때 넣는다.
+- 끝: 경보가 하나라도 있으면 rc=1. 점검하지 않으면 알린 뒤 rc=2 — 필수 모드(MONITOR_REQUIRE_ALL=1)에서 운영 변수가 없거나 빔(missing_config),
+  설정 형식이 틀림(bad_config — MONITOR_PG_NODES 등), 상태 파일 자리(MONITOR_STATE, 기본 ~/.local/state/pipeline_monitor/state.json)가
+  이 사용자 것이 아니거나 링크이거나 그룹·다른 사용자가 쓸 수 있음(unsafe_state).
+- PostgreSQL: MONITOR_PG_NODES(host:port 목록)의 노드마다 물어 primary 를 스스로 찾는다. M1·M2 primary 쪽은 그 노드에서, synced 는 대기 서버에서.
+  primary 가 정확히 하나가 아니면 M1·M2:run error(지난 값 유지 — 해소로 알리지 않음), S7 clock_skew 도 error.
+- R7(FAILED 커넥터·Task 자동 재시작 — 설계 01 R7, 사용자 결정 2026-11-06으로 다시 엶): MONITOR_R7=1 일 때만. 30분에 3번(앞 시도 뒤 최소 0·5·15분),
+  다 쓰면 사람(`check.py --r7-clear <커넥터>` 로 기록을 비움). 같은 회차 M1 에서 그 커넥터의 슬롯이 없음·lost·unreserved 이거나 슬롯 상태를 모르면
+  재시작하지 않는다(설계와 다른 점 — snapshot.mode=no_data 라 새 슬롯으로 조용히 이어 가는 빠짐을 막음). 주기 실행이 없으면 이 스크립트가 돌 때만 효과가 있다.
 비밀값(DB 비밀번호·RustFS 키·웹훅 주소)은 파일·환경 변수로만 받고 출력하지 않는다.
 """
 import json
@@ -18,6 +23,7 @@ import sys
 import tempfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
@@ -25,8 +31,7 @@ from pathlib import Path
 import psycopg
 
 E = os.environ.get
-PG_HOST, PG_PORT = E("MONITOR_PG_HOST", "127.0.0.1"), int(E("MONITOR_PG_PORT", "5010"))   # HAProxy rw = 지금 primary
-NODE_PORTS = [int(p) for p in E("MONITOR_PG_NODE_PORTS", "5432,5433,5434").split(",") if p]  # 노드마다 직접(대기 서버면 synced 슬롯 확인) — 승격 뒤에도 그대로
+# PostgreSQL 노드 목록·S7 전원·필수 모드는 main() 이 읽는다(pg_nodes·flag·missing_config) — 형식이 틀려도 불러올 때 죽지 않고 JSON + rc=2 로 끝나게
 PG_PASSWORD_FILE = E("MONITOR_PG_PASSWORD_FILE", "/opt/postgresql/config/postgres-password")
 SLOTS = E("MONITOR_SLOTS", "ads_outbox_slot,ads_e2e_slot").split(",")
 REPLICA_LAG_BYTES = int(E("MONITOR_REPLICA_LAG_BYTES", str(64 * 1024 * 1024)))  # 임시 기준
@@ -59,23 +64,116 @@ def finding(check, key, level, detail):
     return {"check": check, "key": key, "level": level, "detail": detail}
 
 
-def pg(port):
-    return psycopg.connect(host=PG_HOST, port=port, user="postgres", password=Path(PG_PASSWORD_FILE).read_text().strip(), dbname="postgres",
+class ConfigError(ValueError):
+    """설정이 없거나 형식이 틀림 — 점검하지 않는다(rc=2). 메시지에는 변수 이름과 까닭만(값은 넣지 않는다)."""
+
+
+# 필수 모드(MONITOR_REQUIRE_ALL=1)에서 없거나 비면 점검하지 않는 운영 변수 — 기본값이 모두 로컬 시험대를 가리켜, 하나만 빠져도 조용히 lab 을 보고 ok 를 내지 않게
+REQUIRED = ("MONITOR_PG_NODES", "MONITOR_PG_PASSWORD_FILE", "MONITOR_CONNECT_REST", "MONITOR_KAFKA", "MONITOR_KAFKA_BIN", "MONITOR_JAVA_HOME",
+            "MONITOR_BRONZE", "S3_ENDPOINT", "S3_ACCESS_KEY_FILE", "S3_SECRET_KEY_FILE", "MONITOR_SLOTS", "MONITOR_STATE", "MONITOR_S7_POWER", "MONITOR_R7")
+# R7(설계 01 R7·:512, 결정 2026-11-06 Q1 (나)·Q4 (나)): 앞 시도 뒤 최소 대기 — 첫 시도는 바로, 둘째 5분, 셋째 15분(셋째는 첫 시도 뒤 20분, 30분 예산 안).
+# 세 번을 다 쓰면 사람 차례다 — 기록은 "FAILED 아님 + 마지막 시도가 30분보다 오래됨" 또는 사람(--r7-clear)만 비운다(깜빡여도 같은 3번 안에 든다)
+R7_WAITS_S = (0, 5 * 60, 15 * 60)
+R7_WINDOW_S = 30 * 60
+R7_BAD_SLOT = ("lost", "unreserved")  # 이 상태나 슬롯 없음이면 재시작하지 않는다(RB-1 몫 — snapshot.mode=no_data 라 새 슬롯으로 조용히 빠질 수 있다)
+
+
+def flag(env, name, default):
+    """0·1 만 받는다. 그 밖(true·off·빈 값 등)은 설정 오류다 — `true` 를 '1 이 아니니 끔'으로 읽어 필수 모드가 조용히 꺼지지 않게."""
+    value = env.get(name, default).strip()
+    if value not in ("0", "1"):
+        raise ConfigError(f"{name} 는 0 또는 1 이어야 한다")
+    return value == "1"
+
+
+def missing_config(env):
+    """필수 모드일 때 없거나 빈(공백만 포함) 운영 변수의 이름. 필수 모드가 아니면 빈 목록."""
+    if not flag(env, "MONITOR_REQUIRE_ALL", "0"):
+        return []
+    return [name for name in REQUIRED if not env.get(name, "").strip()]
+
+
+def pg_nodes(env):
+    """감시할 PostgreSQL 노드 [(host, port)]. MONITOR_PG_NODES(host:port 쉼표 목록)가 있으면 그것만 보고(빈 값은 오류),
+    없으면 로컬 시험대 기본 MONITOR_PG_HOST(127.0.0.1) × MONITOR_PG_NODE_PORTS(5432,5433,5434). IPv6 대괄호 표기·중복은 받지 않는다."""
+    if "MONITOR_PG_NODES" in env:
+        if not env["MONITOR_PG_NODES"].strip():  # 있는데 비었으면 기본값(로컬 시험대)으로 빠지지 않는다
+            raise ConfigError("MONITOR_PG_NODES 가 비었다")
+        name, items = "MONITOR_PG_NODES", env["MONITOR_PG_NODES"].split(",")
+    else:
+        host = env.get("MONITOR_PG_HOST", "127.0.0.1")
+        name, items = "MONITOR_PG_NODE_PORTS", [f"{host}:{p.strip()}" for p in env.get("MONITOR_PG_NODE_PORTS", "5432,5433,5434").split(",") if p.strip()]
+    nodes = []
+    for number, item in enumerate(items, 1):
+        host, sep, port = item.strip().rpartition(":")  # brokers_up 과 같은 나누기(마지막 ':' 뒤가 포트)
+        if not sep or not host or "[" in host or "]" in host or not (port.isascii() and port.isdigit()) or not 1 <= int(port) <= 65535:
+            raise ConfigError(f"{name} 의 {number}번째 항목이 host:port(포트 1~65535, IPv6 대괄호 불가)가 아니다")
+        if (host, int(port)) in nodes:
+            raise ConfigError(f"{name} 의 {number}번째 항목이 앞 항목과 같다(primary 를 두 번 세지 않게)")
+        nodes.append((host, int(port)))
+    if not nodes:
+        raise ConfigError(f"{name} 에 노드가 없다")
+    return nodes
+
+
+def addr(node):
+    return f"{node[0]}:{node[1]}"
+
+
+def pg(host, port):
+    return psycopg.connect(host=host, port=port, user="postgres", password=Path(PG_PASSWORD_FILE).read_text().strip(), dbname="postgres",
                            connect_timeout=5, autocommit=True)
 
 
-def m1_m2(state):
-    """M1 슬롯(무효·오래 쉼·붙잡은 WAL), M2 대기 서버(복제 지연·동기 후보·보호 목록 양쪽·failover·synced)."""
+def survey(nodes, clock=lambda: datetime.now(UTC)):
+    """회차마다 한 번, 노드마다: 대기 서버인지·논리 슬롯 synced·temporary·시계 차이. M1·M2 와 S7 이 같은 결과를 쓴다(따로 찾으면 switchover 도중 다를 수 있다).
+    시계 차이는 그 쿼리 앞뒤 시각의 가운데와 DB now() 로 그 자리에서 잰다(뒤 점검의 Kafka 명령 시간이 차이에 들어가지 않게).
+    닿지 못한 노드(접속·비밀번호 파일 실패)는 오류 이름만 남긴다."""
+    polled = []
+    for node in nodes:
+        try:
+            with pg(*node) as c:
+                before = clock()
+                db_now, recovery = c.execute("select now(), pg_is_in_recovery()").fetchone()
+                after = clock()
+                slots = {r[0]: r[1:] for r in c.execute("select slot_name, synced, temporary from pg_replication_slots where slot_type = 'logical'").fetchall()}
+        except (psycopg.Error, OSError) as error:
+            polled.append({"node": node, "error": type(error).__name__})
+            continue
+        polled.append({"node": node, "recovery": recovery, "slots": slots, "skew": abs((before + (after - before) / 2 - db_now).total_seconds())})
+    return polled
+
+
+def primary_of(polled):
+    """정확히 하나인 primary 의 조회 결과. 0개·둘 이상·조회 자체 실패(`polled` 가 문자열)면 RuntimeError — 주소와 오류 이름만 담는다."""
+    if isinstance(polled, str):
+        raise RuntimeError(f"primary 를 알 수 없다 — {polled}")
+    primaries = [n for n in polled if n.get("recovery") is False]
+    if len(primaries) == 1:
+        return primaries[0]
+    missed = [f"{addr(n['node'])}({n['error']})" for n in polled if "error" in n]
+    raise RuntimeError(f"primary {len(primaries)}개 {[addr(n['node']) for n in primaries]}{' — 갈라짐' if len(primaries) > 1 else ''}, "
+                       f"닿은 노드 {len(polled) - len(missed)}/{len(polled)}" + (f", 닿지 못함 {missed}" if missed else ""))
+
+
+def m1_m2(state, polled, slots_seen=None):
+    """M1 슬롯(무효·오래 쉼·붙잡은 WAL), M2 대기 서버(복제 지연·동기 후보·보호 목록 양쪽·failover·synced).
+    primary 가 정확히 하나가 아니면 예외 — main 이 M1·M2:run error 로 두고 지난 M1·M2 값을 그대로 둔다(못 본 것을 해소로 알리지 않는다).
+    `slots_seen` 에 슬롯마다 wal_status(없으면 None)를 적는다 — main 은 이 함수가 예외 없이 끝난 회차에만 R7 에 넘긴다(반쯤 찬 값은 쓰지 않음)."""
+    primary = primary_of(polled)
     out = []
-    with pg(PG_PORT) as c:
+    slots_seen = {} if slots_seen is None else slots_seen
+    with pg(*primary["node"]) as c:
         limit = c.execute("select pg_size_bytes(current_setting('max_slot_wal_keep_size'))").fetchone()[0]
         for name in SLOTS:
             row = c.execute("select active, inactive_since, extract(epoch from now() - inactive_since)::float, wal_status, failover, "
                             "pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)::bigint from pg_replication_slots where slot_name = %s", (name,)).fetchone()
             if row is None:
+                slots_seen[name] = None
                 out.append(finding("M1", f"slot:{name}", "alert", "슬롯이 없다"))
                 continue
             active, inactive_since, idle_s, wal_status, failover, held = row
+            slots_seen[name] = wal_status
             # 설계 M1: unreserved·lost, 10분 넘게 쉼, 붙잡은 WAL ≥ 한도 50%. 무효(lost)가 되면 restart_lsn 이 NULL 이라 held 도 None 이다
             bad = [w for w, cond in (("wal_status=" + str(wal_status), wal_status in ("unreserved", "lost")),
                                      (f"{int(idle_s or 0)}초 쉼 > {SLOT_INACTIVE_S}초", not active and idle_s is not None and idle_s > SLOT_INACTIVE_S),
@@ -103,22 +201,24 @@ def m1_m2(state):
         out.append(finding("M2", "synchronized_standby_slots_unlisted", "alert" if unlisted else "ok",
                            f"복제 중인데 목록에 없는 물리 슬롯 {sorted(unlisted)}" + (f" — {UNLISTED_S}초 넘게 이어짐(갱신 스크립트가 멈춤, 승격되면 그 대기 서버의 보호가 빠진다)" if unlisted else "")))
         out += catalog_xmin_stall(c, state)
-    for port in NODE_PORTS:
-        try:
-            with pg(port) as c:
-                rows = {r[0]: r[1:] for r in c.execute("select slot_name, synced, temporary from pg_replication_slots where slot_type = 'logical'").fetchall()}
-                recovery = c.execute("select pg_is_in_recovery()").fetchone()[0]
-        except psycopg.Error as error:  # 키는 노드·슬롯마다 같게 둔다(못 본 것을 '해소'로 알리지 않게)
-            out += [finding("M2", f"synced:{port}:{name}", "alert", f"노드 접속 실패 {type(error).__name__}") for name in SLOTS]
+    first_bad = state.setdefault("first_bad", {})
+    configured = {f"synced:{addr(n['node'])}:{name}" for n in polled for name in SLOTS}
+    for key in [k for k in first_bad if k not in configured]:  # 설정 밖(옛 키 모양·지운 노드·슬롯)만 지운다 — 잠깐 닿지 않은 노드의 유예 시각은 남긴다
+        first_bad.pop(key)
+    for node in polled:  # 조회 결과로(다시 연결하지 않음), 노드 목록 순서대로
+        where = addr(node["node"])
+        if "error" in node:  # 키는 노드·슬롯마다 같게 둔다(못 본 것을 '해소'로 알리지 않게)
+            out += [finding("M2", f"synced:{where}:{name}", "alert", f"노드 접속 실패 {node['error']}") for name in SLOTS]
             continue
-        if not recovery:
+        if not node["recovery"]:
             for name in SLOTS:
-                state.setdefault("first_bad", {}).pop(f"synced:{port}:{name}", None)
-            out += [finding("M2", f"synced:{port}:{name}", "ok", "이 노드는 지금 primary(대기 아님)") for name in SLOTS]
+                first_bad.pop(f"synced:{where}:{name}", None)
+            out += [finding("M2", f"synced:{where}:{name}", "ok", "이 노드는 지금 primary(대기 아님)") for name in SLOTS]
             continue
+        rows = node["slots"]
         for name in SLOTS:
             synced, temporary = rows.get(name, (None, None))
-            key, detail = f"synced:{port}:{name}", f"synced={synced}, temporary={temporary}"
+            key, detail = f"synced:{where}:{name}", f"synced={synced}, temporary={temporary}"
             if synced is True and temporary is False:
                 state.setdefault("first_bad", {}).pop(key, None)
                 out.append(finding("M2", key, "ok", detail))
@@ -170,13 +270,69 @@ def rest(method, path):
         return json.loads(raw) if raw else None
 
 
-def m3():
-    """M3 커넥터·Task FAILED 경보(재시작은 하지 않는다 — R7 은 E-K2 뒤)."""
-    out = []
-    for name, info in rest("GET", "/connectors?expand=status").items():
+def restart(name):
+    """R7 재시작 요청: 커넥터와 FAILED task 만(includeTasks·onlyFailed — 설계 01 R7). 돌려주는 값은 HTTP 상태."""
+    path = f"/connectors/{urllib.parse.quote(name, safe='')}/restart?includeTasks=true&onlyFailed=true"
+    with urllib.request.urlopen(urllib.request.Request(CONNECT + path, method="POST"), timeout=15) as resp:
+        return resp.status
+
+
+def stamp(ts):
+    return datetime.fromtimestamp(ts, UTC).isoformat(timespec="seconds")
+
+
+def r7_step(state, name, failed, slot, slots_seen, now):
+    """커넥터 하나의 R7: 시도하거나·기다리거나·멈추고, `r7:<이름>` 줄 하나(또는 None)를 돌려준다. 기록은 state["r7"][이름] = 시도 시각 목록."""
+    records, key = state.setdefault("r7", {}), f"r7:{name}"
+    tries = records.get(name, [])
+    if not failed:  # 바로 비우지 않는다 — 깜빡임(재시작 → 잠깐 RUNNING → FAILED)도 같은 3번 안에 들게
+        if not tries:
+            return None
+        if now - tries[-1] > R7_WINDOW_S:
+            records.pop(name)
+            return None
+        return finding("M3", key, "ok", f"FAILED 아님 — 지난 자동 재시작 {len(tries)}번, 마지막 {stamp(tries[-1])}(30분 뒤 기록을 비움)")
+    if slots_seen is None or slot is None or slot not in slots_seen:  # 슬롯을 모르면 재시작하지 않는다(fail closed)
+        why = "이번 회차 M1 이 끝까지 돌지 않음" if slots_seen is None else ("커넥터 설정에 slot.name 없음" if slot is None else "감시 목록(MONITOR_SLOTS) 밖")
+        return finding("M3", key, "error", f"슬롯 상태를 모름({why}) — 자동 재시작 안 함")
+    if slots_seen[slot] is None or slots_seen[slot] in R7_BAD_SLOT:
+        return finding("M3", key, "error", f"슬롯 {slot} {'없음' if slots_seen[slot] is None else slots_seen[slot]} — 자동 재시작 안 함, RB-1")
+    if len(tries) >= len(R7_WAITS_S):
+        return finding("M3", key, "alert", f"자동 재시작 {len(tries)}/{len(R7_WAITS_S)} 다 씀 — 사람 차례(runbook M3, 원인을 고친 뒤 check.py --r7-clear {name})")
+    ready = (tries[-1] if tries else now) + R7_WAITS_S[len(tries)]  # 첫 시도는 now + 0
+    if now < ready:
+        return finding("M3", key, "ok", f"자동 재시작 {len(tries)}/{len(R7_WAITS_S)} 썼음, 다음 가능 {stamp(ready)}")
+    records[name] = tries + [now]
+    try:  # 시도 기록을 먼저 저장하고, 저장이 된 뒤에만 부른다 — 기록 없이 회차마다 다시 부르는 일이 없게.
+        save_state(state)  # 그 순간의 상태 전체가 저장된다: levels 는 아직 지난 회차 값이라 웹훅 실패 규칙(levels 를 미룸)과 어긋나지 않는다
+    except OSError as error:
+        if tries:
+            records[name] = tries
+        else:  # 빈 목록을 남기지 않는다 — --r7-clear 가 없는 기록을 found 로 답하지 않게
+            records.pop(name)
+        return finding("M3", key, "error", f"시도 기록을 저장하지 못해 재시작하지 않음({type(error).__name__})")
+    try:
+        result = f"HTTP {restart(name)}"
+    except urllib.error.HTTPError as error:
+        result = f"HTTP {error.code}"
+    except Exception as error:  # noqa: BLE001 — 실패해도 시도로 센다(URLError·OSError·ValueError·http.client.HTTPException 등, 이름만)
+        result = type(error).__name__
+    return finding("M3", key, "ok", f"자동 재시작 {len(tries) + 1}/{len(R7_WAITS_S)} 시도({result})")
+
+
+def m3(state, slots_seen=None, r7=False, clock=time.time):
+    """M3 커넥터·Task FAILED 경보(늘). r7 이면 FAILED 를 자동 재시작한다(r7_step). 상태와 설정을 한 번에 읽고(expand=status·info),
+    설정에서는 slot.name 만 쓴다 — 설정 전체는 출력·상태에 넣지 않는다."""
+    out, now = [], clock()
+    for name, info in rest("GET", "/connectors?expand=status&expand=info").items():
         s = info["status"]
         states = [s["connector"]["state"]] + [t["state"] for t in s.get("tasks", [])]
         out.append(finding("M3", f"connector:{name}", "alert" if "FAILED" in states else "ok", f"{states}"))
+        if r7:
+            slot = ((info.get("info") or {}).get("config") or {}).get("slot.name")
+            line = r7_step(state, name, "FAILED" in states, slot, slots_seen, now)
+            if line:
+                out.append(line)
     return out
 
 
@@ -291,12 +447,18 @@ def m5():
     return out
 
 
-def s7():
+def s7(polled, power=True):
+    """S7 은 점검을 돌리는 장치 자신을 본다: 시계(조회 때 잰 primary 와의 차이), 전원(macOS 배터리·잠듦 — `power=False` 면 끔).
+    primary 를 모르면 예외를 내지 않고 clock_skew 만 error 로 둔다(예외면 S7:run 하나가 되어 전원 줄까지 출력에서 빠진다)."""
     out = []
-    with pg(PG_PORT) as c:
-        db_now = c.execute("select now()").fetchone()[0]
-    skew = abs((datetime.now(UTC) - db_now).total_seconds())
-    out.append(finding("S7", "clock_skew", "alert" if skew > 1 else "ok", f"이 장치와 DB primary 시계 차이 {skew:.3f}초"))
+    try:
+        skew = primary_of(polled)["skew"]
+        out.append(finding("S7", "clock_skew", "alert" if skew > 1 else "ok", f"이 장치와 DB primary 시계 차이 {skew:.3f}초"))
+    except RuntimeError as error:
+        out.append(finding("S7", "clock_skew", "error", f"시계를 견줄 primary 가 없다: {error}"))
+    if not power:
+        out.append(finding("S7", "power", "unsupported", "끔(MONITOR_S7_POWER=0) — 점검 장치 자신의 전원은 보지 않음"))
+        return out
     if sys.platform != "darwin":
         out.append(finding("S7", "power", "unsupported", "macOS 밖은 아직 없다(운영 노트북: upower·systemd-logind 설정으로)"))
         return out
@@ -374,15 +536,33 @@ def save_state(state):
         raise
 
 
-def main():
+def refuse(error, detail, why):
+    """점검하지 않고 끝낸다(rc=2): 웹훅이 있으면 알리고 JSON 한 줄. 설정이 틀려 감시가 조용히 멈추지 않게."""
+    sent = notify(f"파이프라인 점검(임시 D18)\n[오류] {why}: {detail}")
+    print(json.dumps({"t": datetime.now(UTC).isoformat(), "error": error, "detail": detail, "notify": sent}, ensure_ascii=False))
+    sys.exit(2)
+
+
+def main(env=os.environ):
+    try:  # 순서: 필수 모드 → 노드 목록 형식 → 상태 자리
+        missing = missing_config(env)
+        if missing:
+            refuse("missing_config", "없거나 빈 운영 변수 " + ", ".join(missing), "필수 설정이 없어 점검하지 않았다")
+        nodes, power, r7 = pg_nodes(env), flag(env, "MONITOR_S7_POWER", "1"), flag(env, "MONITOR_R7", "0")
+    except ConfigError as error:
+        refuse("bad_config", str(error), "설정 형식이 틀려 점검하지 않았다")
     problem = state_problem()
     if problem:  # 경보를 막을 수 있는 상태 파일은 믿지 않는다 — 점검하지 않고 크게 실패한다(알림을 보내고 rc=2)
-        sent = notify(f"파이프라인 점검(임시 D18)\n[오류] 상태 파일 자리가 안전하지 않아 점검하지 않았다: {problem}")
-        print(json.dumps({"t": datetime.now(UTC).isoformat(), "error": "unsafe_state", "detail": problem, "notify": sent}, ensure_ascii=False))
-        sys.exit(2)
+        refuse("unsafe_state", problem, "상태 파일 자리가 안전하지 않아 점검하지 않았다")
     state, state_reset = load_state()
-    findings, failed_checks = [], set()
-    for name, fn in (("M1·M2", lambda: m1_m2(state)), ("M3", m3), ("M4", m4), ("M5", m5), ("S7", s7)):
+    try:
+        polled = survey(nodes)
+    except Exception as error:  # noqa: BLE001 — 조회가 통째로 실패해도 끝까지 간다: primary 를 알 수 없음(M1·M2 는 지난 값 그대로, S7 시계는 error)
+        polled = f"노드 조회 실패 {type(error).__name__}"
+    findings, failed_checks, slots_seen = [], set(), {}
+    for name, fn in (("M1·M2", lambda: m1_m2(state, polled, slots_seen)),
+                     ("M3", lambda: m3(state, None if "M1" in failed_checks else slots_seen, r7)),  # 끝까지 돈 M1 의 슬롯 상태만(아니면 모두 모름)
+                     ("M4", m4), ("M5", m5), ("S7", lambda: s7(polled, power))):
         try:
             findings += fn()
         except Exception as error:  # noqa: BLE001 — 점검 하나가 실패해도 나머지는 본다(실패 자체를 결과로)
@@ -415,5 +595,23 @@ def main():
     sys.exit(1 if alerts else 0)
 
 
+def r7_clear(name):
+    """사람이 R7 기록 하나를 비운다(원인을 고친 뒤 — runbook M3). 상태 파일 경로와 found 를 JSON 으로. 없었으면 rc=1(엉뚱한 MONITOR_STATE 를 드러냄)."""
+    problem = state_problem()
+    if problem:
+        refuse("unsafe_state", problem, "상태 파일 자리가 안전하지 않아 R7 기록을 비우지 않았다")
+    state, _reset = load_state()
+    found = state.get("r7", {}).pop(name, None) is not None
+    if found:
+        save_state(state)
+    print(json.dumps({"t": datetime.now(UTC).isoformat(), "r7_cleared": name, "found": found, "state": str(STATE)}, ensure_ascii=False))
+    sys.exit(0 if found else 1)
+
+
 if __name__ == "__main__":
+    if sys.argv[1:2] == ["--r7-clear"]:
+        if len(sys.argv) != 3:
+            print("사용: check.py --r7-clear <커넥터 이름>", file=sys.stderr)
+            sys.exit(2)
+        r7_clear(sys.argv[2])
     main()

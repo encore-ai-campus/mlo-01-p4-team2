@@ -1,16 +1,19 @@
 """pipeline/silver/adapters/metaverse_rules.py — 메타버스 계약(validate_raw_data 옮김)·내용 해시. 표준 라이브러리만(Spark 없이).
 
-시험 값은 리허설 Bronze 실제 행(MD-2 본 실행, metaverse_lab)에서 가져왔다(15 §5.8).
+시험 값은 리허설 Bronze 실제 행(MD-2 본 실행, metaverse_lab)에서 가져왔다(15 §5.8). 새 7종(EO-2 14b0c1d, MVR-3b)은 아직 실제 행이 없어
+앱 시험(`backend/eventing/test_outbox_story.py`·`test_outbox.py`, c802671)의 값과 경우를 옮겼다.
 """
 import hashlib
 import json
 import unittest
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from pipeline.silver.adapters import metaverse_rules as rules
 
 U = ["6211c9c3-3ae5-4856-b8b2-b2b493f8623c", "bb157f2b-9335-46ae-903b-d945617df4bb", "f6ca7b43-bc09-4c82-a7e4-f1a48bdc21f3",
      "8549763d-e235-481f-b189-43fdacf839e6", "e389216d-067b-4716-aebd-43173921983a", "b4845343-2701-481f-8cb3-1ce4290fea3f"]
+V5 = str(uuid.uuid5(uuid.NAMESPACE_URL, "playdata:learning:cs:multiple-choice"))  # 앱 시험(test_outbox.py:105)의 결정적 카탈로그 ID
 BASE = {"user_uuid": U[0], "session_uuid": U[1], "class_group_uuid": U[2]}
 EXTRA = {  # 종류마다 실제 행의 raw_data(공통 3필드 밖)
     "session_started": {"session_uuid": U[1]},
@@ -30,6 +33,26 @@ EXTRA = {  # 종류마다 실제 행의 raw_data(공통 3필드 밖)
     "point_granted": {"ledger_uuid": U[3], "attempt_uuid": U[4], "delta": 50, "balance_after": 50},
     "movement_observed": {"floor_uuid": U[4], "zone_uuid": None, "x": 501.5, "y": 896.5, "input_kind": "KEYBOARD"},
     "floor_transferred": {"from_floor_uuid": U[4], "to_floor_uuid": U[5], "zone_uuid": None},
+    "event_progress_completed": {"progress_uuid": U[3], "event_definition_uuid": V5, "event_kind": "MAIN", "completion_order": 1},
+    "game_play_started": {"play_uuid": U[3], "game_uuid": V5, "event_definition_uuid": U[4]},
+    "game_play_ended": {"play_uuid": U[3], "game_uuid": V5, "event_definition_uuid": U[4], "status": "FINISHED", "duration_ms": 61000},
+    "manager_greeted": {"interaction_uuid": U[3], "event_definition_uuid": V5, "manager_code": "manager-a"},
+    "manager_poked": {"interaction_uuid": U[3], "event_definition_uuid": V5, "manager_code": "manager-a", "poke_count": 2},
+    "story_action_recorded": {"story_record_uuid": U[3], "story_key": "pepero-2026-room1-dialogue", "action_key": "yeongseok-intro",
+                              "action_kind": "npc_dialogue"},
+    "learning_session_completed": {"learning_session_id": 1, "subject": "CS", "question_type": "MULTIPLE_CHOICE", "difficulty": "ADVANCED",
+                                   "total_questions": 10, "correct_count": 10},
+}
+NEW_KINDS = ("event_progress_completed", "game_play_started", "game_play_ended", "manager_greeted", "manager_poked", "story_action_recorded",
+             "learning_session_completed")
+CATALOG = {"content_uuid", "category_uuid", "zone_uuid", "floor_uuid", "from_floor_uuid", "to_floor_uuid", "class_group_uuid",
+           "event_definition_uuid", "game_uuid"}  # KAFKA_TOPICS.md:16 — v4·v5. 나머지 *_uuid(행마다 만드는 ID, 문제·선택지 포함)는 v4
+NULLABLE = {  # (종류, 필드) — 앱 events.py:147-156. FILL_BLANK 의 choice_uuid 는 test_quiz_versions
+    *[(t, "zone_uuid") for t in ("post_created", "post_updated", "post_deleted", "post_read", "content_open_requested", "movement_observed",
+                                 "floor_transferred")],
+    *[(t, "parent_comment_uuid") for t in ("comment_created", "comment_updated", "comment_deleted")],
+    ("chat_sent", "floor_uuid"), ("event_progress_completed", "session_uuid"), ("event_progress_completed", "completion_order"),
+    ("game_play_started", "event_definition_uuid"), ("game_play_ended", "event_definition_uuid"), ("game_play_ended", "duration_ms"),
 }
 VERSION = {"quiz_answered": "1.1"}
 # 실제 Bronze 행(point_granted op c, MD-2 리허설)의 after — 해시 고정값의 입력
@@ -73,8 +96,9 @@ class Contract(unittest.TestCase):
             with self.subTest(event_type=event_type):
                 self.assertIsNone(reason(event_type))
 
-    def test_version_table(self):  # 지금 발행자의 판 15 + 수신측이 유지하는 quiz_answered 1.0(KAFKA_TOPICS.md:129)
-        self.assertEqual(len(rules.FIELDS), 16)
+    def test_version_table(self):  # 지금 발행자의 판 22 + 수신측이 유지하는 quiz_answered 1.0(KAFKA_TOPICS.md:149) = 23줄
+        self.assertEqual(len(rules.FIELDS), 23)
+        self.assertEqual(sorted(t for t, topic in rules.TOPIC_BY_TYPE.items() if topic == "raw.event"), sorted(NEW_KINDS))
         self.assertEqual({v for (t, v) in rules.FIELDS if t != "quiz_answered"}, {"1.0"})
         self.assertEqual(rules.FIELDS[("quiz_answered", "1.0")],
                          {"user_uuid", "session_uuid", "class_group_uuid", "attempt_uuid", "question_uuid", "content_uuid", "choice_uuid", "is_correct"})
@@ -98,6 +122,17 @@ class Contract(unittest.TestCase):
         self.assertIsNone(reason("post_created", raw("post_created", zone_uuid=U[5])))
         self.assertIsNone(reason("comment_created", raw("comment_created", parent_comment_uuid=U[5])))
         self.assertIn("user_uuid", reason("session_started", raw("session_started", user_uuid=None)))
+        self.assertIsNone(reason("event_progress_completed", raw("event_progress_completed", session_uuid=None, completion_order=None)))  # 비동기 완료
+        self.assertIsNone(reason("game_play_started", raw("game_play_started", event_definition_uuid=None)))
+        self.assertIsNone(reason("game_play_ended", raw("game_play_ended", event_definition_uuid=None, duration_ms=None)))
+        for (event_type, version), fields in rules.FIELDS.items():  # 23줄 모든 필드에 그 필드만 NULL: 받는 것 = NULLABLE
+            quiz = {"question_type": ... if version == "1.0" else "MULTIPLE_CHOICE", "choice_uuid": U[4]} if event_type == "quiz_answered" else {}
+            data = raw(event_type, **quiz)
+            self.assertIsNone(rules.raw_data_reason(event_type, version, data))
+            for key in sorted(fields):
+                with self.subTest(event_type=event_type, version=version, key=key):
+                    self.assertEqual(rules.raw_data_reason(event_type, version, {**data, key: None}),
+                                     None if (event_type, key) in NULLABLE else f"raw_data.{key} 값이 계약에 맞지 않는다")
 
     def test_value_rules(self):
         bad = [("post_created", "post_uuid", "1b4e28ba-2fa1-11d2-883f-0016d3cca427"),  # UUIDv1
@@ -114,6 +149,52 @@ class Contract(unittest.TestCase):
         for event_type, key, value in good:
             with self.subTest(event_type=event_type, key=key, value=value):
                 self.assertIsNone(reason(event_type, raw(event_type, **{key: value})))
+
+    def test_new_kinds_values(self):  # 앱 시험 StoryContractTests 의 경우 + 경계
+        good = [("manager_greeted", {"manager_code": "manager-" + "a" * 56}), ("manager_greeted", {"manager_code": "manager-a_b.c:d-9"}),
+                ("story_action_recorded", {"story_key": "a" * 40, "action_key": "a" * 100, "action_kind": "event_start"}),  # 모양만 — 값 목록 아님
+                ("event_progress_completed", {"event_kind": "EASTER_EGG", "completion_order": 2**63 - 1}),
+                ("game_play_ended", {"status": "INTERRUPTED", "duration_ms": 0}),
+                ("learning_session_completed", {"total_questions": 1, "correct_count": 0}), ("learning_session_completed", {"correct_count": 0})]
+        for event_type, changes in good:
+            with self.subTest(event_type=event_type, changes=changes):
+                self.assertIsNone(reason(event_type, raw(event_type, **changes)))
+        bad = [("manager_greeted", "manager_code", code) for code in ("manager-", "Manager-a", "manager-a\n", "npc-a", "manager-" + "a" * 57,
+                                                                       "manager-a b", "manager-가", 1)]
+        bad += [("manager_poked", "poke_count", 0), ("manager_poked", "poke_count", True), ("manager_poked", "poke_count", 2**63),
+                ("manager_poked", "poke_count", 1.0), ("event_progress_completed", "event_kind", "CAMPAIGN"),
+                ("event_progress_completed", "completion_order", 0), ("event_progress_completed", "completion_order", "1"),
+                ("game_play_ended", "status", "RUNNING"), ("game_play_ended", "duration_ms", -1), ("learning_session_completed", "subject", "cs"),
+                ("learning_session_completed", "difficulty", "EXPERT"), ("learning_session_completed", "question_type", "ESSAY"),
+                ("learning_session_completed", "learning_session_id", 0), ("learning_session_completed", "total_questions", 0),
+                ("learning_session_completed", "correct_count", -1), ("story_action_recorded", "story_key", "a" * 41),
+                ("story_action_recorded", "action_key", "a" * 101), ("story_action_recorded", "action_kind", "a" * 41),
+                ("story_action_recorded", "action_kind", ""), ("story_action_recorded", "action_kind", "Recipe_start"),
+                ("story_action_recorded", "story_key", "pepero 2026"), ("story_action_recorded", "story_key", 5),
+                ("learning_session_completed", "difficulty", "advanced")]
+        for event_type, key, value in bad:
+            with self.subTest(event_type=event_type, key=key, value=value):
+                self.assertEqual(reason(event_type, raw(event_type, **{key: value})), f"raw_data.{key} 값이 계약에 맞지 않는다")
+        self.assertEqual(reason("learning_session_completed", raw("learning_session_completed", correct_count=11)),
+                         "raw_data.correct_count 가 total_questions 보다 크다")  # 필드 사이 규칙(값 규칙을 모두 지난 뒤)
+
+    def test_uuid_versions(self):  # 모든 (종류, *_uuid 필드)에 v5 를 넣어 본다: 카탈로그·정의 참조만 받는다
+        v3 = str(uuid.uuid3(uuid.NAMESPACE_URL, "x"))
+        for (event_type, version), fields in rules.FIELDS.items():
+            data = raw(event_type, question_type=..., choice_uuid=U[4]) if (event_type, version) == ("quiz_answered", "1.0") else raw(event_type)
+            self.assertIsNone(rules.raw_data_reason(event_type, version, data))
+            for key in sorted(k for k in fields if k.endswith("_uuid")):
+                with self.subTest(event_type=event_type, version=version, key=key):
+                    found = rules.raw_data_reason(event_type, version, {**data, key: V5})
+                    self.assertEqual(found, None if key in CATALOG else f"raw_data.{key} 값이 계약에 맞지 않는다")
+                    for other in (v3, V5.upper()):
+                        self.assertEqual(rules.raw_data_reason(event_type, version, {**data, key: other}), f"raw_data.{key} 값이 계약에 맞지 않는다")
+        self.assertEqual(uuid.UUID(V5).version, 5)
+
+    def test_no_identity_names_in_raw_data(self):  # 행 ID 는 outbox_uuid(봉투), event_uuid·event_id 는 앱의 다른 뜻(events.py:65-66)
+        for (event_type, version), fields in rules.FIELDS.items():
+            with self.subTest(event_type=event_type, version=version):
+                self.assertFalse(fields & {"event_uuid", "event_id", "outbox_uuid"})
 
     def test_field_set(self):
         self.assertIn('더 있음 ["note"]', reason("post_read", raw("post_read", note="x")))

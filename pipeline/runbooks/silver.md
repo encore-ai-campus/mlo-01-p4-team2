@@ -33,6 +33,7 @@ SILVER_CODE_COMMIT=<커밋 40자> bash "$HOME/pipeline-run/silver/mlo_01_p4_team
 ```
 
 - 메타버스 세대 2(MVR-3a — 원천 열 `outbox_uuid`)는 **새 이름 Bronze 경로가 정해진 뒤에만** 돌린다. 지금 래퍼의 메타버스 Bronze 기본 경로(`bronze/metaverse/outbox_events`)에는 옛 이름(`event_uuid`) 행만 있어, 돌리면 모두 오류 표(`contract`, `event_id` 없음)로 간다. 경로가 정해지면 래퍼의 그 줄을 바꾸는 커밋을 먼저 한다(계획 26 결정 G).
+- 메타버스 세대 1(옛 이름 원천, SL-5 `6434174`)은 **더 돌리지 않는다**. MVR-3a(`ae755cf`) 뒤 커밋의 사본으로 g1을 돌리면 옛 Bronze의 새 행이 모두 g1 오류 표(`contract`, `event_id` 없음)로 간다. g1 표는 "되돌리기" 요청이 있을 때까지 그대로 둔다.
 - Standalone 1코어다. 다른 예약 잡 시각(:05~:10, 메타버스 manifest·대사 :15·:17, 하루 잡 00:35 UTC)을 피한다.
 - 종료 코드:
 

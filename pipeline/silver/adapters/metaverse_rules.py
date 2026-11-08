@@ -1,11 +1,12 @@
 """메타버스 outbox 사건의 계약 확인과 내용 해시(계획 15 §2.2, SL-4). 표준 라이브러리와 pipeline.common 만 쓴다 — Spark 없이 시험하고,
 executor 가 어댑터의 Python UDF(`adapter_result`)에서 import 한다.
 
-계약은 메타버스 `backend/eventing/events.py`(6dcb4b1)를 옮겼다: `TOPIC_BY_TYPE`(:20-36)·`EXTRA_FIELDS`(:37-53)·`_BASE_FIELDS`(:54)·
-`SCHEMA_VERSION_BY_TYPE`(:55)·`validate_raw_data`(:79-129). 바꾼 점:
+계약은 메타버스 `backend/eventing/events.py`(c802671 — EO-1·EO-2, 22종)를 옮겼다: `TOPIC_BY_TYPE`(:25-48)·`EXTRA_FIELDS`(:49-75)·
+`_BASE_FIELDS`(:76)·`SCHEMA_VERSION_BY_TYPE`(:77)·`CATALOG_UUID_FIELDS`(:80-83)·`_CHOICES`(:84-96)·`_COUNTS`(:98-99)·`_CODES`(:101-106)·
+`_uuid_ok`(:132-139)·`validate_raw_data`(:142-190). 바꾼 점:
 - 예외 대신 사유 문자열을 돌려준다. 사유에는 키 이름만 적고 값은 적지 않는다(원본도 내용을 기록하지 않는다).
 - 필드 집합을 (종류, 판) 표 `FIELDS` 에서 받는다. 표 = 지금 발행자의 판(`SCHEMA_VERSION_BY_TYPE`, 나머지 1.0) + 수신측이 유지하는
-  `quiz_answered` 1.0(`KAFKA_TOPICS.md:129` — 1.1 필드에서 `question_type` 을 뺀 것, `choice_uuid` 는 null 불가).
+  `quiz_answered` 1.0(`KAFKA_TOPICS.md:149` — 1.1 필드에서 `question_type` 을 뺀 것, `choice_uuid` 는 null 불가). 모두 23줄(`KAFKA_TOPICS.md:17`).
 그 밖의 계약: `topic` 이 그 종류의 앱 토픽인가, `message_key` = `raw_data.user_uuid` 인가.
 
 내용 해시: `content_sha256 = sha256(hop_rules.canonical_json(내용 8열 객체))`(15 §2.2, SL-3 결정 4). 8열은 `CONTENT_COLUMNS`(04 §25 —
@@ -38,6 +39,13 @@ TOPIC_BY_TYPE = {
     "point_granted": "raw.points",
     "movement_observed": "raw.movement",
     "floor_transferred": "raw.movement",
+    "event_progress_completed": "raw.event",
+    "game_play_started": "raw.event",
+    "game_play_ended": "raw.event",
+    "manager_greeted": "raw.event",
+    "manager_poked": "raw.event",
+    "story_action_recorded": "raw.event",
+    "learning_session_completed": "raw.event",
 }
 EXTRA_FIELDS = {
     "session_started": {"session_uuid"},
@@ -55,11 +63,22 @@ EXTRA_FIELDS = {
     "point_granted": {"ledger_uuid", "attempt_uuid", "delta", "balance_after"},
     "movement_observed": {"floor_uuid", "zone_uuid", "x", "y", "input_kind"},
     "floor_transferred": {"from_floor_uuid", "to_floor_uuid", "zone_uuid"},
+    "event_progress_completed": {"progress_uuid", "event_definition_uuid", "event_kind", "completion_order"},
+    "game_play_started": {"play_uuid", "game_uuid", "event_definition_uuid"},
+    "game_play_ended": {"play_uuid", "game_uuid", "event_definition_uuid", "status", "duration_ms"},
+    "manager_greeted": {"interaction_uuid", "event_definition_uuid", "manager_code"},
+    "manager_poked": {"interaction_uuid", "event_definition_uuid", "manager_code", "poke_count"},
+    "story_action_recorded": {"story_record_uuid", "story_key", "action_key", "action_kind"},
+    "learning_session_completed": {"learning_session_id", "subject", "question_type", "difficulty", "total_questions", "correct_count"},
 }
 BASE_FIELDS = {"user_uuid", "session_uuid", "class_group_uuid"}
 SCHEMA_VERSION_BY_TYPE = {"quiz_answered": "1.1"}
 FIELDS = {(event_type, SCHEMA_VERSION_BY_TYPE.get(event_type, "1.0")): frozenset(BASE_FIELDS | extra) for event_type, extra in EXTRA_FIELDS.items()}
-FIELDS[("quiz_answered", "1.0")] = frozenset(BASE_FIELDS | EXTRA_FIELDS["quiz_answered"]) - {"question_type"}  # KAFKA_TOPICS.md:129
+FIELDS[("quiz_answered", "1.0")] = frozenset(BASE_FIELDS | EXTRA_FIELDS["quiz_answered"]) - {"question_type"}  # KAFKA_TOPICS.md:149
+CATALOG_UUID_FIELDS = frozenset({  # 카탈로그·정의 참조는 v4 또는 v5(결정적 ID — CS 학습 카탈로그 등), 행마다 만드는 ID 는 v4
+    "content_uuid", "category_uuid", "zone_uuid", "floor_uuid", "from_floor_uuid", "to_floor_uuid", "class_group_uuid",
+    "event_definition_uuid", "game_uuid",
+})
 _CHOICES = {
     "end_reason": {"LOGOUT", "SESSION_EXPIRED"},
     "channel_code": {"GLOBAL"},
@@ -68,6 +87,17 @@ _CHOICES = {
     "action": {"OPEN_REQUESTED"},
     "input_kind": {"KEYBOARD"},
     "question_type": {"MULTIPLE_CHOICE", "FILL_BLANK"},
+    "event_kind": {"MAIN", "EASTER_EGG"},
+    "status": {"SUCCESS", "FAILED", "INTERRUPTED", "FINISHED"},
+    "subject": {"PYTHON", "SQL", "CS"},
+    "difficulty": {"BEGINNER", "INTERMEDIATE", "ADVANCED"},
+}
+_COUNTS = {"completion_order": 1, "duration_ms": 0, "poke_count": 1, "learning_session_id": 1, "total_questions": 1, "correct_count": 0}  # 최솟값(모두 2**63 미만)
+_CODES = {  # 앱이 정하는 코드: 모양과 열 길이만 본다(새 코드에 판을 올리지 않게 — action_kind 도 값 목록이 아니다)
+    "manager_code": re.compile(r"manager-[a-z0-9_.:-]{1,56}"),
+    "story_key": re.compile(r"[a-z0-9_.:-]{1,40}"),
+    "action_key": re.compile(r"[a-z0-9_.:-]{1,100}"),
+    "action_kind": re.compile(r"[a-z0-9_.:-]{1,40}"),
 }
 CONTENT_COLUMNS = ("outbox_uuid", "event_type", "topic", "message_key", "raw_data", "occurred_at", "payload_json", "created_at")
 _UTC_RE = re.compile(r"([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]{1,6}))?Z")  # contracts._UTC_RE 와 같은 모양
@@ -89,19 +119,27 @@ def raw_data_reason(event_type, schema_version, raw_data):
     fill_blank = event_type == "quiz_answered" and raw_data.get("question_type") == "FILL_BLANK"  # 1.0 에는 question_type 이 없다
     if fill_blank:
         nullable.add("choice_uuid")
+    if event_type == "event_progress_completed":
+        nullable |= {"completion_order", "session_uuid"}  # 비동기 완료(광고 노출)는 접속을 모른다
+    if event_type in {"game_play_started", "game_play_ended"}:
+        nullable |= {"event_definition_uuid", "duration_ms"}
     for key, value in raw_data.items():
+        if value is None and key in nullable:
+            continue
         if key.endswith("_uuid"):
-            if value is None and key in nullable:
-                continue
             try:
                 parsed = uuid.UUID(value) if isinstance(value, str) else None
             except ValueError:
                 parsed = None
-            valid = parsed is not None and parsed.version == 4 and str(parsed) == value
+            valid = parsed is not None and parsed.version in ((4, 5) if key in CATALOG_UUID_FIELDS else (4,)) and str(parsed) == value
         elif key == "revision":
             valid = type(value) is int and value >= 1
         elif key in {"delta", "balance_after"}:
             valid = type(value) is int and (0 < value < 2**63 if key == "delta" else 0 <= value < 2**63)
+        elif key in _COUNTS:
+            valid = type(value) is int and _COUNTS[key] <= value < 2**63
+        elif key in _CODES:
+            valid = isinstance(value, str) and _CODES[key].fullmatch(value) is not None
         elif key == "is_correct":
             valid = type(value) is bool
         elif key in {"x", "y"}:
@@ -117,6 +155,8 @@ def raw_data_reason(event_type, schema_version, raw_data):
             return f"raw_data.{key} 값이 계약에 맞지 않는다"
     if fill_blank and raw_data["choice_uuid"] is not None:
         return "raw_data.choice_uuid 는 FILL_BLANK 에서 null 이어야 한다"
+    if event_type == "learning_session_completed" and raw_data["correct_count"] > raw_data["total_questions"]:
+        return "raw_data.correct_count 가 total_questions 보다 크다"
     return None
 
 

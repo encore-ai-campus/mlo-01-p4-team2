@@ -4,6 +4,7 @@
 """
 import json
 import unittest
+import uuid
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -99,6 +100,22 @@ INPUT = [  # (Bronze value, 기대 — None 이면 정상, 아니면 (코드, �
 INPUT += [(old_name(), ("contract", "꺼낼 수 없는 열: event_id", None))]  # 31 MVR-3 전 이름(event_uuid) — g2 는 새 이름 행만 받는다(계획 26 결정 G (나))
 KINDS = sorted(key for key in REAL if key.islower())  # 나머지 11종의 실제 행(키 = 종류) — 위 5행과 합쳐 15종마다 정상 1 이상(15 §2 SL-4 끝 조건)
 INPUT += [(REAL[key].encode(), None) for key in KINDS]  # 32~42
+POINT_ONLY = {"ledger_uuid": ..., "attempt_uuid": ..., "delta": ..., "balance_after": ...}  # POINT_C 의 raw_data 에서 point_granted 필드를 뺀다
+V4, V5 = "3f1c2b8e-5d4a-4e7b-9c6d-2a1b0c9d8e7f", str(uuid.uuid5(uuid.NAMESPACE_URL, "playdata:learning:cs:multiple-choice"))  # 행 ID, 카탈로그 ID
+NEW_KINDS = {  # 새 7종(EO-2 14b0c1d, MVR-3b): 실제 행은 T1'' 뒤라 POINT_C 를 고쳐 만든다. 값은 test_rules.EXTRA 와 같은 모양
+    "event_progress_completed": {"session_uuid": None, "progress_uuid": V4, "event_definition_uuid": V5, "event_kind": "EASTER_EGG",
+                                 "completion_order": None},  # 접속 없음(비동기 완료)
+    "game_play_started": {"play_uuid": V4, "game_uuid": V5, "event_definition_uuid": None},
+    "game_play_ended": {"play_uuid": V4, "game_uuid": V5, "event_definition_uuid": None, "status": "FINISHED", "duration_ms": 61000},
+    "manager_greeted": {"interaction_uuid": V4, "event_definition_uuid": V5, "manager_code": "manager-a"},
+    "manager_poked": {"interaction_uuid": V4, "event_definition_uuid": V5, "manager_code": "manager-a", "poke_count": 2},
+    "story_action_recorded": {"story_record_uuid": V4, "story_key": "pepero-2026-room1-dialogue", "action_key": "yeongseok-intro",
+                              "action_kind": "npc_dialogue"},
+    "learning_session_completed": {"learning_session_id": 1, "subject": "CS", "question_type": "MULTIPLE_CHOICE", "difficulty": "ADVANCED",
+                                   "total_questions": 10, "correct_count": 10},
+}
+NEW_START = len(INPUT)  # 43~49
+INPUT += [(changed(event_type=t, topic="raw.event", raw={**POINT_ONLY, **fields}, manifest={"event_type": t}), None) for t, fields in NEW_KINDS.items()]
 
 
 def python_result(value):
@@ -124,10 +141,12 @@ class Adapter(unittest.TestCase):
                 self.assertEqual((found[offset][0], found[offset][2]), (code, event_id))
                 self.assertIn(needle, found[offset][1])
 
-    def test_every_kind_has_a_real_row(self):
+    def test_every_kind_has_a_real_row(self):  # 새 7종은 만든 행(T1'' 실제 행으로 바꿀 때까지)
         real = {value.encode() for value in REAL.values()}
         kinds = {self.rows[i]["event_type"] for i, (v, _) in enumerate(INPUT) if v in real}  # 실제 행은 모두 정상이어야 self.rows 에 있다
-        self.assertEqual(sorted(kinds), sorted(rules.TOPIC_BY_TYPE))
+        made = [self.rows[i]["event_type"] for i in range(NEW_START, len(INPUT))]
+        self.assertEqual(made, list(NEW_KINDS))
+        self.assertEqual(sorted(kinds), sorted(set(rules.TOPIC_BY_TYPE) - set(NEW_KINDS)))
         self.assertEqual(len(KINDS), 11)
         for i, (v, _) in enumerate(INPUT):
             if v in real:
@@ -145,6 +164,7 @@ class Adapter(unittest.TestCase):
             "src_lsn": 10135584184, "src_txid": 2562162, "first_op": "c", "content_sha256": SHA})
         self.assertEqual(self.rows[2]["schema_version"], "1.1")
         self.assertEqual(self.rows[23]["schema_version"], "1.0")
+        self.assertEqual((self.rows[NEW_START]["event_type"], self.rows[NEW_START]["session_uuid"]), ("event_progress_completed", None))  # 접속 없는 정상 행
         self.assertEqual(json.loads(self.rows[21]["source_meta"]),
                          {"topic": "raw.points", "message_key": "f8fcaae5-a894-4b8e-82f8-6dc083223f1e", "published_at": "2026-11-04T05:56:00.1Z", "retry_count": 2})
 

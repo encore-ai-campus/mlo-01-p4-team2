@@ -98,20 +98,31 @@ class SlotPageTests(Cases, OperatorBase):
         self.detail = reverse("operator:media_detail", args=[self.media.media_id])
 
     def post_slot(self, **over):
-        data = {"name": "로비 배너", "audience": "shared", "floor": 100, "base": 200, "cap": 500,
+        data = {"name": "로비 배너", "audience": "individual", "floor": 100, "base": 200, "cap": 500,
                 "impression_share": 10, "click_share": 85, "conversion_share": 5, "reason": "개설", **over}
         return self.client.post(reverse("operator:slot_create", args=[self.media.media_id]), data)
 
     def case_create_slot_shows_audience_and_shares_and_says_the_audience_is_fixed(self):
         self.assertRedirects(self.post_slot(), self.detail)
         (slot,) = masters.list_slots(active_only=False, media_id=self.media.media_id)
-        self.assertEqual((slot.audience, slot.policy.floor, slot.policy.cap), ("shared", 100, 500))
+        self.assertEqual((slot.audience, slot.policy.floor, slot.policy.cap), ("individual", 100, 500))
         self.assertEqual((slot.policy.impression_share, slot.policy.click_share, slot.policy.conversion_share), (10, 85, 5))
+        masters.create_slot(self.admin, self.media.media_id, "옥상", 100, 200, 500, "초기", audience="shared", impression_share=98, click_share=1, conversion_share=1)
         html = self.client.get(self.detail).content.decode()
         self.assertIn("로비 배너", html)
-        self.assertIn("<td>일괄</td>", html)
+        self.assertIn("<td>개인</td>", html)
+        self.assertIn("<td>일괄</td>", html)  # 이미 있는 일괄 구성은 목록에 그대로 보인다(서비스로 만든 것)
         self.assertIn("노출 10% · 클릭 85% · 전환 5%", html)
         self.assertIn("만든 뒤 바꿀 수 없습니다", html)
+
+    def case_the_form_offers_only_individual_and_refuses_shared(self):
+        """일괄은 화면에서만 사용 중지(TG-S4, 설계 §10 "일괄 슬롯") — 폼에 선택지가 없고, 보내도 400·구성 없음."""
+        html = self.client.get(self.detail).content.decode()
+        self.assertIn('value="individual"', html)
+        self.assertNotIn('value="shared"', html)
+        self.assertIn("일괄은 사용 중지", html)
+        self.assertEqual(self.post_slot(audience="shared").status_code, 400)
+        self.assertEqual(masters.list_slots(active_only=False, media_id=self.media.media_id), [])
 
     def case_policy_errors_go_next_to_the_fields(self):
         r = self.post_slot(floor=300, base=200)

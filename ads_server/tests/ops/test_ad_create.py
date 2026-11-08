@@ -74,6 +74,15 @@ class AdCreatePageTests(Cases, AdCreateBase, TestCase):
         self.assertRegex(html, r'<button[^>]*value="create"[^>]*data-confirm=')  # 집행 버튼만 확인 창
         self.assertNotRegex(html, r"\sstyle=")
 
+    def case_shared_slots_are_not_offered_and_cannot_be_posted(self):
+        """일괄 구성은 화면에서 고를 수 없다(TG-S4). 보내도 폼이 400 이고 광고그룹은 생기지 않는다."""
+        shared = masters.create_slot(self.w.admin, self.w.slot.media_id, "옥상 전광판", 100, 200, 500, "초기", audience="shared", impression_share=98, click_share=1, conversion_share=1)
+        html = self.client.get(URL).content.decode()
+        self.assertNotIn(str(shared.slot_id), html)
+        self.assertIn(str(self.w.slot.slot_id), html)
+        self.assertEqual(self.client.post(URL, self.fields(slot_ids=[str(shared.slot_id)])).status_code, 400)
+        self.assertFalse(self.created().exists())
+
     def case_enter_in_a_field_creates_instead_of_redrawing(self):
         """3-3 브라우저 점검: 칸에서 Enter 를 누르면 폼의 첫 제출 버튼이 눌린다. 그것이 숨긴 '단위 보기'여서 화면만 다시 그리며 고른 이미지를 말없이 잃었다."""
         form = self.client.get(URL).content.decode().split('class="ad-create"', 1)[1]

@@ -18,6 +18,7 @@ from masters import api as masters
 
 from ..errors import HANDLED, form_errors, message_of, submit
 from ..forms import EXISTING, NEW, AdCreateForm
+from ..queries.ad_groups import individual_slots
 from .common import present
 
 
@@ -41,7 +42,7 @@ def effect_row(slot, effect):
 def _choices(user):
     """고를 수 있는 것: 끝나지 않은 캠페인(일시 중지·중단 포함), 켜진 게재 위치(매체 포함), 내 소재, 그 위치들의 매체에 속한 살아 있는 대상 그룹.
     대상 그룹이 고른 구성의 매체 것인지는 서비스가 본다(화면은 매체 이름을 함께 보인다)."""
-    slots = masters.list_slots(active_only=True)
+    slots = individual_slots()  # 일괄 구성은 화면에서 고를 수 없다(TG-S4)
     return {
         "campaigns": [c for c in campaigns.list_campaigns(user) if c.status != campaigns.CampaignStatus.ENDED],
         "slots": slots,

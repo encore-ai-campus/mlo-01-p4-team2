@@ -112,6 +112,28 @@ class GroupEditTests(Cases, AdGroupPageBase):
         self.assertContains(r, "구성을 하나 이상 고르세요", status_code=400)
         self.assertEqual(self.group().slot_ids, (self.w.slot.slot_id,))
 
+    def case_a_linked_shared_slot_is_shown_as_retired_and_not_offered(self):
+        """이미 고른 일괄 구성(TG-S4): 켜져 있으면 꺼진 구성 문구가 아니라 "일괄(사용 중지)"로 보이고, 선택지에 없고, 보내도 400이다.
+        끄면(매체가 개인 송출로 바꾼 뒤 운영자가 끔 — Q10) 다른 꺼진 구성처럼 보인다(리뷰 R1). 구성을 다시 저장하면 빠진다."""
+        shared = masters.create_slot(self.w.admin, self.w.slot.media_id, "옥상 전광판", 100, 200, 500, "초기", audience="shared", impression_share=98, click_share=1, conversion_share=1)
+        both = {self.w.slot.slot_id, shared.slot_id}
+        campaigns.update_ad_group(self.w.adv, self.gid, {"slot_ids": list(both)})  # 서비스는 그대로 받는다(화면만 막음)
+        html = self.html()
+        self.assertIn("일괄(사용 중지) 구성: ", html)
+        self.assertIn("옥상 전광판", html)
+        self.assertIn("<td>일괄(사용 중지)</td>", html)  # 구성별 결과 표의 유형 칸(문서 27 D9)
+        self.assertNotIn(f'name="slot_ids" value="{shared.slot_id}"', html)
+        self.assertNotIn("지금 꺼진 구성", html)
+        sent = self.client.post(reverse("ad_group_slots", args=[self.gid]), {"slot_ids": [str(s) for s in both], "updated_at": self.seen()})
+        self.assertEqual(sent.status_code, 400)  # 화면에서 일괄을 직접 보내도(리뷰 R2)
+        self.assertEqual(set(self.group().slot_ids), both)
+        masters.set_slot_active(self.w.admin, shared.slot_id, False)
+        html = self.html()
+        self.assertNotIn("일괄(사용 중지) 구성: ", html)  # 꺼진 일괄은 "그대로 나간다"고 말하지 않는다
+        self.assertRegex(html, r"지금 꺼진 구성: [^<]*옥상 전광판")
+        self.client.post(reverse("ad_group_slots", args=[self.gid]), {"slot_ids": [str(self.w.slot.slot_id)], "updated_at": self.seen()})
+        self.assertEqual(self.group().slot_ids, (self.w.slot.slot_id,))
+
     def case_an_inactive_linked_slot_is_explained(self):
         masters.set_slot_active(self.w.admin, self.w.slot.slot_id, False)
         html = self.html()

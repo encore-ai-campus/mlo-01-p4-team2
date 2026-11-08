@@ -42,7 +42,7 @@
           <thead><tr><th scope="col">구성</th><th scope="col">유형</th><th scope="col">하한 ~ 상한</th><th scope="col">결과</th><th scope="col" class="num">적용금액</th><th scope="col" class="num">노출 / 클릭 / 전환</th></tr></thead>
           <tbody>
           {% for slot, e, charges in effects %}
-            <tr><td>{% if slot %}{{ slot.media_name }} · {{ slot.name }}{% else %}{{ e.slot_id }}{% endif %}</td><td>{% if slot %}{{ slot.audience|audience_label }}{% endif %}</td><td>{% if slot %}{{ slot.policy.floor|p }} ~ {{ slot.policy.cap|p }}{% endif %}</td><td>{{ e.reason|effect_label }}</td><td class="num">{% if e.applied_amount is not None %}{{ e.applied_amount|p }}{% else %}—{% endif %}</td><td class="num">{% if charges %}{{ charges.IMPRESSION|number }} / {{ charges.CLICK|number }} / {{ charges.CONVERSION|p }}{% else %}—{% endif %}</td></tr>
+            <tr><td>{% if slot %}{{ slot.media_name }} · {{ slot.name }}{% else %}{{ e.slot_id }}{% endif %}</td><td>{% if slot %}{% if slot.audience == "shared" %}일괄(사용 중지){% else %}{{ slot.audience|audience_label }}{% endif %}{% endif %}</td><td>{% if slot %}{{ slot.policy.floor|p }} ~ {{ slot.policy.cap|p }}{% endif %}</td><td>{{ e.reason|effect_label }}</td><td class="num">{% if e.applied_amount is not None %}{{ e.applied_amount|p }}{% else %}—{% endif %}</td><td class="num">{% if charges %}{{ charges.IMPRESSION|number }} / {{ charges.CLICK|number }} / {{ charges.CONVERSION|p }}{% else %}—{% endif %}</td></tr>
           {% endfor %}
           </tbody>
         </table>
@@ -87,6 +87,9 @@
         {{ slots_form.slot_ids.errors }}
         {% if page.inactive_linked %}
         <p class="helptext">지금 꺼진 구성: {% for s in page.inactive_linked %}{{ s.media_name }} · {{ s.name }}{% if not forloop.last %}, {% endif %}{% endfor %} — 구성을 다시 저장하면 빠집니다.</p>
+        {% endif %}
+        {% if page.shared_linked %}
+        <p class="helptext">일괄(사용 중지) 구성: {% for s in page.shared_linked %}{{ s.media_name }} · {{ s.name }}{% if not forloop.last %}, {% endif %}{% endfor %} — 지금은 그대로 나가지만 새로 고를 수 없고, 구성을 다시 저장하면 빠집니다.</p>
         {% endif %}
         <div class="form-end"><button type="submit" class="secondary">구성 저장</button></div>
       </form>

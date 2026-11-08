@@ -12,7 +12,7 @@ class AdGroupPage:
     bids: list  # BidView, 최신 버전부터
     images: list  # CreativeView — 고를 수 있는 내 이미지(보관하지 않은 소재 전부)와, 보관했어도 지금 선택된 것(6-11: 화면은 고르기만 한다)
     linked: dict  # {slot_id: SlotView} 지금 고른 위치(꺼진 위치 포함)
-    choices: list  # 고를 수 있는 위치(켜진 것 — 과금 단위는 없다, 6-10d)
+    choices: list  # 고를 수 있는 위치(켜진 개인 구성 — 과금 단위는 없다, 6-10d. 일괄 구성은 화면에서 고를 수 없다 — TG-S4)
     effects: tuple  # 현재 입찰의 위치별 결과(SlotEffect), 입찰이 없으면 빈 튜플
     segments: dict  # {segment_id: SegmentView} 지금 연결된 대상 그룹(보관 포함)과 고른 구성의 매체에 속한 그룹
     media_names: dict  # {media_id: 매체 이름} 지금 고른 구성의 매체
@@ -45,9 +45,20 @@ class AdGroupPage:
 
     @property
     def inactive_linked(self):
-        """고른 위치 중 지금 꺼진 것(위치를 다시 저장하면 빠진다 — 서비스는 꺼진 위치를 고를 수 없게 한다)."""
-        chosen = {str(s.slot_id) for s in self.choices}
-        return [s for slot_id, s in self.linked.items() if str(slot_id) not in chosen]
+        """고른 구성 중 지금 꺼진 것(구성이나 매체가 꺼짐 — 일괄도 꺼졌으면 여기다). 위치를 다시 저장하면 빠진다(서비스는 꺼진 위치를 고를 수 없게 한다)."""
+        shown = {str(s.slot_id) for s in self.choices} | {str(s.slot_id) for s in self.shared_linked}
+        return [s for slot_id, s in self.linked.items() if str(slot_id) not in shown]
+
+    @property
+    def shared_linked(self):
+        """이미 고른 **켜진** 일괄 구성(TG-S4 — 화면에서는 더 고를 수 없다, 사용 중지). 그대로 나가지만 구성을 다시 저장하면 빠진다.
+        켜짐은 `list_slots(active_only=True)` 와 같은 기준(구성과 매체가 모두 켜짐). 꺼진 일괄은 `inactive_linked` 로 간다 — 나가지 않으므로(리뷰 R1)."""
+        return [s for s in self.linked.values() if s.audience == masters.Audience.SHARED and s.is_active and s.media_is_active]
+
+
+def individual_slots():
+    """광고주가 고를 수 있는 구성: 켜진 **개인** 구성만(설계 §10 "일괄 슬롯" — 일괄은 화면에서만 사용 중지, 서비스·C1 은 그대로, TG-S4)."""
+    return [s for s in masters.list_slots(active_only=True) if s.audience == masters.Audience.INDIVIDUAL]
 
 
 def ad_group_page(user, ad_group_id):
@@ -63,5 +74,5 @@ def ad_group_page(user, ad_group_id):
     return AdGroupPage(
         group=group, campaign_name=campaigns.campaign_names([group.campaign_id])[group.campaign_id], bids=campaigns.list_bids(user, group.ad_group_id),
         images=images, linked=linked,
-        choices=masters.list_slots(active_only=True), effects=effects, segments=segments, media_names=media_names,
+        choices=individual_slots(), effects=effects, segments=segments, media_names=media_names,
     )

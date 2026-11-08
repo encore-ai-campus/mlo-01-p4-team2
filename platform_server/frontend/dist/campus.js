@@ -5,6 +5,7 @@
   const DEFAULT_ZOOM=1.5;
   const accountConfig=JSON.parse($('campusPresenceConfig')?.textContent||'{}');
   const avatar=window.CampusAvatars.resolve(accountConfig.avatar);
+  if(window.CampusLoading)await window.CampusLoading.prepare(avatar);
   // The existing server flag grants the administrator's wider camera controls.
   const isAdmin=JSON.parse($('campusViewConfig')?.textContent||'{}').canZoom===true;
   const MIN_ZOOM=isAdmin ? .35 : DEFAULT_ZOOM,MAX_ZOOM=isAdmin ? 3.6 : DEFAULT_ZOOM;

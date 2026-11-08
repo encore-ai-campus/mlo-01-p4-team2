@@ -126,6 +126,7 @@ DB 전체를 builtin `C.UTF-8`로 만든다. 그래서 ICU·glibc가 바뀌어�
 | `ad.bid_added` v1 | `bid_id` | `ad_group_id` | `bid_id`, `ad_group_id`, `bid_version`, `amount`, `created_at` |
 | `ad.campaign_changed` v1 | `change_id` | `campaign_id` | `campaign_id`, `change_id`, `change_type`, `previous_value`, `new_value`, `changed_at` |
 | `ad.ad_group_changed` v1 | `change_id` | `ad_group_id` | `ad_group_id`, `campaign_id`, `change_id`, `change_type`, `previous_value`, `new_value`, `changed_at` |
+| `ad.segment_changed` v1 (대상 그룹 타기팅 TG-S1, 2026-11-08 — §8.3) | `segment_version_id` | `segment_id` | `segment_id`, `segment_version_id`, `version`, `media_id`, `code`, `name`, `is_active`, `changed_at` |
 
 - (2026-11-04: Kafka 메시지 키는 `event_id`로 바뀌었다 — 설계 §10 C2. `aggregate_id`는 대상 키로 남는다.)
 - `event_id`는 기존 규칙대로 `event_id_of(event_name, source_id)`(UUIDv5)로 만든다.

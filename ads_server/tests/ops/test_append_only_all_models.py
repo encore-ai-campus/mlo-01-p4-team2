@@ -11,13 +11,13 @@ from campaigns.changes import record_change
 from campaigns.models import AdGroupCreative, Bid, ChangeLog, CreativeImage
 from foundation.models import AppendOnlyError, AuditLog
 from masters import api as masters
-from masters.models import BidPolicy, MediaDeactivation
+from masters.models import BidPolicy, MediaDeactivation, SegmentVersion
 from records.models import Decision
 from tests.support.factories import DAY, NOW, SUBJECT, World
 from tests.support.cases import Cases
 
 OVERWRITE = {"AuditLog": "action", "BidPolicy": "reason", "Bid": "amount", "LedgerEntry": "note", "Decision": "selection_policy", "AdGroupCreative": "linked_at",
-             "CreativeImage": "image_bytes", "MediaDeactivation": "deactivated_at", "ChangeLog": "new_value"}
+             "CreativeImage": "image_bytes", "MediaDeactivation": "deactivated_at", "ChangeLog": "new_value", "SegmentVersion": "name"}
 
 
 def clone_with_same_pk(row, field, value):
@@ -35,6 +35,7 @@ class AllAppendOnlyModelsTests(Cases, TestCase):
         masters.set_media_active(w.admin, w.slot.media_id, False)  # 매체 비활성화 기록 한 줄
         record_change(target_type="campaign", target_id=w.campaign.campaign_id, campaign_id=w.campaign.campaign_id, change_type="BUDGET_CHANGED",
                       previous={"daily_budget": 50_000}, new={"daily_budget": 60_000}, now=NOW)  # 변경 로그 한 줄
+        masters.create_segment(w.admin, w.slot.media_id, "mlo", "MLO", now=NOW)  # 대상 그룹 판 한 줄
         return {
             "AuditLog": (AuditLog.objects.first(), "overwritten"),
             "BidPolicy": (BidPolicy.objects.first(), "overwritten"),
@@ -45,6 +46,7 @@ class AllAppendOnlyModelsTests(Cases, TestCase):
             "CreativeImage": (CreativeImage.objects.first(), 1),  # 소재가 보유한 이미지 — 보유량 상한과 공개 판정의 근거
             "MediaDeactivation": (MediaDeactivation.objects.first(), NOW + DAY),  # 매체를 끈 시각 — 그 전 결정의 반응 판정 근거
             "ChangeLog": (ChangeLog.objects.first(), {"daily_budget": 1}),  # 변경 로그 — 변경 이벤트의 정합성 원천
+            "SegmentVersion": (SegmentVersion.objects.first(), "overwritten"),  # 대상 그룹 판 — 그룹 이름·보관 이력과 `ad.segment_changed` 의 원천
         }
 
     def case_positional_and_keyword_upserts_and_new_instance_saves_cannot_overwrite(self):

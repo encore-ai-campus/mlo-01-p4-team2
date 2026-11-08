@@ -15,9 +15,10 @@ BID_POLICY_CHANGED = "ad.bid_policy_changed"
 BID_ADDED = "ad.bid_added"
 CAMPAIGN_CHANGED = "ad.campaign_changed"
 AD_GROUP_CHANGED = "ad.ad_group_changed"
+SEGMENT_CHANGED = "ad.segment_changed"
 SCHEMA_VERSIONS = {  # ad.decision 2: selected.pricing_unit → charge_shares(6-10c)
     DECISION: 2, REACTION_RECEIVED: 1, REACTION: 1, CHARGE: 1,
-    BID_POLICY_CHANGED: 1, BID_ADDED: 1, CAMPAIGN_CHANGED: 1, AD_GROUP_CHANGED: 1,
+    BID_POLICY_CHANGED: 1, BID_ADDED: 1, CAMPAIGN_CHANGED: 1, AD_GROUP_CHANGED: 1, SEGMENT_CHANGED: 1,
 }
 
 _NAMESPACE = uuid.uuid5(uuid.NAMESPACE_DNS, "events.ads-server")
@@ -132,4 +133,13 @@ def ad_group_changed_payload(*, ad_group_id, campaign_id, change_id, change_type
     return {
         "ad_group_id": _id(ad_group_id), "campaign_id": _id(campaign_id), "change_id": _id(change_id), "change_type": change_type,
         "previous_value": previous_value, "new_value": new_value, "changed_at": _iso(changed_at),
+    }
+
+
+def segment_changed_payload(*, segment_id, segment_version_id, version, media_id, code, name, is_active, changed_at):
+    """대상 그룹 판 하나(추가 전용 — 판마다 이벤트 하나, 등록의 첫 판 포함). 코드는 매체가 보내는 값 그대로(분석이 매체 쪽 자료와 그룹으로 잇는 열쇠),
+    이름은 관리자가 정한 표시용 이름이라 싣는다(그룹 차원). 바꾼 관리자는 싣지 않는다(사람 연결, DRD §5.6)."""
+    return {
+        "segment_id": _id(segment_id), "segment_version_id": _id(segment_version_id), "version": version, "media_id": _id(media_id),
+        "code": code, "name": name, "is_active": is_active, "changed_at": _iso(changed_at),
     }

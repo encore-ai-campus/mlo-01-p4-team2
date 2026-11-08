@@ -2,7 +2,7 @@
 
 > Status: **정식 문서**. 광고 서버만 다룬다. **지금 구조만 적는다** — 언제·왜 바뀌었는지는 §11 문서 이력에 있다.
 > 관련 문서: [ads-server-design.md](ads-server-design.md) (설계), [threat-model.md](threat-model.md) (위협 모델), [contracts/](contracts/) (OpenAPI 계약)
-> 기준: 2026-10-14(저장소는 2026-10-31 PostgreSQL 전환 0.55, 이벤트는 2026-11-01 Outbox 확장 0.56, 요청 제한 버킷은 2026-11-01 0.57, C1 1.5.0 은 2026-11-02 0.58, 구간 대조 보완은 2026-11-02 0.59, 소재 보관 문구는 2026-11-02 0.60, 사용자 관리 감사는 2026-11-02 0.61, manifest 입력 검증은 2026-11-02 0.62, 처리 대기열 색인은 2026-11-02 0.63, Kafka 확장 경로는 2026-11-02 0.64, 파이프라인 장애 복구 결정(구현 전, [예약])은 2026-11-03 0.65, Kafka 메시지 키 `event_id`·`op` `c`·`r`는 2026-11-04 0.66, `hop_pipeline` 중복·충돌·INSERT 아닌 행·쌍 실패 조건은 2026-11-04 0.67, 구간 규칙 원본 파일은 2026-11-04 0.68, 대사 범위 `since` 구현은 2026-11-04 0.69, outbox → 파이프라인 대조 구현은 2026-11-04 0.70, 창 확정·알려진 예외 구현은 2026-11-04 0.71, 파이프라인 manifest 잡·받기·창 대사 구현은 2026-11-05 0.72, C2 운영 경로 = Debezium CDC → Kafka → Bronze는 2026-11-05 0.73, 대상 그룹 타기팅(결정만, 구현 전 [예약])은 2026-11-08 0.74) · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
+> 기준: 2026-10-14(저장소는 2026-10-31 PostgreSQL 전환 0.55, 이벤트는 2026-11-01 Outbox 확장 0.56, 요청 제한 버킷은 2026-11-01 0.57, C1 1.5.0 은 2026-11-02 0.58, 구간 대조 보완은 2026-11-02 0.59, 소재 보관 문구는 2026-11-02 0.60, 사용자 관리 감사는 2026-11-02 0.61, manifest 입력 검증은 2026-11-02 0.62, 처리 대기열 색인은 2026-11-02 0.63, Kafka 확장 경로는 2026-11-02 0.64, 파이프라인 장애 복구 결정(구현 전, [예약])은 2026-11-03 0.65, Kafka 메시지 키 `event_id`·`op` `c`·`r`는 2026-11-04 0.66, `hop_pipeline` 중복·충돌·INSERT 아닌 행·쌍 실패 조건은 2026-11-04 0.67, 구간 규칙 원본 파일은 2026-11-04 0.68, 대사 범위 `since` 구현은 2026-11-04 0.69, outbox → 파이프라인 대조 구현은 2026-11-04 0.70, 창 확정·알려진 예외 구현은 2026-11-04 0.71, 파이프라인 manifest 잡·받기·창 대사 구현은 2026-11-05 0.72, C2 운영 경로 = Debezium CDC → Kafka → Bronze는 2026-11-05 0.73, 대상 그룹 타기팅(결정만, 구현 전 [예약])은 2026-11-08 0.74, 대상 그룹 카탈로그 구현(TG-S1)은 2026-11-08 0.75) · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
 > 근거: 설계서 `docs/legacy/ads-server/ads-server-design.md`, 계약 `contracts/serving.openapi.yaml`(C1·C3), `contracts/console.openapi.yaml`(C6), 실제 모델 코드(`*/models.py`)
 > 표기: **[예약]** 계약에 자리만 있고 아직 코드 없음 · **[제안]** 이 문서가 처음 제안함(동의 필요) · **[열림]** 정하지 못함. 표기가 없으면 코드에 있다
 
@@ -16,7 +16,7 @@
 | 범위 | 광고 서버의 저장 데이터(DB·파일), 서버 간 계약(C1~C6)의 데이터 모양, 내부 처리 흐름, 수명주기, 보안 분류, 팀 DRD와의 대응 |
 | 범위 밖 | 매체 서버(메타버스)·데이터 파이프라인의 내부 데이터, 화면 설계, 인프라 구성 |
 | 저장소 | **PostgreSQL 18**(업무 데이터 + 이벤트 outbox, 한 트랜잭션) + **로컬 파일**(소재 이미지) + **MongoDB 8.0**(이벤트 로그 `ad_events` — 로컬 병행 기간에만 중계가 outbox에서 옮긴다. 운영에는 없다). 운영의 이벤트는 outbox에서 Debezium CDC → Kafka로 파이프라인 쪽에 나간다(§2.1) |
-| 엔터티 | 프로젝트 표 **22개**(계정·감사 2, 마스터 6, 운영 9, 지갑·원장 2, 결정·반응 2, 이벤트 outbox 1) + 대상 그룹 [예약] 3개(M7·M8·O11) + 프레임워크 표 11개(§4.2) |
+| 엔터티 | 프로젝트 표 **24개**(계정·감사 2, 마스터 8, 운영 9, 지갑·원장 2, 결정·반응 2, 이벤트 outbox 1) + 대상 그룹 [예약] 1개(O11) + 프레임워크 표 11개(§4.2) |
 | 핵심 규칙 | **모든 PK는 UUIDv7, 자동 증가 없음**(예외: outbox의 이벤트 ID는 결정적 UUIDv5) · 자연 키는 업무 규칙용 유일 제약 · 시각은 UTC · 금액은 **정수 포인트** · 이력은 **추가 전용**(§3 R-5) · 삭제 없음 · 판정 규칙은 한 곳(`engine`) · 파생값은 저장하지 않는다(잔액만 예외, §4.7) |
 | 먼저 볼 것 | §1.2 **광고 도메인은 이 문서가 팀 DRD보다 우선**. §10 열린 이슈(D-7) |
 
@@ -137,7 +137,7 @@ flowchart LR
 | PostgreSQL 18 | §4의 모든 엔터티, 세션, 로그인 잠금 기록 + **outbox**(같은 트랜잭션, P3) | UUIDv7 PK(§3 R-2, Django `UUIDField` 는 `uuid` 형), 격리 수준 `READ COMMITTED`, 잠금 대기 제한 `lock_timeout` 5초, 커밋마다 WAL을 디스크에(`fsync`·`full_page_writes` 켬, `synchronous_commit` 끄지 않음), 정렬 builtin `C.UTF-8`(대소문자·악센트 구분, 순서는 코드값) |
 | MongoDB `ad_events` | C2 이벤트 로그 — 로컬 병행 기간만(중계가 outbox에서 옮겨 씀, 추가만). 운영에는 없다 | `_id = event_id`, 멱등 저장. 컬렉션은 공통 봉투(`_id`·`event_name`·`schema_version`·`produced_at`·`payload`)가 없는 문서를 거부하고, 색인은 (`event_name`, `produced_at`)·(`payload.decision_id`, `produced_at`). 쓰기는 과반 확인(`w=majority`) |
 | NDJSON 파일 | manifest·검증·백필 대상 목록 **전용**(이벤트 통로 아님) | 한 줄 = 레코드 하나. **게시 = 내용 해시가 이름에 들어간 불변 데이터 파일(`<이름>.<SHA-256 앞 16자>.ndjson`) + manifest(`<이름>.manifest.json`, 현재 게시본을 가리키는 포인터)의 원자적 교체**. manifest에 데이터 파일 이름·SHA-256·행 수·`schema_version`·`source_kind`·`checkpoint`(범위 서술: 스냅샷 종류·시작 시각·훑은 행 수, 재개 위치 아님)·만든 시각. manifest가 가리키는 파일은 언제나 완결. 파일 종류: `ledger_check`·`event_gaps`·`event_delivery`(점검 결과), `backfill_result`(백필 결과), `hop_source`·`hop_outbox`·`hop_mongo`(구간별 정합 manifest), `hop_report`(구간 대조 결과) |
-| Kafka 토픽 | C2 이벤트(운영 경로 — 파이프라인 쪽 Bronze가 읽는다) | `ads.outbox.events` 하나(여덟 종류 모두), 키 `event_id`(outbox PK — 행마다 다름. 종류별 대상은 `after.aggregate_id`), value = Debezium 원본 변경 봉투(`after` = outbox 봉투 열, `source` = 출처·원천 위치 — §5.6 "전달 방식") |
+| Kafka 토픽 | C2 이벤트(운영 경로 — 파이프라인 쪽 Bronze가 읽는다) | `ads.outbox.events` 하나(아홉 종류 모두), 키 `event_id`(outbox PK — 행마다 다름. 종류별 대상은 `after.aggregate_id`), value = Debezium 원본 변경 봉투(`after` = outbox 봉투 열, `source` = 출처·원천 위치 — §5.6 "전달 방식") |
 
 **저장소를 고르는 기준 [확정]**: 업무 데이터와 outbox는 한 트랜잭션이어야 하므로 업무 DB(PostgreSQL)에 둔다. 이벤트는 outbox에서 CDC로 내보내고, 로컬 병행 기간의 이벤트 로그는 MongoDB에 둔다(두 DB는 한 트랜잭션으로 묶을 수 없다). 이 문서의 데이터 구조 결정(PK·순번·잠금)은 **PostgreSQL·MongoDB에서 성립하는지**로 판단한다(설계서 §10 "저장소 단계").
 
@@ -161,8 +161,8 @@ flowchart LR
 | R-2 | **PK 규칙** [확정]: ① **모든 테이블의 PK는 UUIDv7** ② **자동 증가 열은 두지 않는다** ③ 자연 키((광고그룹, `bid_version`), (슬롯, `policy_version`), (매체, 슬롯 이름) 등)는 식별자가 아니라 **업무 규칙을 지키는 유일 제약**으로 유지 ④ 확실한 순서가 필요한 곳은 **원장 하나**이고 `(지갑, seq)` 유일 제약으로 둔다(지갑 잠금 안에서 +1) ⑤ 그 밖의 정렬은 시각 열. **예외**: 이벤트 outbox의 PK `event_id`는 원천 행 ID와 이벤트 종류에서 결정적으로 만든 UUIDv5다(재처리·재전송에도 같은 값) | 정수 PK는 DB 이관·병합 때 번호 충돌과 키 이중화(정수·UUID)를 만든다. MongoDB는 자동 증가가 없고 `_id`에 UUID를 쓴다. 무작위 v4는 PK 색인의 쓰기 위치가 흩어지므로 **시각이 앞에 오는 v7**(Python 3.14 `uuid.uuid7`, 같은 밀리초 안에서도 단조 증가)이 새 행을 뒤에 붙인다. 상세는 설계서 §10 "PK 규칙" |
 | R-3 | **시각은 UTC**로 저장·계산·전송한다. 계약은 RFC 3339 `…Z`만 허용. KST는 화면 표시에서만 | 설계서 §3 [확정]. 서비스는 시간대 없는 값(naive)을 거부, `engine`은 UTC가 아니면 생성 단계에서 거부 |
 | R-4 | **금액은 정수 포인트**, 0 이상, 최대 `2^53 − 1`(JSON 정수로 정확히 표현되는 한계) | 설계서 §10 [확정]. DB `CHECK` + 서비스 검증. 팀 DRD의 `DECIMAL(18,2)`와 다르다(§9) |
-| R-5 | **추가 전용(append-only)**: 감사 로그(A3), 입찰 정책(M3), 매체 비활성화 기록(M5), 소재 연결(O9), 입찰(O5), 소재 이미지 보유(O7), 캠페인·광고그룹 변경 로그(O10), 원장(B2), 결정(R1), 대상 그룹 판(M8 [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"]). INSERT만 허용하고 수정·삭제·같은 PK로 덮어쓰기·upsert를 막는다 | `foundation.AppendOnlyModel`(저장은 항상 `force_insert`, `update`·`delete`·`bulk_create(update_conflicts)` 거부). 정정은 반대 부호의 새 행. 전수 시험이 추가 전용 모델 전부를 덮는지까지 본다(`case_every_append_only_model_is_covered_here`) |
-| R-6 | **삭제 기능이 없다.** 캠페인·광고그룹은 끄기(`status`·`enabled`)로 처리한다. 소재는 끄기가 없고(광고그룹을 끈다), 화면의 "삭제"는 보관(`archived_at`, 행은 남김)이다. 대상 그룹의 "제거"는 보관(`is_active = false`, 행은 남김)이다 [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] | 결정·원장이 참조하는 이력을 지키기 위해. 앱 사이 FK는 `PROTECT` |
+| R-5 | **추가 전용(append-only)**: 감사 로그(A3), 입찰 정책(M3), 매체 비활성화 기록(M5), 소재 연결(O9), 입찰(O5), 소재 이미지 보유(O7), 캠페인·광고그룹 변경 로그(O10), 원장(B2), 결정(R1), 대상 그룹 판(M8). INSERT만 허용하고 수정·삭제·같은 PK로 덮어쓰기·upsert를 막는다 | `foundation.AppendOnlyModel`(저장은 항상 `force_insert`, `update`·`delete`·`bulk_create(update_conflicts)` 거부). 정정은 반대 부호의 새 행. 전수 시험이 추가 전용 모델 전부를 덮는지까지 본다(`case_every_append_only_model_is_covered_here`) |
+| R-6 | **삭제 기능이 없다.** 캠페인·광고그룹은 끄기(`status`·`enabled`)로 처리한다. 소재는 끄기가 없고(광고그룹을 끈다), 화면의 "삭제"는 보관(`archived_at`, 행은 남김)이다. 대상 그룹의 "제거"는 보관(`is_active = false`, 행은 남김)이다 | 결정·원장이 참조하는 이력을 지키기 위해. 앱 사이 FK는 `PROTECT` |
 | R-7 | **문자열 입력**: 앞뒤 공백 제거·NFC 정규화, 제어·서식 문자(제로폭 공백 등) 금지, 길이 1~상한 | `foundation.clean_text`. 상한: 이름 100, 제목 200, 사유·메모 500 |
 | R-8 | **코드 값은 대문자**(예 `ACTIVE`, `IMPRESSION`) | DB `choices` + 서비스 검증. 계약의 enum과 같은 값 |
 | R-9 | **소유권**: 광고주 데이터는 소유자 기준으로만 조회한다. 남의 것·없는 것·형식이 틀린 ID는 모두 404 | `owned_or_404`. 위협 모델 T4 |
@@ -195,8 +195,8 @@ erDiagram
     campaigns_creative |o--o{ campaigns_ad_group : "선택한 소재"
     campaigns_creative ||--o{ campaigns_creative_image : "creative (보유 파일)"
     campaigns_ad_group ||--o{ campaigns_bid : "ad_group (버전)"
-    masters_media ||--o{ masters_segment : "media (대상 그룹, 예약)"
-    masters_segment ||--o{ masters_segment_version : "segment (판, 예약)"
+    masters_media ||--o{ masters_segment : "media (대상 그룹)"
+    masters_segment ||--o{ masters_segment_version : "segment (판)"
     masters_segment ||--o{ campaigns_ad_group_segment : "segment (예약)"
     campaigns_ad_group ||--o{ campaigns_ad_group_segment : "ad_group (대상 그룹, 예약)"
     billing_wallet ||--o{ billing_ledger_entry : "wallet"
@@ -412,8 +412,8 @@ erDiagram
 | M4 | 매체 키 `masters_media_key` | masters | 보안 | 관리자 | 키 발급·교체 |
 | M5 | 매체 비활성화 기록 `masters_media_deactivation` | masters | 기록(추가 전용) | 관리자(매체 끄기) | 켜져 있던 매체를 끌 때마다 |
 | M6 | 요청 제한 버킷 `masters_media_rate_bucket` | masters | 운영 상태(가변) | 매체 API 요청(C1, 인증 뒤) | 매체·경로군의 첫 요청(이후는 같은 행을 갱신) |
-| M7 | 대상 그룹 `masters_segment` [예약] | masters | 마스터 | 관리자 | 그룹 등록 |
-| M8 | 대상 그룹 판 `masters_segment_version` [예약] | masters | 마스터(추가 전용 버전) | 관리자 | 등록·이름 변경·보관·되살리기마다 |
+| M7 | 대상 그룹 `masters_segment` | masters | 마스터 | 관리자 | 그룹 등록 |
+| M8 | 대상 그룹 판 `masters_segment_version` | masters | 마스터(추가 전용 버전) | 관리자 | 등록·이름 변경·보관·되살리기마다 |
 | O1 | 캠페인 `campaigns_campaign` | campaigns | 운영 | 광고주(상태는 관리자·시스템도) | 캠페인 생성 |
 | O2 | 광고그룹(화면의 "광고") `campaigns_ad_group` | campaigns | 운영 | 광고주 | 광고 만들기 |
 | O3 | 광고그룹-슬롯 `campaigns_ad_group_slot` | campaigns | 운영(연결) | 광고주 | 구성 선택·교체 |
@@ -576,20 +576,20 @@ erDiagram
 - **갱신 열(`tokens`·`refilled_at`·`granted`)에는 색인을 두지 않는다** — 매 요청의 UPDATE 가 HOT 갱신으로 같은 페이지 안에서 정리되어 표·색인이 부풀지 않는다.
 - 첫 행을 만들 때만 FK 확인이 매체 행에 `FOR KEY SHARE` 를 잡는다(매체 비활성화가 매체 행을 쥔 동안 그 매체의 **첫** 버킷 생성만 잠깐 기다린다).
 
-#### M7. 대상 그룹 `masters_segment` [예약]
+#### M7. 대상 그룹 `masters_segment`
 
-매체가 정한 사용자 묶음(첫 쓰임: 과정)의 카탈로그. 매체가 C1 결정 요청에 싣는 그룹 코드(`segment`)를 이 표로 풀어 그룹 UUID로 바꾼다. 관리자 역할(이미 있는 운영자 계정, `role = admin`)이 운영 화면에서 추가·이름 변경·보관·되살리기를 한다. 행을 지우지 않는다(R-6) — 결정·광고그룹 연결이 가리키는 이력을 지킨다. **현재 값의 원본은 이 행이다.** 만들 때와 이름·보관 상태를 바꿀 때마다 같은 트랜잭션에서 M8에 그때 상태 전체를 한 줄 더한다(캠페인·광고그룹 O1·O2와 변경 로그 O10의 관계와 같다 — M8은 파생값의 사본이 아니라 이력이다, §0).
+매체가 정한 사용자 묶음(첫 쓰임: 과정)의 카탈로그. [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] 매체가 C1 결정 요청에 싣는 그룹 코드(`segment`)를 이 표로 풀어 그룹 UUID로 바꾼다. 관리자 역할(이미 있는 운영자 계정, `role = admin`)이 운영 화면에서 추가·이름 변경·보관·되살리기를 한다. 행을 지우지 않는다(R-6) — 판(M8, FK `PROTECT`)이 가리키는 이력을 지킨다([예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] 광고그룹 연결 O11·결정 R1도 가리킨다). **현재 값의 원본은 이 행이다.** 만들 때와 이름·보관 상태를 바꿀 때마다 같은 트랜잭션에서 M8에 그때 상태 전체를 한 줄 더한다(캠페인·광고그룹 O1·O2와 변경 로그 O10의 관계와 같다 — M8은 파생값의 사본이 아니라 이력이다, §0).
 
 | 컬럼 | 타입 | NULL | 키·제약 | 설명 |
 |---|---|:---:|---|---|
-| `segment_id` | UUID | N | PK | 서버 안의 참조(O11·R1·이벤트)는 이것으로 |
-| `media_id` | UUID | N | FK→M1 `PROTECT` | 이 매체의 요청만 이 그룹을 쓸 수 있다 |
+| `segment_id` | UUID | N | PK | 서버 안의 참조(판 M8·이벤트, [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] O11·R1)는 이것으로 |
+| `media_id` | UUID | N | FK→M1 `PROTECT` | 그룹은 매체별이다(코드는 매체 안에서 유일). [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] 이 매체의 요청만 이 그룹을 쓸 수 있다 |
 | `code` | 문자 32 | N | UNIQUE(media, code), `CHECK` 형식 `^[a-z][a-z0-9-]{0,31}$`, **등록 뒤 바꿀 수 없음** | 매체가 보내는 코드 그대로(R-1의 예외). R-8(코드 값은 대문자)의 대상이 아니다 — 서버의 선택지 값이 아니라 매체의 키다 |
 | `name` | 문자 100 | N | | 사람용 이름(예 "MLO 과정"). 식별에 쓰지 않는다 |
-| `is_active` | 불리언 | N | | 거짓 = 보관. 보관된 그룹은 새로 고를 수 없고, 요청에 실려 오면 받아서 결정에 남기되 "그룹 없음"으로 맞춘다 |
+| `is_active` | 불리언 | N | | 거짓 = 보관(행은 남고 되살릴 수 있다). [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] 보관된 그룹은 새로 고를 수 없고, 요청에 실려 오면 받아서 결정에 남기되 "그룹 없음"으로 맞춘다 |
 | `created_at` | 시각 | N | | |
 
-#### M8. 대상 그룹 판 `masters_segment_version` [예약] [추가 전용 버전]
+#### M8. 대상 그룹 판 `masters_segment_version` [추가 전용 버전]
 
 M7을 만들 때(판 1)와 이름·보관 상태가 바뀔 때마다 그때 상태 전체를 남기는 이력. 열 모양(판 번호·바꾼 사람·시각)은 입찰 정책(M3)과 같지만, M3와 달리 **현재 값은 최대 판이 아니라 M7**이다(결정 경로는 M7만 읽는다). `ad.segment_changed` 의 원천이다.
 
@@ -834,12 +834,12 @@ M7을 만들 때(판 1)와 이름·보관 상태가 바뀔 때마다 그때 상�
 
 | 컬럼 | 타입 | NULL | 키·제약 | 설명 |
 |---|---|---|---|---|
-| `event_id` | UUID | N | **PK** | 이벤트 ID = MongoDB `_id`. 원천 행 ID(결정 `decision_id`·수신함 `inbox_id`·원장 `entry_id`·정책 버전 `bid_policy_id`·입찰 `bid_id`·변경 로그 `change_id`·대상 그룹 판 `segment_version_id` [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"])와 `event_name`에서 결정적으로 만든 **UUIDv5**(R-2의 예외). 같은 이벤트를 두 번 쓰면 PK가 막아 한 줄만 남는다(다시 써도 바뀌지 않음). 모델 기본값은 없다 — 빠뜨리면 저장이 실패한다. Kafka `after.event_id` |
-| `event_name` | 문자 64 | N | 색인(아래) | `ad.decision`·`ad.reaction_received`·`ad.reaction`·`ad.charge`·`ad.bid_policy_changed`·`ad.bid_added`·`ad.campaign_changed`·`ad.ad_group_changed`·`ad.segment_changed`([예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"])(버전은 붙이지 않음). Kafka `after.event_name` |
+| `event_id` | UUID | N | **PK** | 이벤트 ID = MongoDB `_id`. 원천 행 ID(결정 `decision_id`·수신함 `inbox_id`·원장 `entry_id`·정책 버전 `bid_policy_id`·입찰 `bid_id`·변경 로그 `change_id`·대상 그룹 판 `segment_version_id`)와 `event_name`에서 결정적으로 만든 **UUIDv5**(R-2의 예외). 같은 이벤트를 두 번 쓰면 PK가 막아 한 줄만 남는다(다시 써도 바뀌지 않음). 모델 기본값은 없다 — 빠뜨리면 저장이 실패한다. Kafka `after.event_id` |
+| `event_name` | 문자 64 | N | 색인(아래) | `ad.decision`·`ad.reaction_received`·`ad.reaction`·`ad.charge`·`ad.bid_policy_changed`·`ad.bid_added`·`ad.campaign_changed`·`ad.ad_group_changed`·`ad.segment_changed`(버전은 붙이지 않음). Kafka `after.event_name` |
 | `schema_version` | 작은 정수 | N | | 이벤트 종류별: `ad.decision` 2([예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] 3 — 이전 결정의 재구성은 2), 나머지 1. 그 종류의 페이로드 모양이 바뀌면 그 종류만 올린다 |
-| `aggregate_id` | UUID | N | | 종류별 대상(결정·접수·판정·과금은 `decision_id`, 입찰 정책은 `slot_id`, 입찰·광고그룹 변경은 `ad_group_id`, 캠페인 변경은 `campaign_id`, 대상 그룹 판은 `segment_id` [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"]). Kafka에는 `after.aggregate_id`로 실린다. Kafka 메시지 키는 `event_id`다(2026-11-04 — §5.6 "전달 방식") |
+| `aggregate_id` | UUID | N | | 종류별 대상(결정·접수·판정·과금은 `decision_id`, 입찰 정책은 `slot_id`, 입찰·광고그룹 변경은 `ad_group_id`, 캠페인 변경은 `campaign_id`, 대상 그룹 판은 `segment_id`). Kafka에는 `after.aggregate_id`로 실린다. Kafka 메시지 키는 `event_id`다(2026-11-04 — §5.6 "전달 방식") |
 | `payload` | JSON | N | | §5.6의 필드. 이름·형식은 `events/schemas.py` 한 곳 |
-| `created_at` | 시각 | N | 색인(아래) | 이벤트의 `produced_at`: 결정 = 결정 시각, 접수 = 수신 시각, 판정 = 처리 시각, 과금 = 과금을 일으킨 반응의 처리 시각(판정과 같은 처리 트랜잭션의 같은 시각), 입찰 정책 = 정책 버전의 변경 시각, 입찰 = 입찰 버전을 만든 시각, 캠페인·광고그룹 변경 = 변경 시각, 대상 그룹 판 = 판의 변경 시각 [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"]. MongoDB에는 밀리초로 잘라 넣는다. Kafka `after.created_at`(마이크로초 그대로, UTC `Z` — Silver에서 `produced_at`) |
+| `created_at` | 시각 | N | 색인(아래) | 이벤트의 `produced_at`: 결정 = 결정 시각, 접수 = 수신 시각, 판정 = 처리 시각, 과금 = 과금을 일으킨 반응의 처리 시각(판정과 같은 처리 트랜잭션의 같은 시각), 입찰 정책 = 정책 버전의 변경 시각, 입찰 = 입찰 버전을 만든 시각, 캠페인·광고그룹 변경 = 변경 시각, 대상 그룹 판 = 판의 변경 시각. MongoDB에는 밀리초로 잘라 넣는다. Kafka `after.created_at`(마이크로초 그대로, UTC `Z` — Silver에서 `produced_at`) |
 | `sent_at` | 시각 | Y | 색인(아래) | MongoDB에 저장한 시각. **비어 있으면 미전송**. Kafka에는 싣지 않는다 |
 
 색인 `events_outbox_pending_idx (sent_at, created_at)`: 중계가 미전송 행을 오래된 것부터 집고, 보존 정리가 오래전에 보낸 행을 찾는다(구간 manifest의 미전송 건수도 이것으로 미전송 행만 읽는다). `events_outbox_name_created_idx (event_name, created_at)`: 구간 manifest가 이벤트 종류·창마다 그 범위만 읽는다. FK는 없다(원천 행과 같은 트랜잭션에 쓰는 대기열). 집계 종류 열(`aggregate_type`)은 두지 않았다 — 종류는 `event_name`으로 알고, Kafka 토픽이 하나라 나눌 기준도 필요 없다. 보낸 행은 7일 뒤 지운다(§6).
@@ -872,7 +872,8 @@ M7을 만들 때(판 1)와 이름·보관 상태가 바뀔 때마다 그때 상�
 | 결정은 저장한 뒤에만 응답 | — | 저장 실패는 예외로 전파 | `case_decision_not_saved_when_storage_fails` |
 | 변경 로그의 변경 종류는 대상에 맞는 것만, `CREATED` 만 이전 값이 없다 | `CHECK` 둘(O10) | 쓰는 곳은 `record_change` 하나 | `case_a_change_is_one_log_row_and_one_event_with_the_same_values` |
 | 캠페인·광고그룹 변경은 로그 한 줄 + 이벤트 하나, 값이 그대로면 없음 | — | `record_change`(같은 값·같은 트랜잭션, 밖이면 거부) | `case_campaign_changes_are_logged_with_their_event_at_each_documented_point`, `case_ad_group_changes_are_logged_with_their_event_at_each_documented_point` |
-| 대상 그룹 코드는 매체 안에서 유일하고 바꿀 수 없다 [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] | UNIQUE(media, code), `CHECK` 형식 | 모델 `save()` 거부(코드 변경), 등록 검증 | (구현 S1) |
+| 대상 그룹 코드는 매체 안에서 유일하고 바꿀 수 없다 | UNIQUE(media, code), `CHECK` 형식 | 모델 `save()` 거부(코드 변경), 등록 검증(다듬지 않음) | `case_the_code_is_unique_per_media_but_free_across_media`, `case_the_code_must_match_the_format_and_is_never_trimmed`, `case_the_code_cannot_be_changed` |
+| 대상 그룹을 바꿀 때마다 판 한 줄 + 이벤트 하나(같은 트랜잭션), 값이 그대로면 없음, 본 판이 다르면 거절 | UNIQUE(segment, version) | 그룹 행을 `FOR UPDATE`로 잠근 뒤 판 대조(진 쪽은 409 `stale_version`) | `case_rename_archive_and_restore_each_add_a_full_version_and_an_event`, `case_a_change_that_changes_nothing_writes_nothing`, `test_two_changes_from_the_same_version_one_wins` |
 | 광고그룹에 새로 고르는 대상 그룹은 살아 있고 그 광고그룹이 고른 구성의 매체 것 [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] | O11 FK `PROTECT` | 400, 그룹 행 공유 잠금 | (구현 S2) |
 | 요청 그룹은 그 매체의 카탈로그에 있어야 한다 [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] | — | 400 `unknown_segment`(결정 없음) | (구현 S3) |
 | 대상 그룹 필터는 끌 수 없다 [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] | — | 필수 필터(설정과 무관) | (구현 S3) |
@@ -1158,8 +1159,8 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 |---|---|---|
 | `event_id` | UUID | 이벤트 고유 ID = MongoDB `_id`(UUID 표준 이진). 원천 행 ID와 `event_name`에서 결정적으로 만든 UUIDv5라 **재처리·재전송해도 같은 값**(소비자가 중복 제거) |
 | `event_name` | 문자 | 예 `ad.decision` |
-| `schema_version` | 정수 | 종류별 — `ad.decision` 2, 나머지 일곱 종류 1. [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] `ad.decision` 3(이 기능 이전 결정의 재구성·백필은 2), 새 종류 `ad.segment_changed` 1 |
-| `produced_at` | 시각(UTC) | 이벤트를 만든 시각: **결정 = 결정 시각, 접수 = 수신 시각, 판정 = 처리 시각, 과금 = 과금을 일으킨 반응의 처리 시각(판정과 같은 처리 트랜잭션의 같은 시각), 입찰 정책 = 정책 버전의 변경 시각, 입찰 = 입찰 버전을 만든 시각, 캠페인·광고그룹 변경 = 변경 시각**. 과금 이벤트의 `produced_at`은 페이로드의 원장 시각(`created_at` = 반응 수신 시각)과 다르다. MongoDB 날짜라 **밀리초까지** |
+| `schema_version` | 정수 | 종류별 — `ad.decision` 2, 나머지 여덟 종류 1(`ad.segment_changed` 포함). [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] `ad.decision` 3(이 기능 이전 결정의 재구성·백필은 2) |
+| `produced_at` | 시각(UTC) | 이벤트를 만든 시각: **결정 = 결정 시각, 접수 = 수신 시각, 판정 = 처리 시각, 과금 = 과금을 일으킨 반응의 처리 시각(판정과 같은 처리 트랜잭션의 같은 시각), 입찰 정책 = 정책 버전의 변경 시각, 입찰 = 입찰 버전을 만든 시각, 캠페인·광고그룹 변경 = 변경 시각, 대상 그룹 판 = 판의 변경 시각**. 과금 이벤트의 `produced_at`은 페이로드의 원장 시각(`created_at` = 반응 수신 시각)과 다르다. MongoDB 날짜라 **밀리초까지** |
 | `payload` | 객체 | 아래. 안의 UUID는 문자열, 시각은 UTC ISO 8601 문자열(마이크로초까지) |
 
 **전달 방식**: outbox(업무 DB, 같은 트랜잭션) → 운영에서는 Debezium 일반 CDC가 Kafka 토픽 `ads.outbox.events` 하나로 보내고 파이프라인 쪽 Bronze가 봉투 그대로 쌓는다(로컬 병행 기간에는 광고 서버 중계가 MongoDB `ad_events`에도 멱등 저장한다 — `_id = event_id`): value = Debezium 원본 변경 봉투 — `before`(늘 null)·`after`(outbox 봉투 열 `event_id`·`event_name`·`schema_version`(정수)·`aggregate_id`·`payload`(DB에 저장된 JSON 원문 문자열 — 소비자가 한 번 더 해석)·`created_at`(마이크로초 UTC `Z`))·`source`(출처 `db`·`schema`·`table`, 원천 위치 `lsn`·`txId`(삽입 트랜잭션 번호 — 함께 커밋된 이벤트 묶음)·`sequence`, 커밋 시각 `ts_ms`·`ts_us`, `snapshot`)·`op`(스트리밍은 `c`, outbox에서 다시 보낸 행(재발행 — 장애 복구, 또는 커넥터 등록이 늦었을 때 첫 창 메우기)은 `r`. 둘은 같은 이벤트다)·`ts_ms`. 커넥터의 변환은 토픽 이름뿐이고, `after` 추출과 MongoDB 봉투 이름 맞춤(`created_at` → `produced_at`)은 Silver가 한다. 헤더에는 봉투를 싣지 않는다. UPDATE·DELETE는 INSERT 전용 publication이라 흐르지 않는다. 스키마 저장소는 확장 항목이다. **최소 한 번 전달**이므로 소비자는 `event_id`로 중복을 제거한다. `op` `c`와 `r`는 같은 문서로 센다. 같은 `event_id`인데 `after`(봉투 6열)가 다르면 중복이 아니라 내용 충돌이다 — 알리고, 구간 대조에서는 그 창을 확정하지 않는다(아래 "대조 결과 분류"). **메시지 키는 `event_id`**(outbox PK, Debezium 기본 키 — 2026-11-04). 처음에는 종류별 대상(`aggregate_id`)을 키로 두었다. 그런데 재발행에 쓰는 Debezium 증분 스냅샷이 같은 키의 행을 하나로 합쳐서, 같은 대상(`aggregate_id`)의 여러 행 중 하나만 남았다(실측: 한 시간 창 68,440행 중 16,489행만 옴 — 대상 수와 같음). 그래서 바꿨다. 종류별 대상은 `after.aggregate_id`로 그대로 실린다(결정·접수·판정·과금은 `decision_id`, 입찰 정책은 `slot_id`, 입찰·광고그룹 변경은 `ad_group_id`, 캠페인 변경은 `campaign_id`). 팀 DRD 6.9는 `user_id`를 키로 쓰지만 광고 서버는 `user_id`를 모른다. **순서는 보장하지 않는다** — 소비자가 다시 맞춘다: 결정·반응·과금은 `decision_id`, 입찰 정책·입찰은 대상별 버전(`slot_id` + `policy_version`, `ad_group_id` + `bid_version` — 잠금 아래에서 매기고 유일 제약이 지키는 단조 값), 캠페인·광고그룹 변경은 `(changed_at, change_id)`. 한 요청의 여러 변경 줄은 `changed_at`이 같고 `event_id`(UUIDv5)는 시간 순서가 아니라 전달 순서가 임의다. **백필**은 결정·접수·판정·과금만 한다 — 나머지 넷은 하지 않는다(설계서 결정 D8). **순서는 보장하지 않는다**: 중계는 오래된 것부터 보내지만 여러 중계가 동시에 돌고 재전송이 있으며, Kafka의 순서 보장도 같은 토픽·같은 파티션 안뿐이다. 소비자는 반응이 결정보다 먼저 보일 수 있다고 보고 `decision_id`로 다시 맞춘다. 토픽·파티션 단위의 순서도 보장하지 않는다. 키가 `event_id`라 한 결정의 이벤트가 여러 파티션에 흩어진다(2026-11-04 정함). **요청 경로는 MongoDB를 호출하지 않는다** — 요청은 outbox에만 쓰고, MongoDB가 끊기면 이벤트는 쌓였다가 복구 뒤 상시 중계가 옮긴다(짧은 재시작 시험에서 요청 503 0은 관찰값이고, 장기 장애는 확인하지 않았다 — 설계서 §10 "MongoDB 장애와 요청").
@@ -1248,7 +1249,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 
 캠페인 중단 사유·캠페인·광고그룹 이름은 싣지 않는다(자유문·표시용).
 
-**`ad.segment_changed.v1`** [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] — 대상 그룹 판(M8)마다 한 건(판 행과 같은 트랜잭션 — 등록의 첫 판 포함). 백필하지 않는다(설계서 결정 D8과 같은 범위).
+**`ad.segment_changed.v1`** — 대상 그룹 판(M8)마다 한 건(판 행과 같은 트랜잭션 — 등록의 첫 판 포함). 백필하지 않는다(설계서 결정 D8과 같은 범위).
 
 | 필드 | 원본 | 비고 |
 |---|---|---|
@@ -1346,7 +1347,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 | 결정 | 광고 요청 | **없음** | 보존 기간 후 [열림] | 설정값 [열림 §7-8] |
 | 반응(원문 포함) | 매체 보고·클릭 관측 | 상태만 | 보존 기간 후 [열림] | 설정값 [열림 §7-8] |
 | 감사 로그 | 모든 변경 | **없음** | [열림] | [열림] |
-| 이벤트 outbox | 결정·접수·판정·과금·입찰 정책·입찰·캠페인·광고그룹 변경 트랜잭션 | `sent_at`만(로컬 병행 기간의 중계가 표시) | 로컬 병행 기간: **보낸 뒤 7일**이 지난 행을 `purge_sent_events`가 지움, 미전송은 지우지 않음. 운영: 중계가 없어 지우지 않는다 — 창 확정 뒤 창 단위 정리 **[예약 — D8, 구현 P1-6]** | 로컬 병행 기간: 7일(`EVENTS_OUTBOX_RETENTION_DAYS`). 운영: 창 확정 정리(P1-6) 전까지 지우지 않음 |
+| 이벤트 outbox | 결정·접수·판정·과금·입찰 정책·입찰·캠페인·광고그룹 변경·대상 그룹 판 트랜잭션 | `sent_at`만(로컬 병행 기간의 중계가 표시) | 로컬 병행 기간: **보낸 뒤 7일**이 지난 행을 `purge_sent_events`가 지움, 미전송은 지우지 않음. 운영: 중계가 없어 지우지 않는다 — 창 확정 뒤 창 단위 정리 **[예약 — D8, 구현 P1-6]** | 로컬 병행 기간: 7일(`EVENTS_OUTBOX_RETENTION_DAYS`). 운영: 창 확정 정리(P1-6) 전까지 지우지 않음 |
 | MongoDB 이벤트 로그(로컬 병행 기간만) | outbox 중계 | 없음(추가만) | 보존 기간 후 | 설정값 [열림 §7-8] |
 | NDJSON 결과(데이터 파일 세대 + manifest) | 점검·백필 도구 | 없음(세대마다 새 파일, manifest만 교체) | 옛 세대 파일은 자동으로 지우지 않음 | 설정값 [열림 §7-8] |
 | 세션(`django_session`) | 로그인 | 활동 시 갱신 | 로그아웃·`clearsessions`(만료분, 매일). 비활성화는 세션 검증 값(`session_epoch`)으로 끝낸다 | 세션 만료 시간 |
@@ -1362,7 +1363,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 |---|---|---|
 | **L3** | 비밀번호 해시, 로그인 아이디(`username`), 매체 키(원문은 발급 시 한 번만 보여 주고 해시만 저장), `SECRET_KEY`·`FRONTEND_SECRET_KEY` | 이벤트·로그·감사 상세에 넣지 않는다. 로그·감사는 비밀 키 이름을 자동 제거 |
 | **L2** | `subject_id`(노출 대상 가명 — 매체가 만든 **광고 전용 가명**이고 다른 시스템의 식별자가 아니다, C1 v1.2), 매체 `context`, IP 주소(감사 로그·로그인 잠금 기록), 광고주 `nickname`·`class_label`, `actor_username` | `subject_id`는 **수집만 하고 해석·응답하지 않는다**. 광고주·관리자 화면과 API 응답에 되돌려주지 않는다(설계서 §3). **MongoDB `ad_events`에 쌓인다**: 결정·접수·판정 이벤트의 `subject_id`, 판정 이벤트의 `person_id`·`basis`, 접수 이벤트의 원문(`raw`). 분석 계층 접근 권한을 분리하고(인프라 계정은 아직 나뉘지 않음, 위협 모델 T41), 보존 기간은 §6 |
-| **L1** | 매체·슬롯·정책, 캠페인·광고그룹·소재·입찰, 결정의 광고 선택, 원장 금액, 대상 그룹 카탈로그(코드·이름)와 결정의 그룹 열 [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] — 단 결정 이벤트는 가명 `subject_id`와 함께 실리므로 L2 규칙을 따른다 | 광고주는 자기 것만(R-9). 소재 제목·이동 주소는 **신뢰할 수 없는 값**으로 표시(매체가 이스케이프) |
+| **L1** | 매체·슬롯·정책, 캠페인·광고그룹·소재·입찰, 결정의 광고 선택, 원장 금액, 대상 그룹 카탈로그(코드·이름), 결정의 그룹 열 [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] — 단 결정 이벤트는 가명 `subject_id`와 함께 실리므로 L2 규칙을 따른다 | 광고주는 자기 것만(R-9). 소재 제목·이동 주소는 **신뢰할 수 없는 값**으로 표시(매체가 이스케이프) |
 
 추가 규칙:
 
@@ -1463,6 +1464,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 
 | 버전 | 날짜 | 내용 |
 |---|---|---|
+| 0.75 | 2026-11-08 | 대상 그룹 카탈로그 구현(TG-S1)으로 [예약]을 걷음: M7·M8(마이그레이션 `masters/0003_segment`), R-5 M8, R-6 보관, ER 두 줄, §4.2 두 줄, P3 `event_id`·`event_name`·`aggregate_id`·`created_at`의 대상 그룹 판, §5.6 봉투 `schema_version`·`ad.segment_changed.v1`, §4.4 코드 규칙 줄(시험 이름)과 새 줄(판·이벤트·본 판 대조), L1의 카탈로그, §5.6 봉투 `produced_at`. M7 절의 S2·S3 동작(요청 코드 풀기·O11·R1 참조·보관 그룹의 선택·결정)은 문장마다 [예약]. Kafka 토픽은 아홉 종류. O11·R1 열·`SEGMENTS_CHANGED`·`ad.decision` v3·C1 1.6·R-1 예외는 [예약] 그대로(S2·S3) |
 | 0.74 | 2026-11-08 | 대상 그룹 타기팅 결정(사용자 — 설계서 §10 "대상 그룹 타기팅")을 [예약]으로: M7 대상 그룹(현재 값의 원본)·M8 대상 그룹 판(추가 전용 이력)·O11 광고그룹-대상 그룹 표, R1 열 넷(`segment_id`·`segment_active`·`target_segment_ids`·`segment_rule`)과 묶음 제약, O10 `SEGMENTS_CHANGED`·`CREATED`의 `segment_ids`, P3·§5.6 `ad.decision` v3·`ad.segment_changed` v1, §5.2 C1 1.6 `segment`, R-1 예외(그룹 코드), R-5·R-6, M2 일괄은 화면에서만 비활성화, §4.4 네 줄, §7. §0 엔터티 수를 실제(22, O10을 빠뜨렸던 수)로 바로잡음. 각 구현 Step이 자기 [예약]을 걷는다 |
 | 0.73 | 2026-11-05 | C2 운영 경로를 지금 구조로(사용자 결정 — 1차 배포 = Bronze까지, 운영에는 MongoDB 중계가 없음 [설계서 D17]): §0 저장소, §2.1 "지금"의 C2 = outbox → Debezium 일반 CDC → Kafka `ads.outbox.events` → 파이프라인 쪽 Bronze(이 토픽의 메시지 모양과 이벤트 스키마가 계약 면), "확장"의 C2 줄은 스키마 저장소 줄로(Bronze는 C2 경로로 옮겨 분석 계층 줄은 Silver/Gold만), §2.2 MongoDB·Kafka 줄과 저장소 기준, §4 P3 설명(운영 CDC 먼저, 중계는 로컬 병행 기간), §5.1 C2 줄, §5.6 "전달 방식" 첫 문장과 구간 ④("확장" → 운영 경로의 구간), §2.1 내부 흐름 그림(Debezium CDC → Kafka → Bronze 점선, MongoDB는 로컬 병행 기간만), §2.3 분석 계층 대응(운영 Bronze = 파이프라인 쪽 Delta 표, 광고 서버 안 대응은 그대로), §5.9 `relay_events`·`purge_sent_events` 실행 칸, §6 outbox·MongoDB 수명주기(운영 outbox는 중계가 없어 지우지 않음 — 창 확정 정리 [예약 D8·P1-6]), §9 `log_id` 설명. MongoDB `ad_events`와 중계는 로컬 병행 기간만. 표·스키마는 그대로 |
 | 0.72 | 2026-11-05 | §5.6·§5.9 파이프라인 쪽을 구현된 규칙으로(P1-8·P2-1·P2-2·P2-2a, 4시간 실행으로 확인): ④ manifest는 파이프라인 잡이 S3 `manifests/hop_pipeline/`에 게시하고 `fetch_hop_manifest`로 받음, `hop_pipeline` 줄·`checkpoint.since`(파이프라인 쪽 주어 — 요약 범위 시작)·`rule_sha256`의 [예약] 걷음, 설정 `EVENTS_HOP_WITH_MONGO`(운영 끔 — ③을 내지도 대조하지도 않음, 창 확정의 MongoDB 조건도 두 설정이 모두 켜졌을 때만), `started_at`·`open_windows`의 뜻(창 닫힘 기준 시각, 놓인 행이 있는 열린 창만), `since`는 파이프라인이 늘 싣는다, `open_window`는 한쪽만 열려도, 이벤트가 없는 창은 판정하지 않음(감사 한도 초과 때의 전 범위 미확정은 빈 창 포함), 예외 창도 미확정이고 파이프라인이 끼지 않은 쌍의 불일치는 예외로 넘기지 않음, §5.9에 `fetch_hop_manifest`·`reconcile_hops`(한 번의 순서, 창 닫힘 = 받은 `started_at`과 지금 가운데 이른 쪽, 종료 코드 0·1·2·3·75와 1의 두 뜻). 표·스키마는 그대로 |

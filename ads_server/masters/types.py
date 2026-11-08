@@ -73,3 +73,31 @@ class SlotView:
     audience: str  # `individual` | `shared`
     is_active: bool
     policy: PolicyView  # 현재 정책. 슬롯은 항상 정책을 가진다(create_slot 이 함께 만든다)
+
+
+@dataclass(frozen=True)
+class SegmentView:
+    """대상 그룹의 현재 값(DRD M7)과 그 판 번호(바꿀 때 `expected_version` 으로 되돌려 보낸다)."""
+
+    segment_id: uuid.UUID
+    media_id: uuid.UUID
+    code: str
+    name: str
+    is_active: bool
+    version: int
+    created_at: datetime
+
+
+@dataclass(frozen=True)
+class SegmentVersionView:
+    """대상 그룹 판 하나(DRD M8) — `ad.segment_changed` 의 원천. 매체·코드는 그룹 행(M7)의 값이다(바뀌지 않는다)."""
+
+    segment_version_id: uuid.UUID
+    segment_id: uuid.UUID
+    media_id: uuid.UUID
+    code: str
+    version: int
+    name: str
+    is_active: bool
+    changed_by: uuid.UUID
+    changed_at: datetime

@@ -16,6 +16,7 @@ from events import api as events
 from events import ndjson, store
 from events.models import EventOutbox
 from events.relay import relay_batch
+from masters import api as masters
 from foundation.models import AuditLog
 from records import api as records
 from records import backfill
@@ -48,6 +49,7 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         view, _ = records.receive_reaction(w.slot.media_id, self.decision.decision_id, uuid.uuid4(), "IMPRESSION", NOW, {"type": "IMPRESSION"}, now=NOW)
         records.process_reaction(view.inbox_id, now=NOW + timedelta(seconds=7))  # 처리 시각 ≠ 수신 시각
         self.inbox_id = view.inbox_id
+        masters.create_segment(w.admin, w.slot.media_id, "mlo", "MLO", now=NOW)  # 대상 그룹 판(백필하지 않는 종류 — D8)
         self.live = snapshot(outbox())  # 라이브 경로가 만든 이벤트 4건 = 백필이 재현해야 할 기준(구성의 첫 정책 이벤트는 백필 대상이 아니라 그대로 둔다)
         self.assertEqual(len(self.live), 4)
 
@@ -96,14 +98,14 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.assertEqual({kind for kind, scanned in stats.items() if scanned}, set(backfill.SOURCE_KINDS.values()))  # 세계에 종류마다 한 줄 이상 — 실제로 훑었다(기본값 0 이 아니다)
 
     def case_kinds_that_are_not_backfilled_are_counted_as_excluded_and_the_rest_is_written(self):
-        """정책·입찰·캠페인·광고그룹 변경 이벤트는 백필하지 않는다(계획 docs/plans/00 D8). 누락 목록에 섞여 있어도 목록 전체를 거부하지 않고 `excluded` 로 센 뒤 나머지를 쓴다 — 실패로 끝나지 않는다."""
+        """정책·입찰·캠페인·광고그룹·대상 그룹 변경 이벤트는 백필하지 않는다(계획 docs/plans/00 D8). 누락 목록에 섞여 있어도 목록 전체를 거부하지 않고 `excluded` 로 센 뒤 나머지를 쓴다 — 실패로 끝나지 않는다."""
         EventOutbox.objects.all().delete()
         ok, text = self.run_backfill(self.gaps_manifest(), "--apply")
         self.assertTrue(ok, text)
         rows, manifest = self.result_rows()
         self.assertEqual(sorted(r["event_name"] for r in rows if r["outcome"] == "excluded"),
-                         ["ad.ad_group_changed"] * 2 + ["ad.bid_added", "ad.bid_policy_changed", "ad.campaign_changed"])  # 광고그룹은 생성·소재 선택 둘
-        self.assertEqual((manifest["checkpoint"]["counts"]["excluded"], manifest["checkpoint"]["counts"]["written"], manifest["checkpoint"]["counts"]["unresolved"]), (5, 4, 0))
+                         ["ad.ad_group_changed"] * 2 + ["ad.bid_added", "ad.bid_policy_changed", "ad.campaign_changed", "ad.segment_changed"])  # 광고그룹은 생성·소재 선택 둘
+        self.assertEqual((manifest["checkpoint"]["counts"]["excluded"], manifest["checkpoint"]["counts"]["written"], manifest["checkpoint"]["counts"]["unresolved"]), (6, 4, 0))
         self.assertFalse(EventOutbox.objects.filter(event_name__in=backfill.NOT_BACKFILLED).exists())  # 만들지 않았다
         self.assertEqual(snapshot(outbox()), self.live)  # 나머지 넷은 라이브와 같다
 

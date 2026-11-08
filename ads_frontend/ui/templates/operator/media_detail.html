@@ -35,6 +35,47 @@
   <button type="submit">만들기</button>
 </form>
 
+<h2>대상 그룹</h2>
+<p class="help">매체가 정한 사용자 묶음(예: 과정)입니다. 매체는 결정 요청의 <code>segment</code>에 코드를 실어 보냅니다. 삭제는 없고 보관합니다 — 보관한 그룹은 행이 남고 언제든 되살릴 수 있습니다.</p>
+<div class="module">
+  <table>
+    <thead><tr><th scope="col">코드</th><th scope="col">이름</th><th scope="col">상태</th><th scope="col">판</th><th scope="col">바꾸기</th></tr></thead>
+    <tbody>
+    {% for g in segments %}
+      <tr>
+        <td><code>{{ g.code }}</code></td>
+        <td>
+          <form method="post" action="{% url 'operator:segment_name' g.segment_id %}">{% csrf_token %}
+            <input type="hidden" name="media_id" value="{{ media.media_id }}">
+            <input type="hidden" name="expected_version" value="{{ g.version }}">
+            <input type="text" name="name" value="{{ g.name }}" maxlength="100" required aria-label="{{ g.code }} 이름">
+            <button type="submit">이름 바꾸기</button>
+          </form>
+        </td>
+        <td>{% if g.is_active %}사용{% else %}보관됨{% endif %}</td>
+        <td>{{ g.version }}</td>
+        <td>
+          <form method="post" action="{% url 'operator:segment_active' g.segment_id %}">{% csrf_token %}
+            <input type="hidden" name="media_id" value="{{ media.media_id }}">
+            <input type="hidden" name="expected_version" value="{{ g.version }}">
+            <input type="hidden" name="active" value="{% if g.is_active %}0{% else %}1{% endif %}">
+            <button type="submit">{% if g.is_active %}보관{% else %}되살리기{% endif %}</button>
+          </form>
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5">대상 그룹이 없습니다.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+<h3>대상 그룹 등록</h3>
+<p class="help">새 그룹은 매체가 그 코드를 보내기 <strong>전에</strong> 여기 먼저 등록합니다(등록되지 않은 코드는 결정 요청이 거절됩니다).</p>
+<form method="post" action="{% url 'operator:segment_create' media.media_id %}" id="segment-create">{% csrf_token %}
+  {{ segment_form.as_div }}
+  <button type="submit">등록</button>
+</form>
+
 <h2>매체 키</h2>
 <p class="help">키 평문은 발급한 화면에서 한 번만 보입니다. 목록에는 키 식별자와 상태만 나옵니다.</p>
 <div class="module">

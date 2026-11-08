@@ -40,6 +40,9 @@ def _sources(stats):
     for v in campaigns.change_rows(campaigns.ChangeTarget.AD_GROUP):
         stats["ad_group_change"] = stats.get("ad_group_change", 0) + 1
         yield "ad_group_change", v.change_id, events.NAMES["ad_group_changed"]
+    for v in masters.segment_versions():
+        stats["segment_version"] = stats.get("segment_version", 0) + 1
+        yield "segment_version", v.segment_version_id, events.NAMES["segment_changed"]
 
 
 def event_gaps(stats=None):

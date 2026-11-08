@@ -50,7 +50,7 @@ from foundation.api import User  # noqa: E402
 from masters import api as masters  # noqa: E402
 
 OK = {200, 201}
-EVENT_NAMES = {"ad.decision", "ad.reaction_received", "ad.reaction", "ad.charge", "ad.bid_policy_changed", "ad.bid_added", "ad.campaign_changed", "ad.ad_group_changed"}
+EVENT_NAMES = {"ad.decision", "ad.reaction_received", "ad.reaction", "ad.charge", "ad.bid_policy_changed", "ad.bid_added", "ad.campaign_changed", "ad.ad_group_changed", "ad.segment_changed"}
 ACK = {"decision": OK, "reaction": OK, "click": {302}}  # 클릭 주소는 랜딩으로 302 가 정상
 
 
@@ -182,7 +182,8 @@ class Traffic:
 
 
 def changes(ctx, every, until, done):
-    """광고주·관리자 변경 넷을 돌아가며: 입찰 정책(ad.bid_policy_changed), 입찰(ad.bid_added), 캠페인(ad.campaign_changed), 광고그룹(ad.ad_group_changed)."""
+    """광고주·관리자 변경 다섯을 돌아가며: 입찰 정책(ad.bid_policy_changed), 입찰(ad.bid_added), 캠페인(ad.campaign_changed), 광고그룹(ad.ad_group_changed),
+    대상 그룹(ad.segment_changed — 시드에 없으면 처음에 하나 만들고, 그다음부터 이름을 번갈아 바꾼다. 어느 광고그룹도 대상으로 고르지 않아 유입의 결정에는 영향이 없다)."""
     admin = User.objects.get(username=ctx["admin"])
     adv = User.objects.get(username=ctx["advertisers"][0])
     campaign = campaigns.list_campaigns(adv)[-1]  # 가장 먼저 만든 캠페인(시드)
@@ -190,7 +191,7 @@ def changes(ctx, every, until, done):
     group, shared = groups[0], groups[1]  # 개인 슬롯 그룹, 일괄 슬롯 그룹(시드 — 광고주 0만 있음)
     n = 0
     while time.monotonic() < until:
-        kind = n % 4
+        kind = n % 5
         try:
             if kind == 0:
                 p = masters.list_policy_versions(admin, ctx["slot_id"])[0]
@@ -201,9 +202,15 @@ def changes(ctx, every, until, done):
             elif kind == 2:
                 budget = campaigns.get_campaign(adv, campaign.campaign_id).daily_budget  # 이벤트는 예산·기간 변경만 싣는다(이름은 표시용)
                 campaigns.update_campaign(adv, campaign.campaign_id, {"daily_budget": 10**9 if budget != 10**9 else 10**9 - 1})
-            else:
+            elif kind == 3:
                 # 이벤트는 켜기/끄기·게재 위치만 싣는다. 일괄 슬롯 그룹을 켜고 끈다 — 유입(개인 슬롯)의 결정에는 영향이 없다
                 campaigns.update_ad_group(adv, shared.ad_group_id, {"enabled": not campaigns.get_ad_group(adv, shared.ad_group_id).enabled})
+            else:
+                segment = next((s for s in masters.list_segments(admin, ctx["media_id"]) if s.code == "e2e"), None)
+                if segment is None:
+                    masters.create_segment(admin, ctx["media_id"], "e2e", "e2e 그룹")
+                else:
+                    masters.update_segment(admin, segment.segment_id, segment.version, name="e2e 그룹" if segment.name != "e2e 그룹" else "e2e 그룹 2")
             done[kind] += 1
         except Exception as error:  # noqa: BLE001 — 시험 도구: 실패를 세고 계속 간다(판정에 보고)
             done[f"error_{kind}"] += 1

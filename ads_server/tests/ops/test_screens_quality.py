@@ -111,6 +111,9 @@ class ScreenQualityTests(Cases, TestCase):
         Client().post(reverse("login"), {"username": self.w.admin.username, "password": PW})  # 접속 기록
         AccessFailureLog.objects.create(username="nobody", ip_address="127.0.0.1", user_agent="test", path_info="/", locked_out=False)  # 설정이 꺼져 있어도 화면은 있다
         masters.issue_media_key(self.w.admin, self.w.slot.media_id, "점검")
+        archived = masters.create_segment(self.w.admin, self.w.slot.media_id, "skn", "<b>SKN</b>")  # 매체 상세의 대상 그룹 줄(사용·보관됨 둘 — 버튼이 다르다)
+        masters.update_segment(self.w.admin, archived.segment_id, 1, is_active=False)
+        masters.create_segment(self.w.admin, self.w.slot.media_id, "mlo", "MLO")
         masters.set_media_active(self.w.admin, masters.create_media(self.w.admin, "끈 매체").media_id, False)  # 매체 비활성화 기록
         records.decide(self.w.slot.media_id, self.w.slot.slot_id, subject_id=SUBJECT, now=NOW, rng=Random(1))
         billing.charge_for_reaction(self.w.adv.pk, self.w.campaign.campaign_id, "IMPRESSION", WHOLE, 10, f"{self.w.slot.media_id}:{uuid.uuid4()}", now=NOW)
@@ -156,6 +159,7 @@ class ScreenQualityTests(Cases, TestCase):
             "media_id": self.w.slot.media_id, "slot_id": self.w.slot.slot_id, "user_id": self.w.adv.pk, "name": self.w.creative.image_name,
             "review_request_id": campaigns.get_campaign(self.w.adv, self.suspended.campaign_id).suspension.open_review_request_id,
             "key_id": uuid.uuid4(),  # 폐기(POST 전용)에만 쓴다
+            "segment_id": uuid.uuid4(),  # 대상 그룹 이름·보관(POST 전용)에만 쓴다
         }
         audited = {resolve(url.split("?")[0]).view_name for _, urls in self.pages() for url in urls}
         clients = {}

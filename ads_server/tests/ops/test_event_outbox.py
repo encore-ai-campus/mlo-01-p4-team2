@@ -51,7 +51,7 @@ class EnqueueTests(Cases, TestCase):
         self.assertEqual((row.event_id, row.event_name, row.schema_version, row.aggregate_id, row.sent_at), (event_id, "ad.decision", 2, DECISION, None))
         self.assertEqual(schemas.SCHEMA_VERSIONS, {  # 종류별(6-10c): 결정만 2(단위 → `charge_shares`)
             "ad.decision": 2, "ad.reaction_received": 1, "ad.reaction": 1, "ad.charge": 1,
-            "ad.bid_policy_changed": 1, "ad.bid_added": 1, "ad.campaign_changed": 1, "ad.ad_group_changed": 1,
+            "ad.bid_policy_changed": 1, "ad.bid_added": 1, "ad.campaign_changed": 1, "ad.ad_group_changed": 1, "ad.segment_changed": 1,
         })
         self.assertEqual(row.created_at, NOW)  # produced_at = outbox 에 쓴 시각
         self.assertEqual(row.payload["decision_id"], str(DECISION))

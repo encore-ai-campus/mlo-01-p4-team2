@@ -1,7 +1,7 @@
 # 광고 서버 위협 모델
 
 > Status: Approved (2026-10-07, Step 0-0)
-> 기준: [ads-server-design.md](ads-server-design.md), [implementation-plan.md](implementation-plan.md)
+> 기준: [ads-server-design.md](ads-server-design.md)
 > 이 문서는 **구현과 함께 갱신한다.** 새 URL·모델·파일 경로·계약이 생기면 해당 위협과 검증 테스트를 이 표에 추가한다.
 > 문서가 인용한 테스트가 실제로 존재하는지는 `tests/dev/boundaries/test_threat_model_sync.py`가 검사한다.
 > 인용 이름은 시험(`test_…`)이거나 **규칙 시험 안의 경우(`case_…`)**다 — 6-18 부터 시험 클래스(규칙) 하나가 시험 하나이고, 옛 시험은 같은 이름 뒷부분의 경우로 남아 경우마다 따로 돈다(`tests/support/cases.py`, 설계 §10 "시험 구성" ④). 옛 이름 → 새 이름은 `tests/tools/test_renames_6_18.jsonl`.
@@ -50,7 +50,7 @@
 
 # 4. 위협과 대응
 
-대응 단계는 [implementation-plan.md](implementation-plan.md)의 단계 번호다. **검증**에는 완료 증거가 되는 테스트(또는 점검)를 적는다. 아직 구현 전인 단계는 계획된 이름이다.
+대응 단계는 광고 서버 구현 계획(이 저장소에 없음)의 단계 번호다. **검증**에는 완료 증거가 되는 테스트(또는 점검)를 적는다. 아직 구현 전인 단계는 계획된 이름이다.
 
 ## 4.1 계정·접근
 

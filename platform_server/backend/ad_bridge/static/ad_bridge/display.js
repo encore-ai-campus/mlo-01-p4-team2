@@ -27,7 +27,21 @@
       return true;
     }
     click() {
-      if (this.current) window.open(this.current.decision.ad.click_url, "_blank", "noopener,noreferrer");
+      if (!this.current) return;
+      const { decision } = this.current;
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = "/api/ads/decisions/" + encodeURIComponent(decision.decision_id) + "/click/";
+      form.target = "_blank";
+      // POST의 Origin을 유지해야 서버의 CSRF 검사를 통과한다.
+      form.rel = "noopener";
+      const csrf = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+        decodeURIComponent(document.cookie.match(/(?:^|; )(?:campus_csrftoken|csrftoken)=([^;]*)/)?.[1] || "");
+      for (const [name, value] of [["csrfmiddlewaretoken", csrf], ["token", decision.ad.click_token]]) {
+        const input = document.createElement("input");
+        input.type = "hidden"; input.name = name; input.value = value; form.append(input);
+      }
+      form.hidden = true; document.body.append(form); form.submit(); form.remove();
     }
   }
   root.AdBridgeDisplay = AdDisplay;

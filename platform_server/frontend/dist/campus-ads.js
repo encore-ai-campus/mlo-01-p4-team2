@@ -16,6 +16,16 @@
     }finally{clearTimeout(timer);}
   }
   function safeUrl(raw){const url=new URL(raw,location.href);if(!['https:','http:'].includes(url.protocol))throw Error('ad_url');return url.href;}
+  function clickForm(entry){
+    const form=document.createElement('form');
+    form.method='POST';form.action='/api/ads/decisions/'+encodeURIComponent(entry.decision_id)+'/click/';
+    // POST의 Origin을 유지해야 서버의 CSRF 검사를 통과한다.
+    form.target='_blank';form.rel='noopener';
+    for(const [name,value] of [['csrfmiddlewaretoken',csrf()],['token',entry.ad.click_token]]){
+      const input=document.createElement('input');input.type='hidden';input.name=name;input.value=value;form.append(input);
+    }
+    return form;
+  }
   function image(ad,cors=false){return new Promise((resolve,reject)=>{
     const img=new Image(),timer=setTimeout(()=>{img.onload=null;img.onerror=null;reject(Error('image_timeout'));},4000);if(cors)img.crossOrigin='anonymous';
     img.onload=()=>{clearTimeout(timer);resolve(img);};img.onerror=()=>{clearTimeout(timer);reject(Error('image_failed'));};
@@ -25,10 +35,7 @@
     if(reporting.has(decision))return;
     reporting.set(decision,true);
     // 접수 응답 유실 시 같은 결정을 한 번 재전송한다. 백엔드가 최초 반응 ID를 재사용한다.
-    const send=()=>post('decisions/'+decision+'/impression/').then(result=>{
-      if(Array.isArray(result.achievements))window.dispatchEvent(new CustomEvent('campus:achievements',{detail:result.achievements}));
-      if(result.newly_completed?.length)window.dispatchEvent(new CustomEvent('campus:achievement-earned',{detail:result}));
-    });
+    const send=()=>post('decisions/'+decision+'/impression/');
     send().catch(()=>setTimeout(()=>send().catch(()=>{}),1000));
   }
   async function refreshRoof(view){
@@ -83,8 +90,10 @@
         try{
           const img=await image(entry.ad);
           if(version!==portalVersion||!document.getElementById('floorTransitionDialog').open)return;
-          const link=document.createElement('a');link.href=safeUrl(entry.ad.click_url);link.target='_blank';link.rel='noopener noreferrer';
-          link.className='portal-ad portal-ad-'+index;img.alt=entry.ad.title;link.append(img);slot.append(link);slot.hidden=false;
+          safeUrl(entry.ad.click_url);
+          const form=clickForm(entry),button=document.createElement('button');
+          form.className='portal-ad portal-ad-'+index;button.type='submit';button.className='portal-ad-button';
+          img.alt=entry.ad.title;button.append(img);form.append(button);slot.append(form);slot.hidden=false;
           portalAds.push({entry,img,index});
         }catch{ /* 로딩하지 못한 이미지는 표시·노출 보고하지 않는다. */ }
       }));
@@ -105,6 +114,6 @@
   requestAnimationFrame(portalTick);
   window.CampusAds={tick,startPortal,stopPortal,clickRoof(){
     if(!roof)return false;
-    window.open(safeUrl(roof.ad.click_url),'_blank','noopener,noreferrer');return true;
+    const form=clickForm(roof);form.hidden=true;document.body.append(form);form.submit();form.remove();return true;
   }};
 })();

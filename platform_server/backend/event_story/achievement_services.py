@@ -131,22 +131,19 @@ def complete_global_achievement(user, event_id, completed_at, *, started_at=None
     return complete_achievement(user, event_id, completed_at, started_at=started_at, session_uuid=session_uuid)
 
 
-def record_ad_impression(impression):
-    """A validated 200/201 impression receipt grants one account-owned badge."""
-    if (impression.owner_id is None or impression.delivery_state != 'ACKNOWLEDGED'
-            or impression.status not in ('RECEIVED', 'ACCEPTED', 'REJECTED')):
-        return None
+def record_ad_click(user, session_uuid=None):
+    """검증한 광고 클릭으로 기존 업적을 저장하고 저장 후 게임 탭에 알린다."""
     from accounts.models import ActiveLogin
     from asgiref.sync import async_to_sync
     from channels.layers import get_channel_layer
     from campus.session_registry import session_group
 
     with transaction.atomic():
-        user = get_user_model().objects.select_for_update().filter(pk=impression.owner_id, is_active=True).first()
+        user = get_user_model().objects.select_for_update().filter(pk=user.pk, is_active=True).first()
         if user is None:
-            return None
+            raise ValueError('다시 로그인해 주세요.')
         newly_completed = []
-        if complete_achievement(user, AD_ID, timezone.now()):
+        if complete_achievement(user, AD_ID, timezone.now(), session_uuid=session_uuid):
             newly_completed.append(str(AD_ID))
         result = {'achievements': achievement_snapshot(user), 'newly_completed': newly_completed}
         key = ActiveLogin.objects.filter(user=user).values_list('session_key', flat=True).first()

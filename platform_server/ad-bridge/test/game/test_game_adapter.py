@@ -19,6 +19,7 @@ from ad_bridge import AdsConfig
 from ad_bridge.game.views import request_decision, report_impression, reaction_result, _subject_id, _owner_id
 from ad_bridge.api.errors import AdsHTTPError, AdsResponseError, AdsTransportError
 from ad_bridge.api.types import Ad, Decision
+from ad_bridge.clicks import click_target
 from ad_bridge.impressions import store as impression_store
 
 
@@ -93,6 +94,8 @@ class GameAdapterTests(SimpleTestCase):
         self.assertEqual(response.status_code, 201)
         self.remember_decision.assert_called_once_with(self.decision, AD_SUBJECT_ID, owner_id=SUBJECT_ID)
         payload = json.loads(response.content)
+        token = payload['ad'].pop('click_token')
+        self.assertEqual(click_target(token, DECISION_ID, SUBJECT_ID), self.ad.click_url)
         self.assertEqual(payload, {
             "decision_id": DECISION_ID,
             "slot_id": SLOT_ID,

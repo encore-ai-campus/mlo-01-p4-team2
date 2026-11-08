@@ -1,30 +1,31 @@
 const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
 const visibility=require('../dist/ad-visibility.js');
 function setup(){
-  let now=0,respond,autoLoad=true,timerId=0;const calls=[],frames=[],listeners={},images=[],opened=[],events=[],timers=new Map();
+  let now=0,respond,autoLoad=true,timerId=0;const calls=[],frames=[],listeners={},images=[],submitted=[],events=[],timers=new Map();
   const slot={hidden:true,children:[],append(child){this.children.push(child);},replaceChildren(){this.children=[];}};
   const dialog={open:true};
   const context={URL,Date,Promise,AbortController,Error,Map,Set,innerWidth:1000,innerHeight:800,
     performance:{now:()=>now},location:{href:'https://game.test/'},CampusAdVisibility:visibility,
     setTimeout(fn,delay){const id=++timerId;timers.set(id,{fn,at:now+delay});return id;},
-    clearTimeout:id=>timers.delete(id),requestAnimationFrame:fn=>frames.push(fn),open:(...args)=>opened.push(args),
+    clearTimeout:id=>timers.delete(id),requestAnimationFrame:fn=>frames.push(fn),
     addEventListener:(name,fn)=>listeners[name]=fn,dispatchEvent:event=>events.push(event),
     CustomEvent:class{constructor(type,{detail}){this.type=type;this.detail=detail;}},
     document:{hidden:false,hasFocus:()=>true,cookie:'csrftoken=test',querySelector:()=>null,addEventListener(){},
       getElementById:id=>id==='floorTransitionAdSlot'?slot:dialog,
-      createElement:()=>({append(img){this.img=img;}})},
+      body:{append(){}},
+      createElement:tag=>({tag,children:[],append(child){this.children.push(child);},submit(){submitted.push(this);},remove(){this.removed=true;}})},
     Image:class{set src(value){this.url=value;images.push(this);if(autoLoad)Promise.resolve().then(()=>this.onload?.());}getBoundingClientRect(){return {left:0,top:0,right:100,bottom:100};}},
     fetch:async(url,options)=>{calls.push({url,options});return {ok:true,json:async()=>respond(url)};},
   };
   context.window=context;
   vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../dist/campus-ads.js'),'utf8'),context);
-  return {context,slot,dialog,calls,listeners,images,opened,events,setResponse(fn){respond=fn;},setTime(time){now=time;},
+  return {context,slot,dialog,calls,listeners,images,submitted,events,setResponse(fn){respond=fn;},setTime(time){now=time;},
     holdImages(){autoLoad=false;},loadImage(index){images[index].onload?.();},failImage(index){images[index].onerror?.();},
     async flush(){for(let i=0;i<20;i++)await Promise.resolve();},
     async advance(time){now=time;for(const [id,timer] of [...timers])if(timer.at<=now){timers.delete(id);timer.fn();}await this.flush();},
     async frame(time){now=time;for(const fn of frames.splice(0))fn(time);await this.flush();}};
 }
-const entry=id=>({decision_id:id,ad:{title:'광고',creative_id:'creative',image_url:'https://ads.test/image/'+id,click_url:'https://ads.test/click/'+id}});
+const entry=id=>({decision_id:id,ad:{title:'광고',creative_id:'creative',image_url:'https://ads.test/image/'+id,click_url:'https://ads.test/click/'+id,click_token:'signed-'+id}});
 
 // 응답 도착과 이미지 로딩을 별도로 제어해 화면·링크·노출 대상의 교체 시점을 검증한다.
 function setupRoof(){
@@ -43,7 +44,12 @@ const impressions=(h,id)=>h.calls.filter(c=>c.url.includes('/'+id+'/impression/'
 function assertRoof(h,id){
   assert.equal(h.writes.at(-1).img.url,entry(id).ad.image_url);
   assert.equal(h.context.CampusAds.clickRoof(),true);
-  assert.equal(h.opened.at(-1)[0],entry(id).ad.click_url);
+  const form=h.submitted.at(-1);
+  assert.equal(form.action,'/api/ads/decisions/'+id+'/click/');
+  assert.equal(form.method,'POST');assert.equal(form.target,'_blank');assert.equal(form.rel,'noopener');
+  assert.equal(form.children.find(input=>input.name==='token').value,entry(id).ad.click_token);
+  assert.equal(form.children.find(input=>input.name==='csrfmiddlewaretoken').value,'test');
+  assert.equal(form.removed,true);
   assert.ok(h.writes.every(write=>write.img!==null));
 }
 
@@ -157,6 +163,14 @@ test('포털 좌우 같은 결정은 표시 두 개와 노출 보고 한 건으�
   const h=setup();h.setResponse(url=>url.includes('placements')?{state:'READY',ads:[entry('one'),entry('one')]}:{});
   await h.context.CampusAds.startPortal('approved');await h.flush();
   assert.equal(h.slot.children.length,2);
+  for(const form of h.slot.children){
+    assert.equal(form.action,'/api/ads/decisions/one/click/');assert.equal(form.method,'POST');
+    assert.equal(form.target,'_blank');assert.equal(form.rel,'noopener');
+    assert.equal(form.children.find(input=>input.name==='token').value,'signed-one');
+    assert.equal(form.children.find(input=>input.name==='csrfmiddlewaretoken').value,'test');
+    const button=form.children.find(child=>child.tag==='button');assert.equal(button.type,'submit');
+    assert.equal(button.children[0].alt,'광고');
+  }
   await h.frame(0);await h.frame(999);
   assert.equal(h.calls.filter(c=>c.url.includes('impression')).length,0);
   await h.frame(1000);await h.frame(2000);
@@ -189,12 +203,22 @@ test('옥상 회차가 포털 표시 중 끝나도 포털의 연속 노출 시�
   assert.equal(h.calls.filter(c=>c.url.includes('/portal/impression/')).length,1);
 });
 
-test('a confirmed impression uses the campus CSRF cookie and publishes the server achievement',async()=>{
+test('노출 보고는 campus CSRF 쿠키를 사용하고 업적을 지급하지 않는다',async()=>{
  const h=setupRoof();h.context.document.cookie='campus_csrftoken=campus-token';
  const badge={event_uuid:'ad',name:'시선 강탈 사건',achieved:true};
  h.setResponse(url=>url.includes('placements/rooftop/')?roofBatch('ad'):{achievements:[badge],newly_completed:['ad']});
  h.tick(0);await h.flush();h.tick(10);h.tick(1010);await h.flush();
  assert.equal(impressions(h,'ad')[0].options.headers['X-CSRFToken'],'campus-token');
- assert.deepEqual(h.events.map(e=>e.type),['campus:achievements','campus:achievement-earned']);
+ assert.deepEqual(h.events,[]);
  h.tick(2010);await h.flush();assert.equal(impressions(h,'ad').length,1);
+});
+
+test('옥상 클릭은 현재 CSRF 쿠키와 서명 토큰으로 바로 폼을 제출한다',async()=>{
+ const h=setupRoof();h.setResponse(()=>roofBatch('ad'));h.tick(0);await h.flush();
+ h.context.document.cookie='campus_csrftoken=current-token';
+ const before=h.calls.length;assert.equal(h.context.CampusAds.clickRoof(),true);
+ assert.equal(h.calls.length,before);
+ const form=h.submitted.at(-1);assert.equal(form.action,'/api/ads/decisions/ad/click/');
+ assert.equal(form.children.find(input=>input.name==='csrfmiddlewaretoken').value,'current-token');
+ assert.equal(form.children.find(input=>input.name==='token').value,'signed-ad');
 });

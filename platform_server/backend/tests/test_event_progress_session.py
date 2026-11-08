@@ -1,7 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from threading import Barrier
-from types import SimpleNamespace
 
 from django.contrib.auth import get_user_model
 from django.db import close_old_connections, connection, connections
@@ -12,7 +11,7 @@ from django.utils import timezone
 from event_story import main, recipe
 from event_story.achievement_services import (
     AD_ID, GREETING_ID, RECIPE_ID, TIMER_ID, complete_achievement,
-    manager_ids, record_ad_impression, record_manager_action,
+    manager_ids, record_ad_click, record_manager_action,
 )
 from event_story.game_services import finish_game, start_game
 from event_story.models import EventProgress, GamePlay, StoryProgress
@@ -123,8 +122,8 @@ class EventProgressSessionTests(TestCase):
         recipe.action(self.user, {'action': 'finish', 'ticket': ticket(self.user, 'recipe-guide')}, self.later.pk)
         self.assertEqual(EventProgress.objects.get(user=self.user, event_id=RECIPE_ID).session_id, self.later.pk)
 
-    def test_async_ad_ack_does_not_guess_a_session(self):
-        result = record_ad_impression(SimpleNamespace(owner_id=self.user.pk, delivery_state='ACKNOWLEDGED', status='ACCEPTED'))
+    def test_ad_click_without_session_does_not_guess_a_session(self):
+        result = record_ad_click(self.user)
         self.assertEqual(result['newly_completed'], [str(AD_ID)])
         self.assertIsNone(EventProgress.objects.get(user=self.user, event_id=AD_ID).session_id)
 

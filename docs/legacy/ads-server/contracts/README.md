@@ -1,14 +1,14 @@
 # 광고 서버 계약 (매체 서버용 요약)
 
-원본은 [serving.openapi.yaml](serving.openapi.yaml)(C1 Media API, C3 Asset URL, **v1.5**)이고, 이 문서는 **연동하는 쪽이 꼭 알아야 할 것**만 모은 요약이다.
-**v1.6(확정 2026-11-08, 구현 전)**: 결정 요청에 선택 필드 `segment`(대상 그룹 코드, 개인 슬롯만) — 원본의 "v1.6 변경". 서버가 1.6.0을 알리기 전에는 보내지 않는다.
+원본은 [serving.openapi.yaml](serving.openapi.yaml)(C1 Media API, C3 Asset URL, **v1.6**)이고, 이 문서는 **연동하는 쪽이 꼭 알아야 할 것**만 모은 요약이다.
+**v1.6(확정·구현 2026-11-08)**: 결정 요청에 선택 필드 `segment`(대상 그룹 코드, 개인 슬롯만) — 원본의 "v1.6 변경". 광고 서버의 1.6.0 배포가 알려진 뒤에 보낸다.
 요약과 원본이 다르면 원본이 맞다.
 
 ## 한눈에
 
 | 하고 싶은 것 | 요청 | 성공 | 자주 만나는 실패 |
 |---|---|---|---|
-| 광고 요청 | `POST /api/media/v1/decisions` (`slot_id`, **슬롯 종류에 따라** `subject_id`, 선택 `context`) | **201** + `Location`, 광고가 없으면 `ad: null` | 400 `subject_id` 규칙 위반 · 401 키 없음 · 403 **매체 비활성** · 404 **없는/다른 매체의 슬롯** · 429 |
+| 광고 요청 | `POST /api/media/v1/decisions` (`slot_id`, **슬롯 종류에 따라** `subject_id`, 선택 `context`, 개인 슬롯은 선택 `segment` — v1.6) | **201** + `Location`, 광고가 없으면 `ad: null` | 400 `subject_id` 규칙 위반 · 400 `unknown_segment`(등록 안 된 그룹 코드) · 400 `segment_not_allowed`(일괄 슬롯에 `segment`) · 401 키 없음 · 403 **매체 비활성** · 404 **없는/다른 매체의 슬롯** · 429 |
 | 반응 보고 | `PUT /api/media/v1/decisions/{decision_id}/reactions/{reaction_id}` (`type`=`IMPRESSION`·`CONVERSION`, `occurred_at`, 일괄 슬롯은 `subject_id`) | 201 처음 / 200 같은 내용 재전송 | 409 같은 `reaction_id`에 다른 내용 · 429 · 503 |
 | **클릭** | 사용자를 **`ad.click_url`로 이동**시킨다(`GET /c/{token}`, 인증 없음). 광고 서버가 클릭을 기록하고 광고주 페이지로 302 | 302 | 404 위조·잘못된 주소 |
 | 결과 확인 | `GET .../decisions/{id}`, `GET .../reactions/{reaction_id}` | 200 | 404 없거나 다른 매체의 것 |

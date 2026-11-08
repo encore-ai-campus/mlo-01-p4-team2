@@ -63,7 +63,7 @@ write_ndjson, verify_ndjson, read_manifest, NdjsonError = ndjson.write, ndjson.v
 manifest_digest, verify_chain, manifest_path = ndjson.manifest_digest, ndjson.verify_chain, ndjson.manifest_path
 run_lock = ndjson.run_lock
 
-SCHEMA_VERSIONS, event_id_for = schemas.SCHEMA_VERSIONS, schemas.event_id_of
+SCHEMA_VERSIONS, schema_version_of, event_id_for = schemas.SCHEMA_VERSIONS, schemas.schema_version_of, schemas.event_id_of
 decision_payload, reaction_received_payload, reaction_payload, charge_payload = (
     schemas.decision_payload, schemas.reaction_received_payload, schemas.reaction_payload, schemas.charge_payload)
 bid_policy_changed_payload, bid_added_payload, campaign_changed_payload, ad_group_changed_payload, segment_changed_payload = (
@@ -76,7 +76,7 @@ summarize_windows, table_stream, outbox_streams, mongo_streams, unsent_counts, W
 HOP_SCHEMA_VERSION, window_label, format_time, parse_time = hops.HOP_SCHEMA_VERSION, hops.window_label, hops.format_time, hops.parse_time
 
 __all__ = [
-    "SCHEMA_VERSIONS", "decision_payload", "reaction_received_payload", "reaction_payload", "charge_payload",
+    "SCHEMA_VERSIONS", "schema_version_of", "decision_payload", "reaction_received_payload", "reaction_payload", "charge_payload",
     "bid_policy_changed_payload", "bid_added_payload", "campaign_changed_payload", "ad_group_changed_payload", "segment_changed_payload", "change_value",
     "normal_document", "summarize", "summarize_windows", "table_stream", "outbox_streams", "mongo_streams", "unsent_counts", "WINDOWS", "HOP_SCHEMA_VERSION", "window_label", "format_time", "parse_time",
     "OutsideTransaction", "record_decision", "record_reaction_received", "record_reaction", "record_charge",

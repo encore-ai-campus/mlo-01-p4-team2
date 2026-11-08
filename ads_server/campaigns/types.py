@@ -154,6 +154,7 @@ class CandidateFacts:
     title: str
     redirect_url: str
     image_name: str
+    target_segment_ids: tuple  # 대상 그룹 T(정렬한 UUID). 빈 튜플 = 전체 대상(설계 §10 "대상 그룹 타기팅" ③)
 
 
 @dataclass(frozen=True)

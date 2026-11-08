@@ -2,10 +2,10 @@ openapi: 3.1.0
 
 info:
   title: 광고 서버 Media API (C1) 및 Asset URL (C3)
-  version: 1.5.0
+  version: 1.6.0
   summary: 매체 서버가 광고를 요청하고 반응을 보고하는 서버 간 API
   description: |
-    **Status: Approved (승격 2026-10-07, v1.1 확정·구현 2026-10-08, v1.2 확정 2026-10-12 — 아래 "v1.2 변경", 같은 날 문구 정정, v1.3 확정·구현 2026-10-12 — 아래 "v1.3 변경", v1.4 확정·구현 2026-10-13 — 아래 "v1.4 변경", v1.5 확정·구현 2026-11-02 — 아래 "v1.5 변경", **v1.6 확정 2026-11-08·구현 전** — 아래 "v1.6 변경").** 설계 문서 `ads-server-design.md` §3의 C1·C3 계약이다.
+    **Status: Approved (승격 2026-10-07, v1.1 확정·구현 2026-10-08, v1.2 확정 2026-10-12 — 아래 "v1.2 변경", 같은 날 문구 정정, v1.3 확정·구현 2026-10-12 — 아래 "v1.3 변경", v1.4 확정·구현 2026-10-13 — 아래 "v1.4 변경", v1.5 확정·구현 2026-11-02 — 아래 "v1.5 변경", v1.6 확정·구현 2026-11-08 — 아래 "v1.6 변경").** 설계 문서 `ads-server-design.md` §3의 C1·C3 계약이다.
     이 파일이 계약의 원본이고, 광고 서버는 이 파일에 대한 provider 계약 테스트를 갖는다.
 
     ## 규약
@@ -129,10 +129,10 @@ info:
 
     **문구 정정 (2026-11-02, 동작 변화 없음)**: 보류한 반응을 다시 판정하는 간격을 실제와 맞췄다("5초 간격" → 앞 단계가 처리되면 바로, 아니면 30초마다).
 
-    ## v1.6 변경 (확정 2026-11-08, 호환 — **구현 전**)
+    ## v1.6 변경 (확정·구현 2026-11-08, 호환)
 
-    대상 그룹 타기팅(설계 문서 §10 "대상 그룹 타기팅"). 구현되면 이 절의 "구현 전"을 걷고, `DecisionRequest`에 필드를 넣고, `info.version`을 1.6.0으로 올린다.
-    **구현 전에는 서버가 `segment`를 모르는 필드로 보고 400을 낸다 — 매체는 계약 파일의 `info.version`이 1.6.0이고 광고 서버 배포가 알려진 뒤에 보낸다.**
+    대상 그룹 타기팅(설계 문서 §10 "대상 그룹 타기팅").
+    **1.6.0 이전 서버는 `segment`를 모르는 필드로 보고 400을 낸다 — 매체는 광고 서버의 1.6.0 배포가 알려진 뒤에 보낸다.**
 
     1. **결정 요청에 선택 필드 `segment`(문자열)** — 그 사용자가 속한 **대상 그룹의 코드**(예 `mlo`). 매체가 정한 사용자 묶음(예: 과정)이고,
        광고 서버 관리자가 그 매체에 **같은 코드로 등록한 것**만 쓴다. 한 사용자는 그룹이 0개 또는 1개다.
@@ -222,6 +222,7 @@ paths:
         | **없는 슬롯**·**다른 매체의 슬롯** | **404**(구분해 알리지 않는다) | 없음 |
         | 정상 슬롯이지만 적합한 광고 없음 | **201**, `ad: null` | 있음 |
         | `individual` 슬롯인데 `subject_id` 없음 · `shared` 슬롯인데 `subject_id` 있음 (슬롯을 확인한 **뒤**에 검사한다 — 404·403이 먼저) | 400 | 없음 |
+        | `segment`가 그 매체에 등록되지 않은 값 · `shared` 슬롯인데 `segment` 있음 (`subject_id` 검사 **뒤**, v1.6) | 400 `unknown_segment` · `segment_not_allowed` | 없음 |
         - **결정을 저장한 뒤에만** `decision_id`를 응답한다. 저장을 확인하지 못하면 503이고 `decision_id`는 나가지 않는다(저장됐을 수도 있다 — 아래 멱등 설명).
         - **멱등하지 않다.** 재시도하면 새 결정이 만들어질 수 있다. 무해하다: 과금은 반응에서만 일어나고, 기존 광고의 표시 종료는 새 결정의 **노출이 도착한 시각**으로 판단하므로
           응답을 받지 못해 화면에 적용하지 못한 결정은 기존 광고의 클릭에 영향을 주지 않는다. 새 광고를 실제로 그렸으면 그 노출을 바로 보고한다.
@@ -687,6 +688,15 @@ components:
           $ref: "#/components/schemas/Uuid"
         context:
           $ref: "#/components/schemas/Context"
+        segment:
+          type: string
+          description: |
+            그 사용자의 **대상 그룹 코드**(v1.6, 예 `mlo`). 매체가 정한 사용자 묶음(예: 과정)이고, 광고 서버 관리자가 그 매체에 같은 코드로 등록한 것만 쓴다.
+            그룹이 없으면 **보내지 않는다**(빈 문자열은 등록되지 않은 값과 같아 400). `individual` 슬롯에서만 보낸다(`shared`는 400 `segment_not_allowed`).
+            문자열이 아니면(`null` 포함) 본문 검증에서 400 `invalid_request`(슬롯 확인 전). 문자열이면 슬롯 확인 뒤에 보고, 그 매체에 등록되지 않은 값
+            (다른 매체의 코드·형식이 틀린 값 포함)은 400 `unknown_segment`다. 검사 순서는 슬롯 404 → 매체 403 → `subject_id` 400 → 이 검사(400).
+            관리자가 보관한 그룹은 받아서 결정에 남기되 "그룹 없음"으로 맞춘다. 규약 "식별은 UUID"의 예외다(위 "v1.6 변경").
+            형식(길이·문자)은 스키마에 두지 않는다 — 형식이 틀린 값도 슬롯 확인 뒤 `unknown_segment`로 답해 검사 순서를 지킨다.
 
     Ad:
       type: object
@@ -816,7 +826,7 @@ components:
         code:
           type: string
           description: |
-            `unauthorized`, `forbidden`, `invalid_request`, `forbidden_context_key`, `not_found`, `conflict`,
+            `unauthorized`, `forbidden`, `invalid_request`, `forbidden_context_key`, `unknown_segment`, `segment_not_allowed`, `not_found`, `conflict`,
             `payload_too_large`, `unsupported_media_type`, `rate_limited`, `unavailable`
         detail:
           type: string

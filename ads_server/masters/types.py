@@ -73,6 +73,15 @@ class SlotView:
     audience: str  # `individual` | `shared`
     is_active: bool
     policy: PolicyView  # 현재 정책. 슬롯은 항상 정책을 가진다(create_slot 이 함께 만든다)
+    segment: "RequestSegment | None" = None  # `get_slot(…, segment_code=)` 이 그 매체 카탈로그에서 찾은 요청 그룹(못 찾았거나 묻지 않았으면 None)
+
+
+@dataclass(frozen=True)
+class RequestSegment:
+    """C1 결정 요청의 그룹 코드를 그 슬롯 매체의 카탈로그(DRD M7)로 푼 값 — 결정이 그 순간의 상태를 남긴다(잠그지 않고 읽는다, 설계 §10 ⑧)."""
+
+    segment_id: uuid.UUID
+    is_active: bool
 
 
 @dataclass(frozen=True)

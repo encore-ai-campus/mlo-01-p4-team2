@@ -7,6 +7,7 @@ from datetime import datetime, timezone as dt_timezone
 from urllib.parse import urlsplit
 
 from django.conf import settings
+from django.contrib.postgres.expressions import ArraySubquery
 from django.db import IntegrityError, transaction
 from django.db.models import Count, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce, Greatest
@@ -951,10 +952,11 @@ def candidate_facts_for_slot(slot_id):
     비활성화된 광고주의 광고도 꺼진 것으로 본다(Step 3-1d — 캠페인 상태는 그대로라 다시 활성화하면 다시 후보다).
 
     기간·금액 판정은 넣지 않는다(판정은 engine 한 곳). 상태 갱신이 늦은 종료 캠페인이 섞여 와도 engine 이 거른다.
-    입찰이 없는 광고그룹은 후보가 아니다.
+    입찰이 없는 광고그룹은 후보가 아니다. 대상 그룹 T 는 같은 질의의 하위 질의(배열)다 — 질의 수 그대로(설계 §10 "대상 그룹 타기팅" ⑥). 보관된 그룹도 연결이 남아 있으면 든다(맞춤은 engine).
     """
     slot_id = parse_uuid(slot_id, "게재 위치")
     latest = Bid.objects.filter(ad_group=OuterRef("pk")).order_by("-bid_version")
+    targets = AdGroupSegment.objects.filter(ad_group=OuterRef("pk")).order_by("segment_id").values("segment_id")
     rows = (
         AdGroup.objects.filter(
             enabled=True, creative__isnull=False, campaign__status=CampaignStatus.ACTIVE, campaign__owner__is_active=True, slot_links__slot_id=slot_id,
@@ -964,6 +966,7 @@ def candidate_facts_for_slot(slot_id):
             bid_id=Subquery(latest.values("bid_id")[:1]),
             bid_version=Subquery(latest.values("bid_version")[:1]),
             bid_amount=Subquery(latest.values("amount")[:1]),
+            target_segment_ids=ArraySubquery(targets),
         )
         .filter(bid_version__isnull=False)
         .order_by("ad_group_id")
@@ -976,6 +979,7 @@ def candidate_facts_for_slot(slot_id):
             campaign_status=g.campaign.status, ad_group_enabled=g.enabled,
             period_start=g.campaign.starts_at, period_end=g.campaign.ends_at,
             daily_budget=g.campaign.daily_budget, title=g.creative.title, redirect_url=g.creative.redirect_url, image_name=g.creative.image_name,
+            target_segment_ids=tuple(g.target_segment_ids),
         )
         for g in rows
     ]

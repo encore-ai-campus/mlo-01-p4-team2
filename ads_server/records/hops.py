@@ -87,8 +87,9 @@ def unresolved_charges(batch=2000, examples=10):
 
 
 def _document(item):
+    """판은 행마다(`ad.decision` 은 대상 그룹 규칙이 있는 결정만 v3, 이전 결정은 v2 — DRD §5.6)."""
     event_id, (name, _key, produced_at, payload) = item
-    return events.normal_document(event_id, name, events.SCHEMA_VERSIONS[name], produced_at, payload)
+    return events.normal_document(event_id, name, events.schema_version_of(name, payload), produced_at, payload)
 
 
 def _decision_event(d):
@@ -96,10 +97,12 @@ def _decision_event(d):
     selected = None if d.creative_id is None else {
         "campaign_id": d.campaign_id, "ad_group_id": d.ad_group_id, "creative_id": d.creative_id, "charge_shares": charge_shares(d), "bid_id": d.bid_id,
         "bid_version": d.bid_version, "bid_policy_id": d.bid_policy_id, "policy_version": d.policy_version, "bid_amount": d.bid_amount, "applied_amount": d.applied_amount,
+        "target_segment_ids": d.target_segment_ids,
     }
     return events.event_id_for(name, d.decision_id), (name, d.decision_id, d.decided_at, events.decision_payload(
         decision_id=d.decision_id, media_id=d.media_id, slot_id=d.slot_id, decided_at=d.decided_at, audience=d.audience, subject_id=d.subject_id,
         selected=selected, selection_policy=d.selection_policy, candidate_count=d.candidate_count, rejected_counts=d.rejected_counts,
+        segment_rule=d.segment_rule, segment_id=d.segment_id, segment_active=d.segment_active,
     ))
 
 

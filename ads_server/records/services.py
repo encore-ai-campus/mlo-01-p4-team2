@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.utils.crypto import salted_hmac
 
 from assets.api import asset_url
-from engine.api import AdRequest, decide as engine_decide
+from engine.api import SEGMENT_RULE, AdRequest, decide as engine_decide
 from events import api as events
 from foundation.api import errors, is_unique_violation, parse_uuid
 from masters import api as masters
@@ -46,13 +46,16 @@ def _view(d):
 
 
 def _record_decision_event(d, now):
+    """결정 이벤트(`ad.decision`). 판은 행이 정한다 — 대상 그룹 규칙(`segment_rule`)을 적용한 결정은 v3, 이 기능 이전 결정은 v2(백필도 이 함수를 쓴다)."""
     selected = None if d.creative_id is None else {
         "campaign_id": d.campaign_id, "ad_group_id": d.ad_group_id, "creative_id": d.creative_id, "charge_shares": charge_shares(d), "bid_id": d.bid_id,
         "bid_version": d.bid_version, "bid_policy_id": d.bid_policy_id, "policy_version": d.policy_version, "bid_amount": d.bid_amount, "applied_amount": d.applied_amount,
+        "target_segment_ids": d.target_segment_ids,
     }
     events.record_decision(
         now=now, decision_id=d.decision_id, media_id=d.media_id, slot_id=d.slot_id, decided_at=d.decided_at, audience=d.audience, subject_id=d.subject_id,
         selected=selected, selection_policy=d.selection_policy, candidate_count=d.candidate_count, rejected_counts=d.rejected_counts,
+        segment_rule=d.segment_rule, segment_id=d.segment_id, segment_active=d.segment_active,
     )
 
 
@@ -63,7 +66,19 @@ def _check_subject(slot, subject_id):
         raise errors.InvalidRequest(errors=[{"pointer": "/subject_id", "message": "일괄(shared) 슬롯은 subject_id 를 보내지 않습니다."}])
 
 
-def decide(media_id, slot_id, subject_id=None, context=None, now=None, rng=None):
+def _check_segment(slot, segment):
+    """C1 1.6 `segment`(대상 그룹 코드 — `subject_id` 검사 **뒤**). 일괄 슬롯에 오면 400 `segment_not_allowed`, 그 슬롯 매체의 카탈로그에 없으면
+    (형식이 틀린 값·다른 매체의 코드 포함) 400 `unknown_segment`. 보관된 그룹은 받는다 — 결정에 남기고 엔진이 "그룹 없음"으로 맞춘다(설계 §10 "대상 그룹 타기팅" ④⑤)."""
+    if segment is None:
+        return None
+    if slot.audience == masters.Audience.SHARED:
+        raise errors.SegmentNotAllowed(errors=[{"pointer": "/segment", "message": "일괄(shared) 슬롯은 segment 를 보내지 않습니다."}])
+    if slot.segment is None:
+        raise errors.UnknownSegment(errors=[{"pointer": "/segment", "message": "이 매체에 등록되지 않은 대상 그룹 코드입니다."}])
+    return slot.segment
+
+
+def decide(media_id, slot_id, subject_id=None, context=None, now=None, rng=None, segment=None):
     """광고 한 건을 고르고 결정으로 저장한다. 후보가 없어도(광고 없음) 한 건으로 남긴다.
 
     저장이 실패하면 예외가 그대로 나가 `decision_id` 가 응답으로 나가지 않는다.
@@ -72,12 +87,13 @@ def decide(media_id, slot_id, subject_id=None, context=None, now=None, rng=None)
     **활성 매체의 비활성 슬롯은 광고 없음으로 기록**한다. `context` 는 호출한 쪽(경계)이 검증한 값을 그대로 저장한다.
 
     `subject_id` 는 슬롯 성격에 따른다(계약 C1 v1.1): `individual` 은 **필수**, `shared` 는 **보내면 안 된다**(어기면 400).
-    이 검사는 슬롯을 찾은 **뒤**에 한다 — 없는·남의 슬롯(404)과 비활성 매체(403)가 먼저다.
+    이 검사는 슬롯을 찾은 **뒤**에 한다 — 없는·남의 슬롯(404)과 비활성 매체(403)가 먼저다. `segment`(C1 1.6, 대상 그룹 코드)는 그다음이다(`_check_segment`).
+    코드는 슬롯 조회와 **같은 질의**에서 카탈로그로 풀고(질의 수 그대로), 결정에는 요청 그룹·그 순간의 활성 여부·뽑힌 광고의 대상 그룹·규칙 표시를 남긴다.
     """
     now = _now(now)
     media_id, slot_id = parse_uuid(media_id, "매체"), parse_uuid(slot_id, "게재 위치")
     try:
-        slot = masters.get_slot(slot_id)
+        slot = masters.get_slot(slot_id, segment_code=segment if masters.is_segment_code(segment) else None)  # 형식이 틀린 코드는 묻지 않는다(어느 매체에도 없다)
     except errors.NotFound:
         slot = None
     if slot is None or slot.media_id != media_id:
@@ -85,10 +101,15 @@ def decide(media_id, slot_id, subject_id=None, context=None, now=None, rng=None)
     if not slot.media_is_active:
         raise errors.Forbidden("이 매체는 비활성입니다.")
     _check_subject(slot, subject_id)
+    requested = _check_segment(slot, segment)
     candidates, facts_by_group = assemble(slot, now) if slot.is_active else ([], {})  # 꺼진 슬롯: 후보 없이 '광고 없음'으로 기록
     policy = settings.ADS_SELECTION_POLICY
+    request = AdRequest(
+        slot_id=slot_id, now=now, subject_id=subject_id, audience=slot.audience,
+        segment_id=None if requested is None else requested.segment_id, segment_active=None if requested is None else requested.is_active,
+    )
     result = engine_decide(
-        candidates, AdRequest(slot_id=slot_id, now=now, subject_id=subject_id), rng or random.Random(),  # nosec B311 — 노출 광고의 가중 추첨이다(설계 §4.3). 보안 값(키·토큰)을 만들지 않는다
+        candidates, request, rng or random.Random(),  # nosec B311 — 노출 광고의 가중 추첨이다(설계 §4.3). 보안 값(키·토큰)을 만들지 않는다
         policy=policy, extra_filters=tuple(settings.ADS_ENGINE_EXTRA_FILTERS),
     )
     chosen = result.selection.chosen
@@ -103,6 +124,7 @@ def decide(media_id, slot_id, subject_id=None, context=None, now=None, rng=None)
             bid_version=chosen.bid_version, policy_version=chosen.policy_version,
             bid_id=fact.bid_id, bid_policy_id=slot.policy.bid_policy_id,  # 판정에 쓴 바로 그 버전 행
             snapshot={"title": fact.title, "redirect_url": fact.redirect_url, "image_name": fact.image_name},
+            target_segment_ids=list(fact.target_segment_ids),  # 판정에 쓴 대상 그룹(정렬, 빈 목록 = 전체 대상)
         )
     # 결정과 이벤트(outbox)는 한 트랜잭션이다. 응답까지 묶는 트랜잭션은 C1 뷰가 열고(그 안이면 저장점 없이 그대로 쓴다 — 결정 요청의 질의 수를 늘리지 않는다), 직접 부르면 여기서 연다
     with transaction.atomic(savepoint=False):
@@ -113,7 +135,8 @@ def decide(media_id, slot_id, subject_id=None, context=None, now=None, rng=None)
         decision = Decision.objects.create(
             media_id=media_id, slot_id=slot_id, subject_id=subject_id, audience=slot.audience, context=context or {}, decided_at=now,
             selection_policy=policy,  # 판정에 쓴 이름(설계 R8)
-            trace=trace, candidate_count=result.considered, rejected_counts=result.rejected, **values,
+            trace=trace, candidate_count=result.considered, rejected_counts=result.rejected,
+            segment_id=request.segment_id, segment_active=request.segment_active, segment_rule=SEGMENT_RULE, **values,
         )
         _record_decision_event(decision, now)
     return _view(decision)

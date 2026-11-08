@@ -1,4 +1,5 @@
 """masters 의 규칙. 관리자 전용이며 모든 변경은 감사 로그에 남는다(위협 T23)."""
+import dataclasses
 import hashlib
 import hmac
 import math
@@ -18,7 +19,7 @@ from foundation.api import MAX_AMOUNT, clean_request_key, clean_text, errors, is
 from .models import (
     MAX_SHARE, MIN_FLOOR, MIN_SHARE, SEGMENT_CODE_PATTERN, SHARE_FIELDS, Audience, BidPolicy, Media, MediaDeactivation, MediaKey, Segment, SegmentVersion, Slot,
 )
-from .types import IssuedKey, MediaIdentity, MediaKeyView, MediaView, PolicyView, SegmentVersionView, SegmentView, SlotView
+from .types import IssuedKey, MediaIdentity, MediaKeyView, MediaView, PolicyView, RequestSegment, SegmentVersionView, SegmentView, SlotView
 
 
 def _validated_shares(floor, base, cap, impression_share, click_share, conversion_share):
@@ -281,12 +282,26 @@ def set_slot_active(actor, slot_id, active):
         _audit(actor, "masters.slot_active_changed", ("masters.slot", slot_id), {"active": bool(active)})
 
 
-def get_slot(slot_id):
+def get_slot(slot_id, segment_code=None):
+    """슬롯과 현재 정책. `segment_code`(C1 결정 요청의 그룹 코드, 형식은 `is_segment_code` 로 먼저 본 값)를 주면 **같은 질의**에서 그 슬롯 매체의
+    카탈로그로 풀어 `SlotView.segment` 에 싣는다(결정 경로의 질의 수 그대로 — 설계 §10 "대상 그룹 타기팅" ⑥). 그 매체에 없는 코드면 `segment` 가 None."""
+    rows = _current_policies().filter(slot_id=parse_uuid(slot_id, "게재 위치"))
+    if segment_code is not None:
+        match = Segment.objects.filter(media_id=OuterRef("slot__media_id"), code=segment_code)  # (매체, 코드)는 유일하다
+        rows = rows.annotate(request_segment_id=Subquery(match.values("segment_id")[:1]), request_segment_active=Subquery(match.values("is_active")[:1]))
     try:
-        row = _current_policies().filter(slot_id=parse_uuid(slot_id, "게재 위치")).get()
+        row = rows.get()
     except BidPolicy.DoesNotExist:
         raise errors.NotFound("게재 위치를 찾을 수 없습니다.")
-    return _slot_view(row.slot, row)
+    view = _slot_view(row.slot, row)
+    if segment_code is not None and row.request_segment_id is not None:
+        view = dataclasses.replace(view, segment=RequestSegment(segment_id=row.request_segment_id, is_active=row.request_segment_active))
+    return view
+
+
+def is_segment_code(value):
+    """대상 그룹 코드의 형식(`SEGMENT_CODE_PATTERN`)인가. 아니면 어느 매체에도 등록될 수 없어 카탈로그에 묻지 않는다(NUL·짝 없는 서로게이트가 DB 에 닿지 않게)."""
+    return isinstance(value, str) and _SEGMENT_CODE.fullmatch(value) is not None
 
 
 def slot_names(slot_ids):

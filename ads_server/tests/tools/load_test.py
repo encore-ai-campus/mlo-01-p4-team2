@@ -244,7 +244,7 @@ def verify_events(relayed=False):
     for event_id in expected.keys() & outbox.keys():
         name, key, produced_at, payload = expected[event_id]
         row = outbox[event_id]
-        envelope = {"schema_version": (row.schema_version, schemas.SCHEMA_VERSIONS[name]), "produced_at": (row.created_at, produced_at)}
+        envelope = {"schema_version": (row.schema_version, schemas.schema_version_of(name, payload)), "produced_at": (row.created_at, produced_at)}  # ad.decision 은 행마다 판(v2·v3)
         bad_envelope = [k for k, (got, want) in envelope.items() if got != want]
         same = relay.same_document({"p": row.payload}, {"p": payload})
         if (row.event_name, row.aggregate_id) != (name, key) or bad_envelope or not same:

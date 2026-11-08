@@ -1,4 +1,5 @@
 import unittest
+import uuid
 from datetime import timedelta
 from unittest import mock
 
@@ -31,6 +32,31 @@ class FilterTests(Cases, unittest.TestCase):
             self.assertEqual(result.considered, 1)
         for status in ("SUSPENDED", "ENDED"):
             self.assertEqual(run(cand(campaign_status=status)).rejected, {"campaign_not_active": 1})
+
+    def case_segment_filter_matches_only_a_live_request_group_inside_the_targets(self):
+        """대상 그룹(TG-S3, 설계 §10 ⑤): T 가 비면 전체, 아니면 요청 그룹 r 이 있고 살아 있고 T 안에 있을 때만. 일괄 슬롯은 T 가 있는 광고를 내지 않는다."""
+        mlo, skn = uuid.uuid4(), uuid.uuid4()
+        targeted = dict(target_segment_ids=frozenset({mlo}))
+        live_mlo = dict(segment_id=mlo, segment_active=True)
+        passes = [(dict(), dict()), (dict(), live_mlo), (targeted, live_mlo), (dict(target_segment_ids=frozenset({mlo, skn})), live_mlo)]
+        for cand_kw, req_kw in passes:
+            self.assertIsNotNone(decide([cand(**cand_kw)], request(**req_kw), Random(1)).selection.chosen, (cand_kw, req_kw))
+        refused = [
+            dict(),  # 요청 그룹 없음
+            dict(segment_id=skn, segment_active=True),  # T 밖
+            dict(segment_id=mlo, segment_active=False),  # 보관된 r = 그룹 없음
+            dict(segment_id=mlo, segment_active=True, audience="shared"),  # 일괄 슬롯
+        ]
+        for req_kw in refused:
+            result = decide([cand(**targeted)], request(**req_kw), Random(1))
+            self.assertIsNone(result.selection.chosen, req_kw)
+            self.assertEqual(result.rejected, {"segment_not_targeted": 1}, req_kw)
+        self.assertIsNotNone(decide([cand()], request(audience="shared", subject_id=None), Random(1)).selection.chosen)  # 일괄 슬롯도 T 없는 광고는 낸다
+
+    def case_segment_comes_after_period_and_before_money(self):
+        targeted = frozenset({uuid.uuid4()})
+        result = run(cand(target_segment_ids=targeted, period_end=NOW), cand(target_segment_ids=targeted, bid_amount=1, wallet_balance=0))
+        self.assertEqual(result.rejected, {"expired": 1, "segment_not_targeted": 1})  # 기간이 먼저, 대상 그룹이 하한·잔액보다 먼저
 
     def case_open_ended_campaign_passes_period(self):
         self.assertIsNotNone(run(cand(period_end=None)).selection.chosen)

@@ -15,7 +15,7 @@ def cand(**kw):
         floor=10, cap=50, policy_version=1,
         campaign_status="ACTIVE", ad_group_enabled=True,
         period_start=NOW - timedelta(days=1), period_end=NOW + timedelta(days=1),
-        wallet_balance=10_000, remaining_daily_budget=10_000,
+        wallet_balance=10_000, remaining_daily_budget=10_000, target_segment_ids=frozenset(),
     )
     values.update(kw)
     return Candidate(**values)
@@ -24,6 +24,6 @@ def cand(**kw):
 def request(**kw):
     from engine.api import AdRequest
 
-    values = dict(slot_id=SLOT, now=NOW, subject_id="subject-1")
+    values = dict(slot_id=SLOT, now=NOW, subject_id="subject-1", audience="individual")
     values.update(kw)
     return AdRequest(**values)

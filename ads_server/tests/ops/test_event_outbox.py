@@ -48,9 +48,9 @@ class EnqueueTests(Cases, TestCase):
     def case_writes_one_row_with_the_envelope(self):
         event_id = events.record_decision(now=NOW, **decision_fields())
         row = EventOutbox.objects.get()
-        self.assertEqual((row.event_id, row.event_name, row.schema_version, row.aggregate_id, row.sent_at), (event_id, "ad.decision", 2, DECISION, None))
-        self.assertEqual(schemas.SCHEMA_VERSIONS, {  # 종류별(6-10c): 결정만 2(단위 → `charge_shares`)
-            "ad.decision": 2, "ad.reaction_received": 1, "ad.reaction": 1, "ad.charge": 1,
+        self.assertEqual((row.event_id, row.event_name, row.schema_version, row.aggregate_id, row.sent_at), (event_id, "ad.decision", 2, DECISION, None))  # 대상 그룹 규칙 없는 결정 = v2(행마다 판)
+        self.assertEqual(schemas.SCHEMA_VERSIONS, {  # 종류별(6-10c): 결정만 3(2: 단위 → `charge_shares`, 3: 대상 그룹 — TG-S3)
+            "ad.decision": 3, "ad.reaction_received": 1, "ad.reaction": 1, "ad.charge": 1,
             "ad.bid_policy_changed": 1, "ad.bid_added": 1, "ad.campaign_changed": 1, "ad.ad_group_changed": 1, "ad.segment_changed": 1,
         })
         self.assertEqual(row.created_at, NOW)  # produced_at = outbox 에 쓴 시각

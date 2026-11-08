@@ -16,10 +16,19 @@ BID_ADDED = "ad.bid_added"
 CAMPAIGN_CHANGED = "ad.campaign_changed"
 AD_GROUP_CHANGED = "ad.ad_group_changed"
 SEGMENT_CHANGED = "ad.segment_changed"
-SCHEMA_VERSIONS = {  # ad.decision 2: selected.pricing_unit → charge_shares(6-10c)
-    DECISION: 2, REACTION_RECEIVED: 1, REACTION: 1, CHARGE: 1,
+SCHEMA_VERSIONS = {  # 지금 만드는 판. ad.decision 2: selected.pricing_unit → charge_shares(6-10c), 3: 대상 그룹 넷(TG-S3)
+    DECISION: 3, REACTION_RECEIVED: 1, REACTION: 1, CHARGE: 1,
     BID_POLICY_CHANGED: 1, BID_ADDED: 1, CAMPAIGN_CHANGED: 1, AD_GROUP_CHANGED: 1, SEGMENT_CHANGED: 1,
 }
+DECISION_BEFORE_SEGMENTS = 2  # 대상 그룹 규칙 이전 결정(`segment_rule` 없음)의 판 — 원본 재구성·백필이 그 행을 이 판으로 만든다(DRD §5.6 v3, 행마다 판)
+
+
+def schema_version_of(event_name, payload):
+    """봉투의 `schema_version`. `ad.decision` 은 **행마다** 고른다 — 페이로드에 대상 그룹 규칙(`segment_rule`)이 있으면 v3, 없으면(이 기능 이전 결정) v2.
+    outbox 쓰기·원본 재구성·검사기가 모두 이것을 쓴다(outbox 에 v2 로 저장된 옛 결정과 구간 대사가 어긋나지 않게)."""
+    if event_name == DECISION and payload.get("segment_rule") is None:
+        return DECISION_BEFORE_SEGMENTS
+    return SCHEMA_VERSIONS[event_name]
 
 _NAMESPACE = uuid.uuid5(uuid.NAMESPACE_DNS, "events.ads-server")
 
@@ -37,9 +46,13 @@ def _iso(value):
     return None if value is None else value.astimezone(timezone.utc).isoformat()
 
 
-def decision_payload(*, decision_id, media_id, slot_id, decided_at, audience, subject_id, selected, selection_policy, candidate_count, rejected_counts):
-    """`selected` 는 광고가 없으면 `None`, 아니면 선택된 광고의 스냅샷(dict). 광고주 계정(owner)은 싣지 않는다 — 파이프라인에 필요 없고 개인 연결 위험만 늘린다."""
-    return {
+def decision_payload(*, decision_id, media_id, slot_id, decided_at, audience, subject_id, selected, selection_policy, candidate_count, rejected_counts,
+                     segment_rule=None, segment_id=None, segment_active=None):
+    """`selected` 는 광고가 없으면 `None`, 아니면 선택된 광고의 스냅샷(dict). 광고주 계정(owner)은 싣지 않는다 — 파이프라인에 필요 없고 개인 연결 위험만 늘린다.
+
+    `segment_rule` 이 있으면 v3 모양이다: 최상위 `segment_id`·`segment_active`·`segment_rule` 과 `selected.target_segment_ids`(정렬 — 창 내용 해시가 배열 순서를
+    그대로 본다). 그룹 코드·이름은 싣지 않는다(`ad.segment_changed` 로 차원을 만든다). 없으면(이 기능 이전 결정) v2 모양 그대로다(`schema_version_of`)."""
+    payload = {
         "decision_id": _id(decision_id), "media_id": _id(media_id), "slot_id": _id(slot_id), "decided_at": _iso(decided_at),
         "audience": audience, "subject_id": subject_id,
         "selected": None if selected is None else {
@@ -50,6 +63,11 @@ def decision_payload(*, decision_id, media_id, slot_id, decided_at, audience, su
         },
         "selection_policy": selection_policy, "candidate_count": candidate_count, "rejected_counts": rejected_counts,
     }
+    if segment_rule is not None:
+        payload.update(segment_id=_id(segment_id), segment_active=segment_active, segment_rule=segment_rule)
+        if selected is not None:
+            payload["selected"]["target_segment_ids"] = [_id(s) for s in sorted(selected["target_segment_ids"])]
+    return payload
 
 
 def reaction_received_payload(*, inbox_id, reaction_id, media_id, decision_id, type, occurred_at, received_at, subject_id, source, raw):

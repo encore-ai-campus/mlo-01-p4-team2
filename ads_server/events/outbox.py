@@ -15,7 +15,7 @@ def enqueue(event_name, source_id, aggregate_id, payload, produced_at=None):
     if not connection.in_atomic_block:
         raise OutsideTransaction("outbox 는 업무 데이터와 같은 트랜잭션 안에서 써야 한다")
     row = EventOutbox(
-        event_id=schemas.event_id_of(event_name, source_id), event_name=event_name, schema_version=schemas.SCHEMA_VERSIONS[event_name],
+        event_id=schemas.event_id_of(event_name, source_id), event_name=event_name, schema_version=schemas.schema_version_of(event_name, payload),
         aggregate_id=aggregate_id, payload=payload, created_at=produced_at or timezone.now(),
     )
     # 이미 있으면 아무것도 바꾸지 않는다(ON CONFLICT DO NOTHING). PostgreSQL 은 유일 충돌만 건너뛰고 다른 오류(길이·형식·CHECK)는 그대로 올린다.

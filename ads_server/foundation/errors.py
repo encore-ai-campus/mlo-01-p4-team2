@@ -27,6 +27,18 @@ class ForbiddenContextKey(InvalidRequest):
     code, title = "forbidden_context_key", "context 에 사용할 수 없는 키가 있습니다"
 
 
+class UnknownSegment(InvalidRequest):
+    """C1 1.6 `segment` 가 그 매체에 등록되지 않은 대상 그룹 코드다(다른 매체의 코드·형식이 틀린 값 포함). 결정은 없다."""
+
+    code, title = "unknown_segment", "등록되지 않은 대상 그룹입니다"
+
+
+class SegmentNotAllowed(InvalidRequest):
+    """C1 1.6 `segment` 를 일괄(`shared`) 슬롯에 보냈다(`subject_id` 와 같은 방식). 결정은 없다."""
+
+    code, title = "segment_not_allowed", "이 게재 위치에는 대상 그룹을 보낼 수 없습니다"
+
+
 class Unauthorized(ApiError):
     status, code, title = 401, "unauthorized", "인증이 필요합니다"
 

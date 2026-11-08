@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 
 CAMPAIGN_STATUSES = ("ACTIVE", "PAUSED", "SUSPENDED", "ENDED")
 CAMPAIGN_ACTIVE = "ACTIVE"
+AUDIENCES = ("individual", "shared")  # 슬롯 성격(masters 의 `Audience` 와 같은 값 — engine 은 masters 를 import 하지 않는다)
+AUDIENCE_SHARED = "shared"
 
 
 def _uuid(name, value):
@@ -53,6 +55,7 @@ class Candidate:
     period_end: datetime | None  # 없으면 계속 진행
     wallet_balance: int
     remaining_daily_budget: int
+    target_segment_ids: frozenset  # 광고그룹의 대상 그룹 UUID 집합. 비면 전체 대상(설계 §10 "대상 그룹 타기팅" ③ — 보관된 그룹도 연결이 남아 있으면 든다)
 
     def __post_init__(self):
         for name in ("campaign_id", "ad_group_id", "creative_id", "slot_id"):
@@ -71,6 +74,10 @@ class Candidate:
             raise ValueError("정책은 하한 ≤ 상한이어야 한다")
         _utc("period_start", self.period_start)
         _utc("period_end", self.period_end, nullable=True)
+        if not isinstance(self.target_segment_ids, frozenset):
+            raise TypeError(f"target_segment_ids 은(는) frozenset 이어야 한다: {self.target_segment_ids!r}")
+        for segment_id in self.target_segment_ids:
+            _uuid("target_segment_ids 의 값", segment_id)
 
 
 @dataclass(frozen=True)
@@ -90,15 +97,32 @@ class Eligible(Candidate):
 
 @dataclass(frozen=True)
 class AdRequest:
-    """광고 요청. `now` 는 호출자가 주입한다(엔진은 시계를 읽지 않는다)."""
+    """광고 요청. `now` 는 호출자가 주입한다(엔진은 시계를 읽지 않는다).
+
+    요청 그룹(`segment_id`·`segment_active`)은 매체가 C1 요청에 실은 그룹 코드를 `records` 가 카탈로그로 푼 값이다(없으면 둘 다 `None`).
+    `segment_active` 가 거짓이면 보관된 그룹 — 받아서 결정에 남기되 "그룹 없음"으로 맞춘다(필터 `segment`). 슬롯 성격(`audience`)은 일괄 슬롯에서
+    대상 그룹 광고를 내지 않으려고 필터가 본다(설계 §10 "대상 그룹 타기팅" ⑤).
+    """
 
     slot_id: uuid.UUID
     now: datetime
     subject_id: str | None = None  # 지금 알고리즘은 읽지 않는다. 이후 알고리즘이 시그니처 변경 없이 쓰도록 항상 전달한다
+    segment_id: uuid.UUID | None = None
+    segment_active: bool | None = None
+    audience: str = field(kw_only=True)  # 기본값 없음 — 빠뜨리면 생성 오류(일괄 슬롯의 규칙이 조용히 빠지지 않게)
 
     def __post_init__(self):
         _uuid("slot_id", self.slot_id)
         _utc("now", self.now)
+        if self.audience not in AUDIENCES:
+            raise ValueError(f"audience 가 올바르지 않다: {self.audience!r}")
+        if self.segment_id is None:
+            if self.segment_active is not None:
+                raise ValueError("요청 그룹이 없으면 segment_active 도 없다")
+        else:
+            _uuid("segment_id", self.segment_id)
+            if not isinstance(self.segment_active, bool):
+                raise TypeError("요청 그룹이 있으면 segment_active 은(는) bool 이어야 한다")
 
 
 @dataclass(frozen=True)

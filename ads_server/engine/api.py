@@ -2,13 +2,14 @@
 from random import Random
 
 from .filters.chain import run_filters
+from .filters.segment import RULE as SEGMENT_RULE
 from .pricing import effect_of, is_expired
 from .registry import DEFAULT_POLICY, UnknownName, get_filter, get_policy
 from .types import AdRequest, Candidate, DecisionResult, Effect, Eligible, Selection
 
 
 def decide(candidates, request: AdRequest, rng: Random, policy=DEFAULT_POLICY, extra_filters=()) -> DecisionResult:
-    """적용 금액 계산 → 자격 필터(필수 다섯 + 추가) → 선택 알고리즘. 알 수 없는 정책·필터 이름은 오류다."""
+    """적용 금액 계산 → 자격 필터(필수 여섯 + 추가) → 선택 알고리즘. 알 수 없는 정책·필터 이름은 오류다."""
     selector = get_policy(policy)  # 이름 오류는 후보가 없어도 바로 드러나게 먼저 확인한다
     candidates = list(candidates)
     for c in candidates:
@@ -22,5 +23,5 @@ def decide(candidates, request: AdRequest, rng: Random, policy=DEFAULT_POLICY, e
 
 __all__ = [
     "decide", "effect_of", "is_expired", "UnknownName", "get_policy", "get_filter",
-    "DEFAULT_POLICY", "AdRequest", "Candidate", "Eligible", "Effect", "Selection", "DecisionResult",
+    "DEFAULT_POLICY", "SEGMENT_RULE", "AdRequest", "Candidate", "Eligible", "Effect", "Selection", "DecisionResult",
 ]

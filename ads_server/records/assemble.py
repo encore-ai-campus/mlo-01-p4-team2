@@ -24,6 +24,7 @@ def assemble(slot, now):
             campaign_status=f.campaign_status, ad_group_enabled=f.ad_group_enabled, period_start=f.period_start,
             period_end=f.period_end, wallet_balance=wallets.get(f.owner_id, 0),
             remaining_daily_budget=max(0, f.daily_budget - spent.get(f.campaign_id, 0)),
+            target_segment_ids=frozenset(f.target_segment_ids),
         )
         for f in facts
     ], {f.ad_group_id: f for f in facts}

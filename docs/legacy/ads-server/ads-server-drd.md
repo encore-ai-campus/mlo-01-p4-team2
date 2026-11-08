@@ -2,7 +2,7 @@
 
 > Status: **정식 문서**. 광고 서버만 다룬다. **지금 구조만 적는다** — 언제·왜 바뀌었는지는 §11 문서 이력에 있다.
 > 관련 문서: [ads-server-design.md](ads-server-design.md) (설계), [threat-model.md](threat-model.md) (위협 모델), [contracts/](contracts/) (OpenAPI 계약)
-> 기준: 2026-10-14(저장소는 2026-10-31 PostgreSQL 전환 0.55, 이벤트는 2026-11-01 Outbox 확장 0.56, 요청 제한 버킷은 2026-11-01 0.57, C1 1.5.0 은 2026-11-02 0.58, 구간 대조 보완은 2026-11-02 0.59, 소재 보관 문구는 2026-11-02 0.60, 사용자 관리 감사는 2026-11-02 0.61, manifest 입력 검증은 2026-11-02 0.62, 처리 대기열 색인은 2026-11-02 0.63, Kafka 확장 경로는 2026-11-02 0.64, 파이프라인 장애 복구 결정(구현 전, [예약])은 2026-11-03 0.65, Kafka 메시지 키 `event_id`·`op` `c`·`r`는 2026-11-04 0.66, `hop_pipeline` 중복·충돌·INSERT 아닌 행·쌍 실패 조건은 2026-11-04 0.67, 구간 규칙 원본 파일은 2026-11-04 0.68, 대사 범위 `since` 구현은 2026-11-04 0.69, outbox → 파이프라인 대조 구현은 2026-11-04 0.70, 창 확정·알려진 예외 구현은 2026-11-04 0.71, 파이프라인 manifest 잡·받기·창 대사 구현은 2026-11-05 0.72, C2 운영 경로 = Debezium CDC → Kafka → Bronze는 2026-11-05 0.73, 대상 그룹 타기팅(결정만, 구현 전 [예약])은 2026-11-08 0.74, 대상 그룹 카탈로그 구현(TG-S1)은 2026-11-08 0.75, 광고그룹의 대상 그룹 구현(TG-S2)은 2026-11-08 0.76) · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
+> 기준: 2026-10-14(저장소는 2026-10-31 PostgreSQL 전환 0.55, 이벤트는 2026-11-01 Outbox 확장 0.56, 요청 제한 버킷은 2026-11-01 0.57, C1 1.5.0 은 2026-11-02 0.58, 구간 대조 보완은 2026-11-02 0.59, 소재 보관 문구는 2026-11-02 0.60, 사용자 관리 감사는 2026-11-02 0.61, manifest 입력 검증은 2026-11-02 0.62, 처리 대기열 색인은 2026-11-02 0.63, Kafka 확장 경로는 2026-11-02 0.64, 파이프라인 장애 복구 결정(구현 전, [예약])은 2026-11-03 0.65, Kafka 메시지 키 `event_id`·`op` `c`·`r`는 2026-11-04 0.66, `hop_pipeline` 중복·충돌·INSERT 아닌 행·쌍 실패 조건은 2026-11-04 0.67, 구간 규칙 원본 파일은 2026-11-04 0.68, 대사 범위 `since` 구현은 2026-11-04 0.69, outbox → 파이프라인 대조 구현은 2026-11-04 0.70, 창 확정·알려진 예외 구현은 2026-11-04 0.71, 파이프라인 manifest 잡·받기·창 대사 구현은 2026-11-05 0.72, C2 운영 경로 = Debezium CDC → Kafka → Bronze는 2026-11-05 0.73, 대상 그룹 타기팅(결정만, 구현 전 [예약])은 2026-11-08 0.74, 대상 그룹 카탈로그 구현(TG-S1)은 2026-11-08 0.75, 광고그룹의 대상 그룹 구현(TG-S2)은 2026-11-08 0.76, 결정의 대상 그룹 구현(TG-S3)은 2026-11-08 0.77) · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
 > 근거: 설계서 `docs/legacy/ads-server/ads-server-design.md`, 계약 `contracts/serving.openapi.yaml`(C1·C3), `contracts/console.openapi.yaml`(C6), 실제 모델 코드(`*/models.py`)
 > 표기: **[예약]** 계약에 자리만 있고 아직 코드 없음 · **[제안]** 이 문서가 처음 제안함(동의 필요) · **[열림]** 정하지 못함. 표기가 없으면 코드에 있다
 
@@ -157,7 +157,7 @@ flowchart LR
 
 | # | 규칙 | 근거·강제 수단 |
 |---|---|---|
-| R-1 | **식별자는 UUID**(소문자 하이픈 표기). 모든 행은 UUID로 식별되고, 계약·이벤트·다른 모듈은 UUID로만 가리킨다. **예외 하나 [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"]**: C1 결정 요청의 `segment`는 매체가 보내는 대상 그룹 **코드**다(매체에 그룹 UUID가 없어 같은 값으로 등록한다 — 사용자 2026-11-08). 서버 안의 참조·이벤트는 그룹 UUID(`segment_id`)다 | 설계서 §4 [확정]. 형식이 틀린 ID는 "없는 것"과 같게 404(`foundation.parse_uuid`, `owned_or_404`) |
+| R-1 | **식별자는 UUID**(소문자 하이픈 표기). 모든 행은 UUID로 식별되고, 계약·이벤트·다른 모듈은 UUID로만 가리킨다. **예외 하나**: C1 결정 요청의 `segment`는 매체가 보내는 대상 그룹 **코드**다(매체에 그룹 UUID가 없어 같은 값으로 등록한다 — 사용자 2026-11-08). 서버 안의 참조·이벤트는 그룹 UUID(`segment_id`)다 | 설계서 §4 [확정]. 형식이 틀린 ID는 "없는 것"과 같게 404(`foundation.parse_uuid`, `owned_or_404`) |
 | R-2 | **PK 규칙** [확정]: ① **모든 테이블의 PK는 UUIDv7** ② **자동 증가 열은 두지 않는다** ③ 자연 키((광고그룹, `bid_version`), (슬롯, `policy_version`), (매체, 슬롯 이름) 등)는 식별자가 아니라 **업무 규칙을 지키는 유일 제약**으로 유지 ④ 확실한 순서가 필요한 곳은 **원장 하나**이고 `(지갑, seq)` 유일 제약으로 둔다(지갑 잠금 안에서 +1) ⑤ 그 밖의 정렬은 시각 열. **예외**: 이벤트 outbox의 PK `event_id`는 원천 행 ID와 이벤트 종류에서 결정적으로 만든 UUIDv5다(재처리·재전송에도 같은 값) | 정수 PK는 DB 이관·병합 때 번호 충돌과 키 이중화(정수·UUID)를 만든다. MongoDB는 자동 증가가 없고 `_id`에 UUID를 쓴다. 무작위 v4는 PK 색인의 쓰기 위치가 흩어지므로 **시각이 앞에 오는 v7**(Python 3.14 `uuid.uuid7`, 같은 밀리초 안에서도 단조 증가)이 새 행을 뒤에 붙인다. 상세는 설계서 §10 "PK 규칙" |
 | R-3 | **시각은 UTC**로 저장·계산·전송한다. 계약은 RFC 3339 `…Z`만 허용. KST는 화면 표시에서만 | 설계서 §3 [확정]. 서비스는 시간대 없는 값(naive)을 거부, `engine`은 UTC가 아니면 생성 단계에서 거부 |
 | R-4 | **금액은 정수 포인트**, 0 이상, 최대 `2^53 − 1`(JSON 정수로 정확히 표현되는 한계) | 설계서 §10 [확정]. DB `CHECK` + 서비스 검증. 팀 DRD의 `DECIMAL(18,2)`와 다르다(§9) |
@@ -376,8 +376,8 @@ erDiagram
         int impression_share "비율 스냅샷"
         int click_share
         int conversion_share
-        uuid segment_id "요청 그룹(예약)"
-        uuid_list target_segment_ids "대상 그룹 스냅샷(예약)"
+        uuid segment_id "요청 그룹"
+        uuid_list target_segment_ids "대상 그룹 스냅샷"
     }
     records_reaction {
         uuid inbox_id PK
@@ -578,15 +578,15 @@ erDiagram
 
 #### M7. 대상 그룹 `masters_segment`
 
-매체가 정한 사용자 묶음(첫 쓰임: 과정)의 카탈로그. [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] 매체가 C1 결정 요청에 싣는 그룹 코드(`segment`)를 이 표로 풀어 그룹 UUID로 바꾼다. 관리자 역할(이미 있는 운영자 계정, `role = admin`)이 운영 화면에서 추가·이름 변경·보관·되살리기를 한다. 행을 지우지 않는다(R-6) — 판(M8)과 광고그룹 연결(O11) — 둘 다 FK `PROTECT` — 이 가리키는 이력을 지킨다([예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] 결정 R1도 가리킨다). **현재 값의 원본은 이 행이다.** 만들 때와 이름·보관 상태를 바꿀 때마다 같은 트랜잭션에서 M8에 그때 상태 전체를 한 줄 더한다(캠페인·광고그룹 O1·O2와 변경 로그 O10의 관계와 같다 — M8은 파생값의 사본이 아니라 이력이다, §0).
+매체가 정한 사용자 묶음(첫 쓰임: 과정)의 카탈로그. 매체가 C1 결정 요청에 싣는 그룹 코드(`segment`)를 이 표로 풀어 그룹 UUID로 바꾼다. 관리자 역할(이미 있는 운영자 계정, `role = admin`)이 운영 화면에서 추가·이름 변경·보관·되살리기를 한다. 행을 지우지 않는다(R-6) — 판(M8)과 광고그룹 연결(O11) — 둘 다 FK `PROTECT` — 이 가리키는 이력을 지킨다(결정 R1도 UUID 스냅샷으로 가리킨다). **현재 값의 원본은 이 행이다.** 만들 때와 이름·보관 상태를 바꿀 때마다 같은 트랜잭션에서 M8에 그때 상태 전체를 한 줄 더한다(캠페인·광고그룹 O1·O2와 변경 로그 O10의 관계와 같다 — M8은 파생값의 사본이 아니라 이력이다, §0).
 
 | 컬럼 | 타입 | NULL | 키·제약 | 설명 |
 |---|---|:---:|---|---|
-| `segment_id` | UUID | N | PK | 서버 안의 참조(판 M8·광고그룹 연결 O11·이벤트, [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] R1)는 이것으로 |
-| `media_id` | UUID | N | FK→M1 `PROTECT` | 그룹은 매체별이다(코드는 매체 안에서 유일). [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] 이 매체의 요청만 이 그룹을 쓸 수 있다 |
+| `segment_id` | UUID | N | PK | 서버 안의 참조(판 M8·광고그룹 연결 O11·이벤트·R1)는 이것으로 |
+| `media_id` | UUID | N | FK→M1 `PROTECT` | 그룹은 매체별이다(코드는 매체 안에서 유일). 이 매체의 요청만 이 그룹을 쓸 수 있다 |
 | `code` | 문자 32 | N | UNIQUE(media, code), `CHECK` 형식 `^[a-z][a-z0-9-]{0,31}$`, **등록 뒤 바꿀 수 없음** | 매체가 보내는 코드 그대로(R-1의 예외). R-8(코드 값은 대문자)의 대상이 아니다 — 서버의 선택지 값이 아니라 매체의 키다 |
 | `name` | 문자 100 | N | | 사람용 이름(예 "MLO 과정"). 식별에 쓰지 않는다 |
-| `is_active` | 불리언 | N | | 거짓 = 보관(행은 남고 되살릴 수 있다). 보관된 그룹은 광고그룹에 새로 고를 수 없다(이미 연결된 것은 남는다, O11). [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] 요청에 실려 오면 받아서 결정에 남기되 "그룹 없음"으로 맞춘다 |
+| `is_active` | 불리언 | N | | 거짓 = 보관(행은 남고 되살릴 수 있다). 보관된 그룹은 광고그룹에 새로 고를 수 없다(이미 연결된 것은 남는다, O11). 요청에 실려 오면 받아서 결정에 남기되 "그룹 없음"으로 맞춘다 |
 | `created_at` | 시각 | N | | |
 
 #### M8. 대상 그룹 판 `masters_segment_version` [추가 전용 버전]
@@ -655,9 +655,9 @@ M7을 만들 때(판 1)와 이름·보관 상태가 바뀔 때마다 그때 상�
 |---|---|:---:|---|---|
 | `ad_group_segment_id` | UUID | N | PK | |
 | `ad_group_id` | UUID | N | FK→O2 `CASCADE`, UNIQUE(ad_group, segment) | |
-| `segment_id` | UUID | N | FK→M7 `PROTECT` | 새로 연결할 때는 살아 있는(보관되지 않은) 그룹이고 그 광고그룹이 고른 구성의 매체 것만(그룹 행 공유 잠금 안에서 본다). 이미 연결된 그룹은 보관되거나 그 매체가 구성에서 빠져도 남는다(광고주 화면이 경고). [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] 보관된 그룹은 맞지 않는다 |
+| `segment_id` | UUID | N | FK→M7 `PROTECT` | 새로 연결할 때는 살아 있는(보관되지 않은) 그룹이고 그 광고그룹이 고른 구성의 매체 것만(그룹 행 공유 잠금 안에서 본다). 이미 연결된 그룹은 보관되거나 그 매체가 구성에서 빠져도 남는다(광고주 화면이 경고). 보관된 그룹은 맞지 않는다 |
 
-목록을 바꾸면 연결 행이 교체되고, 이력은 변경 로그(O10 `SEGMENTS_CHANGED`)에 남는다. [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] 결정이 어느 대상으로 판정됐는지는 **R1의 `target_segment_ids`**가 기록한다.
+목록을 바꾸면 연결 행이 교체되고, 이력은 변경 로그(O10 `SEGMENTS_CHANGED`)에 남는다. 결정이 어느 대상으로 판정됐는지는 **R1의 `target_segment_ids`**가 기록한다.
 
 #### O4. 소재 `campaigns_creative`
 
@@ -792,13 +792,13 @@ M7을 만들 때(판 1)와 이름·보관 상태가 바뀔 때마다 그때 상�
 | `selection_policy` | 문자 64 | N | | 알고리즘 이름(`weighted-by-bid/v1` — 상한 근접 가중 추첨, 설계서 §4.3) |
 | `trace` | JSON | N | | 판단 근거 요약: 후보 수·k·가중치 합·뽑힌 후보의 가중치·뽑은 난수·뽑힌 광고그룹(후보 목록은 없다) |
 | `candidate_count` | 정수 | N | | 들어온 후보 수 |
-| `rejected_counts` | JSON | N | | 필터 거절 사유별 개수(예 `{"below_floor": 2}`). 대상 그룹 필터의 사유는 `segment_not_targeted` [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] |
-| `segment_id` | UUID | Y | FK 아님, 아래 묶음 [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] | 요청 그룹(M7). 요청에 그룹이 없거나 이 기능 이전 결정이면 NULL |
-| `segment_active` | 불리언 | Y | `segment_id`와 함께 NULL(아래 묶음) [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] | 결정할 때 그 그룹이 살아 있었나. 거짓이면 "그룹 없음"으로 맞췄다 |
-| `target_segment_ids` | UUID 목록 | Y | 아래 묶음 [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] | 뽑힌 광고그룹의 대상 그룹 스냅샷(정렬). 빈 목록 = 전체 대상. 광고 없음이면 NULL |
-| `segment_rule` | 문자 32 | Y | 아래 묶음 [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] | 이 결정에 대상 그룹 규칙을 적용했다는 표시(`segment/v1`). NULL = 이 기능 이전 결정 — 원본 재구성·백필이 이벤트 판(v2·v3)을 이것으로 가른다 |
+| `rejected_counts` | JSON | N | | 필터 거절 사유별 개수(예 `{"below_floor": 2}`). 대상 그룹 필터의 사유는 `segment_not_targeted` |
+| `segment_id` | UUID | Y | FK 아님, 아래 묶음 | 요청 그룹(M7). 요청에 그룹이 없거나 이 기능 이전 결정이면 NULL |
+| `segment_active` | 불리언 | Y | `segment_id`와 함께 NULL(아래 묶음) | 결정할 때 그 그룹이 살아 있었나. 거짓이면 "그룹 없음"으로 맞췄다 |
+| `target_segment_ids` | UUID 목록 | Y | 아래 묶음 | 뽑힌 광고그룹의 대상 그룹 스냅샷(정렬). 빈 목록 = 전체 대상. 광고 없음이면 NULL |
+| `segment_rule` | 문자 32 | Y | 아래 묶음 | 이 결정에 대상 그룹 규칙을 적용했다는 표시(`segment/v1`). NULL = 이 기능 이전 결정 — 원본 재구성·백필이 이벤트 판(v2·v3)을 이것으로 가른다 |
 
-**묶음 제약**(DB `CHECK`): 선택된 광고 열(`owner_id`~`snapshot`)은 **모두 값이 있거나 모두 NULL**이다. 모두 NULL = 광고 없음이고, 이것도 한 건으로 기록한다. [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] 대상 그룹 열의 묶음(DB `CHECK`): ① `segment_rule`이 NULL이면(이 기능 이전 결정) `segment_id`·`segment_active`·`target_segment_ids`도 모두 NULL — 그룹 값이 있는데 규칙 표시가 없는 행은 원본 재구성이 v2로 만들어 그룹이 조용히 빠지므로 막는다 ② `segment_id`가 NULL ⇔ `segment_active`가 NULL(양방향 — `CHECK`는 NULL이면 통과해 한 방향만 쓰면 빈칸이 생긴다) ③ `segment_rule`이 있는 결정은 "광고 있음 ⇔ `target_segment_ids` NOT NULL" ④ `audience`가 `shared`이면 `segment_id`는 NULL(`subject_id`와 같은 방식). 이미 행이 있는 DB에 더할 때 `NOT VALID` → `VALIDATE`로 할지는 구현 Step(S3)이 정한다.
+**묶음 제약**(DB `CHECK`): 선택된 광고 열(`owner_id`~`snapshot`)은 **모두 값이 있거나 모두 NULL**이다. 모두 NULL = 광고 없음이고, 이것도 한 건으로 기록한다. 대상 그룹 열의 묶음(DB `CHECK`): ① `segment_rule`이 NULL이면(이 기능 이전 결정) `segment_id`·`segment_active`·`target_segment_ids`도 모두 NULL — 그룹 값이 있는데 규칙 표시가 없는 행은 원본 재구성이 v2로 만들어 그룹이 조용히 빠지므로 막는다 ② `segment_id`가 NULL ⇔ `segment_active`가 NULL(양방향 — `CHECK`는 NULL이면 통과해 한 방향만 쓰면 빈칸이 생긴다) ③ `segment_rule`이 있는 결정은 "광고 있음 ⇔ `target_segment_ids` NOT NULL" ④ `audience`가 `shared`이면 `segment_id`는 NULL(`subject_id`와 같은 방식). 넷은 보통의 제약 추가다(마이그레이션 `records/0003_decision_segment` — 추가할 때 표 전체를 한 번 검증한다. 운영 첫 배포는 빈 DB이고 기존 행은 넷 다 NULL이라 모두 통과한다. `NOT VALID`는 쓰지 않았다 — TG-S3).
 
 #### P2. 반응 `records_reaction`
 
@@ -836,7 +836,7 @@ M7을 만들 때(판 1)와 이름·보관 상태가 바뀔 때마다 그때 상�
 |---|---|---|---|---|
 | `event_id` | UUID | N | **PK** | 이벤트 ID = MongoDB `_id`. 원천 행 ID(결정 `decision_id`·수신함 `inbox_id`·원장 `entry_id`·정책 버전 `bid_policy_id`·입찰 `bid_id`·변경 로그 `change_id`·대상 그룹 판 `segment_version_id`)와 `event_name`에서 결정적으로 만든 **UUIDv5**(R-2의 예외). 같은 이벤트를 두 번 쓰면 PK가 막아 한 줄만 남는다(다시 써도 바뀌지 않음). 모델 기본값은 없다 — 빠뜨리면 저장이 실패한다. Kafka `after.event_id` |
 | `event_name` | 문자 64 | N | 색인(아래) | `ad.decision`·`ad.reaction_received`·`ad.reaction`·`ad.charge`·`ad.bid_policy_changed`·`ad.bid_added`·`ad.campaign_changed`·`ad.ad_group_changed`·`ad.segment_changed`(버전은 붙이지 않음). Kafka `after.event_name` |
-| `schema_version` | 작은 정수 | N | | 이벤트 종류별: `ad.decision` 2([예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] 3 — 이전 결정의 재구성은 2), 나머지 1. 그 종류의 페이로드 모양이 바뀌면 그 종류만 올린다 |
+| `schema_version` | 작은 정수 | N | | 이벤트 종류별: `ad.decision` 3(대상 그룹 규칙 이전 결정 — `segment_rule` NULL — 의 원본 재구성·백필은 2, 행마다 판), 나머지 1. 그 종류의 페이로드 모양이 바뀌면 그 종류만 올린다 |
 | `aggregate_id` | UUID | N | | 종류별 대상(결정·접수·판정·과금은 `decision_id`, 입찰 정책은 `slot_id`, 입찰·광고그룹 변경은 `ad_group_id`, 캠페인 변경은 `campaign_id`, 대상 그룹 판은 `segment_id`). Kafka에는 `after.aggregate_id`로 실린다. Kafka 메시지 키는 `event_id`다(2026-11-04 — §5.6 "전달 방식") |
 | `payload` | JSON | N | | §5.6의 필드. 이름·형식은 `events/schemas.py` 한 곳 |
 | `created_at` | 시각 | N | 색인(아래) | 이벤트의 `produced_at`: 결정 = 결정 시각, 접수 = 수신 시각, 판정 = 처리 시각, 과금 = 과금을 일으킨 반응의 처리 시각(판정과 같은 처리 트랜잭션의 같은 시각), 입찰 정책 = 정책 버전의 변경 시각, 입찰 = 입찰 버전을 만든 시각, 캠페인·광고그룹 변경 = 변경 시각, 대상 그룹 판 = 판의 변경 시각. MongoDB에는 밀리초로 잘라 넣는다. Kafka `after.created_at`(마이크로초 그대로, UTC `Z` — Silver에서 `produced_at`) |
@@ -875,8 +875,8 @@ M7을 만들 때(판 1)와 이름·보관 상태가 바뀔 때마다 그때 상�
 | 대상 그룹 코드는 매체 안에서 유일하고 바꿀 수 없다 | UNIQUE(media, code), `CHECK` 형식 | 모델 `save()` 거부(코드 변경), 등록 검증(다듬지 않음) | `case_the_code_is_unique_per_media_but_free_across_media`, `case_the_code_must_match_the_format_and_is_never_trimmed`, `case_the_code_cannot_be_changed` |
 | 대상 그룹을 바꿀 때마다 판 한 줄 + 이벤트 하나(같은 트랜잭션), 값이 그대로면 없음, 본 판이 다르면 거절 | UNIQUE(segment, version) | 그룹 행을 `FOR UPDATE`로 잠근 뒤 판 대조(진 쪽은 409 `stale_version`) | `case_rename_archive_and_restore_each_add_a_full_version_and_an_event`, `case_a_change_that_changes_nothing_writes_nothing`, `test_two_changes_from_the_same_version_one_wins` |
 | 광고그룹에 새로 고르는 대상 그룹은 살아 있고 그 광고그룹이 고른 구성의 매체 것 | O11 FK `PROTECT`, UNIQUE(ad_group, segment) | 400(`/segment_ids`), 그룹 행 공유 잠금(`FOR SHARE`, 잠금 순서의 마지막) — 보관과 줄을 선다 | `case_new_targets_must_be_live_and_of_a_chosen_slot_media`, `case_a_linked_target_stays_when_archived_or_when_its_media_leaves_the_slots`, `test_choosing_waits_for_an_archive_in_progress_and_then_refuses` |
-| 요청 그룹은 그 매체의 카탈로그에 있어야 한다 [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] | — | 400 `unknown_segment`(결정 없음) | (구현 S3) |
-| 대상 그룹 필터는 끌 수 없다 [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] | — | 필수 필터(설정과 무관) | (구현 S3) |
+| 요청 그룹은 그 매체의 카탈로그에 있어야 한다 | — | 400 `unknown_segment`(결정 없음, 검사 순서 슬롯 404 → 매체 403 → `subject_id` 400 → `segment` 400), 일괄 슬롯이면 400 `segment_not_allowed`. 형식이 틀린 코드는 카탈로그에 묻지 않는다 | `case_checks_run_in_order_404_403_subject_then_segment`, `case_values_not_registered_for_this_media_are_unknown`, `case_a_shared_slot_refuses_even_a_registered_segment` |
+| 대상 그룹 필터는 끌 수 없다 | R1 묶음 `CHECK` 넷(①~④) | 필수 필터 여섯째(상태 → 기간 → 대상 그룹 → 하한 → 예산 → 잔액, 설정과 무관) | `case_segment_filter_matches_only_a_live_request_group_inside_the_targets`, `case_segment_comes_after_period_and_before_money`, `case_segment_columns_follow_the_r1_bundle_in_db` |
 | 업무 데이터와 이벤트는 함께 커밋되거나 함께 되돌려진다 | outbox PK(같은 이벤트는 한 줄) | outbox는 호출한 쪽 트랜잭션 안에서만 쓴다(밖이면 거부) | `case_refuses_to_write_outside_a_transaction`, `case_rolls_back_with_the_business_data`, `case_if_the_event_cannot_be_written_the_decision_is_not_stored`, `test_if_the_charge_event_cannot_be_written_nothing_is_charged_or_judged` |
 
 ### 4.5 상태 전이
@@ -958,7 +958,7 @@ stateDiagram-v2
 
 | # | 계약 | 방향 | 상대 | 전송·인증 | 데이터 형식 | 상태 |
 |---|---|---|---|---|---|---|
-| C1 | Serving API | 들어옴 | 매체 서버 | 백 서버 `/api/media/v1`(서버 간 내부 경로 — 프론트 서버는 공개하지 않음), 헤더 `X-Media-Key` | JSON(UTF-8), 오류는 `application/problem+json` | 계약 1.5.0(1.6 확정·구현 전 — 선택 필드 `segment`, [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"]) |
+| C1 | Serving API | 들어옴 | 매체 서버 | 백 서버 `/api/media/v1`(서버 간 내부 경로 — 프론트 서버는 공개하지 않음), 헤더 `X-Media-Key` | JSON(UTF-8), 오류는 `application/problem+json` | 계약 1.6.0(선택 필드 `segment` — 대상 그룹 코드) |
 | C2 | 이벤트 | 나감 | 데이터 파이프라인 | Kafka `ads.outbox.events`(Debezium CDC, 계약 면). 로컬 병행 기간에는 MongoDB `ad_events`도 | Debezium 원본 변경 봉투(JSON) 안의 이벤트(§5.6) | 운영: Kafka. MongoDB 는 로컬 병행 기간만 |
 | C3 | 이미지 URL | 나감 | 매체·최종 사용자 브라우저 | HTTPS GET(앞단 nginx에서 종단, 프론트 서버가 통과), 인증 없음 | JPEG·PNG | |
 | C4 | Insight 입력 | 들어옴 | 데이터 파이프라인 | [열림] HTTP·Kafka·파일 | JSON 메시지(§5.7 [제안]) | [예약] 확장 |
@@ -983,7 +983,7 @@ stateDiagram-v2
 | `slot_id` | O | UUID. 그 매체의 슬롯이어야 한다 |
 | `subject_id` | 슬롯에 따라 | **가명 UUID**. 직접 식별자 금지. **매체가 자기만 아는 비밀로 만든 광고 전용 가명**이어야 한다(다른 시스템의 식별자 — 회원 ID 등 — 를 그대로 쓰지 않는다, 같은 사람은 늘 같은 값, C1 v1.2 MUST. 예: `HMAC-SHA256(매체 비밀, "ads-subject/v1:" + 회원 ID)` 앞 16바이트 → UUID. 서버는 가명인지 구별할 수 없어 계약과 연동 검토로 지킨다). 수집만 하고 선택에 쓰지 않는다. **개인(`individual`) 슬롯은 필수, 일괄(`shared`) 슬롯은 보내지 않는다**(어기면 400 — 슬롯을 확인한 뒤에 검사하므로 404·403이 먼저) |
 | `context` | | 불투명 JSON, 4 KiB·깊이 4·속성 50개 이하, 직접 식별자 키 금지(대소문자 무시, 어느 깊이든, 400 `forbidden_context_key`), 숫자 ±(2^53−1). 결정에 저장하고 선택에는 쓰지 않는다 |
-| `segment` [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] | | 그 사용자의 **대상 그룹 코드**(C1 1.6, 예 `mlo`). 그룹이 없으면 보내지 않는다. 문자열이 아니면(`null` 포함) 본문 검증에서 400 `invalid_request`(슬롯 확인 전 — `subject_id`의 형식 오류와 같다). 문자열이면 그 매체 카탈로그(M7)에 없는 값(빈 문자열·다른 매체의 코드 포함)은 400 `unknown_segment`, 일괄 슬롯에 보내면 400 `segment_not_allowed`(둘 다 `subject_id` 검사 뒤, 결정 없음). 보관된 그룹은 받아서 결정에 남기되 "그룹 없음"으로 맞춘다. **선택에 쓴다**(R1 `segment_id`·`segment_active`) |
+| `segment` | | 그 사용자의 **대상 그룹 코드**(C1 1.6, 예 `mlo`). 그룹이 없으면 보내지 않는다. 문자열이 아니면(`null` 포함) 본문 검증에서 400 `invalid_request`(슬롯 확인 전 — `subject_id`의 형식 오류와 같다). 문자열이면 그 매체 카탈로그(M7)에 없는 값(빈 문자열·다른 매체의 코드 포함)은 400 `unknown_segment`, 일괄 슬롯에 보내면 400 `segment_not_allowed`(둘 다 `subject_id` 검사 뒤, 결정 없음). 보관된 그룹은 받아서 결정에 남기되 "그룹 없음"으로 맞춘다. **선택에 쓴다**(R1 `segment_id`·`segment_active`) |
 
 **응답** (`201 Created`, `Location: /api/media/v1/decisions/{decision_id}`)
 
@@ -1025,9 +1025,9 @@ sequenceDiagram
     M->>S: POST /decisions (X-Media-Key)
     S->>S: 키 → media_id, 본문 검증
     S->>R: decide(media_id, slot_id, subject_id)
-    R->>MA: get_slot (슬롯·매체 활성, 현재 정책, [예약] 요청 그룹 코드 → 그룹)
+    R->>MA: get_slot (슬롯·매체 활성, 현재 정책, 요청 그룹 코드 → 그룹 — 같은 질의)
     MA->>DB: SELECT 1회
-    R->>C: candidate_facts_for_slot (캠페인·광고그룹·선택 소재·최신 입찰, [예약] 대상 그룹)
+    R->>C: candidate_facts_for_slot (캠페인·광고그룹·선택 소재·최신 입찰, 대상 그룹 — 하위 질의)
     C->>DB: SELECT 1회 (구조적 소속만)
     R->>B: balances(광고주들), spend_today(캠페인들)
     B->>DB: SELECT 2회 (지갑 잔액, 그날 원장 과금 합)
@@ -1038,7 +1038,7 @@ sequenceDiagram
     S-->>M: 201 + decision_id (저장 뒤에만)
 ```
 
-`engine`에 들어가는 후보(`Candidate`)의 필드는 설계서 §4.3 표와 같다: 식별(캠페인·광고그룹·소재·슬롯), 입찰(금액·버전), 정책 스냅샷(하한·상한·버전), 자격 판정용 사실(캠페인 상태, 광고그룹 켜짐, 기간 시작·끝, 지갑 잔액, 오늘 남은 예산, 대상 그룹 [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"]). 요청 그룹은 슬롯 조회와 같은 질의, 대상 그룹은 후보 질의의 하위 질의라 읽기 수(4번)는 그대로다.
+`engine`에 들어가는 후보(`Candidate`)의 필드는 설계서 §4.3 표와 같다: 식별(캠페인·광고그룹·소재·슬롯), 입찰(금액·버전), 정책 스냅샷(하한·상한·버전), 자격 판정용 사실(캠페인 상태, 광고그룹 켜짐, 기간 시작·끝, 지갑 잔액, 오늘 남은 예산, 대상 그룹). 요청 그룹은 슬롯 조회와 같은 질의, 대상 그룹은 후보 질의의 하위 질의라 읽기 수(4번)는 그대로다.
 
 ### 5.3 C1 반응 보고 → 접수 → 처리 → 과금
 
@@ -1159,7 +1159,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 |---|---|---|
 | `event_id` | UUID | 이벤트 고유 ID = MongoDB `_id`(UUID 표준 이진). 원천 행 ID와 `event_name`에서 결정적으로 만든 UUIDv5라 **재처리·재전송해도 같은 값**(소비자가 중복 제거) |
 | `event_name` | 문자 | 예 `ad.decision` |
-| `schema_version` | 정수 | 종류별 — `ad.decision` 2, 나머지 여덟 종류 1(`ad.segment_changed` 포함). [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] `ad.decision` 3(이 기능 이전 결정의 재구성·백필은 2) |
+| `schema_version` | 정수 | 종류별 — `ad.decision` 3(대상 그룹 규칙 이전 결정의 재구성·백필은 2 — 행마다 판), 나머지 여덟 종류 1(`ad.segment_changed` 포함) |
 | `produced_at` | 시각(UTC) | 이벤트를 만든 시각: **결정 = 결정 시각, 접수 = 수신 시각, 판정 = 처리 시각, 과금 = 과금을 일으킨 반응의 처리 시각(판정과 같은 처리 트랜잭션의 같은 시각), 입찰 정책 = 정책 버전의 변경 시각, 입찰 = 입찰 버전을 만든 시각, 캠페인·광고그룹 변경 = 변경 시각, 대상 그룹 판 = 판의 변경 시각**. 과금 이벤트의 `produced_at`은 페이로드의 원장 시각(`created_at` = 반응 수신 시각)과 다르다. MongoDB 날짜라 **밀리초까지** |
 | `payload` | 객체 | 아래. 안의 UUID는 문자열, 시각은 UTC ISO 8601 문자열(마이크로초까지) |
 
@@ -1175,7 +1175,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 | `selected` | R1 선택 열 | 광고 없음이면 `null`. 아니면 `campaign_id`·`ad_group_id`·`creative_id`·`charge_shares`(`{"IMPRESSION": %, "CLICK": %, "CONVERSION": %}` — 키가 반응 `type` 값)·`bid_id`·`bid_version`·`bid_policy_id`·`policy_version`·`bid_amount`·`applied_amount` |
 | `selection_policy`, `candidate_count`, `rejected_counts` | R1 | `trace`는 싣지 않는다(필요하면 별도 이벤트). 광고주 계정(`owner_id`)·매체 `context`도 싣지 않는다 |
 
-**`ad.decision.v3`** [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] — v2 필드에 넷을 더한다. `segment_rule`이 NULL인 결정(이 기능 이전)은 원본 재구성·백필도 **v2 모양·판 2**로 만든다(행마다 판 — outbox에 v2로 저장된 이벤트와 구간 대사가 어긋나지 않게).
+**`ad.decision.v3`** — v2 필드에 넷을 더한다. `segment_rule`이 NULL인 결정(이 기능 이전)은 원본 재구성·백필도 **v2 모양·판 2**로 만든다(행마다 판 — outbox에 v2로 저장된 이벤트와 구간 대사가 어긋나지 않게).
 
 | 필드 | 원본 | 비고 |
 |---|---|---|
@@ -1363,7 +1363,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 |---|---|---|
 | **L3** | 비밀번호 해시, 로그인 아이디(`username`), 매체 키(원문은 발급 시 한 번만 보여 주고 해시만 저장), `SECRET_KEY`·`FRONTEND_SECRET_KEY` | 이벤트·로그·감사 상세에 넣지 않는다. 로그·감사는 비밀 키 이름을 자동 제거 |
 | **L2** | `subject_id`(노출 대상 가명 — 매체가 만든 **광고 전용 가명**이고 다른 시스템의 식별자가 아니다, C1 v1.2), 매체 `context`, IP 주소(감사 로그·로그인 잠금 기록), 광고주 `nickname`·`class_label`, `actor_username` | `subject_id`는 **수집만 하고 해석·응답하지 않는다**. 광고주·관리자 화면과 API 응답에 되돌려주지 않는다(설계서 §3). **MongoDB `ad_events`에 쌓인다**: 결정·접수·판정 이벤트의 `subject_id`, 판정 이벤트의 `person_id`·`basis`, 접수 이벤트의 원문(`raw`). 분석 계층 접근 권한을 분리하고(인프라 계정은 아직 나뉘지 않음, 위협 모델 T41), 보존 기간은 §6 |
-| **L1** | 매체·슬롯·정책, 캠페인·광고그룹·소재·입찰, 결정의 광고 선택, 원장 금액, 대상 그룹 카탈로그(코드·이름), 결정의 그룹 열 [예약 — 대상 그룹 타기팅, 설계서 §10 "대상 그룹 타기팅"] — 단 결정 이벤트는 가명 `subject_id`와 함께 실리므로 L2 규칙을 따른다 | 광고주는 자기 것만(R-9). 소재 제목·이동 주소는 **신뢰할 수 없는 값**으로 표시(매체가 이스케이프) |
+| **L1** | 매체·슬롯·정책, 캠페인·광고그룹·소재·입찰, 결정의 광고 선택, 원장 금액, 대상 그룹 카탈로그(코드·이름), 결정의 그룹 열 — 단 결정 이벤트는 가명 `subject_id`와 함께 실리므로 L2 규칙을 따른다 | 광고주는 자기 것만(R-9). 소재 제목·이동 주소는 **신뢰할 수 없는 값**으로 표시(매체가 이스케이프) |
 
 추가 규칙:
 
@@ -1464,6 +1464,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 
 | 버전 | 날짜 | 내용 |
 |---|---|---|
+| 0.77 | 2026-11-08 | 결정의 대상 그룹 구현(TG-S3)으로 [예약]을 걷음: R-1 예외(C1 `segment` 코드), ER 두 줄, M7의 요청 풀기·매체 범위·보관 그룹 "그룹 없음", O11 보관 그룹 맞지 않음·R1 `target_segment_ids`, R1 열 넷과 묶음 제약 ①~④(마이그레이션 `records/0003_decision_segment`, `NOT VALID` 쓰지 않음), `rejected_counts`의 `segment_not_targeted`, P3·§5.6 `schema_version`(`ad.decision` 3, 이전 결정의 재구성·백필은 2 — 행마다 판), §4.4 줄 둘(시험 이름), C1 1.6.0 줄·`segment` 줄, 결정 순서도 두 줄, 후보 필드, `ad.decision.v3`, 분류 L1. 남은 [예약]은 M1 `audience` 화면(S4). 데이터 모양은 R1 열 넷 그대로 |
 | 0.76 | 2026-11-08 | 광고그룹의 대상 그룹 구현(TG-S2)으로 [예약]을 걷음: O11(마이그레이션 `campaigns/0003_ad_group_segment`), O2 `updated_at`, O10 `SEGMENTS_CHANGED`·`CREATED`의 `segment_ids`(CHECK 목록 넓힘), ER 두 줄, §4.2 줄, §0 표 수 25(운영 10), M7의 O11 참조·보관 그룹 새로 고르기 금지, §4.4 줄(시험 이름), §5.6 `ad.ad_group_changed` 기록 지점. O11의 "보관 그룹은 맞지 않는다"·R1·C1·필터는 [예약] 그대로(S3) |
 | 0.75 | 2026-11-08 | 대상 그룹 카탈로그 구현(TG-S1)으로 [예약]을 걷음: M7·M8(마이그레이션 `masters/0003_segment`), R-5 M8, R-6 보관, ER 두 줄, §4.2 두 줄, P3 `event_id`·`event_name`·`aggregate_id`·`created_at`의 대상 그룹 판, §5.6 봉투 `schema_version`·`ad.segment_changed.v1`, §4.4 코드 규칙 줄(시험 이름)과 새 줄(판·이벤트·본 판 대조), L1의 카탈로그, §5.6 봉투 `produced_at`. M7 절의 S2·S3 동작(요청 코드 풀기·O11·R1 참조·보관 그룹의 선택·결정)은 문장마다 [예약]. Kafka 토픽은 아홉 종류. O11·R1 열·`SEGMENTS_CHANGED`·`ad.decision` v3·C1 1.6·R-1 예외는 [예약] 그대로(S2·S3) |
 | 0.74 | 2026-11-08 | 대상 그룹 타기팅 결정(사용자 — 설계서 §10 "대상 그룹 타기팅")을 [예약]으로: M7 대상 그룹(현재 값의 원본)·M8 대상 그룹 판(추가 전용 이력)·O11 광고그룹-대상 그룹 표, R1 열 넷(`segment_id`·`segment_active`·`target_segment_ids`·`segment_rule`)과 묶음 제약, O10 `SEGMENTS_CHANGED`·`CREATED`의 `segment_ids`, P3·§5.6 `ad.decision` v3·`ad.segment_changed` v1, §5.2 C1 1.6 `segment`, R-1 예외(그룹 코드), R-5·R-6, M2 일괄은 화면에서만 비활성화, §4.4 네 줄, §7. §0 엔터티 수를 실제(22, O10을 빠뜨렸던 수)로 바로잡음. 각 구현 Step이 자기 [예약]을 걷는다 |

@@ -23,9 +23,9 @@
 #achievementsList[hidden]{display:none}
 .achievement-item{position:relative;display:grid;grid-template-columns:76px 1fr;grid-template-rows:1fr 1fr;align-items:center;column-gap:14px;padding:10px 3px;border:0;border-bottom:1px solid #9d815238;background:repeating-linear-gradient(transparent 0 27px,#94764b0b 28px 29px);text-align:left;min-width:0}
 .achievement-item img{grid-row:1/3;display:block;width:76px;height:76px;object-fit:contain;transition:filter .6s,transform .6s}
-.achievement-item[data-discovered="false"] img{filter:brightness(0)}
-.achievement-item[data-discovered="false"]{color:#796a55}
-.achievement-item[data-discovered="false"] img{opacity:.22;transform:scale(.9)}
+.achievement-item[data-achieved="false"] img{filter:brightness(0)}
+.achievement-item[data-achieved="false"]{color:#796a55}
+.achievement-item[data-achieved="false"] img{opacity:.22;transform:scale(.9)}
 .achievement-item strong{align-self:end;font-size:14px;line-height:1.6;word-break:keep-all}
 .achievement-item span{align-self:start;margin-top:4px;font:11px 'Malgun Gothic',sans-serif;color:#8a7759;letter-spacing:1px}
 .achievement-item[data-achieved="true"]{background-color:#fff3c127}
@@ -43,13 +43,11 @@
 @media(max-width:650px){#achievementsDialog{padding:12px;width:calc(100vw - 20px)}#achievementsDialog .dialog-top{padding:20px 18px 12px;background:#efdfbb}#achievementsTitle{font-size:21px}.notebook-eyebrow{font-size:9px;letter-spacing:1px}.achievements-content{padding:0 18px 18px;background:#efdfbb}#achievementsList{grid-template-columns:1fr;grid-template-rows:none;grid-auto-flow:row}.achievement-item{grid-template-columns:68px 1fr;min-height:75px}.achievement-item img{width:68px;height:68px}#achievementsOpen{padding:8px 12px}.notebook-footnote{display:block}.notebook-footnote span{display:block;margin-top:5px}}
 @media(prefers-reduced-motion:reduce){#achievementsDialog[open] .notebook-cover{animation:none;visibility:hidden}.achievement-item img{transition:none}}
 
-/* Shared artwork reveal and personal completion are separate states. */
-.achievement-item{grid-template-rows:auto auto auto;row-gap:2px}
-.achievement-item img{grid-row:1/4}
+/* Only personal completion reveals achievement artwork. */
+.achievement-item{grid-template-rows:auto auto;row-gap:2px}
+.achievement-item img{grid-row:1/3}
 .achievement-item strong{align-self:end}
 .achievement-item span{align-self:center;margin-top:0;font-size:10px}
-.first-discoverer{grid-column:2;align-self:start;color:#8c6843;font:10px/1.5 'Malgun Gothic',sans-serif;overflow-wrap:anywhere}
-.achievement-item[data-discovered="false"] .first-discoverer{color:#9c8a6b}
 
 /* Static paper grain, foxing and worn edges; no animation or network polling. */
 #achievementsDialog .dialog-top,.achievements-content{
@@ -61,7 +59,8 @@
 @media(max-width:650px){#achievementsDialog .dialog-top,.achievements-content{background-color:#e9d5a9}}
 
 /* Hand-painted distressed notebook frame. All lettering remains live HTML. */
-#achievementsDialog{width:min(1000px,calc(100vw - 20px));padding:74px 72px 64px;border:0;border-radius:0;background:transparent url('assets/achievements/detective-notebook-worn-v1.webp') center/100% 100% no-repeat;box-shadow:none;filter:drop-shadow(0 18px 28px #08050399)}
+#achievementsDialog{width:min(1000px,calc(100vw - 20px));padding:74px 72px 64px;border:0;border-radius:0;background:transparent;box-shadow:none;filter:drop-shadow(0 18px 28px #08050399)}
+#achievementsDialog[open]{background:transparent url('assets/achievements/detective-notebook-worn-v1.webp') center/100% 100% no-repeat}
 #achievementsDialog .dialog-top{padding:0 0 12px;border:0;border-radius:0;background:transparent;box-shadow:none}
 .achievements-content{padding:0;background:transparent;box-shadow:none;border-radius:0}
 .achievements-content::after{display:none}
@@ -73,10 +72,8 @@
 .achievement-item{grid-template-columns:68px 1fr;column-gap:10px;padding:8px 0;background:none;border-bottom:1px solid #8a775a33}
 .achievement-item img{width:68px;height:68px}
 .achievement-item strong{font-size:13px;color:#473e2e}
-.achievement-item[data-discovered="false"] strong{color:#756749}
-.achievement-item[data-discovered="false"] img{opacity:.25}
-.first-discoverer{color:#725535}
-.achievement-item[data-discovered="false"] .first-discoverer{color:#7e7055}
+.achievement-item[data-achieved="false"] strong{color:#756749}
+.achievement-item[data-achieved="false"] img{opacity:.25}
 .notebook-footnote{color:#746345}
 .notebook-cover{inset:28px 30px;border-radius:9px;outline-offset:-12px}
 @media(max-width:650px){
@@ -105,11 +102,10 @@
 #notebookHint{flex:none;min-height:0;max-width:calc((100% - 54px)/2);font-size:10px;line-height:1.5;padding:0 0 10px}
 #achievementsStatus{flex:none;padding:5px 0;margin:0}
 #achievementsList{display:grid;flex:1;min-height:0;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(6,minmax(0,1fr));grid-auto-flow:column;column-gap:54px;row-gap:0;padding:4px 0 0;margin:0;overflow:visible}
-.achievement-item{min-height:0;min-width:0;grid-template-columns:clamp(32px,6.8dvh,60px) minmax(0,1fr);grid-template-rows:auto auto auto;column-gap:9px;row-gap:0;padding:4px 0;align-content:center}
+.achievement-item{min-height:0;min-width:0;grid-template-columns:clamp(32px,6.8dvh,60px) minmax(0,1fr);grid-template-rows:auto auto;column-gap:9px;row-gap:0;padding:4px 0;align-content:center}
 .achievement-item img{width:clamp(32px,6.8dvh,60px);height:clamp(32px,6.8dvh,60px);align-self:center}
 .achievement-item strong{font-size:clamp(11px,1.6dvh,13px);line-height:1.35;align-self:end;overflow-wrap:anywhere}
 .achievement-item span{font-size:9px;line-height:1.4;margin-top:2px;letter-spacing:0;align-self:center}
-.first-discoverer{font-size:9px;line-height:1.4;margin-top:1px;align-self:start}
 .notebook-footnote{flex:none;font-size:9px;line-height:1.4;padding-top:8px;margin:10px 0 0;gap:24px}
 .notebook-footnote span{font-size:9px}
 @media(max-width:650px){
@@ -123,8 +119,8 @@
  .achievement-item{grid-template-columns:27px minmax(0,1fr);column-gap:5px;padding:4px 0;min-height:0}
  .achievement-item img{width:27px;height:27px;grid-row:1}
  .achievement-item strong{font-size:11px;line-height:1.35}
- .achievement-item span,.first-discoverer{font-size:9px;line-height:1.3}
- .achievement-item span,.achievement-item .first-discoverer{grid-column:1/-1}
+ .achievement-item span{font-size:9px;line-height:1.3}
+ .achievement-item span{grid-column:1/-1}
  .notebook-footnote{font-size:8px;gap:6px;padding-top:7px;margin-top:8px;display:flex}
  .notebook-footnote span{font-size:8px;margin:0}
 }
@@ -133,7 +129,7 @@
  #achievementsTitle{font-size:18px}.notebook-eyebrow{font-size:8px;margin-bottom:3px}
  #notebookHint{padding-bottom:5px;font-size:9px}
  #achievementsList{column-gap:48px}.achievement-item{padding:2px 0;grid-template-columns:32px 1fr}.achievement-item img{width:32px;height:32px}
- .achievement-item strong{font-size:11px}.achievement-item span,.first-discoverer{font-size:8px}
+ .achievement-item strong{font-size:11px}.achievement-item span{font-size:8px}
  .notebook-footnote{margin-top:5px;padding-top:5px;font-size:8px}
 }
 

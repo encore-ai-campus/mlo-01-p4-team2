@@ -78,6 +78,12 @@ test('personal achievement packets preserve server state and dispatch no unready
  assert.deepEqual(plain(updates),[achievements]);
  f.movement().receive({type:'achievement_update',achievements:{}});assert.equal(updates.length,1);f.presence.close();
 });
+test('legacy global discovery packets do not publish another account records to the notebook',()=>{
+ const f=app({floors});f.welcome();
+ f.movement().receive({type:'achievement_discoveries',discoveries:[{event_uuid:'greeting',discovered:true,first_discoverer:{nickname:'다른 계정'}}]});
+ assert.ok(!f.events.includes('campus:achievement-discoveries'));assert.ok(!f.events.includes('campus:achievements'));
+ f.presence.close();
+});
 test('standalone creates no socket; authenticated connections negotiate server control and WSS',()=>{
  const offline=app({authenticated:false});offline.tick(200);assert.equal(offline.sockets.length,0);
  for(const secure of [false,true]){const f=app({secure});assert.equal(f.sockets[0].url,`${secure?'wss':'ws'}://127.0.0.1:8000/ws/movement/?control=server&moves=compact&view=nearby`);assert.equal(f.sockets.length,1);f.welcome();assert.equal(f.chat().url,`${secure?'wss':'ws'}://127.0.0.1:8000/ws/chat/`);f.presence.close();}

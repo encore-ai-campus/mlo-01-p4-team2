@@ -310,8 +310,7 @@ class CampusConsumer(CleanupWebsocketConsumer):
             self.position_dirty, self.position_changed_at = True, live[1]
         await room.cluster.start(room, lambda payloads, campus=room: send_to_sockets(campus, payloads))
         async with room.lock:
-            from event_story.achievement_services import DISCOVERY_GROUP
-            for group in (room.group, self.session_group, DISCOVERY_GROUP):
+            for group in (room.group, self.session_group):
                 self.groups_joined.append(group)
                 await self.channel_layer.group_add(group, self.channel_name)
             # Subscribe before the final check so a login replacing this key
@@ -862,10 +861,6 @@ class CampusConsumer(CleanupWebsocketConsumer):
             return
         if result["newly_completed"]:
             await self.send_packet({"type": "achievement_update", **result})
-
-    async def achievement_discoveries(self, event):
-        if await self.current_identity() is not None:
-            await self.send_packet({"type": "achievement_discoveries", "discoveries": event["discoveries"]})
 
     async def achievement_update(self, event):
         if await self.current_identity() is not None:

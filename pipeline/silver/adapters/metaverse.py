@@ -1,8 +1,8 @@
 """메타버스 Silver 어댑터(계획 15 §2.1·§2.1a·§2.2, SL-4): Bronze DataFrame → (정상 DataFrame, 오류 DataFrame). 판정 순서 ①~⑤는 framework 머리말이다.
 
 - `settings`: 출처 `{"db", "schema", "table"}` — outbox 표의 이름(로컬 `metaverse_lab.public.eventing_eventoutbox`, 운영은 운영 DB 이름).
-  모양은 15 §9 #30(Planner 결정 (가) 2026-11-04)이고, 잡 입구 검사는 SL-3c `control.source_settings` 가 맡는다. `_source` 는 어댑터 시험이
-  잡 없이 돌아서 남긴다 — SL-3c 커밋 뒤 `control.source_settings` 를 부르게 바꾼다(Planner 결정 2026-11-04, 후속 Step).
+  모양은 15 §9 #30(Planner 결정 (가) 2026-11-04)이다. 검사는 `control.source_settings` 하나다(키는 정확히 셋, 값은 앞뒤 공백 없는 빈 문자열이
+  아닌 str — 어긋나면 ValueError). 잡 입구가 Spark 전에 한 번 부르고 어댑터도 부른다(잡 없이 부르는 시험도 같은 규칙 — Planner 결정 2026-11-04).
 - Silver 열 값은 모두 Spark 내장 식(contracts.extract)으로 꺼낸다. Python UDF 는 둘이다:
   엄격 검사(contracts.strict_reasons — 봉투와 `after.raw_data`·`after.payload_json` 문자열)와
   계약 확인 + 내용 해시(metaverse_rules.adapter_result — 사유와 content_sha256 만 돌려줌. SL-3 결정 1·4, Planner 승인 2026-11-04).
@@ -14,11 +14,10 @@ from functools import reduce
 
 from pyspark.sql import functions as F, types as T
 
-from pipeline.silver import contracts
+from pipeline.silver import contracts, control
 from pipeline.silver.adapters import metaverse_rules as rules
 
 DOMAIN = "metaverse"
-SOURCE_KEYS = ("db", "schema", "table")
 NESTED = (("after", "raw_data"), ("after", "payload_json"))
 ENVELOPE_SPEC = [  # (열, 경로, 형, NULL 허용) — 15 §2.1a 메타버스 열. "_" 로 시작하는 열은 Silver 열이 아니다(source_meta·UDF 입력)
     ("event_id", "$.after.event_uuid", "string", False), ("event_type", "$.after.event_type", "string", False),
@@ -36,16 +35,6 @@ _CHECK = F.udf(rules.adapter_result, RESULT_TYPE, useArrow=False)
 _NULL = {"actor_subject_id", "actor_person_id", "aggregate_id"}  # 메타버스에 없는 열
 
 
-def _source(settings):
-    try:
-        names = tuple(settings[key] for key in SOURCE_KEYS)
-    except (KeyError, TypeError) as error:
-        raise ValueError(f"settings 에 출처 {SOURCE_KEYS} 가 있어야 한다: {settings!r}") from error
-    if not all(isinstance(name, str) and name for name in names):
-        raise ValueError(f"출처 이름은 빈 문자열이 아니어야 한다: {settings!r}")
-    return names
-
-
 def _first(rules_in_order):
     """[(조건, 코드, 사유)] → 앞에서 맞은 줄의 (코드, 사유) 열. 조건이 null 이면 맞지 않은 것으로 본다."""
     code, reason = F.lit(None).cast("string"), F.lit(None).cast("string")
@@ -57,13 +46,13 @@ def _first(rules_in_order):
 
 def adapt(bronze, settings):
     """Bronze(contracts.BRONZE_SCHEMA) → (정상 contracts.OK_SCHEMA, 오류 contracts.ADAPTER_ERROR_SCHEMA)."""
-    db, schema, table = _source(settings)
+    source = control.source_settings(settings)
     staged = bronze.withColumn("_r", contracts.strict_reasons(F.col("value_binary"), NESTED))
     staged = staged.withColumn("_v", F.when(F.col("value_binary").isNotNull() & F.col("_r.value").isNull(),
                                             F.try_parse_json(F.col("value_binary").cast("string"))))
     v = F.col("_v")
     values, envelope_problem = contracts.extract(v, ENVELOPE_SPEC)
-    names = [contracts.field(v, f"$.source.{key}", "string")[0].alias(f"_source_{key}") for key in SOURCE_KEYS]
+    names = [contracts.field(v, f"$.source.{key}", "string")[0].alias(f"_source_{key}") for key in control.SOURCE_KEYS]
     after_type = F.schema_of_variant(F.variant_get(v, "$.after", "variant"))
     staged = staged.select("*", *values, envelope_problem.alias("_problem_envelope"), *names, after_type.alias("_after_type"))
     staged = staged.withColumn("_raw", F.try_parse_json(F.col("payload"))).withColumn("_manifest", F.try_parse_json(F.col("envelope")))
@@ -73,8 +62,8 @@ def adapt(bronze, settings):
     staged = staged.withColumn("_c", _CHECK(*[F.col(name) for name in (
         "event_id", "event_type", "schema_version", "_topic", "_message_key", "payload", "envelope", "_occurred_text", "_created_text")]))
 
-    source_name = F.concat_ws(".", *[F.coalesce(F.col(f"_source_{key}"), F.lit("?")) for key in SOURCE_KEYS])
-    same_source = (F.col("_source_db") == db) & (F.col("_source_schema") == schema) & (F.col("_source_table") == table)
+    source_name = F.concat_ws(".", *[F.coalesce(F.col(f"_source_{key}"), F.lit("?")) for key in control.SOURCE_KEYS])
+    same_source = reduce(lambda a, b: a & b, [F.col(f"_source_{key}") == source[key] for key in control.SOURCE_KEYS])
     known = reduce(lambda a, b: a | b, [(F.col("event_type") == t) & (F.col("schema_version") == s) for t, s in sorted(rules.FIELDS)])
     code, reason = _first([
         (F.col("value_binary").isNull(), "not_insert", F.lit("value 가 null(tombstone)")),  # ①

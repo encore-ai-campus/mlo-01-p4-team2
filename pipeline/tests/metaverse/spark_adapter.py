@@ -18,7 +18,7 @@ LAB = {"db": "metaverse_lab", "schema": "public", "table": "eventing_eventoutbox
 REAL = json.loads((Path(__file__).resolve().parent / "bronze_values.json").read_text(encoding="utf-8"))
 SHA = "f9b0cc28f3ca5b5c157b24671ad2c3c793a357c97a09661befb3ae34e72e561c"  # test_rules 의 고정값(POINT_C)
 OTHER = "4a4827af-3c42-442d-8cfa-e0d406912720"
-DEEP = "__deep__"  # changed() 가 이 자리에 중첩 깊이 1,000 배열을 넣는다 — strict 는 통과하고 Spark try_parse_json 은 null(500은 읽음, 리뷰 r1 실측)
+DEEP = "__deep__"  # changed() 가 이 자리에 배열 1,000단을 넣는다(바깥 객체를 더하면 합계 1,001단 이상) — strict 는 통과하고, Spark try_parse_json 은 합계 1,001단부터 null(1,000단까지 해석)
 NESTED_1000 = ("[" * 1000 + "]" * 1000).encode()
 
 
@@ -29,7 +29,7 @@ def setUpModule():
 
 def changed(name="POINT_C", *, op=None, source=None, after=..., manifest=None, raw=None, payload=None, top=None, **fields):
     """실제 value 를 바꿔 바이트로. fields 는 after 열, raw 는 raw_data 객체 고치기, manifest 는 payload_json.raw_manifest 고치기,
-    payload 는 payload_json 최상위 키 더하기, top 은 봉투 최상위 키 고치기. 값이 DEEP 이면 깊이 1,000 배열이 된다."""
+    payload 는 payload_json 최상위 키 더하기, top 은 봉투 최상위 키 고치기. 값이 DEEP 이면 배열 1,000단이 된다(바깥 객체와 합계 1,001단 이상)."""
     doc = json.loads(REAL[name])
     doc["op"] = op or doc["op"]
     doc["source"].update(source or {})
@@ -149,7 +149,8 @@ class Adapter(unittest.TestCase):
         self.assertNotEqual(self.rows[22]["content_sha256"], SHA)  # created_at 1µs → 다른 해시(conflict 길)
 
     def test_settings(self):
-        for settings in ({"db": "metaverse_lab", "schema": "public"}, None, {**LAB, "table": ""}, {**LAB, "db": 1}):
+        for settings in ({"db": "metaverse_lab", "schema": "public"}, None, {**LAB, "table": ""}, {**LAB, "db": 1},
+                         {**LAB, "extra": "x"}, {**LAB, "table": " eventing_eventoutbox"}):  # 뒤 둘은 control.source_settings 만 거부한다(지운 _source 는 받았다)
             with self.subTest(settings=settings), self.assertRaises(ValueError):
                 metaverse.adapt(self.bronze, settings)
         ok, errors = metaverse.adapt(self.bronze.where(F.col("offset") == 0), {**LAB, "db": "metaverse"})

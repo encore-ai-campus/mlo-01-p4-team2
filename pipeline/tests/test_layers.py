@@ -1,6 +1,6 @@
 """pipeline/ 의 import 층 규칙(계획 15 §1.1, SL-3a 결정 D5, SL-3 결정 3). 광고 서버 tests/dev/boundaries/test_layers.py 처럼 AST 로 import 를 읽는다.
 
-1. 잡 코드(pipeline/silver·bronze·monitor·common)는 광고 서버(django, ads_server 의 앱 패키지)를 import 하지 않는다. 대사 규칙은 사본(pipeline/common)을 쓴다.
+1. 잡 코드(pipeline/silver·bronze·monitor·common·reconcile)는 광고 서버(django, ads_server 의 앱 패키지)를 import 하지 않는다. 대사 규칙은 사본(pipeline/common)을 쓴다.
    시험대 도구(pipeline/tools)는 광고 서버를 import 하므로 범위 밖이다.
 2. pipeline/common 은 표준 라이브러리만 쓴다(광고 서버 원본의 바이트 사본 — 원본과 같은 조건).
 3. Silver 의 드라이버·UDF 쪽 모듈(strict·control, 어댑터의 UDF 쪽 규칙 `adapters/<원천>_rules.py`)은 표준 라이브러리와 pipeline.* 만 쓴다
@@ -17,7 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PIPELINE = ROOT / "pipeline"
-JOB_DIRS = ("silver", "bronze", "monitor", "common")
+JOB_DIRS = ("silver", "bronze", "monitor", "common", "reconcile")
 SILVER_STDLIB = ("strict.py", "control.py", "__init__.py")
 ADS_ROOTS = frozenset({"django", "ads_server"} | {p.name for p in (ROOT / "ads_server").iterdir() if (p / "__init__.py").is_file()})
 

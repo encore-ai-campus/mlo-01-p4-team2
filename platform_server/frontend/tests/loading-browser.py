@@ -183,7 +183,7 @@ http {{
         browser = Browser()
         browser.command('Fetch.enable', {'patterns': [{'urlPattern': '*/minigames/timer.html*', 'requestStage': 'Request'}]})
         browser.command('Page.navigate', {'url': f'http://127.0.0.1:{port}/'})
-        browser.wait('window.CampusLoading && document.getElementById("campusLoadingProgress")')
+        browser.wait('window.CampusLoading && document.getElementById("entryProgress")')
         for _ in range(100):
             paused = next((e['params']['requestId'] for e in browser.events if e['method'] == 'Fetch.requestPaused'), None)
             if paused:
@@ -191,18 +191,18 @@ http {{
             browser.evaluate('document.readyState')
             time.sleep(.05)
         assert paused, 'No preloaded game request was intercepted'
-        blocked = browser.evaluate('({percent:document.getElementById("campusLoadingProgress").getAttribute("aria-valuenow"),app:!!window.CampusApp,hidden:document.getElementById("campusLoading").hidden})')
+        blocked = browser.evaluate('({percent:document.getElementById("entryProgress").value,app:!!window.CampusApp,hidden:document.getElementById("campusEntry").hidden})')
         assert int(blocked['percent']) < 100 and not blocked['app'] and not blocked['hidden'], blocked
         assert not [e for e in browser.events if e['method'] == 'Network.webSocketCreated']
         browser.screenshot('loading.png')
         browser.command('Emulation.setDeviceMetricsOverride', {'width': 390, 'height': 844, 'deviceScaleFactor': 1, 'mobile': True})
-        assert browser.evaluate('(()=>{const r=document.querySelector(".campus-loading-card").getBoundingClientRect();return r.left>=0&&r.right<=innerWidth})()')
+        assert browser.evaluate('(()=>{const r=document.querySelector("#campusEntry .entry-copy").getBoundingClientRect();return r.left>=0&&r.right<=innerWidth})()')
         browser.screenshot('loading-mobile.png')
         browser.command('Emulation.clearDeviceMetricsOverride')
         browser.command('Fetch.continueRequest', {'requestId': paused})
         browser.command('Fetch.disable')
-        browser.wait('window.CampusApp && document.getElementById("campusLoading").hidden')
-        assert browser.evaluate('document.getElementById("campusLoadingPercent").textContent') == '100%'
+        browser.wait('window.CampusApp && document.getElementById("campusEntry").hidden')
+        assert browser.evaluate('String(document.getElementById("entryProgress").value)+"%"') == '100%'
         assert not [url for url in browser.requests() if '/assets/achievements/' in url or '/assets/roof-slides/' in url]
         game_requests = [url for url in browser.requests() if '/minigames/' in url and '.html' in url or '/event-games/' in url and '.html' in url]
         assert len(game_requests) == 5, game_requests
@@ -229,7 +229,7 @@ http {{
             browser.command('Network.setCookie', {'name': 'notebook_owner', 'value': value, 'domain': '127.0.0.1', 'path': '/'})
             previous = browser.evaluate('performance.timeOrigin')
             browser.command('Page.reload')
-            browser.wait(f'performance.timeOrigin!=={previous}&&window.CampusApp&&document.getElementById("campusLoading").hidden')
+            browser.wait(f'performance.timeOrigin!=={previous}&&window.CampusApp&&document.getElementById("campusEntry").hidden')
             browser.evaluate('document.querySelectorAll("dialog[open]").forEach(d=>d.close());document.getElementById("achievementsOpen").click()')
             browser.wait('document.querySelector("#achievementsList img")?.complete&&document.querySelector("#achievementsList img").naturalWidth>0')
             view = browser.evaluate('''(()=>{const rows=[...document.querySelectorAll('#achievementsList li')];return {

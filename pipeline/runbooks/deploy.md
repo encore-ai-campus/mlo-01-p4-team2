@@ -2,7 +2,7 @@
 
 > 초안(2026-11-05). 계획 02 P8-2의 광고 쪽 운영 절차를 모으는 곳이다. 이번 판에는 두 가지만 둔다: 매일 점검, 규칙 판이 바뀌는 배포. 나머지 P8-2 항목은 P8-2 Step에서 더한다(끝 절).
 
-## 매일 점검 — P2-4b 경보를 미룬 동안
+## 매일 점검 — 운영에 주기 감시를 적용하기 전
 
 - 하루 한 번, 하루 대사(00:50 UTC) 뒤에 한다. 예: 01:00 UTC(10:00 KST).
 - ①~④의 값을 날짜와 함께 사건 기록에 한 줄씩 적는다.
@@ -11,6 +11,7 @@
   - ②·③의 크기: 추세만 적는다. 첫 주 실측 자료도 된다.
   - ④: 경보(alert·error)가 하나라도 있으면 알린다.
 - 비밀값(DB 비밀번호·RustFS 키·웹훅 주소)은 파일로만 넘긴다. 화면·기록에 옮기지 않는다.
+- 주기 감시(P2-4b, `monitor/README.md`)의 D1·D2가 ①~③과 같은 기준(여유 < 20%, outbox 크기)을 경보로 본다. 지금은 로컬 시험대에만 설치돼 있다. 운영에서는 감시 서버에 주기 감시를 적용하고, 디스크가 있는 장치마다 D1을 돌리기 전까지(결정 B — 운영 적용 Step) ①·③을 손으로 그대로 한다. ②의 outbox 크기는 ④가 `MONITOR_OUTBOX`로 함께 본다(D2).
 
 ### ① DB 노드 디스크(노트북 3대 모두)
 
@@ -74,22 +75,29 @@ du -sh "$HOP_RECONCILE_DIR"; df -h "$HOP_RECONCILE_DIR"
 
 보는 것: M1 슬롯, M3 Connect task FAILED, M4 Kafka, M5 Bronze 대기(M2·S7도 함께 나온다).
 
-- 어디서: **관리 장치**에서 돌린다. 5432·9092·8083에 닿는 곳이다(계획 16 §2.2).
-  - 광고 서버는 9092·8083의 허용 출발지가 아니라 M3~M5가 실패한다.
+- 어디서: **관리 장치**에서 돌린다. 노트북 셋의 PostgreSQL·Kafka·Connect REST에 닿는 곳이다(계획 16 §2.2).
+  - 운영 노트북은 NAT라 LAN에서 닿는 포트가 **안쪽 포트 + 5**다: PostgreSQL 5437, Kafka 9097, Connect REST 8088(Ops 확인 2026-11-08).
+  - 광고 서버는 9097·8088의 허용 출발지가 아니라 M3~M5가 실패한다.
+  - **관리 장치가 정해진 뒤** 그 장치에서 돈다. 관리 장치 주소·DHCP 예약은 사용자 몫이다. 지금 Mac(192.168.0.26)은 노드 포트에 바로 닿지 않고 SSH 점프로만 닿는다.
 - `check.py`는 `MONITOR_PG_NODES`의 노드마다 물어 primary를 스스로 찾는다. M1은 primary에서만 된다(대기 서버에서는 `pg_current_wal_lsn()`이 "recovery is in progress"로 실패). 그래서 HAProxy가 없는 관리 장치에서도 장애 전환 뒤 값을 고칠 필요가 없다.
 - **관리 장치는 로컬 시험대 Mac이라, `check.py`의 기본값이 모두 lab을 가리킨다.** 그래서 `MONITOR_REQUIRE_ALL=1`을 맨 앞에 둔다. 변수 하나라도 없거나 비면 lab을 보고 ok를 내지 않고 rc 2로 멈춘다.
 
 ```bash
 env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
   MONITOR_STATE="$HOME/.local/state/pipeline_monitor/manual.json" \
-  MONITOR_SLOTS=ads_outbox_slot,metaverse_outbox_slot MONITOR_S7_POWER=0 MONITOR_R7=1 \
-  MONITOR_PG_NODES=<LAP1_IP>:5432,<LAP2_IP>:5432,<LAP3_IP>:5432 MONITOR_PG_PASSWORD_FILE=… \
-  MONITOR_CONNECT_REST=… MONITOR_KAFKA=… MONITOR_KAFKA_BIN=… MONITOR_JAVA_HOME=… \
+  MONITOR_SLOTS=ads_outbox_slot,metaverse_outbox_slot MONITOR_S7_POWER=0 MONITOR_R7=1 MONITOR_DISK=none \
+  MONITOR_PG_NODES=<LAP1_IP>:5437,<LAP2_IP>:5437,<LAP3_IP>:5437 MONITOR_PG_PASSWORD_FILE=… \
+  MONITOR_CONNECT_REST=http://<LAPn_IP>:8088 MONITOR_KAFKA=<LAP1_IP>:9097,<LAP2_IP>:9097,<LAP3_IP>:9097 MONITOR_KAFKA_BIN=… MONITOR_JAVA_HOME=… \
   MONITOR_BRONZE=… S3_ENDPOINT=… S3_ACCESS_KEY_FILE=… S3_SECRET_KEY_FILE=… \
+  MONITOR_OUTBOX="ads|ads|public.events_outbox,metaverse|<메타버스 DB>|public.eventing_eventoutbox" \
   <python> pipeline/monitor/check.py; echo "rc=$?"
 ```
 
-- `…`·`<LAPn_IP>`는 운영 값이다(P8-2에서 정한다). 변수 뜻은 `monitor/README.md` 「설정」 절에 있다.
+- `…`·`<LAPn_IP>`·`<메타버스 DB>`는 운영 값이다(P8-2에서 정한다). 변수 뜻은 `monitor/README.md` 「설정」 절에 있다.
+- `MONITOR_CONNECT_REST`는 주소 하나만 받는다. 그 노트북이 꺼져 있으면 M3가 `M3:run` error가 된다 — 다른 노트북 주소로 바꿔 다시 돌린다.
+- `MONITOR_DISK=none`: 관리 장치에는 볼 디스크가 없다(D1은 `unsupported` 한 줄). 노트북 디스크는 ①로 본다.
+- `MONITOR_OUTBOX`(D2): ②의 outbox 크기를 같은 postgres 계정·같은 노드로 함께 본다. 5 GiB를 넘으면 "P1-6 정리를 할 때" 경보다.
+- `MONITOR_GAP_S`·`MONITOR_CODE_COMMIT`은 두지 않는다(하루 한 번 손 실행 — 공백 경보가 날마다 울리지 않게, 작업 저장소에서 돎).
 - `MONITOR_KAFKA_BIN`·`MONITOR_JAVA_HOME`은 꼭 준다.
   - 기본값이 이 Mac의 경로(`/opt/kafka/current/bin`, Homebrew openjdk)다.
   - 빠지면 다른 장치에서 M4·M5가 매일 error가 된다.
@@ -121,7 +129,7 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
 - S7은 **점검을 돌리는 장치 자신**을 본다. 노트북 3대가 아니다.
   - 시계 차이: 그 장치와 찾은 primary의 차이(노드 조회 순간). primary를 모르면 `clock_skew` error다.
   - 전원(배터리·잠듦): `MONITOR_S7_POWER=0`이라 `unsupported`(끔)다. 관리 장치의 전원은 파이프라인과 관계없다.
-  - **운영 노트북 3대의 잠자기는 이 점검 밖이다.** Windows·Linux용 S7이 없다(계획 16 §3.3). P8-2 잠자기 금지와 P2-4b에서 따로 다룬다. 2026-11-05 사고(아래 끝 절)가 그 종류다.
+  - **운영 노트북 3대의 잠자기는 이 점검의 S7 밖이다.** Windows·Linux용 S7이 없다(계획 16 §3.3). 잠든 노트북은 그 회차에 M2 `synced:<노드>:<슬롯>` "노드 접속 실패"(alert)로, primary면 `M1·M2:run` error로 바로 드러난다(P2-4b 판단). 막는 것은 P8-2 잠자기 금지 설정이다. 2026-11-05 사고(아래 끝 절)가 그 종류다.
 
 #### M3 FAILED가 보이면 — 자동 3번(check.py) 뒤에는 사용자 확인 뒤에만
 
@@ -148,7 +156,7 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
    MONITOR_STATE="$HOME/.local/state/pipeline_monitor/manual.json" <python> pipeline/monitor/check.py --r7-clear <커넥터>
    ```
    - JSON의 `found: true`인지 본다. `false`(rc 1)이면 그 상태 파일에 기록이 없다는 뜻이다 — `MONITOR_STATE`가 ④와 같은지 본다.
-- 주기 감시(P2-4b)를 켜면 ④는 `MONITOR_R7=0`으로 바꾼다(상태 파일이 둘이면 시도 기록도 둘이라 예산이 두 배). P2-4b가 도는 동안 비웠으면 다음 회차에 `r7:` 키가 사라졌는지 본다.
+- 운영 클러스터를 보는 주기 감시를 감시 서버에 적용하면 ④는 `MONITOR_R7=0`으로 바꾼다(상태 파일이 둘이면 시도 기록도 둘이라 예산이 두 배). 이 Mac의 로컬 설치(P2-4b)는 운영을 보지 않으므로 지금 ④는 `MONITOR_R7=1` 그대로다. 주기 감시가 도는 동안 비웠으면 다음 회차에 `r7:` 키가 사라졌는지 본다.
 
 #### 커넥터를 새로 만든 뒤의 WARN 로그(Debezium 3.7.0) — 그대로 둔다
 

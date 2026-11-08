@@ -4,8 +4,10 @@
 - 점검마다 결과(ok·alert·error·unimplemented·unsupported)를 낸다. 상태가 바뀐 것만 알린다(새 경보, 경보 해소) — 상태 파일 MONITOR_STATE.
 - 알림: MONITOR_WEBHOOK_URL 또는 MONITOR_WEBHOOK_FILE(주소를 담은 저장소 밖 파일)에 POST {"text","content"}. 없으면 화면에만 쓴다. 주소는 출력하지 않는다.
 - 끝: 경보가 하나라도 있으면 rc=1. 점검하지 않으면 알린 뒤 rc=2 — 필수 모드(MONITOR_REQUIRE_ALL=1)에서 운영 변수가 없거나 빔(missing_config),
-  설정 형식이 틀림(bad_config — MONITOR_PG_NODES 등), 상태 파일 자리(MONITOR_STATE, 기본 ~/.local/state/pipeline_monitor/state.json)가
-  이 사용자 것이 아니거나 링크이거나 그룹·다른 사용자가 쓸 수 있음(unsafe_state).
+  설정 형식이 틀림(bad_config — MONITOR_PG_NODES 등), 코드 사본이 MONITOR_CODE_COMMIT 과 다르거나 더러움(code_pin — 주기 실행만),
+  상태 파일 자리(MONITOR_STATE, 기본 ~/.local/state/pipeline_monitor/state.json)가 이 사용자 것이 아니거나 링크이거나 그룹·다른 사용자가 쓸 수 있음(unsafe_state).
+  rc 2 알림은 처음 한 번 바로, 같은 거부가 이어지면 한 시간에 한 번(P2-4b 결정 F (나) — 표시 파일 <상태 파일>.refused, unsafe_state 는 늘).
+- D1 디스크(MONITOR_DISK — 이 장치의 경로마다 파일 시스템 여유), D2 outbox 표 크기(MONITOR_OUTBOX — primary 에서), S7 gap(지난 회차 뒤 공백 — MONITOR_GAP_S).
 - PostgreSQL: MONITOR_PG_NODES(host:port 목록)의 노드마다 물어 primary 를 스스로 찾는다. M1·M2 primary 쪽은 그 노드에서, synced 는 대기 서버에서.
   primary 가 정확히 하나가 아니면 M1·M2:run error(지난 값 유지 — 해소로 알리지 않음), S7 clock_skew 도 error.
 - R7(FAILED 커넥터·Task 자동 재시작 — 설계 01 R7, 사용자 결정 2026-11-06으로 다시 엶): MONITOR_R7=1 일 때만. 30분에 3번(앞 시도 뒤 최소 0·5·15분),
@@ -14,8 +16,10 @@
 비밀값(DB 비밀번호·RustFS 키·웹훅 주소)은 파일·환경 변수로만 받고 출력하지 않는다.
 """
 import json
+import math
 import os
 import re
+import shutil
 import socket
 import stat
 import subprocess
@@ -25,6 +29,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections import namedtuple
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -70,7 +75,18 @@ class ConfigError(ValueError):
 
 # 필수 모드(MONITOR_REQUIRE_ALL=1)에서 없거나 비면 점검하지 않는 운영 변수 — 기본값이 모두 로컬 시험대를 가리켜, 하나만 빠져도 조용히 lab 을 보고 ok 를 내지 않게
 REQUIRED = ("MONITOR_PG_NODES", "MONITOR_PG_PASSWORD_FILE", "MONITOR_CONNECT_REST", "MONITOR_KAFKA", "MONITOR_KAFKA_BIN", "MONITOR_JAVA_HOME",
-            "MONITOR_BRONZE", "S3_ENDPOINT", "S3_ACCESS_KEY_FILE", "S3_SECRET_KEY_FILE", "MONITOR_SLOTS", "MONITOR_STATE", "MONITOR_S7_POWER", "MONITOR_R7")
+            "MONITOR_BRONZE", "S3_ENDPOINT", "S3_ACCESS_KEY_FILE", "S3_SECRET_KEY_FILE", "MONITOR_SLOTS", "MONITOR_STATE", "MONITOR_S7_POWER", "MONITOR_R7",
+            "MONITOR_DISK", "MONITOR_OUTBOX")
+# P2-4b 기본값(로컬 시험대). D1 은 이 장치의 경로만 본다 — 디스크가 없는 장치(관리 장치 ④·감시 서버)는 MONITOR_DISK=none(결정 B·리뷰 C2)
+DEFAULT_DISK = "pg|/opt/postgresql,reconcile_ads|~/Library/Caches/ads-pipeline/reconcile|du"
+DEFAULT_OUTBOX = ("ads_lab|ads_pipeline_lab|public.events_outbox,ads_e2e|ads_pipeline_e2e|public.events_outbox,"
+                  "metaverse_lab|metaverse_lab|public.eventing_eventoutbox")
+ROOT = Path(__file__).resolve().parents[2]  # 코드 판 확인(code_pin)이 보는 저장소
+REFUSE_REPEAT_S = 3600  # 같은 rc 2 거부는 한 시간에 한 번만 다시 알린다(결정 F (나))
+_ITEM_NAME = re.compile(r"[A-Za-z0-9_.-]+")
+_TABLE = re.compile(r"[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*")
+_COMMIT = re.compile(r"[0-9a-f]{40}")
+Extra = namedtuple("Extra", "disk outbox min_free max_bytes gap_s commit")
 # R7(설계 01 R7·:512, 결정 2026-11-06 Q1 (나)·Q4 (나)): 앞 시도 뒤 최소 대기 — 첫 시도는 바로, 둘째 5분, 셋째 15분(셋째는 첫 시도 뒤 20분, 30분 예산 안).
 # 세 번을 다 쓰면 사람 차례다 — 기록은 "FAILED 아님 + 마지막 시도가 30분보다 오래됨" 또는 사람(--r7-clear)만 비운다(깜빡여도 같은 3번 안에 든다)
 R7_WAITS_S = (0, 5 * 60, 15 * 60)
@@ -116,12 +132,83 @@ def pg_nodes(env):
     return nodes
 
 
+def _entries(name, raw, sizes):
+    """`이름|…` 쉼표 목록 → 칸 목록. 빈 값·빈 칸·칸 수·이름 모양·이름 겹침은 ConfigError(이름과 몇 번째인지만 — 값은 넣지 않는다)."""
+    if not raw.strip():
+        raise ConfigError(f"{name} 가 비었다")
+    out, seen = [], set()
+    for number, item in enumerate(raw.split(","), 1):
+        parts = [part.strip() for part in item.split("|")]
+        if len(parts) not in sizes or not all(parts) or not _ITEM_NAME.fullmatch(parts[0]):
+            raise ConfigError(f"{name} 의 {number}번째 항목이 `이름|…` 모양({'·'.join(map(str, sizes))}칸)이 아니다")
+        if parts[0] in seen:
+            raise ConfigError(f"{name} 의 {number}번째 항목 이름이 앞 항목과 같다")
+        seen.add(parts[0])
+        out.append(parts)
+    return out
+
+
+def _number(env, name, default, low, high, kind):
+    try:
+        value = kind(env.get(name, default).strip())
+    except ValueError:
+        raise ConfigError(f"{name} 는 수여야 한다") from None
+    if not (math.isfinite(value) and low <= value <= high):
+        raise ConfigError(f"{name} 는 {low}~{high} 범위여야 한다")
+    return value
+
+
+def extra_settings(env):
+    """P2-4b 설정. 형식이 틀리면 ConfigError.
+    - MONITOR_DISK: `이름|절대 경로[|du]` 목록(`~` 는 홈) 또는 `none`(이 장치에서는 디스크를 보지 않음 → D1 unsupported 한 줄).
+    - MONITOR_OUTBOX: `이름|DB|스키마.표` 목록. MONITOR_DISK_MIN_FREE_PCT(0~100, 기본 20), MONITOR_OUTBOX_MAX_BYTES(기본 5 GiB),
+      MONITOR_GAP_S(0 = 끔, 기본), MONITOR_CODE_COMMIT(있으면 소문자 40자 — 빈 값·자리 표시 `__COMMIT__` 는 bad_config)."""
+    disk = None
+    if env.get("MONITOR_DISK", DEFAULT_DISK).strip() != "none":
+        disk = []
+        for parts in _entries("MONITOR_DISK", env.get("MONITOR_DISK", DEFAULT_DISK), (2, 3)):
+            path = os.path.expanduser(parts[1])
+            if not os.path.isabs(path) or parts[2:] not in ([], ["du"]):
+                raise ConfigError(f"MONITOR_DISK 의 {parts[0]} 항목: 경로는 절대 경로, 셋째 칸은 du 만")
+            disk.append((parts[0], path, parts[2:] == ["du"]))
+    outbox = []
+    for name, db, table in _entries("MONITOR_OUTBOX", env.get("MONITOR_OUTBOX", DEFAULT_OUTBOX), (3,)):
+        if not _TABLE.fullmatch(table):
+            raise ConfigError(f"MONITOR_OUTBOX 의 {name} 항목: 표는 `스키마.표`(소문자)다")
+        outbox.append((name, db, table))
+    commit = env.get("MONITOR_CODE_COMMIT")
+    if commit is not None and not _COMMIT.fullmatch(commit.strip()):
+        raise ConfigError("MONITOR_CODE_COMMIT 는 커밋 40자(소문자 16진)다")
+    return Extra(disk, outbox, _number(env, "MONITOR_DISK_MIN_FREE_PCT", "20", 0, 100, float),
+                 _number(env, "MONITOR_OUTBOX_MAX_BYTES", str(5 * 1024 ** 3), 1, 2 ** 63 - 1, int),
+                 _number(env, "MONITOR_GAP_S", "0", 0, 10 ** 9, int), None if commit is None else commit.strip())
+
+
+def code_pin_problem(commit, root=ROOT):
+    """주기 실행의 코드 판 확인(P2-4b — SL-5 D4 와 같은 원칙): 저장소 HEAD 가 `commit` 과 같고 미커밋·추적 안 된 파일이 없어야 한다.
+    문제가 있으면 그 까닭, 없거나 `commit` 이 None(손 실행)이면 None. git status 는 무시 파일(*.pyc)을 보지 않는다 — 래퍼가 python -I 로 부른다."""
+    if commit is None:
+        return None
+    try:
+        head = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], capture_output=True, text=True, timeout=30)
+        dirty = subprocess.run(["git", "-C", str(root), "status", "--porcelain", "--untracked-files=all"], capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired) as error:
+        return f"코드 사본 {root} 에서 git 을 부르지 못함({type(error).__name__})"
+    if head.returncode or dirty.returncode:
+        return f"코드 사본 {root} 에서 git 이 실패했다(rc {head.returncode}·{dirty.returncode})"
+    if head.stdout.strip() != commit:
+        return f"코드 사본 {root} 의 HEAD {head.stdout.strip()} 가 MONITOR_CODE_COMMIT {commit} 과 다르다"
+    if dirty.stdout.strip():
+        return f"코드 사본 {root} 에 미커밋·추적 안 된 파일 {len(dirty.stdout.splitlines())}개 — 사본에서는 아무것도 고치지 않는다"
+    return None
+
+
 def addr(node):
     return f"{node[0]}:{node[1]}"
 
 
-def pg(host, port):
-    return psycopg.connect(host=host, port=port, user="postgres", password=Path(PG_PASSWORD_FILE).read_text().strip(), dbname="postgres",
+def pg(host, port, dbname="postgres"):
+    return psycopg.connect(host=host, port=port, user="postgres", password=Path(PG_PASSWORD_FILE).read_text().strip(), dbname=dbname,
                            connect_timeout=5, autocommit=True)
 
 
@@ -472,6 +559,88 @@ def s7(polled, power=True):
     return out
 
 
+def folder_bytes(path):
+    """폴더 아래 보통 파일 크기 합(추세용). 링크는 따라가지도 세지도 않는다. 도는 사이 사라진 파일은 건너뛴다."""
+    total = 0
+    for top, _dirs, files in os.walk(path):  # followlinks=False(기본)
+        for name in files:
+            try:
+                st = os.lstat(os.path.join(top, name))
+            except OSError:
+                continue
+            if stat.S_ISREG(st.st_mode):
+                total += st.st_size
+    return total
+
+
+def d1(items, min_free):
+    """D1 디스크(deploy.md ①·③): 경로마다 그 파일 시스템의 여유(free / total). `items` 가 None 이면(MONITOR_DISK=none) unsupported 한 줄.
+    경로를 볼 수 없으면 alert(설정이 틀렸거나 폴더가 사라짐). df 의 Capacity(used/(used+avail))와는 기준이 다르다."""
+    if items is None:
+        return [finding("D1", "disk", "unsupported", "끔(MONITOR_DISK=none) — 디스크는 그 디스크가 있는 장치에서 본다(P2-4b 결정 B)")]
+    out = []
+    for name, path, du in items:
+        try:
+            usage = shutil.disk_usage(path)
+            size = f", 폴더 {folder_bytes(path)}B" if du else ""
+        except OSError as error:
+            out.append(finding("D1", f"disk:{name}", "alert", f"{path} 를 볼 수 없다({type(error).__name__}) — 설정이 틀렸거나 폴더가 사라짐"))
+            continue
+        free = usage.free * 100 / usage.total
+        low = free < min_free
+        out.append(finding("D1", f"disk:{name}", "alert" if low else "ok", f"{path} 여유 {free:.1f}%({usage.free / 1024 ** 3:.1f} GiB / "
+                                                                              f"{usage.total / 1024 ** 3:.1f} GiB){f' < {min_free:g}%' if low else ''}{size}"))
+    return out
+
+
+def d2(items, max_bytes, polled):
+    """D2 outbox 표 크기(deploy.md ②): primary 의 그 DB 에서 pg_total_relation_size(색인·TOAST 포함)와 추정 행 수(reltuples — ANALYZE 전이면 -1).
+    기준을 넘으면 "P1-6 정리를 할 때"(결정 C). 표가 없으면 alert(리뷰 C6), primary 를 모르거나 DB 에 못 닿으면 같은 키에 error(해소로 보지 않음)."""
+    try:
+        node = primary_of(polled)["node"]
+    except RuntimeError:
+        return [finding("D2", f"outbox:{name}", "error", "primary 를 알 수 없어 보지 못함") for name, _db, _table in items]
+    out = []
+    for name, db, table in items:
+        try:
+            with pg(*node, dbname=db) as c:
+                size, rows = c.execute("select pg_total_relation_size(to_regclass(%s::text)), "
+                                       "(select reltuples::bigint from pg_class where oid = to_regclass(%s::text))", (table, table)).fetchone()
+        except (psycopg.Error, OSError) as error:
+            out.append(finding("D2", f"outbox:{name}", "error", f"{db} 에 닿지 못함({type(error).__name__})"))
+            continue
+        if size is None:
+            out.append(finding("D2", f"outbox:{name}", "alert", f"{db}.{table} 표가 없다 — 설정이 틀렸거나 표가 사라짐"))
+            continue
+        over = size > max_bytes
+        out.append(finding("D2", f"outbox:{name}", "alert" if over else "ok", f"{db}.{table} {size}B({size / 1024 ** 3:.2f} GiB, 추정 행 {rows})"
+                           + (f" > {max_bytes}B — P1-6 정리를 할 때" if over else "")))
+    return out
+
+
+def s7_gap(state, gap_s, now):
+    """S7 감시 공백(결정 E): 지난 회차(`last_run`) 뒤 `gap_s` 넘게 지났으면 상태에 열린 공백을 두고, 웹훅 실패가 아닌 회차를 지난 뒤에만 main 이 지운다
+    (리뷰 C1 — 한 번 생기는 사건이라, 깨어난 첫 회차에 웹훅이 실패해도 다음 회차에 다시 알린다). 그동안 같은 내용으로 alert. gap_s 가 0 이면 줄 없음."""
+    last, state["last_run"] = state.get("last_run"), now
+    gap = state.get("gap_open")
+    if not (isinstance(gap, dict) and all(type(gap.get(k)) in (int, float) for k in ("start", "end", "count", "longest"))):
+        state.pop("gap_open", None)  # 없거나 깨짐
+        gap = None
+    if not gap_s:
+        state.pop("gap_open", None)
+        return []
+    if type(last) in (int, float) and now - last > gap_s:
+        if gap is None:
+            gap = state["gap_open"] = {"start": last, "end": now, "count": 1, "longest": now - last}
+        else:
+            gap.update(count=gap["count"] + 1, longest=max(gap["longest"], now - last))  # start~end 는 첫 공백 그대로(사이에 돈 감시를 공백으로 세지 않게 — 리뷰 R-a)
+    if gap is None:
+        return [finding("S7", "gap", "ok", f"지난 점검 뒤 {int(now - last)}초" if type(last) in (int, float) else "첫 회차")]
+    more = f", 그 뒤 공백 {int(gap['count']) - 1}번 더(가장 긴 {int(gap['longest'])}초)" if gap["count"] > 1 else ""
+    return [finding("S7", "gap", "alert", f"감시 공백 {int(gap['end'] - gap['start'])}초({stamp(gap['start'])}~{stamp(gap['end'])}){more} — "
+                                          "이 장치가 잠들었거나, 주기 실행이 멈췄거나, 점검을 거부(rc 2)한 사이 감시가 없었다")]
+
+
 def unimplemented():
     return [finding("M6", "hop_reconcile", "unimplemented", "창 대사 결과 — P1·P2-2 뒤"),
             finding("M7", "kafka_bronze_positions", "unimplemented", "Kafka ↔ Bronze 위치 대사 — P2 뒤"),
@@ -524,37 +693,81 @@ def load_state():
     return (state, False) if isinstance(state, dict) else ({}, True)
 
 
-def save_state(state):
+def write_json(path, data):
     """같은 폴더에 새 임시 파일(O_EXCL, 0600 — 이름을 미리 알 수 없다)을 만들어 쓰고 바꿔 끼운다(쓰는 도중 꺼져도 옛 파일이나 새 파일 하나만 남는다)."""
-    fd, tmp = tempfile.mkstemp(dir=STATE.parent, prefix=f".{STATE.name}.", suffix=".tmp")
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
-            f.write(json.dumps(state, ensure_ascii=False))
-        os.replace(tmp, STATE)
+            f.write(json.dumps(data, ensure_ascii=False))
+        os.replace(tmp, path)
     except BaseException:
         Path(tmp).unlink(missing_ok=True)
         raise
 
 
-def refuse(error, detail, why):
-    """점검하지 않고 끝낸다(rc=2): 웹훅이 있으면 알리고 JSON 한 줄. 설정이 틀려 감시가 조용히 멈추지 않게."""
-    sent = notify(f"파이프라인 점검(임시 D18)\n[오류] {why}: {detail}")
+def save_state(state):
+    write_json(STATE, state)
+
+
+def trusted_mark():
+    """rc 2 표시 파일(`<상태 파일>.refused`) 경로 — 믿을 수 있을 때만. 상태 폴더가 없거나(만들지 않는다 — 설정 오류에서 폴더를 만들지 않는 규칙),
+    폴더·표시 파일이 안전하지 않으면 None(그때는 분마다 알린다 — 그 폴더에 쓸 수 있는 다른 사용자가 거부 알림을 막지 못하게)."""
+    mark = STATE.with_name(STATE.name + ".refused")
+    try:
+        if unsafe(STATE.parent, directory=True) or (os.path.lexists(mark) and unsafe(mark, directory=False)):
+            return None
+    except OSError:
+        return None
+    return mark
+
+
+def read_mark(mark):
+    """표시 파일 내용 {error, detail, at} 또는 None(없음·못 읽음·깨짐·시각이 수가 아니거나 범위 밖)."""
+    try:
+        data = json.loads(mark.read_text()) if mark is not None else None
+    except (OSError, ValueError):
+        return None
+    ok = (isinstance(data, dict) and isinstance(data.get("error"), str) and isinstance(data.get("detail"), str)
+          and type(data.get("at")) in (int, float) and 0 <= data["at"] < 32503680000)  # 3000년 앞 — stamp 가 넘치지 않게
+    return data if ok else None
+
+
+def refuse(error, detail, why, clock=time.time):
+    """점검하지 않고 끝낸다(rc=2): JSON 한 줄. 알림은 처음 한 번 바로, 같은 거부(error·detail)가 이어지면 한 시간에 한 번(결정 F (나)).
+    unsafe_state 는 표시 파일을 읽지도 쓰지도 않고 늘 알린다(변조 신호 — 리뷰 C4). 웹훅 실패면 표시 파일을 쓰지 않아 다음 회차가 다시 보낸다."""
+    mark = None if error == "unsafe_state" else trusted_mark()
+    last, now = read_mark(mark), clock()
+    if last and (last["error"], last["detail"]) == (error, detail) and 0 <= now - last["at"] < REFUSE_REPEAT_S:
+        sent = f"생략(같은 거부가 이어짐 — 마지막 알림 {stamp(last['at'])}, 한 시간마다 다시)"
+    else:
+        sent = notify(f"파이프라인 점검(임시 D18)\n[오류] {why}: {detail}")
+        if mark is not None and not sent.startswith("웹훅 실패"):
+            try:
+                write_json(mark, {"error": error, "detail": detail, "at": now})
+            except OSError:
+                pass  # 못 쓰면 다음 회차가 다시 알린다(조용해지는 쪽으로 실패하지 않는다)
     print(json.dumps({"t": datetime.now(UTC).isoformat(), "error": error, "detail": detail, "notify": sent}, ensure_ascii=False))
     sys.exit(2)
 
 
-def main(env=os.environ):
-    try:  # 순서: 필수 모드 → 노드 목록 형식 → 상태 자리
+def main(env=os.environ, clock=time.time):
+    try:  # 순서: 필수 모드 → 설정 형식 → 코드 판 → 상태 자리
         missing = missing_config(env)
         if missing:
-            refuse("missing_config", "없거나 빈 운영 변수 " + ", ".join(missing), "필수 설정이 없어 점검하지 않았다")
+            refuse("missing_config", "없거나 빈 운영 변수 " + ", ".join(missing), "필수 설정이 없어 점검하지 않았다", clock)
         nodes, power, r7 = pg_nodes(env), flag(env, "MONITOR_S7_POWER", "1"), flag(env, "MONITOR_R7", "0")
+        extra = extra_settings(env)
     except ConfigError as error:
-        refuse("bad_config", str(error), "설정 형식이 틀려 점검하지 않았다")
+        refuse("bad_config", str(error), "설정 형식이 틀려 점검하지 않았다", clock)
+    pinned = code_pin_problem(extra.commit)
+    if pinned:  # 리뷰 전 코드가 주기 감시로 돌지 않게(SL-5 D4 와 같은 원칙). 래퍼가 아니라 여기서 거부해야 알림이 간다
+        refuse("code_pin", pinned, "코드 사본이 고정한 커밋과 달라 점검하지 않았다", clock)
     problem = state_problem()
     if problem:  # 경보를 막을 수 있는 상태 파일은 믿지 않는다 — 점검하지 않고 크게 실패한다(알림을 보내고 rc=2)
-        refuse("unsafe_state", problem, "상태 파일 자리가 안전하지 않아 점검하지 않았다")
+        refuse("unsafe_state", problem, "상태 파일 자리가 안전하지 않아 점검하지 않았다", clock)
     state, state_reset = load_state()
+    mark, started = trusted_mark(), clock()
+    refused = read_mark(mark)  # 앞 회차들이 거부(rc 2)했다 — 이번에 다시 돌았음을 알린다(Planner 2026-11-08)
     try:
         polled = survey(nodes)
     except Exception as error:  # noqa: BLE001 — 조회가 통째로 실패해도 끝까지 간다: primary 를 알 수 없음(M1·M2 는 지난 값 그대로, S7 시계는 error)
@@ -562,7 +775,8 @@ def main(env=os.environ):
     findings, failed_checks, slots_seen = [], set(), {}
     for name, fn in (("M1·M2", lambda: m1_m2(state, polled, slots_seen)),
                      ("M3", lambda: m3(state, None if "M1" in failed_checks else slots_seen, r7)),  # 끝까지 돈 M1 의 슬롯 상태만(아니면 모두 모름)
-                     ("M4", m4), ("M5", m5), ("S7", lambda: s7(polled, power))):
+                     ("M4", m4), ("M5", m5), ("S7", lambda: s7(polled, power)), ("S7", lambda: s7_gap(state, extra.gap_s, started)),  # 공백은 따로(전원 줄이 실패해도 봄)
+                     ("D1", lambda: d1(extra.disk, extra.min_free)), ("D2", lambda: d2(extra.outbox, extra.max_bytes, polled))):
         try:
             findings += fn()
         except Exception as error:  # noqa: BLE001 — 점검 하나가 실패해도 나머지는 본다(실패 자체를 결과로)
@@ -584,10 +798,18 @@ def main(env=os.environ):
             changes.append(f"[해소] {key}: 이번 점검 결과에 없음")
     if state_reset:
         changes.insert(0, f"[알림] 상태 파일 {STATE.name} 을 읽지 못해 새로 시작했다 — 지금 경보를 다시 알린다")
+    if refused:
+        changes.insert(0, f"[해소] 점검을 다시 한다 — 앞선 거부 {refused['error']}(마지막 알림 {stamp(refused['at'])})")
     sent = notify("파이프라인 점검(임시 D18)\n" + "\n".join(changes)) if changes else None
     if not (sent or "").startswith("웹훅 실패"):  # 못 보낸 변화는 버리지 않는다 — 지난 값을 두어 다음 점검이 다시 보낸다
         state["levels"] = {**carried, **{f["key"]: f["level"] for f in findings}}
         state["checks"] = {**{k: before_check[k] for k in carried}, **{f["key"]: f["check"] for f in findings}}
+        state.pop("gap_open", None)  # 공백 경보를 보낸 뒤에만 닫는다(리뷰 C1)
+        if refused:  # 재개 줄을 보낸 뒤에만 지운다(리뷰 C5). 못 지우면 다음 회차가 재개 줄을 다시 보낸다
+            try:
+                mark.unlink()
+            except OSError:
+                pass
     save_state(state)
     alerts = [f for f in findings if f["level"] in ("alert", "error")]
     print(json.dumps({"t": datetime.now(UTC).isoformat(), "alerts": len(alerts), "changes": changes, "notify": sent, "state_reset": state_reset,

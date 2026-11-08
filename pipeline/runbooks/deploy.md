@@ -190,6 +190,31 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
   - 따로 배포하면 그 사이 매시 회차가 rc 2다.
   - 배포 뒤 첫 시간 잡이 늦거나 실패하면, :07 회차는 지난 포인터(옛 판)를 받아 rc 2가 한 번 더 난다(늦음 rc 3이 아니다).
 
+## 메타버스 앱 DB 접속(06 T3 ②)
+
+메타버스 앱 서버 두 대(서비스·이동)가 운영 PostgreSQL에 붙는 값이다. 근거는 계획 06 5판 T3 ②와 계획 25 §5.1 ④(C6 (a), 사용자 결정 2026-11-08)다. 비밀번호와 비밀번호 파일의 내용은 여기 적지 않고, 화면·기록에도 옮기지 않는다.
+
+- 접속 값(각 앱 서버의 `deploy/onprem/.env`, Ops 2026-11-08)
+  - `POSTGRES_HOST=127.0.0.1`, `POSTGRES_PORT=5000`(앱 서버의 HAProxy → 클러스터 쓰기 노드)
+  - `POSTGRES_DB=metaverse`, `POSTGRES_USER=metaverse_app`
+  - `POSTGRES_PASSWORD`는 비운다. `PGPASSFILE`에는 `playdata`의 `~/.secrets/metaverse-app.pgpass` 절대 경로를 둔다.
+  - `POSTGRES_POOL_MAX_SIZE=10`(계획 25 D-D (가)). 클러스터 `max_connections` 200이 먼저 적용돼 있어야 한다(Ops).
+  - `KAFKA_BOOTSTRAP_SERVERS`는 빈 값이다. 사건은 outbox → CDC로만 나간다.
+  - TLS: 첫 운영은 LAN 평문이다. `verify-full`로 바꿀 때 `POSTGRES_SSLMODE=verify-full`과 `POSTGRES_SSLROOTCERT`(CA 파일 경로)만 더한다(코드 변경 없음).
+- 비밀번호 파일(Ops가 만든다)
+  - 모드 0600, 주인 `playdata`다.
+  - 한 줄의 앞 네 칸이 `127.0.0.1:5000:metaverse:metaverse_app`(= 위 접속 값)이고 다섯째 칸이 비밀번호다.
+  - `deploy/onprem/run.py`는 `POSTGRES_PASSWORD`가 비어 있으면 시작 전에 세 가지를 본다: 모드 0600, 실행 사용자 소유, 앞 네 칸이 접속 값과 같은 줄. 어긋나면 파일 내용을 출력하지 않고 rc 1로 멈춘다.
+- **배포 확인 — 앱 프로세스는 `playdata`로 돈다**
+  - `run.py movement`·`run.py service`(그 아래 daphne·jobs 포함)를 `playdata`로 실행한다. 다른 계정이면 파일을 읽지 못하거나 주인이 달라 `run.py`가 멈춘다.
+  - 손으로 부르는 `manage.py`(`migrate`·`import_learning_bank`·`createsuperuser` 등)도 `playdata`로 부르고, 위와 같은 `POSTGRES_*`·`PGPASSFILE`을 환경에 둔다.
+  - 확인(값을 출력하지 않는다):
+
+```bash
+id -un                          # playdata
+stat -c '%a %U' "$PGPASSFILE"   # 600 playdata
+```
+
 ## P8-2에서 더할 것(이번 판에는 없음)
 
 - 계획 02 P8-2 목록은 P8-2 Step에서 이 파일에 더한다. 예: 커넥터를 트래픽보다 먼저 켜기(D6), 노트북 잠자기 금지, D23 비밀 파일 권한·REST 방화벽.

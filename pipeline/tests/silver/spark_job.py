@@ -1,7 +1,8 @@
 """pipeline/silver/silver_job.py·framework 쓰기 경로(SL-3c) — Spark 시험: 실제 readStream(Delta) + availableNow + foreachBatch, file:// Delta 표.
 
 합성 어댑터는 spark_framework 의 것(판정 순서 ①~⑤, 중간 결과 cache)이다. 출처 설정은 control.source_settings 모양으로 넘긴다.
-SL-2 ⑥⑧⑨ 회귀, 멱등(같은 배치 재실행), 멈춤 진단(D4), 시작 검사 ①~④, 두 전체 확인 경로, 읽기 상한, Delta·checkpoint 형식 고정.
+SL-2 ⑥⑧⑨ 회귀, 멱등(같은 배치 재실행), 멈춤 진단(D4), 시작 검사 ①~④, 두 전체 확인 경로, 읽기 상한(파일 수·바이트 — SL-5), Delta·checkpoint 형식 고정,
+잡 입구가 Spark 전에 보는 설정(S3 설정·키 파일 — SL-5).
 """
 import json
 import shutil
@@ -38,13 +39,13 @@ def adapt(frame, settings):
 class Lake:
     """임시 폴더 하나 = 버킷 하나(15 §5.5 (가) 경로)."""
 
-    def __init__(self, test, *, max_files=100):
+    def __init__(self, test, *, max_files=100, max_bytes="1g"):
         folder = tempfile.mkdtemp(prefix="sl3c-")
         test.addCleanup(shutil.rmtree, folder, True)
         self.root = Path(folder)
         env = {"SILVER_LAKE_ROOT": folder, "SILVER_BRONZE_TABLE": f"{folder}/bronze/metaverse/outbox_events", "SILVER_SOURCE_DB": SOURCE["db"],
                "SILVER_SOURCE_SCHEMA": SOURCE["schema"], "SILVER_SOURCE_TABLE": SOURCE["table"], "SILVER_ACKNOWLEDGED": f"{folder}/ack.json",
-               "SILVER_CODE_ROOT": folder, "SILVER_MAX_FILES_PER_TRIGGER": str(max_files)}
+               "SILVER_CODE_ROOT": folder, "SILVER_MAX_FILES_PER_TRIGGER": str(max_files), "SILVER_MAX_BYTES_PER_TRIGGER": max_bytes}
         self.settings = control.job_settings(env, "metaverse", 1)
         self.offset, self.logs = 0, []
 
@@ -198,11 +199,20 @@ class Records(unittest.TestCase):
         lake = Lake(self)
         env = {"SILVER_LAKE_ROOT": str(lake.root), "SILVER_BRONZE_TABLE": lake.settings.bronze, "SILVER_SOURCE_DB": "metaverse_lab",
                "SILVER_SOURCE_SCHEMA": "public", "SILVER_SOURCE_TABLE": "eventing_eventoutbox", "SILVER_ACKNOWLEDGED": str(lake.root / "ack.json"),
-               "SILVER_CODE_ROOT": str(Path(__file__).resolve().parents[3]), "SILVER_MAX_FILES_PER_TRIGGER": "10"}  # 저장소 뿌리(control 은 zip 에서 온다)
+               "SILVER_CODE_ROOT": str(Path(__file__).resolve().parents[3]), "SILVER_MAX_FILES_PER_TRIGGER": "10",  # 저장소 뿌리(control 은 zip 에서 온다)
+               "SILVER_MAX_BYTES_PER_TRIGGER": "1g"}
         with self.assertRaisesRegex(ValueError, "SILVER_MAX_FILES_PER_TRIGGER"):
             silver_job.main(["--domain", "metaverse", "--generation", "1"], {k: v for k, v in env.items() if k != "SILVER_MAX_FILES_PER_TRIGGER"})
         with self.assertRaises(FileNotFoundError):
             silver_job.main(["--domain", "metaverse", "--generation", "1"], env)
+        s3a = {**env, "SILVER_LAKE_ROOT": "s3a://no-such-bucket"}  # SL-5 — s3a 면 S3 설정 넷이 필요하고, 키 파일도 Spark 전에 읽는다
+        with self.assertRaisesRegex(ValueError, "S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY_FILE, S3_SECRET_KEY_FILE"):
+            silver_job.main(["--domain", "metaverse", "--generation", "1"], s3a)
+        (lake.root / "ack.json").write_text(json.dumps({"domain": "metaverse", "lines": []}))
+        keys = {"S3_ENDPOINT": "http://127.0.0.1:1", "S3_REGION": "r", "S3_ACCESS_KEY_FILE": str(lake.root / "no-access-key"),
+                "S3_SECRET_KEY_FILE": str(lake.root / "no-secret-key")}
+        with self.assertRaisesRegex(FileNotFoundError, "no-access-key"):
+            silver_job.main(["--domain", "metaverse", "--generation", "1"], {**s3a, **keys})
         (lake.root / "ack.json").write_text(json.dumps({"domain": "nosuch", "lines": []}))
         with self.assertRaises(ModuleNotFoundError):
             silver_job.main(["--domain", "nosuch", "--generation", "1"], env)
@@ -285,6 +295,19 @@ class Paths(unittest.TestCase):
         lake.run()
         self.assertEqual([line.split()[2] for line in lake.logs if line.startswith("silver batch ")], ["batch=0", "batch=1", "batch=2"])
         self.assertEqual(set(lake.silver()), set(E[:3]))
+
+    def test_byte_limit_splits_batches(self):  # SL-5 D3 (다) — 파일 수 상한이 넉넉해도 바이트 상한이 먼저 닿으면 끊는다(넘게 만드는 파일 하나까지 넣음)
+        lake = Lake(self, max_files=100, max_bytes="1")
+        for event_id in E[:3]:
+            lake.add(synthetic.value(event_id))
+        lake.run()
+        self.assertEqual([line.split()[2] for line in lake.logs if line.startswith("silver batch ")], ["batch=0", "batch=1", "batch=2"])
+        self.assertEqual(set(lake.silver()), set(E[:3]))
+        lake = Lake(self, max_files=100, max_bytes="1g")  # 같은 입력, 넉넉한 바이트 상한 → 배치 하나
+        for event_id in E[:3]:
+            lake.add(synthetic.value(event_id))
+        lake.run()
+        self.assertEqual([line.split()[2] for line in lake.logs if line.startswith("silver batch ")], ["batch=0"])
 
     def test_broadcast_and_shuffle_paths_write_the_same(self):  # SL-3c 결정 S3 ② — 전체 확인 (b)(c)(d)·copies 가 두 경로에서 같다
         results = []

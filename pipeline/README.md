@@ -14,11 +14,11 @@
 | `bronze/run-hop-manifest.sh`, `bronze/local.pipeline.hop-manifest-{hour,day}.plist` | 그 잡의 로컬 실행(창 크기마다 잠금 하나, 1코어)과 LaunchAgent 견본(매시 :05 · 매일 00:35Z, 설치는 사용자 승인 뒤) |
 | `reconcile/run-reconcile.sh`, `reconcile/local.pipeline.hop-reconcile-{hour,day}.plist` | 창 대사(P2-2, 광고 서버 `reconcile_hops`: 받기 → 같은 since로 outbox manifest → 대조·확정 기록 → 상태 파일)의 로컬 실행과 LaunchAgent 견본(매시 :07 · 매일 00:50Z) |
 | `common/hop_rules.py`, `common/ndjson.py` | 광고 서버 `ads_server/events/`의 같은 이름 파일과 **바이트가 같은 사본**(요약 규칙·manifest 바이트 규칙). 원본을 바꾸는 커밋에서 함께 바꾼다(`tests/common/`이 확인) |
-| `silver/` | Silver 공통 틀(Spark DataFrame·Spark SQL + Delta). `framework.py`: 어댑터 인터페이스(Bronze DF → 정상 DF·오류 DF)와 결과 확인, 배치 판정(이중 적재 정리·멈춤 확인·접기·전체 확인), 쓰기·멱등·정체성(MERGE·오류 append·시작 검사). `contracts.py`: 표 모양·엄격 검사 UDF·값 꺼내기·오류 행. `strict.py`·`control.py`: 표준 라이브러리(엄격 JSON·넘김 목록·appId·시작 검사·잡 설정). `silver_job.py`: 잡 입구(아래). `spark-submit-silver.sh`: 로컬 제출(이 Mac 전제는 여기만). 원천별 어댑터는 `silver/adapters/` |
+| `silver/` | Silver 공통 틀(Spark DataFrame·Spark SQL + Delta). `framework.py`: 어댑터 인터페이스(Bronze DF → 정상 DF·오류 DF)와 결과 확인, 배치 판정(이중 적재 정리·멈춤 확인·접기·전체 확인), 쓰기·멱등·정체성(MERGE·오류 append·시작 검사). `contracts.py`: 표 모양·엄격 검사 UDF·값 꺼내기·오류 행. `strict.py`·`control.py`: 표준 라이브러리(엄격 JSON·넘김 목록·appId·시작 검사·잡 설정). `silver_job.py`: 잡 입구(아래). `spark-submit-silver.sh`: 로컬 제출(이 Mac 전제는 여기만). `run-silver.sh`·`local.pipeline.silver-*.plist`: 로컬 정기 실행 래퍼·LaunchAgent 견본. 원천별 어댑터는 `silver/adapters/`, 넘김 목록은 `silver/acknowledged/` |
 | `tests/` | `python -m unittest discover pipeline/tests`(Spark 없이 — 층 규칙·공용 사본·Bronze·Silver 표준 라이브러리 시험)와 Spark 시험 `SPARK_MASTER='local[1]' pipeline/silver/spark-submit-silver.sh pipeline/tests/run_spark_tests.py`(`spark_*.py`, 클러스터 코어를 쓰지 않음) |
 | `tools/` | 검증 도구(아래) |
 | `monitor/` | 점검·경보(**임시 D18** — 점검 스크립트 + 1분 주기 + 웹훅). `monitor/README.md` |
-| `runbooks/` | 복구 절차(RB-0~RB-5) 도구·점검표. 바꾸는 도구는 기본 dry-run. `runbooks/README.md` |
+| `runbooks/` | 복구 절차(RB-0~RB-5) 도구·점검표. 바꾸는 도구는 기본 dry-run. `runbooks/README.md`. Silver 잡 운영은 `runbooks/silver.md` |
 | `requirements.txt` | `pipeline/`의 Python 도구가 직접 쓰는 라이브러리(Spark 도구는 Spark 배포판의 pyspark) |
 | `legacy/metaverse/` | 메타버스 파이프라인 Step1·Step2 보관본(Metaverse 쪽 소유). 재사용할 부분은 통합 설계(M2)에서 정해 본체로 옮긴다 |
 
@@ -84,7 +84,9 @@ pipeline/reconcile/run-reconcile.sh day
 
 잡의 설정(제출 스크립트가 넘긴다 — 잡 본문에는 기본값이 없다): `HOP_BRONZE_TABLE`, `HOP_MANIFEST_URI`(`/`로 끝나는 `s3a://` 접두사), `HOP_SOURCE_DB`(Debezium `source.db`), `HOP_GRACE_SECONDS`(광고 서버 `EVENTS_HOP_GRACE_SECONDS`와 같게), 선택 `HOP_MAX_PARTITION_BYTES`(기본 16m). 로컬 래퍼의 기본값은 lab 표·운영 접두사·`ads_pipeline_lab`·120초이고, 잠금 폴더는 `HOP_LOCK_DIR`(기본 `~/Library/Caches/ads-pipeline`). 시험은 Spark 없이 `python -m unittest discover -s pipeline/tests/common -t pipeline/tests`·`… -s pipeline/tests/bronze …`.
 
-Silver 잡(`silver/silver_job.py --domain <원천> --generation <N>`)은 Bronze Delta를 한 번 읽고(availableNow) 끝난다. 설정은 모두 환경변수이고 기본값이 없다: `SILVER_LAKE_ROOT`(버킷 뿌리 — 표는 `<뿌리>/silver/<원천>/{events,errors}/g<N>`, checkpoint는 `<뿌리>/checkpoints/silver/<원천>/events/g<N>`), `SILVER_BRONZE_TABLE`, 어댑터 출처 `SILVER_SOURCE_DB`·`SILVER_SOURCE_SCHEMA`·`SILVER_SOURCE_TABLE`(outbox 표 이름), 넘김 목록 파일 `SILVER_ACKNOWLEDGED`, 코드 뿌리 `SILVER_CODE_ROOT`(`silver_release`), 읽기 상한 `SILVER_MAX_FILES_PER_TRIGGER`. 시작할 때 checkpoint와 두 표의 멱등 기록이 같은 실행 이력인지 보고, 아니면 돌지 않는다(checkpoint를 새로 만들면 새 세대). 로컬 정기 실행 래퍼·LaunchAgent는 첫 세대 Step에서 둔다.
+Silver 잡(`silver/silver_job.py --domain <원천> --generation <N>`)은 Bronze Delta를 한 번 읽고(availableNow) 끝난다. 설정은 모두 환경변수이고 기본값이 없다: `SILVER_LAKE_ROOT`(버킷 뿌리 — 표는 `<뿌리>/silver/<원천>/{events,errors}/g<N>`, checkpoint는 `<뿌리>/checkpoints/silver/<원천>/events/g<N>`), `SILVER_BRONZE_TABLE`, 어댑터 출처 `SILVER_SOURCE_DB`·`SILVER_SOURCE_SCHEMA`·`SILVER_SOURCE_TABLE`(outbox 표 이름), 넘김 목록 파일 `SILVER_ACKNOWLEDGED`, 코드 뿌리 `SILVER_CODE_ROOT`(`silver_release`), 읽기 상한 `SILVER_MAX_FILES_PER_TRIGGER`(파일 수)·`SILVER_MAX_BYTES_PER_TRIGGER`(바이트, `512m` 꼴 — 파일 하나의 행 수가 크게 달라 파일 수만으로는 배치 행 수를 묶지 못한다). 경로가 `s3a://`이면 `S3_ENDPOINT`·`S3_REGION`·`S3_ACCESS_KEY_FILE`·`S3_SECRET_KEY_FILE`도 필요하다(Bronze와 같은 이름, 키는 파일에서 읽어 Spark 설정으로만 넘긴다). 시작할 때 checkpoint와 두 표의 멱등 기록이 같은 실행 이력인지 보고, 아니면 돌지 않는다(checkpoint를 새로 만들면 새 세대).
+
+로컬 정기 실행은 `silver/run-silver.sh <원천> <세대>`(이 Mac 값·`lockf` 표마다 한 실행 — 돌고 있으면 rc 75)와 LaunchAgent 견본 `silver/local.pipeline.silver-metaverse.plist`(매시 :10)다. 래퍼는 작업 저장소가 아니라 리뷰된 커밋에 맞춘 실행 전용 사본에서 돌고, 사본 HEAD가 `SILVER_CODE_COMMIT`과 다르거나 사본에 미커밋·추적 안 된 파일이 있으면 돌지 않는다(rc 2). 사본 만들기·올리기·설치·멈춘 뒤 할 일·되돌리기는 `runbooks/silver.md`. 넘김 목록은 `silver/acknowledged/<원천>.json`(처음에는 빈 목록, 줄을 더할 때마다 리뷰).
 
 ## 검증 도구(`tools/`)
 

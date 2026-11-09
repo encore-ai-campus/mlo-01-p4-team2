@@ -224,6 +224,26 @@ stat -c '%a %U' "$PGPASSFILE"   # 600 playdata
 - MongoDB는 운영에서 꺼 둔다(설정 `MONGO_HOSTS` 없음, `relay_events` 없음). 코드에서 빼는 일(MDB-R)은 Silver·Gold 작업 때 한다.
 - **배포 뒤 `ops_check`의 ④ MongoDB와 ⑤ 상시 처리의 outbox(`sent_at` 미전송) 실패는 MongoDB를 끈 운영 설정에서 생기는 알려진 거짓 실패이고, 제거(MDB-R) 때 고친다.** 나머지 점검(설정·파일 저장소, 의존성, PostgreSQL)이 OK인지 본다. ⑤는 한 줄(`FAIL 상시 처리: …`)로 나오고 통과한 하위 점검은 따로 찍히지 않는다 — **⑤의 FAIL 이유에 `outbox:`만 있고 `반응 처리:`가 없으면 반응 처리는 정상**이다. 웹 단계 전에는 반응 처리 프로세스가 없으므로 반응 처리 쪽은 그 단계에서 다시 본다.
 
+### 파이프라인 연결 — publication(광고 서버 DB)
+- 커넥터 `ads-outbox-cdc`는 `publication.autocreate.mode = disabled`다(`pipeline/connect/ads-outbox-cdc.json`). 그래서 publication이 **커넥터를 등록하기 전에** 있어야 한다. 없으면 task가 FAILED다 — ④의 M3에 FAILED로 보이고, 커넥터 상태(`/connectors/ads-outbox-cdc/status`)의 trace에 `Publication autocreation is disabled, please create one and restart the connector.`가 있다(Debezium 3.7.0). 원인이 설정이라 재시작(R7)으로 낫지 않는다(위 "M3 FAILED가 보이면" 2).
+- 정해진 정의: outbox 표 하나, INSERT만, 열 목록·행 거르기 없음(만들 때 이것으로). outbox는 추가 전용이고, 실을 열은 커넥터 설정이 고정한다(DRD §2.1 C2). 1차 배포 때 만든 운영 publication이 이와 같은지는 아래 확인 질의로 본다 — 2026-11-09 현재 운영에서는 아직 보지 않았다.
+- 만들기(이미 있으면 하지 않는다). 광고 서버 DB의 primary에서, 그 DB에 CREATE 권한이 있고 표 주인인 계정으로:
+
+```sql
+create publication ads_outbox_pub for table public.events_outbox with (publish = 'insert');
+```
+
+- 확인(바꾸지 않음). 한 줄이 나오고 값이 `ads_outbox_pub | f | t | f | f | f | events_outbox | t | t`여야 한다:
+
+```sql
+select p.pubname, p.puballtables, p.pubinsert, p.pubupdate, p.pubdelete, p.pubtruncate,
+       pr.prrelid::regclass as tbl, pr.prattrs is null as no_column_list, pr.prqual is null as no_row_filter
+from pg_publication p join pg_publication_rel pr on pr.prpubid = p.oid
+where p.pubname = 'ads_outbox_pub';
+```
+
+- 다르면(줄이 없음, update·delete·truncate가 켜짐, 다른 표, 열 목록이나 행 거르기가 있음) 커넥터를 등록하거나 다시 시작하지 말고 Planner에게 알린다.
+
 ### 대상 그룹(과정) 등록 — 광고 서버 먼저, 그다음 매체
 1. 관리자 계정(운영 화면에 들어가는 `role = admin`)으로 운영 화면 → 매체 상세 → "대상 그룹"에서 매체가 보낼 코드를 **그대로** 등록한다(메타버스: `mlo`·`skn`·`aio`, 이름은 화면 표시용). 코드는 소문자로 시작하는 32자 이하(`^[a-z][a-z0-9-]{0,31}$`)이고 등록 뒤 바꿀 수 없다.
 2. 등록을 마친 뒤 매체(메타버스 어댑터)가 결정 요청에 `segment`를 싣는다(C1 1.6.0). **순서가 바뀌면** 그 과정 사용자의 요청은 400 `unknown_segment`이고 광고를 받지 못한다.

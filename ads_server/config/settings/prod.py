@@ -19,8 +19,9 @@ CSRF_COOKIE_SECURE = True
 TRUSTED_PROXY_COUNT = env_int("TRUSTED_PROXY_COUNT", required=True, minimum=1)
 ADMIN_URL_PATH = validate_admin_path(env_str("ADMIN_URL_PATH", required=True))  # 기본값 admin/ 금지
 
-# --- HTTPS 는 앞단 nginx 가 맡는다(설계 §10 "배포 구성", 6-5d) ---
-# TLS 종단·80→443 리다이렉트·HSTS 는 nginx 몫이고 Django 는 HTTP 로 받는다. 그래서 HTTPS 리다이렉트·HSTS·X-Forwarded-Proto 신뢰를 두지 않고,
+# --- HTTPS 는 앞단 nginx 가 맡는다(설계 §10 "배포 구성", 6-5d·2026-11-09 ③) ---
+# TLS 종단은 nginx 몫이고 Django 는 HTTP 로 받는다. 80→443 리다이렉트·HSTS 도 Django 는 하지 않는다(운영 앞단은 IP 인증서라 nginx 도 두지 않는다 — :80 은 인증서
+# 검증 전용, HSTS 는 브라우저가 IP 호스트에 기억하지 않음). 그래서 HTTPS 리다이렉트·HSTS·X-Forwarded-Proto 신뢰를 두지 않고,
 # check --deploy 의 W004(HSTS 없음)·W008(HTTPS 리다이렉트 없음)을 **의도적으로 끈다**.
 SILENCED_SYSTEM_CHECKS = ["security.W004", "security.W008"]
 # 필수: Django 는 모든 요청을 HTTP 로 알아 브라우저의 https 출처와 맞지 않는다 — 신뢰 출처가 없으면 로그인 POST 가 CSRF 출처 검사에서 막힌다

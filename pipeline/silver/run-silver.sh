@@ -6,7 +6,7 @@
 # - 같은 표(원천·세대)의 잡은 동시에 하나만 돈다(lockf -t 0 — 이미 돌고 있으면 기다리지 않고 rc 75, lockf 가 stderr 에 한 줄 남긴다.
 #   운영 ScheduledSparkApplication concurrencyPolicy: Forbid 와 같다). 잡 안에서는 한 프로세스 한 쿼리만 검사한다(15 §9 33).
 # - 이 장치에서만 맞는 값(호수 뿌리·Bronze 경로·원천 DB 이름·읽기 상한·RustFS 주소·키 파일·잠금 폴더)은 여기에만 둔다. 잡 본문에는 기본값이 없다.
-#   환경변수로 덮을 수 있다 — 넘김 목록·격리 목록·코드 뿌리는 예외(사본의 것으로 고정). 원천별 값은 아래 case 한 곳이다(광고는 SL-8 뒤에 더한다).
+#   환경변수로 덮을 수 있다 — 넘김 목록·격리 목록·코드 뿌리는 예외(사본의 것으로 고정). 원천별 값은 아래 case 한 곳이다(메타버스만 — 광고 case 는 두지 않는다: 로컬 정기 실행은 하지 않고, 광고 실행 값은 2차 배포 인계에서 정한다 — SL-8).
 # - Spark 1코어(SPARK_CORES_MAX=1): 상시 Bronze 셋이 쓰고 남는 1코어를 예약 잡이 시각을 나눠 쓴다(Silver 매시 :10 — 15 §7).
 set -euo pipefail
 [ $# -eq 2 ] || { echo "사용: SILVER_CODE_COMMIT=<커밋 40자> run-silver.sh <원천> <세대>" >&2; exit 2; }
@@ -38,7 +38,7 @@ case "$domain" in
     export SILVER_MAX_FILES_PER_TRIGGER="${SILVER_MAX_FILES_PER_TRIGGER:-1000}"
     export SILVER_MAX_BYTES_PER_TRIGGER="${SILVER_MAX_BYTES_PER_TRIGGER:-512m}"
     ;;
-  *) echo "모르는 원천: $domain(지금은 metaverse — 광고는 SL-8 뒤)" >&2; exit 2 ;;
+  *) echo "모르는 원천: $domain(이 래퍼는 metaverse 만 — 광고 Silver 는 로컬에서 정기 실행하지 않는다)" >&2; exit 2 ;;
 esac
 export SILVER_LAKE_ROOT="${SILVER_LAKE_ROOT:-s3a://ads-lake}"
 export SILVER_ACKNOWLEDGED="$root/pipeline/silver/acknowledged/$domain.json"  # 리뷰·커밋된 사본의 목록만 — 덮지 않는다

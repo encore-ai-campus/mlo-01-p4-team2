@@ -5,8 +5,10 @@
 - (SL-9) 유령 격리 목록: 리뷰된 event_id 줄. 파일은 `pipeline/silver/quarantine/<domain>.json`(잡 설정 `SILVER_QUARANTINE`).
 - `silver_release`(코드 판).
 - (SL-3c) 시작 검사(checkpoint 식별자 ①~④), 어댑터 출처 설정, 잡 설정(환경변수 — 기본값 없음). (SL-5) 읽기 바이트 상한, S3 연결 설정.
+- (SL-7) 세대 경로 규칙(잡과 포인터가 같이 쓴다)·원천별 포인터 표 경로, 포인터 손 도구의 인자·설정.
 WIP(temp/review/SL-3a_wip-stdlib_r1.patch 의 framework.py)에서 그대로 옮겼다.
 """
+import argparse
 import hashlib
 import json
 import re
@@ -176,44 +178,70 @@ def source_settings(data):
     return {key: data[key] for key in SOURCE_KEYS}
 
 
+SilverPaths = namedtuple("SilverPaths", "silver errors reconcile quarantine checkpoint")
 JobSettings = namedtuple("JobSettings", "domain generation silver errors reconcile quarantine checkpoint bronze source acknowledged quarantine_list "
-                                        "code_root max_files max_bytes")
+                                        "code_root max_files max_bytes")  # 셋째~일곱째 = SilverPaths
 _ENV = ("SILVER_LAKE_ROOT", "SILVER_BRONZE_TABLE", "SILVER_SOURCE_DB", "SILVER_SOURCE_SCHEMA", "SILVER_SOURCE_TABLE",
         "SILVER_ACKNOWLEDGED", "SILVER_QUARANTINE", "SILVER_CODE_ROOT", "SILVER_MAX_FILES_PER_TRIGGER", "SILVER_MAX_BYTES_PER_TRIGGER")
 _BYTES = re.compile(r"[1-9][0-9]*[kmg]?")  # Delta maxBytesPerTrigger 표기(k·m·g = 1024 배수) — 소문자 단위 하나만 받는다
 S3_ENV = ("S3_ENDPOINT", "S3_REGION", "S3_ACCESS_KEY_FILE", "S3_SECRET_KEY_FILE")  # Bronze s3a_session 과 같은 이름(SL-3 다시 나누기 §5)
 
 
-def job_settings(environ, domain, generation):
-    """잡 설정(SL-3c 정한 것 1): 환경변수, 기본값 없음 — 하나라도 없거나 비면 ValueError(모두 적음). 표 경로는 15 §5.5 (가):
-    `<root>/silver/<d>/events/g<N>`·`<root>/silver/<d>/errors/g<N>`·`<root>/checkpoints/silver/<d>/events/g<N>`,
-    (SL-6 D6) 대사 결과 `<root>/silver/<d>/reconcile/g<N>`, (SL-9) 격리 표 `<root>/silver/<d>/quarantine/g<N>`·격리 목록 파일(`SILVER_QUARANTINE` — D1 (가))."""
+def _domain(domain):
+    if not _NAME.fullmatch(str(domain)):
+        raise ValueError(f"domain 은 [a-z0-9-]+ 다: {domain!r}")
+
+
+def _generation(domain, generation):
     if not _NAME.fullmatch(str(domain)) or type(generation) is not int or generation < 1:
         raise ValueError(f"domain 은 [a-z0-9-]+, generation 은 1 이상의 정수다: {domain!r} {generation!r}")
+
+
+def silver_paths(root, domain, generation):
+    """원천 하나·세대 하나의 표 경로(15 §5.5 (가)): `<root>/silver/<d>/events/g<N>`·`<root>/silver/<d>/errors/g<N>`·`<root>/checkpoints/silver/<d>/events/g<N>`,
+    (SL-6 D6) 대사 결과 `<root>/silver/<d>/reconcile/g<N>`, (SL-9) 격리 표 `<root>/silver/<d>/quarantine/g<N>`. 잡 설정과 포인터(SL-7)가 이 규칙 하나를 쓴다."""
+    _generation(domain, generation)
+    base = f"{root.rstrip('/')}/silver/{domain}"
+    return SilverPaths(f"{base}/events/g{generation}", f"{base}/errors/g{generation}", f"{base}/reconcile/g{generation}",
+                       f"{base}/quarantine/g{generation}", f"{root.rstrip('/')}/checkpoints/silver/{domain}/events/g{generation}")
+
+
+def pointer_path(root, domain):
+    """원천별 세대 포인터 표(SL-7 D6): `<root>/silver/<d>/pointer` — 원천 폴더 안, 세대 번호 없음. 원천 사이 공용 표는 두지 않는다."""
+    _domain(domain)
+    return f"{root.rstrip('/')}/silver/{domain}/pointer"
+
+
+def _lake_path(name, value):
+    if "`" in value or value != value.strip() or not value.rstrip("/"):  # 경로는 SQL 의 delta.`<경로>` 에 들어간다
+        raise ValueError(f"{name} 에 쓸 수 없는 경로다: {value!r}")
+
+
+def job_settings(environ, domain, generation):
+    """잡 설정(SL-3c 정한 것 1): 환경변수, 기본값 없음 — 하나라도 없거나 비면 ValueError(모두 적음). 표 경로는 silver_paths,
+    격리 목록 파일은 `SILVER_QUARANTINE`(SL-9 D1 (가))."""
+    _generation(domain, generation)
     missing = [name for name in _ENV if not environ.get(name, "").strip()]
     if missing:
         raise ValueError(f"Silver 잡 설정이 없다(기본값 없음): {', '.join(missing)}")
     value = {name: environ[name] for name in _ENV}  # 앞뒤 공백을 지우지 않는다 — 출처 이름이 조용히 바뀌지 않게(source_settings 가 거부)
-    root = value["SILVER_LAKE_ROOT"].rstrip("/")
     for name in ("SILVER_LAKE_ROOT", "SILVER_BRONZE_TABLE"):
-        if "`" in value[name] or value[name] != value[name].strip() or not value[name].rstrip("/"):  # 경로는 SQL 의 delta.`<경로>` 에 들어간다
-            raise ValueError(f"{name} 에 쓸 수 없는 경로다: {value[name]!r}")
+        _lake_path(name, value[name])
     if not value["SILVER_MAX_FILES_PER_TRIGGER"].isdigit() or int(value["SILVER_MAX_FILES_PER_TRIGGER"]) < 1:
         raise ValueError(f"SILVER_MAX_FILES_PER_TRIGGER 는 1 이상의 정수다: {value['SILVER_MAX_FILES_PER_TRIGGER']!r}")
     if not _BYTES.fullmatch(value["SILVER_MAX_BYTES_PER_TRIGGER"]):  # 파일 하나가 2행~Bronze 상한까지라 파일 수만으로는 행 수를 묶지 못한다(SL-5 D3 (다))
         raise ValueError(f"SILVER_MAX_BYTES_PER_TRIGGER 는 1 이상의 정수 + 단위 k·m·g(없어도 됨)다: {value['SILVER_MAX_BYTES_PER_TRIGGER']!r}")
     source = source_settings({"db": value["SILVER_SOURCE_DB"], "schema": value["SILVER_SOURCE_SCHEMA"], "table": value["SILVER_SOURCE_TABLE"]})
-    return JobSettings(domain, generation, f"{root}/silver/{domain}/events/g{generation}", f"{root}/silver/{domain}/errors/g{generation}",
-                       f"{root}/silver/{domain}/reconcile/g{generation}", f"{root}/silver/{domain}/quarantine/g{generation}",
-                       f"{root}/checkpoints/silver/{domain}/events/g{generation}", value["SILVER_BRONZE_TABLE"], source,
+    return JobSettings(domain, generation, *silver_paths(value["SILVER_LAKE_ROOT"], domain, generation), value["SILVER_BRONZE_TABLE"], source,
                        value["SILVER_ACKNOWLEDGED"], value["SILVER_QUARANTINE"], value["SILVER_CODE_ROOT"], int(value["SILVER_MAX_FILES_PER_TRIGGER"]),
                        value["SILVER_MAX_BYTES_PER_TRIGGER"])
 
 
-def s3_settings(environ, settings):
-    """S3 연결 설정(SL-5 — SL-3 다시 나누기 §5): Silver 표나 Bronze 가 `s3a://` 면 S3_ENV 넷이 모두 있어야 한다(기본값 없음, 앞뒤 공백 거부 — 빠진 것을 모두 적음).
-    반환: {"endpoint", "region", "access_key_file", "secret_key_file"} 또는 None(`s3a://` 경로가 없음 — file:// 시험). 키 값은 읽지 않는다(잡 입구가 파일에서 읽어 conf 로만 넘김)."""
-    if not any(path.startswith("s3a://") for path in (settings.silver, settings.bronze)):
+def s3_settings(environ, paths):
+    """S3 연결 설정(SL-5 — SL-3 다시 나누기 §5): `paths`(잡은 Silver 표·Bronze, 포인터 도구는 뿌리) 가운데 `s3a://` 가 있으면 S3_ENV 넷이 모두 있어야 한다
+    (기본값 없음, 앞뒤 공백 거부 — 빠진 것을 모두 적음).
+    반환: {"endpoint", "region", "access_key_file", "secret_key_file"} 또는 None(`s3a://` 경로가 없음 — file:// 시험). 키 값은 읽지 않는다(입구가 파일에서 읽어 conf 로만 넘김)."""
+    if not any(path.startswith("s3a://") for path in paths):
         return None
     missing = [name for name in S3_ENV if not environ.get(name, "").strip()]
     if missing:
@@ -222,6 +250,45 @@ def s3_settings(environ, settings):
     if spaced:
         raise ValueError(f"S3 설정 값에 앞뒤 공백이 있다: {', '.join(spaced)}")
     return dict(zip(("endpoint", "region", "access_key_file", "secret_key_file"), (environ[name] for name in S3_ENV)))
+
+
+PointerCommand = namedtuple("PointerCommand", "command domain generation by reason bronze_changed root s3")
+_GENERATION = re.compile(r"[1-9][0-9]*")
+
+
+def pointer_change(domain, generation, by, reason, bronze_changed):
+    """포인터 바꾸기 인자(SL-7 §2.2 1): 원천 이름, 세대 1 이상 정수, 누가·이유는 빈 글자가 아닌 str, 우회 이유(D5)는 없거나 빈 글자가 아닌 str. 어긋나면 ValueError."""
+    _generation(domain, generation)
+    for name, text in (("by", by), ("reason", reason), ("bronze_changed", bronze_changed)):
+        if (text is not None or name != "bronze_changed") and (not isinstance(text, str) or not text.strip()):
+            raise ValueError(f"포인터: {name} 은(는) 빈 글자가 아닌 문자열이다: {text!r}")
+
+
+def pointer_command(argv, environ):
+    """포인터 손 도구 입구(SL-7 §2.5)의 인자·설정 — Spark 전에 검사한다.
+    `set --domain <원천> --generation <N> --by <이름> --reason <이유> [--bronze-changed <이유>]` 또는 `show --domain <원천>`. 설정은 `SILVER_LAKE_ROOT`(잡과 같은 검사, 기본값 없음)와
+    뿌리가 `s3a://` 면 S3 넷. 하위 명령·인자 모양이 틀리면 argparse 가 끝낸다(SystemExit 2), 값이 틀리면 ValueError."""
+    parser = argparse.ArgumentParser(prog="pointers.py", description="Silver 세대 포인터 — 바꾸기·보기")
+    commands = parser.add_subparsers(dest="command", required=True)
+    change = commands.add_parser("set")
+    for name in ("--domain", "--generation", "--by", "--reason"):
+        change.add_argument(name, required=True)
+    change.add_argument("--bronze-changed")
+    commands.add_parser("show").add_argument("--domain", required=True)
+    args = parser.parse_args(argv)
+    root = environ.get("SILVER_LAKE_ROOT", "")
+    if not root.strip():
+        raise ValueError("포인터 도구 설정이 없다(기본값 없음): SILVER_LAKE_ROOT")
+    _lake_path("SILVER_LAKE_ROOT", root)
+    s3 = s3_settings(environ, (root,))
+    if args.command == "show":
+        _domain(args.domain)
+        return PointerCommand("show", args.domain, None, None, None, None, root.rstrip("/"), s3)
+    if not _GENERATION.fullmatch(args.generation):  # int() 는 ' 1'·'+1'·'1_0' 도 받는다
+        raise ValueError(f"포인터: generation 은 1 이상의 정수다: {args.generation!r}")
+    generation = int(args.generation)
+    pointer_change(args.domain, generation, args.by, args.reason, args.bronze_changed)
+    return PointerCommand("set", args.domain, generation, args.by, args.reason, args.bronze_changed, root.rstrip("/"), s3)
 
 
 def processed_bronze_version(offset_ids, commit_ids, last_offset):

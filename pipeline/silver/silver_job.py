@@ -48,19 +48,9 @@ def run(spark, settings, adapt, lines, release, *, quarantine=(), log=print, bro
     return query
 
 
-def main(argv=None, environ=None):
-    parser = argparse.ArgumentParser(description="Silver 잡 — 원천 하나·세대 하나")
-    parser.add_argument("--domain", required=True)
-    parser.add_argument("--generation", type=int, required=True)
-    args = parser.parse_args(argv)
-    environ = os.environ if environ is None else environ
-    settings = control.job_settings(environ, args.domain, args.generation)  # Spark 전에 검사
-    s3 = control.s3_settings(environ, settings)
-    lines = control.load_acknowledged(Path(settings.acknowledged).read_bytes(), settings.domain)
-    quarantine = control.load_quarantine(Path(settings.quarantine_list).read_bytes(), settings.domain)  # (SL-9) Spark 전에 검사
-    release = control.silver_release(settings.code_root)
-    adapter = importlib.import_module(f"pipeline.silver.adapters.{settings.domain}")
-    builder = (SparkSession.builder.appName(f"silver-{settings.domain}-g{settings.generation}")
+def session(name, s3):
+    """잡과 포인터 도구(SL-7)의 SparkSession: Delta 확장·`spark.sql.session.timeZone=UTC` 를 스스로 정한다. `s3`: control.s3_settings 결과(None 이면 file://)."""
+    builder = (SparkSession.builder.appName(name)
                .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
                .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
                .config("spark.sql.session.timeZone", "UTC"))
@@ -70,7 +60,22 @@ def main(argv=None, environ=None):
                    .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
                    .config("spark.hadoop.fs.s3a.access.key", Path(s3["access_key_file"]).read_text().strip())
                    .config("spark.hadoop.fs.s3a.secret.key", Path(s3["secret_key_file"]).read_text().strip()))
-    spark = builder.getOrCreate()
+    return builder.getOrCreate()
+
+
+def main(argv=None, environ=None):
+    parser = argparse.ArgumentParser(description="Silver 잡 — 원천 하나·세대 하나")
+    parser.add_argument("--domain", required=True)
+    parser.add_argument("--generation", type=int, required=True)
+    args = parser.parse_args(argv)
+    environ = os.environ if environ is None else environ
+    settings = control.job_settings(environ, args.domain, args.generation)  # Spark 전에 검사
+    s3 = control.s3_settings(environ, (settings.silver, settings.bronze))
+    lines = control.load_acknowledged(Path(settings.acknowledged).read_bytes(), settings.domain)
+    quarantine = control.load_quarantine(Path(settings.quarantine_list).read_bytes(), settings.domain)  # (SL-9) Spark 전에 검사
+    release = control.silver_release(settings.code_root)
+    adapter = importlib.import_module(f"pipeline.silver.adapters.{settings.domain}")
+    spark = session(f"silver-{settings.domain}-g{settings.generation}", s3)
     try:
         print(f"silver start domain={settings.domain} generation={settings.generation} release={release} acknowledged_lines={len(lines)} quarantine_lines={len(quarantine)}", flush=True)
         log = lambda line: print(line, flush=True)  # noqa: E731

@@ -212,6 +212,7 @@ def reconcile(spark, settings, *, release, quarantine=(), log=print):
     worst = MISMATCH if any(r["status"] == MISMATCH for r in bad) else COPIES if bad else MATCH  # 요약은 가장 무거운 줄(부풂만이면 copies_mismatch — D5)
     summary = {"status": worst, "bronze_version": version, "silver_version": silver_version, "errors_version": errors_version,
                "quarantine_version": quarantine_version, "checkpoint_id": ident, "silver_release": release,
+               "bronze_table": settings.bronze,  # (SL-7 D5) 포인터 바꾸기의 따라잡음 비교 — 같은 Bronze 표일 때만 bronze_version 을 견준다
                "windows": sum(n for (kind, _), n in statuses.items() if kind == "window"),
                "mismatched": statuses.get(("window", MISMATCH), 0), "copies_mismatched": statuses.get(("window", COPIES), 0),
                **{key: counts[key] for key in ("duplicates", "unplaced", "error_rows", "errors_not_in_bronze", "errors_repeated", "bronze_rows",

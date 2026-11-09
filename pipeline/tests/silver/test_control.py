@@ -1,4 +1,6 @@
-"""pipeline/silver/control.py — 드라이버 쪽 설정·정체성 계산(Spark 없음): 넘김 목록, 멱등 appId·checkpoint 정체성, silver_release."""
+"""pipeline/silver/control.py — 드라이버 쪽 설정·정체성 계산(Spark 없음): 넘김 목록, 멱등 appId·checkpoint 정체성, silver_release, (SL-7) 세대 경로·포인터 도구 인자."""
+import contextlib
+import io
 import json
 import tempfile
 import unittest
@@ -204,21 +206,99 @@ class Settings(unittest.TestCase):  # SL-3c 결정 S1·정한 것 1
 
     def test_s3_settings(self):  # SL-5 — s3a 경로면 넷 모두(기본값 없음), file:// 면 없음
         settings = control.job_settings(ENV, "metaverse", 1)
-        self.assertEqual(control.s3_settings({**ENV, **S3}, settings),
+        self.assertEqual(control.s3_settings({**ENV, **S3}, (settings.silver, settings.bronze)),
                          {"endpoint": "http://127.0.0.1:9000", "region": "ap-northeast-2", "access_key_file": "/keys/access", "secret_key_file": "/keys/secret"})
         with self.assertRaisesRegex(ValueError, "S3_ENDPOINT, S3_SECRET_KEY_FILE$"):  # 빠진 것을 모두 적는다
-            control.s3_settings({**ENV, **S3, "S3_ENDPOINT": "", "S3_SECRET_KEY_FILE": " "}, settings)
+            control.s3_settings({**ENV, **S3, "S3_ENDPOINT": "", "S3_SECRET_KEY_FILE": " "}, (settings.silver, settings.bronze))
         for name in control.S3_ENV:
             with self.subTest(name=name):
                 with self.assertRaisesRegex(ValueError, name):
-                    control.s3_settings({k: v for k, v in {**ENV, **S3}.items() if k != name}, settings)
+                    control.s3_settings({k: v for k, v in {**ENV, **S3}.items() if k != name}, (settings.silver, settings.bronze))
                 with self.assertRaisesRegex(ValueError, f"앞뒤 공백.*{name}"):
-                    control.s3_settings({**ENV, **S3, name: S3[name] + " "}, settings)
+                    control.s3_settings({**ENV, **S3, name: S3[name] + " "}, (settings.silver, settings.bronze))
         local = control.job_settings({**ENV, "SILVER_LAKE_ROOT": "/tmp/lake", "SILVER_BRONZE_TABLE": "/tmp/lake/bronze"}, "metaverse", 1)
-        self.assertIsNone(control.s3_settings(ENV, local))  # file:// 시험 — S3 설정이 없어도 된다
+        self.assertIsNone(control.s3_settings(ENV, (local.silver, local.bronze)))  # file:// 시험 — S3 설정이 없어도 된다
         for env in ({**ENV, "SILVER_LAKE_ROOT": "/tmp/lake"}, {**ENV, "SILVER_BRONZE_TABLE": "/tmp/bronze"}):  # 한쪽만 s3a 여도 필요
             with self.subTest(env=env), self.assertRaisesRegex(ValueError, "S3_ENDPOINT"):
-                control.s3_settings(env, control.job_settings(env, "metaverse", 1))
+                local = control.job_settings(env, "metaverse", 1)
+                control.s3_settings(env, (local.silver, local.bronze))
+
+
+class Paths(unittest.TestCase):  # SL-7 §2.4 — 세대 경로 규칙 한 곳(잡 설정과 포인터), 원천별 포인터 표(D6)
+    def test_silver_paths(self):
+        expected = ("s3a://ads-lake/silver/ads/events/g3", "s3a://ads-lake/silver/ads/errors/g3", "s3a://ads-lake/silver/ads/reconcile/g3",
+                    "s3a://ads-lake/silver/ads/quarantine/g3", "s3a://ads-lake/checkpoints/silver/ads/events/g3")
+        for root in ("s3a://ads-lake", "s3a://ads-lake/", "s3a://ads-lake//"):
+            with self.subTest(root=root):
+                paths = control.silver_paths(root, "ads", 3)
+                self.assertEqual(tuple(paths), expected)
+                self.assertEqual((paths.silver, paths.checkpoint), (expected[0], expected[4]))
+                self.assertEqual(control.pointer_path(root, "ads"), "s3a://ads-lake/silver/ads/pointer")
+        settings = control.job_settings(ENV, "metaverse", 2)  # 잡 설정도 같은 규칙
+        self.assertEqual((settings.silver, settings.errors, settings.reconcile, settings.quarantine, settings.checkpoint),
+                         tuple(control.silver_paths("s3a://ads-lake", "metaverse", 2)))
+        for domain, generation in (("Meta", 1), ("_pointers", 1), ("a:b", 1), ("ads", 0), ("ads", "1"), ("ads", True), ("ads", 1.0)):
+            with self.subTest(domain=domain, generation=generation), self.assertRaises(ValueError):
+                control.silver_paths("s3a://ads-lake", domain, generation)
+        for domain in ("Meta", "", "a/b", "../ads", None):
+            with self.subTest(domain=domain), self.assertRaises(ValueError):
+                control.pointer_path("s3a://ads-lake", domain)
+
+
+def pointer_command(argv, environ=None):
+    with contextlib.redirect_stderr(io.StringIO()):  # argparse 사용법 글자
+        return control.pointer_command(argv, {"SILVER_LAKE_ROOT": "/lake/"} if environ is None else environ)
+
+
+class PointerCommand(unittest.TestCase):  # SL-7 §2.5 — 손 도구 인자·설정(Spark 전)
+    SET = ["set", "--domain", "metaverse", "--generation", "2", "--by", "운영자", "--reason", "MVR-3a 새 세대"]
+
+    def test_set_and_show(self):
+        self.assertEqual(pointer_command(self.SET), control.PointerCommand("set", "metaverse", 2, "운영자", "MVR-3a 새 세대", None, "/lake", None))
+        self.assertEqual(pointer_command(self.SET + ["--bronze-changed", "Bronze 경로 바뀜"]).bronze_changed, "Bronze 경로 바뀜")
+        self.assertEqual(pointer_command(["show", "--domain", "ads"]), control.PointerCommand("show", "ads", None, None, None, None, "/lake", None))
+        s3a = {"SILVER_LAKE_ROOT": "s3a://ads-lake", **S3}
+        self.assertEqual(pointer_command(["show", "--domain", "ads"], s3a).s3["endpoint"], S3["S3_ENDPOINT"])
+
+    def test_argument_shape(self):  # argparse 가 끝낸다(rc 2)
+        for argv in ([], ["get"], ["set"], ["show"], ["show", "--domain", "ads", "--generation", "1"], [a for a in self.SET if a not in ("--by", "운영자")],
+                     [a for a in self.SET if a not in ("--reason", "MVR-3a 새 세대")], self.SET + ["extra"]):
+            with self.subTest(argv=argv), self.assertRaises(SystemExit) as stop:
+                pointer_command(argv)
+            self.assertEqual(stop.exception.code, 2)
+
+    def test_values(self):
+        def changed(**values):
+            argv = list(self.SET)
+            for name, value in values.items():
+                flag = "--" + name.replace("_", "-")
+                argv = argv + [flag, value] if flag not in argv else [value if i and argv[i - 1] == flag else a for i, a in enumerate(argv)]
+            return argv
+        bad = ([changed(domain=d) for d in ("Meta", "a b", "_pointers", "")] + [changed(generation=g) for g in ("0", "-1", " 1", "+1", "1_0", "01", "1.0", "x", "")]
+               + [changed(by=v) for v in ("", " ")] + [changed(reason=v) for v in ("", "\t")] + [changed(bronze_changed=v) for v in ("", " ")])
+        for argv in bad:
+            with self.subTest(argv=argv), self.assertRaisesRegex(ValueError, "domain|generation|by|reason|bronze_changed"):
+                pointer_command(argv)
+        for domain in ("Meta", ""):
+            with self.subTest(show=domain), self.assertRaisesRegex(ValueError, "domain"):
+                pointer_command(["show", "--domain", domain])
+
+    def test_settings(self):
+        for environ in ({}, {"SILVER_LAKE_ROOT": " "}):
+            with self.subTest(environ=environ), self.assertRaisesRegex(ValueError, "기본값 없음\\): SILVER_LAKE_ROOT$"):
+                pointer_command(["show", "--domain", "ads"], environ)
+        for root in ("/a`b", "/lake ", "///"):
+            with self.subTest(root=root), self.assertRaisesRegex(ValueError, "쓸 수 없는 경로"):
+                pointer_command(["show", "--domain", "ads"], {"SILVER_LAKE_ROOT": root})
+        with self.assertRaisesRegex(ValueError, "S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY_FILE, S3_SECRET_KEY_FILE$"):
+            pointer_command(self.SET, {"SILVER_LAKE_ROOT": "s3a://ads-lake"})
+
+    def test_pointer_change(self):  # set_generation 이 Spark 전에 같은 검사를 한다
+        control.pointer_change("ads", 1, "운영자", "이유", None)
+        for args in (("ads", 1, None, "이유", None), ("ads", 1, "운영자", 3, None), ("ads", 1, "운영자", "이유", 1), ("ads", 0, "운영자", "이유", None),
+                     ("ADS", 1, "운영자", "이유", None)):
+            with self.subTest(args=args), self.assertRaises(ValueError):
+                control.pointer_change(*args)
 
 
 def offset_file(**changes):

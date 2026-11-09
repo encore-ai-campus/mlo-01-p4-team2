@@ -3,7 +3,7 @@
 Silver 잡(`pipeline/silver/silver_job.py`)은 원천 하나·세대 하나의 Bronze를 한 번 읽고(availableNow) 끝난다. 로컬은 래퍼 `pipeline/silver/run-silver.sh`와 LaunchAgent(매시 :10)로, 운영은 ScheduledSparkApplication으로 돈다. 설정 이름은 `pipeline/README.md`의 Silver 잡 문단에 있다.
 
 - 비밀값(RustFS 키)은 파일에서만 읽는다. 기록에 옮겨 적지 않는다.
-- Silver 표·checkpoint 경로: `<뿌리>/silver/<원천>/{events,errors}/g<세대>/`, `<뿌리>/checkpoints/silver/<원천>/events/g<세대>/`, 대사 결과 `<뿌리>/silver/<원천>/reconcile/g<세대>/`, 유령 격리 표 `<뿌리>/silver/<원천>/quarantine/g<세대>/`(SL-9). 로컬 뿌리는 `s3a://ads-lake`.
+- Silver 표·checkpoint 경로: `<뿌리>/silver/<원천>/{events,errors}/g<세대>/`, `<뿌리>/checkpoints/silver/<원천>/events/g<세대>/`, 대사 결과 `<뿌리>/silver/<원천>/reconcile/g<세대>/`, 유령 격리 표 `<뿌리>/silver/<원천>/quarantine/g<세대>/`(SL-9), 세대 포인터 `<뿌리>/silver/<원천>/pointer/`(SL-7 — 원천마다, 세대 번호 없음). 로컬 뿌리는 `s3a://ads-lake`.
 
 ## 실행 전용 코드 사본
 
@@ -167,6 +167,54 @@ rc 3이 나면:
 - 사건 기록에 ID·이유를 남긴다.
 - SQL 두 문장은 시험(`pipeline/tests/silver/spark_quarantine.py`)이 이 문서에서 글자 그대로 꺼내 돈다. Silver 열이 늘면 시험이 먼저 깨진다.
 
+## 세대 포인터(SL-7)
+
+광고·메타버스 Silver·Gold는 원천별로 따로 간다(합친 보기 없음, 로직만 공통). 원천별 Gold는 그 원천 Silver 본 표를 `pipeline.silver.pointers.read_events(spark, <뿌리>, <원천>)`로만 읽는다. 경로를 직접 만들지 않는다(설계 SV6).
+
+- 포인터 표 `<뿌리>/silver/<원천>/pointer/`: 원천마다 한 행 Delta 표. 원천 사이 공용 표는 없다 — 한 원천의 바꾸기·확인은 그 원천 폴더 안만 읽고 그 원천 포인터 표에만 쓴다.
+  - 열: `domain`·`generation`(지금 세대)·`set_at`·`set_by`·`reason`과 근거 `reconcile_version`·`silver_version`·`silver_release`·`checkpoint_id`·`bronze_table`·`bronze_version`(확인에 쓴 대사 요약의 값).
+  - 바꿀 때마다 한 행을 덮어쓰는 커밋 하나다. 커밋 `userMetadata` = `domain`·`from_generation`·`to_generation`·`set_by`·`reason`·`bronze_changed`. **표 이력이 바꾼 기록이다**(`DESCRIBE HISTORY`, 그때 행은 `versionAsOf`). 행을 지우지 않는다.
+  - 포인터 행의 판들은 바꾼 순간의 근거일 뿐이다. 읽기는 그때 포인터 표 판과 본 표 판을 다시 정한다.
+  - 표가 한 행이 아니거나, 그 행 원천이 다르거나, 열 모양이 다르면(손으로 고친 표) 읽기·바꾸기가 거부한다. 되살리기(관리 Step): `` DESCRIBE HISTORY delta.`<포인터 표>` ``로 마지막 좋은 판을 찾아 ``RESTORE TABLE delta.`<포인터 표>` TO VERSION AS OF <판>``(시험이 같은 방법으로 확인한다).
+- 읽기 `read_events`: 그 원천 포인터 표 판과 포인터가 가리키는 세대 본 표 판을 먼저 정해 그 판으로 읽는다. 본 표 열(이름·순서·형)이 지금 코드의 Silver 열과 같아야 한다(다르면 거부 — 옛 열 모양 세대). 본 표만 읽는다(격리·오류 표는 넣지 않음). 반환에 원천·세대·경로·판(`View`)이 함께 오고, Gold는 그것을 실행 기록에 남긴다.
+- 명령(잡과 같은 `SILVER_LAKE_ROOT`, 뿌리가 `s3a://`면 S3 넷 — Silver 잡 문단과 같은 이름):
+  ```bash
+  spark-submit-silver.sh pipeline/silver/pointers.py show --domain <원천>
+  spark-submit-silver.sh pipeline/silver/pointers.py set --domain <원천> --generation <N> --by <이름> --reason <이유·사건·Step ID> [--bronze-changed <이유>]
+  ```
+  - `show`는 포인터 행과 마지막 커밋 10개를 찍는다. 쓰지 않는다.
+  - rc: 0 바꿈·보임, 2 인자·설정 오류(Spark 전), 1 그 밖 — 거부는 stderr `silver pointer refused` 한 줄에 사유를 모두 적는다.
+  - 로그 줄: `silver pointer domain=… from=… to=… reconcile_version=… silver_version=… bronze_version=… bronze_changed=yes|no by=…`.
+- `set`이 쓰기 전에 보는 것(하나라도 어긋나면 쓰지 않는다):
+  - 그 세대 본 표가 있고 열이 지금 코드의 Silver 열과 같다.
+  - 그 세대 대사 결과 표의 마지막 커밋 요약에 필요한 키가 있고, `status`가 `match`다. 이 코드 전에 돈 대사의 요약에는 `bronze_table`이 없다 — 이 코드로 한 회차 돈 뒤 다시 한다.
+  - 요약의 `silver_version`이 지금 본 표 판과 같다. 대사 뒤 본 표에 쓰기가 있었으면(다음 회차가 도는 중 등) 거부한다. 다음 회차가 끝난 뒤 다시 한다.
+  - 따라잡음: 지금 포인터가 있으면, 그 세대의 마지막 대사와 같은 Bronze 표일 때 대상 세대 마지막 대사의 `bronze_version`이 뒤지지 않아야 한다. **뒤지면 우회로도 지나가지 않는다**(사용자 결정 2026-11-09 "기다렸다 전환"). 대상 세대 예약을 올려 rc 0 회차가 끝난 뒤 다시 한다.
+    - `bronze_table`은 끝 `/`를 떼고 견준다. 그 밖은 글자 그대로다 — 세대마다 `SILVER_BRONZE_TABLE`을 같은 글자로 둔다.
+    - 견줄 수 없으면(두 대사의 Bronze 표가 다름, 지금 세대 요약에 `bronze_table`이 없음, 지금 세대 대사 결과 표가 없음) 거부한다. Bronze 경로가 바뀐 세대 전환(MVR-3a처럼)이면 `--bronze-changed <이유>`로 지난다. 지금 세대 요약이 이 코드 전 것이라 키가 없으면 이유 "키 없음"으로 지난다. 이유는 커밋 `userMetadata`에 남는다.
+    - `--bronze-changed`는 견줄 수 없을 때만 쓴다. 처음 쓰는 포인터(따라잡음을 보지 않음)나 견줄 수 있는 경우에 주면 거부한다.
+    - 이 확인은 "지금 포인터보다 뒤지지 않음"까지다. 지금 세대 자체가 낡았는지(예약이 멈춤)는 예약·감시가 본다.
+- 예약 시각(따라잡음 확인 때문): `set`은 대상 세대 마지막 대사의 Bronze 판이 지금 세대 마지막 대사보다 판 1만 뒤져도 거부한다. 그 판은 회차 스트림이 시작할 때의 Bronze 최신 판이라, 운영처럼 Bronze가 1분마다 커밋되면 같은 시각에 예약한 두 세대 가운데 나중에 시작한 쪽의 판이 1~2 크다. 대상 세대가 늘 먼저 시작하면 "다음 회차 뒤 다시"가 끝나지 않는다. 그래서 대상 세대는 지금 세대보다 **뒤 시각**에 돌리고, 대상 세대 회차가 끝난 뒤·지금 세대 다음 회차 전에 `set`을 한다.
+- 세대 바꾸기(SV6, 원천마다):
+  1. 새 세대 `g<N+1>`을 지금 세대보다 뒤 시각 예약으로 돌린다(예: 지금 세대 `10 * * * *`이면 새 세대 `25 * * * *`. 새 checkpoint, Bronze 처음부터). 옛 세대 예약은 그대로 둔다.
+  2. 새 세대 회차가 rc 0(대사 `match`)이 될 때까지 기다린다.
+  3. 새 세대 회차가 끝난 뒤, 지금 세대 다음 회차 전에 `set --domain <원천> --generation <N+1>`. 거부하면 다음 회차의 같은 창에서 다시 한다.
+  4. 그 원천 Gold가 새 세대를 읽는지 본다(`View`의 세대). 세대가 바뀌면 그 원천 Gold는 전부 다시 집계한다.
+  5. 옛 세대 예약을 내린다. 옛 세대 표는 되돌리기를 위해 남긴다(지우는 것은 관리 Step — 아래 "되돌리기" 절). 바꾼 뒤 한동안 옛 세대 예약을 그대로 두면, 되돌릴 때 따라잡을 양이 작다(선택).
+- 되돌리기(옛 세대로) — 급할 때도 이 순서다(사용자 결정 2026-11-09 "기다렸다 전환"):
+  1. 그 원천 Gold 예약을 먼저 멈춘다.
+  2. 옛 세대 예약을 지금 세대보다 뒤 시각으로 올려(또는 지금 세대 회차가 끝난 뒤 손으로 한 번 돌려) 한 회차 따라잡게 한다.
+  3. 그 회차 대사가 `match`인지 본다(rc 0).
+  4. 그 회차가 끝난 뒤, 지금 세대 다음 회차 전에 `set --domain <원천> --generation <N>`으로 포인터를 넘긴다.
+  5. Gold 예약을 다시 올린다.
+- 공통 열(Silver 열)이 바뀌는 세대 전환: 열 확인은 지금 코드의 열과 견주므로, 옛 열 모양 세대는 새 코드로 읽을 수도 되돌릴 수도 없다. 공통 코드라 두 원천이 같은 코드 판을 쓴다.
+  1. 새 열 코드는 먼저 새 세대 Silver 잡에만 둔다(운영은 새 이미지 + 새 예약, 로컬은 별도 실행 사본).
+  2. 옛 세대 Silver·Gold·포인터 도구는 옛 코드로 돈다.
+  3. 두 원천의 새 세대가 모두 `match`가 된 뒤, Gold·포인터 도구를 새 코드로 바꾸며 원천마다 포인터를 옮긴다. 되돌리기도 코드와 함께 한다.
+  - 로컬 실행 사본이 한 자리뿐인 것(위 "실행 전용 코드 사본")은 그때 정할 일이다.
+  - 어댑터 규칙만 바뀐 세대(열 같음)는 원천마다 위 "세대 바꾸기" 그대로다.
+- 로컬 RustFS에는 포인터를 쓰지 않는다(SL-7 D2). 운영 첫 포인터는 2차 배포에서, 원천마다 그 원천 첫 회차가 rc 0(대사 `match`)이 된 뒤 쓴다. 그 원천 Gold 예약은 그 원천 첫 포인터 뒤에 올린다(포인터 표가 없으면 `read_events`가 거부한다).
+
 ## LaunchAgent(설치는 사용자 승인 뒤)
 
 견본 `pipeline/silver/local.pipeline.silver-metaverse.plist`의 자리 표시 셋을 바꿔 둔다:
@@ -211,6 +259,7 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.pipeline.silver-me
 - 지우는 것은 Hadoop `FileSystem.delete(경로, recursive=True)`로 한다(Spark 세션, 키는 파일에서). 지운 뒤 목록으로 객체 0을 본다.
 - 로컬 잠금 파일 `~/Library/Caches/silver-pipeline/silver-<원천>-g<세대>.lock`도 지운다.
 - 다시 만들면 같은 세대가 처음부터 돈다(시작 검사 ① — 세 표·checkpoint가 모두 없음). 목록 ID 사본은 배치에서 바로 격리 표로 간다.
+- 지우는 세대를 그 원천 포인터가 가리키면 먼저 포인터를 다른 세대로 옮긴다("세대 포인터" 절). 그러지 않으면 `read_events`가 거부한다(그 원천 Gold가 멈춘다). 포인터 표 `silver/<원천>/pointer/`는 세대 경로가 아니라 지우지 않는다.
 
 ## 운영(k8s)에서
 
@@ -218,11 +267,12 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.pipeline.silver-me
   - `SILVER_*` 열(대사·격리 표는 새 설정이 없다 — 경로는 `SILVER_LAKE_ROOT`에서 만든다. Silver 앱이 `silver/<원천>/reconcile/`·`silver/<원천>/quarantine/`에도 쓴다). `SILVER_QUARANTINE`은 이미지 안 목록 파일 경로다(SL-9 — 2차 배포).
   - S3 넷: 키는 Secret을 파일로 붙이고 `S3_ACCESS_KEY_FILE`·`S3_SECRET_KEY_FILE`에 그 경로를 둔다.
 - 예약은 `schedule: "10 * * * *"`(UTC), `concurrencyPolicy: Forbid`, `restartPolicy` OnFailure 3회다. 잠금 래퍼·caffeinate는 쓰지 않는다.
+- 포인터 바꾸기(SL-7)는 `pointers.py set`을 한 번 도는 SparkApplication이다(잡과 같은 이미지·`SILVER_LAKE_ROOT`·S3 Secret, 재시도 없음 — 거부는 rc 1). 새 세대는 ScheduledSparkApplication을 하나 더 두고, 포인터를 바꾼 뒤 옛 것을 `suspend: true`로 둔다. `silver/<원천>/pointer/`는 `silver/` 접두사 안이라 새 권한이 없다.
 - ConfigMap 값은 YAML `|-` 또는 일반 문자열로 둔다. `|`처럼 끝 줄바꿈이 붙으면 잡이 시작 전에 거부한다(설정 검사는 앞뒤 공백을 지우지 않는다 — 이름이 조용히 바뀌지 않게).
 - SparkApplication에 `spark.databricks.delta.properties.defaults.setTransactionRetentionDuration`을 두지 않는다.
   - 그 속성이 붙은 Silver·오류·격리 표는 시작 검사가 멈춘다.
   - 멱등 기록이 보관 기한으로 지워지면, 다시 돈 배치가 `copies`를 두 배로 만든다.
 - 읽기 상한은 원천별 값이다.
   - 메타버스: `SILVER_MAX_FILES_PER_TRIGGER=1000`, `SILVER_MAX_BYTES_PER_TRIGGER=512m`
-  - 광고: SL-8에서 잰다.
+  - 광고: SL-8 기록의 제안 `SILVER_MAX_FILES_PER_TRIGGER=1000`, `SILVER_MAX_BYTES_PER_TRIGGER=96m`(Bronze parquet 행당 약 365 B — 메타버스의 약 0.38배라 `512m`이면 배치가 너무 크다). 값은 2차 배포 인계에서 정한다. 로컬 래퍼 `run-silver.sh`에는 광고 줄이 없다.
   - 운영 장비에서 다시 잰다.

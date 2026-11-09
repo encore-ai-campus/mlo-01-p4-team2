@@ -3,11 +3,11 @@
 Silver 잡(`pipeline/silver/silver_job.py`)은 원천 하나·세대 하나의 Bronze를 한 번 읽고(availableNow) 끝난다. 로컬은 래퍼 `pipeline/silver/run-silver.sh`와 LaunchAgent(매시 :10)로, 운영은 ScheduledSparkApplication으로 돈다. 설정 이름은 `pipeline/README.md`의 Silver 잡 문단에 있다.
 
 - 비밀값(RustFS 키)은 파일에서만 읽는다. 기록에 옮겨 적지 않는다.
-- Silver 표·checkpoint 경로: `<뿌리>/silver/<원천>/{events,errors}/g<세대>/`, `<뿌리>/checkpoints/silver/<원천>/events/g<세대>/`, 대사 결과 `<뿌리>/silver/<원천>/reconcile/g<세대>/`. 로컬 뿌리는 `s3a://ads-lake`.
+- Silver 표·checkpoint 경로: `<뿌리>/silver/<원천>/{events,errors}/g<세대>/`, `<뿌리>/checkpoints/silver/<원천>/events/g<세대>/`, 대사 결과 `<뿌리>/silver/<원천>/reconcile/g<세대>/`, 유령 격리 표 `<뿌리>/silver/<원천>/quarantine/g<세대>/`(SL-9). 로컬 뿌리는 `s3a://ads-lake`.
 
 ## 실행 전용 코드 사본
 
-래퍼는 작업 저장소가 아니라 **리뷰된 커밋에 맞춘 사본**에서 돈다. 제출 스크립트가 실행하는 저장소의 `pipeline/silver`·`pipeline/common`을 그대로 보내므로, 작업 저장소에서 돌면 리뷰 전 코드가 Silver 표에 쓴다. 래퍼는 사본 HEAD가 `SILVER_CODE_COMMIT`과 다르거나 사본에 미커밋·추적 안 된 파일이 있으면 돌지 않는다(rc 2). git 확인이 실패해도 돌지 않는다. 넘김 목록과 코드 뿌리는 늘 사본의 것이고 환경변수로 덮을 수 없다.
+래퍼는 작업 저장소가 아니라 **리뷰된 커밋에 맞춘 사본**에서 돈다. 제출 스크립트가 실행하는 저장소의 `pipeline/silver`·`pipeline/common`을 그대로 보내므로, 작업 저장소에서 돌면 리뷰 전 코드가 Silver 표에 쓴다. 래퍼는 사본 HEAD가 `SILVER_CODE_COMMIT`과 다르거나 사본에 미커밋·추적 안 된 파일이 있으면 돌지 않는다(rc 2). git 확인이 실패해도 돌지 않는다. 넘김 목록·유령 격리 목록과 코드 뿌리는 늘 사본의 것이고 환경변수로 덮을 수 없다.
 
 - 자리: `$HOME/pipeline-run/silver/mlo_01_p4_team2`(경로에 공백을 두지 않는다 — Spark에 파일 경로로 넘어간다).
 - 실행 사본은 소유자마다 따로 둔다. 광고 잡(감시·manifest·대사)은 `$HOME/pipeline-run/ads/mlo_01_p4_team2`다. 한쪽이 커밋을 올려도 다른 쪽 래퍼가 거부되거나 기다리지 않는다. Silver 사본에서는 Silver 래퍼만 돌린다.
@@ -43,10 +43,10 @@ SILVER_CODE_COMMIT=<커밋 40자> bash "$HOME/pipeline-run/silver/mlo_01_p4_team
 | 3 | Silver 쓰기는 끝났고, 대사가 불일치를 찾음(결과 표는 썼음) | 아래 "대사" 절. **고칠 때까지 매 회차 3이다** |
 | 75 | 같은 표의 앞 회차가 돌고 있어 건너뜀(lockf 한 줄) | 없음. 계속 나오면 앞 회차가 오래 걸리는 까닭을 본다 |
 | 2 | 래퍼가 거부(코드 사본·인자) | stderr의 `silver refused` 줄대로 사본을 맞춘다 |
-| 그 밖 | 설정 오류(Spark 전) 또는 배치 실패·멈춤 | 로그를 본다. 멈춤이면 아래 "멈췄을 때" |
+| 그 밖 | 설정 오류(Spark 전) 또는 배치 실패·멈춤, 시작 옮기기 확인 실패(`QuarantineError`) | 로그를 본다. 멈춤이면 아래 "멈췄을 때", `QuarantineError`면 "유령 격리" 절 |
 
-- 로그 줄: `silver start`(release·넘김 줄 수), 배치마다 `silver udf`·`silver check`·`silver batch`, 이중 적재를 줄였으면 `silver alert bronze_duplicates`, 멈추면 `silver stop`.
-  스트림 뒤 대사: `silver reconcile`(회차 요약 — 상태·창 수·불일치 수·중복·판·시간), 불일치 줄마다 `silver alert reconcile_mismatch`·`silver alert reconcile_copies`(10줄까지, 넘으면 `silver alert reconcile_more`), Silver 안 중복이면 `silver alert silver_duplicates`.
+- 로그 줄: `silver start`(release·넘김 줄 수·격리 줄 수), 시작 옮기기 `silver quarantine moved=…`, 배치마다 `silver udf`·`silver check`·`silver batch`, 이중 적재를 줄였으면 `silver alert bronze_duplicates`, 격리 사본을 넣었으면 `silver quarantine batch=…`, 멈추면 `silver stop`.
+  스트림 뒤 대사: `silver reconcile`(회차 요약 — 상태·창 수·불일치 수·중복·판·시간), 불일치 줄마다 `silver alert reconcile_mismatch`·`silver alert reconcile_copies`(10줄까지, 넘으면 `silver alert reconcile_more`), Silver 안 중복이면 `silver alert silver_duplicates`, 격리 경보 `silver alert quarantine_overlap`·`silver alert quarantined_republished`("유령 격리" 절).
 
 ## 대사(SL-6 — Bronze ↔ Silver)
 
@@ -58,7 +58,8 @@ SILVER_CODE_COMMIT=<커밋 40자> bash "$HOME/pipeline-run/silver/mlo_01_p4_team
   - 오류 표에 위치가 없는 Bronze 행은 UTC 시 창마다 Silver와 맞춘다. 고유 ID 집합(건수·`ids_sha256`)이 같고 고유 위치 수 = `copies` 합이어야 한다. 위치가 더 많으면 `mismatch`(Bronze 행이 어디에도 없음), 적으면 `copies_mismatch`(`copies`가 부풂).
   - 오류 표에 없는데 창·ID를 꺼낼 수 없는 Bronze 행은 `mismatch`(놓을 수 없음 줄).
   - Silver 안 같은 `event_id`가 둘 이상이면 그 행들의 창이 `mismatch`(두 번째 그물 — 매 회차).
-- 결과 표 `<뿌리>/silver/<원천>/reconcile/g<세대>/`: 회차마다 덮어쓴다(창마다 한 행 + `errors` 줄 + `unplaced` 줄). 지난 회차는 `DESCRIBE HISTORY`·`versionAsOf`로 본다. 커밋 `userMetadata`에 회차 요약이 있다. 요약 `status`(로그 줄 `silver reconcile status=`와 같음)는 줄 가운데 가장 무거운 것이다: `mismatch` > `copies_mismatch` > `match`.
+- Silver 쪽은 본 표 ∪ 격리 표다(SL-9 — 아래 "유령 격리" 절).
+- 결과 표 `<뿌리>/silver/<원천>/reconcile/g<세대>/`: 회차마다 덮어쓴다(창마다 한 행 + `errors` 줄 + `unplaced` 줄 + `quarantine` 줄). 열이 늘면 표 모양째 덮어쓴다(회차 스냅숏). 지난 회차는 `DESCRIBE HISTORY`·`versionAsOf`로 본다. 커밋 `userMetadata`에 회차 요약이 있다. 요약 `status`(로그 줄 `silver reconcile status=`와 같음)는 줄 가운데 가장 무거운 것이다: `mismatch` > `copies_mismatch` > `match`.
 - `mismatch` 창은 Gold에서 미확정이다. `copies_mismatch`는 경보만 내고 Gold 확정은 막지 않는다(사건 수는 ID로 센다).
 
 rc 3이 나면:
@@ -66,8 +67,105 @@ rc 3이 나면:
 - Silver 표·오류 표·checkpoint를 지우거나 고쳐 다시 돌리지 않는다. Planner에게 알린다. 처리는 관리 Step이다.
 - 관리 Step이 Silver 행을 오류 표로 옮길 때는 그 행 사본들의 Bronze 위치마다 Bronze 행을 오류 표에 한 줄씩 쓴다. Silver 행에는 첫 사본 위치만 있어서, 그러지 않으면 대사가 `mismatch`로 알린다.
 - **rc 3은 고칠 때까지 매 회차 난다.** 운영은 `OnFailure` 재시도까지 매시 네 번 실패한다. 재시도는 해가 없다(새 Bronze가 없으면 배치 없이 대사만 다시).
-- 그 사이 진짜 멈춤(rc 1)은 앱 상태로 구별되지 않는다. 로그 줄로 구별한다: `silver stop`이나 예외가 있으면 멈춤, `silver alert reconcile_*`·`silver alert silver_duplicates`만 있으면 대사 불일치다.
+- 그 사이 진짜 멈춤(rc 1)은 앱 상태로 구별되지 않는다. 로그 줄로 구별한다: `silver stop`이나 예외가 있으면 멈춤, `silver alert reconcile_*`·`silver alert silver_duplicates`·`silver alert quarantine_overlap`만 있으면 대사 불일치다.
 - 운영 메타버스 확인용 계정(outbox 12행)도 다른 행과 똑같이 대사한다. 분석에서 빼는 일은 Gold(G3·G11)다.
+
+## 유령 격리(SL-9)
+
+유령은 원천 DB(outbox)에 없는데 Bronze·Silver에 있는 이벤트다(DB를 앞 시점으로 되돌린 뒤 사라진 행 — 계획 temp/pipeline/38_silver-quarantine-sl9.md). 리뷰를 거친 목록 파일의 `event_id`를 Silver 본 표에서 격리 표 `<뿌리>/silver/<원천>/quarantine/g<세대>/`로 옮긴다. 격리는 지우는 일이 아니다. 격리 표 행은 되돌리기 관리 Step 말고는 지우지 않는다.
+
+- 목록 파일: `pipeline/silver/quarantine/<원천>.json` — `{"domain": "<원천>", "lines": [줄, …]}`. 처음에는 빈 목록이다. 잡은 `SILVER_QUARANTINE`(래퍼는 늘 실행 사본의 이 파일)로 읽는다.
+- 줄 키는 정확히 다섯이다. 다르면 잡이 시작하지 않는다.
+  - `event_id`: 소문자 UUID(Silver `event_id` 표기). 같은 ID 두 줄은 거부한다.
+  - `reason`·`incident`(사건 ID)·`listed_by`: 빈 글자가 아닌 문자열
+  - `listed_at`: 줄을 쓴 시각, `YYYY-MM-DDTHH:MM:SSZ`(UTC)
+- 잡이 하는 일:
+  - 스트림 전 시작 옮기기: 본 표에 남은 목록 ID를 격리 표에 넣고(MERGE 넣기) 본 표에서 지운다(MERGE 지우기). 앞뒤로 목록 ID의 (ID 집합, `copies` 합)이 같은지 본다. 로그 `silver quarantine moved=… already=… pending=… seconds=…`(`pending` = 아직 어디에도 없는 목록 ID — 멈추지 않는다).
+  - 두 표에 같은 목록 ID가 **다른 행**으로 있거나(되돌리기 순서를 어김·손으로 고친 표) 앞뒤 값이 다르면 스트림 전에 `QuarantineError`로 멈춘다(rc 1). 지우지 않는다. 두 표를 보고 Planner에게 알린다.
+  - 배치 안: 목록 ID의 사본은 언제 오든 격리 표로 간다(같은 내용이면 `copies`만 더함, `quarantined_at`은 처음 넣은 값 그대로). 내용이 다르면 오류 표 `conflict`다. 로그 `silver quarantine batch=… rows=…`.
+- 대사: Silver 쪽은 본 표 ∪ 격리 표다(창 줄 `quarantine_ids` = 그 창의 격리 ID 수). 결과 표에 `kind` = `quarantine` 줄이 하나 붙는다.
+  - `overlap_ids`: 본 표와 격리 표에 다 있는 ID 수. 그 ID의 창도 `mismatch`다. 경보 `silver alert quarantine_overlap ids=… examples=[…]`.
+  - `list_not_in_bronze`: Bronze(V)와 오류 표 어디에도 없는 목록 ID 수(오타·다른 원천). 예시는 `missing_examples`. **목록을 고칠 때까지 rc 3이다.**
+  - `republished_ids`: 목록 ID 가운데 Bronze `ingested_at`이 그 줄 `listed_at`보다 뒤인 op `r` 사본이 있는 ID 수. 경보 `silver alert quarantined_republished ids=… incidents=[…] examples=[…]`만 내고 rc에는 닿지 않는다. 목록이 틀렸을 수 있다는 뜻이다 — Planner에게 알리고, 틀렸으면 아래 되돌리기다.
+  - `quarantine` 줄 `status`: 겹침 > 0 또는 `list_not_in_bronze` > 0이면 `mismatch`, 아니면 `match`(재발행만이면 `match` + 경보).
+- Gold는 본 표만 읽는다. 격리 표의 `quarantined_at`(그 행이 격리 표에 처음 들어온 시각 — 본 표에서 옮겼으면 옮긴 시각, 배치에서 바로 왔으면 그 배치 시각. 바뀌지 않음)으로 다시 집계할 구간을 안다. 새 행을 고르는 기준선(Delta 판 또는 시각)은 Gold Step에서 정한다.
+- 본 표 `silver_written_at`의 뜻은 "그 행이 본 표에 들어온 시각"이다. 처음 쓴 시각과 다를 수 있다(되돌리기로 돌아온 행 — 아래).
+
+### 목록에 줄 더하기(리뷰)
+
+1. 사건: RB-2(또는 hop 대사 불일치 "Bronze에만 있음")가 유령 창과 사건 ID를 남긴다.
+2. 후보 ID를 만든다. **사건 기록 직후, outbox 정리 전에 만든다.** 창은 사건 기록의 hop 대사 줄과 같은 창(시작·끝, UTC)이다.
+   - 앞조건 ① **그 창이 지워지지 않았음.** outbox는 창 단위로 지운다. 지운 창에서 아래 차집합을 돌리면 그 창의 진짜 이벤트가 모두 후보로 나온다.
+     - 광고: 감사 `events.outbox_purged`에 그 창이 없다(구현 전이면 정리 작업이 아직 돌지 않았음을 확인한다).
+     - 메타버스: 지금은 정리가 없음을 확인한다.
+   - DB 쪽 ID(읽기 역할 — 비밀값은 파일로만, 대화·기록에 옮기지 않는다). 광고는 `<outbox 표>` = `public.events_outbox`, `<ID 열>` = `event_id`. 메타버스는 `public.eventing_eventoutbox`, `outbox_uuid`. 시각 열은 둘 다 `created_at`이다.
+     ```bash
+     psql "<읽기 역할 접속>" -c "\copy (SELECT lower(<ID 열>::text) FROM <outbox 표> WHERE created_at >= '<창 시작>' AND created_at < '<창 끝>') TO 'db_ids.txt'"
+     LC_ALL=C sort -u -o db_ids.txt db_ids.txt
+     ```
+   - Silver 쪽 ID(Spark 세션 — 잡과 같은 Delta·S3 설정, 세션 시간대 UTC). 오류 표 `conflict` ID는 뺀다(hop 대사 Bronze 쪽 건수도 내용이 다른 사본 ID를 뺀 고유 ID다).
+     ```sql
+     SELECT event_id FROM delta.`<본 표>`
+     WHERE produced_at >= TIMESTAMP '<창 시작>' AND produced_at < TIMESTAMP '<창 끝>'
+       AND event_id NOT IN (SELECT event_id FROM delta.`<오류 표>` WHERE error_code = 'conflict' AND event_id IS NOT NULL)
+     ```
+     결과를 한 줄에 하나씩 `silver_ids.txt`로 두고 `LC_ALL=C sort -u -o silver_ids.txt silver_ids.txt`.
+   - 앞조건 ② **건수 맞추기.** 둘 다 맞아야 한다. **하나라도 다르면 목록을 만들지 않는다**(사건 기록에 적고 Planner에게 올린다). hop 대사 기록은 (창, 이벤트 이름)마다 한 줄이다. 그래서 그 창의 줄 **모두**의 `count`를 더해 맞춘다(`count`는 내용이 다른 사본이 있는 ID를 뺀 고유 ID 수다).
+     - `wc -l < db_ids.txt` = 그 창 hop 줄들의 outbox 쪽 `count` 합
+     - `wc -l < silver_ids.txt` = 같은 창 줄들의 파이프라인 쪽(`hop_pipeline`) `count` 합
+     - 둘이 맞으면 `LC_ALL=C comm -23 silver_ids.txt db_ids.txt > candidates.txt`가 후보다. `LC_ALL=C comm -13 silver_ids.txt db_ids.txt`의 줄 수(DB에만 있는 ID)는 증거에 적는다(확인 조건은 아니다).
+     - Silver 쪽이 작게 나와 다른 경우가 있다. 같은 창에 앞 사건으로 이미 격리한 ID가 있거나(본 표에 없음), 계약 위반으로 오류 표에만 있는 ID가 있을 때다. 그때도 만들지 않는다(안전한 쪽). 사건 기록에 그 까닭(격리 표·오류 표에 있는 그 창 ID 수)을 적고 Planner에게 올린다.
+3. 증거를 모은다: 후보마다 Bronze 위치와 op(위치마다 — 재발행 확인의 기준), DB에 없음(조회한 ID·건수만 — 행 값은 싣지 않음), 창, 앞조건 ①②의 값. Bronze 위치·op:
+   ```sql
+   SELECT lower(variant_get(v, '$.after.<ID 열>', 'string')) AS id, topic, partition, offset, variant_get(v, '$.op', 'string') AS op, ingested_at
+   FROM (SELECT *, try_parse_json(cast(value_binary AS string)) AS v FROM delta.`<Bronze 표>`)
+   WHERE lower(variant_get(v, '$.after.<ID 열>', 'string')) IN (<후보 ID 목록>)
+   ORDER BY id, topic, partition, offset
+   ```
+4. Worker가 목록 파일에 줄을 더하고(`listed_at` = 줄을 쓴 시각) 동결 패치와 점검 문서를 만든다. 리뷰는 둘이다: Integration_Reviewer(목록 형식·Silver 영향), 그 원천 Reviewer(DB에 없음의 근거).
+5. 반영한다. 순서를 지킨다.
+   1. Silver 예약을 내린다(로컬 `launchctl bootout gui/$(id -u)/local.pipeline.silver-<원천>`, 운영 ScheduledSparkApplication `suspend: true`). 돌고 있는 회차가 끝나기를 기다린다(로컬은 잠금 파일 `lockf`가 풀림).
+   2. 마지막 회차가 끝까지 돌았는지 본다 — rc 0 또는 3(로그 끝에 `silver reconcile` 줄). rc 1(배치 실패·멈춤)이었으면 원인을 풀고 **지금 사본(목록을 바꾸기 전)**으로 손 실행해 끝까지 돈다.
+   3. Planner가 커밋한다. 로컬은 실행 사본을 올린다(위 "올리기"). 운영은 이미지를 올린다.
+   4. 예약을 올린다(아래 LaunchAgent 설치, 운영 `suspend: false`).
+6. 다음 회차의 로그 `silver quarantine moved=…`와 대사 `quarantine` 줄을 사건 기록에 남긴다. Gold 다시 집계를 기록한다.
+
+- 5의 2를 건너뛰면 격리 `copies`가 부풀 수 있다. 끝나지 않은 배치(지난 목록으로 돌다 events MERGE 뒤에 죽은 배치)가 새 목록으로 다시 돌면, 그 ID 사본이 이번에는 격리 경로로 간다. 격리 MERGE의 멱등 기록에는 그 배치가 없어서 MERGE가 적용된다. 그런데 시작 옮기기가 옮긴 본 표 행의 `copies`에 그 사본이 이미 들어 있다. 대사가 `copies_mismatch`(rc 3)로 알리고, `copies`를 고치는 관리 Step 전까지 매 회차 rc 3이다. 도는 회차와는 경합하지 않는다(옮기기는 잡 안, 스트림 전에 일어난다).
+- **줄 빼기는 늘 아래 되돌리기와 함께다. 줄만 빼는 일은 없다.** 줄만 빼면 다음 사본이 본 표에 새 행으로 들어가 겹침 `mismatch`가 되고, 줄을 다시 넣으면 두 표에 다른 행이 생겨 시작 옮기기가 멈춘다.
+
+### 잘못 옮긴 행 되돌리기(관리 Step — Planner 요청 뒤에만)
+
+순서를 지킨다. 줄 빼기는 커밋과 사본·이미지 올리기가 있어야 반영되므로, 그 사이 매시 회차가 돌면 안 된다.
+
+1. Silver 예약을 내린다(로컬 `launchctl bootout gui/$(id -u)/local.pipeline.silver-<원천>`, 운영 ScheduledSparkApplication `suspend: true`). 돌고 있는 회차가 끝나기를 기다린다(로컬은 잠금 파일 `lockf`가 풀림). 마지막 회차가 끝까지 돌았는지 본다(위 "목록에 줄 더하기" 5의 2와 같다 — rc 1이었으면 지금 사본으로 끝까지 돈다). 끝나지 않은 배치가 줄을 뺀 목록으로 다시 돌면, 그 ID 사본이 본 표 쪽으로 간다. 그런데 events MERGE가 이미 그 배치를 적었으면 건너뛰어 사본 하나가 빠진다(대사 `mismatch`).
+2. 그 줄을 뺀 목록을 리뷰·커밋하고 실행 사본(운영은 이미지)을 올린다.
+3. 아래 SQL 둘을 이 순서로 실행한다(Spark 세션 — 잡과 같은 Delta·S3 설정, 세션 시간대 UTC). `<본 표>` = `<뿌리>/silver/<원천>/events/g<세대>`, `<격리 표>` = `<뿌리>/silver/<원천>/quarantine/g<세대>`, `<ID 목록>` = `'id1', 'id2'` 꼴.
+   - 첫째 — 본 표에 넣기. 격리 표 행의 Silver 열 그대로, `silver_written_at`만 되돌린 시각이다(Gold가 늦은 행과 같은 규칙으로 그 구간을 다시 집계한다).
+     ```sql
+     MERGE INTO delta.`<본 표>` t
+     USING (SELECT event_id, domain, event_type, schema_version, occurred_at, produced_at, actor_user_uuid, actor_subject_id, actor_person_id,
+                   session_uuid, aggregate_id, payload, envelope, source_meta, src_topic, src_partition, src_offset, src_lsn, src_txid,
+                   first_op, copies, ingested_at, current_timestamp() AS silver_written_at, silver_release, event_date, content_sha256
+            FROM delta.`<격리 표>` WHERE event_id IN (<ID 목록>)) s
+     ON t.event_date = s.event_date AND t.event_id = s.event_id
+     WHEN NOT MATCHED THEN INSERT *
+     ```
+   - 둘째 — 격리 표에서 지우기. 본 표에 들어간 ID만 지운다.
+     ```sql
+     MERGE INTO delta.`<격리 표>` t
+     USING (SELECT DISTINCT event_id FROM delta.`<본 표>` WHERE event_id IN (<ID 목록>)) s
+     ON t.event_id = s.event_id
+     WHEN MATCHED THEN DELETE
+     ```
+   - 확인: ``SELECT count(DISTINCT event_id) FROM delta.`<본 표>` WHERE event_id IN (<ID 목록>)`` = ID 수, 격리 표에서 같은 질의 = 0.
+4. Silver를 손으로 한 번 돌려(위 "손 실행") 대사 `match`를 본다. 로그는 목록에 줄이 남았으면 `silver quarantine moved=0 …`이고, 목록이 비었으면 이 줄 없이 `silver start … quarantine_lines=0`이다(빈 목록은 시작 옮기기가 아무것도 읽지 않는다).
+5. 예약을 올린다(아래 LaunchAgent 설치, 운영 `suspend: false`).
+
+- 순서를 어기면:
+  - SQL 먼저 하면 그 사이 회차의 시작 옮기기가 다시 옮겨 되돌리기가 조용히 취소된다(`quarantined_at`도 바뀜).
+  - 줄 빼기 먼저 하면 그 사이 온 사본(되돌리기를 부른 재발행)이 본 표에 새 행으로 들어간다. 이어지는 첫째 SQL은 건너뛰고 둘째가 원래 행과 `copies`를 없앤다.
+- 사건 기록에 ID·이유를 남긴다.
+- SQL 두 문장은 시험(`pipeline/tests/silver/spark_quarantine.py`)이 이 문서에서 글자 그대로 꺼내 돈다. Silver 열이 늘면 시험이 먼저 깨진다.
 
 ## LaunchAgent(설치는 사용자 승인 뒤)
 
@@ -100,28 +198,29 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.pipeline.silver-me
 
 ## 되돌리기(Planner 요청 뒤에만)
 
-세대 하나의 네 경로를 **함께** 지운다. 앞 셋 가운데 하나만 지우면 다음 실행이 시작 검사 ②·④로 멈춘다(의도한 동작이다). 대사 결과 표는 시작 검사에 들지 않는다(남아도 다음 대사가 덮어쓴다).
+세대 하나의 다섯 경로를 **함께** 지운다. 앞 셋 가운데 하나만 지우면 다음 실행이 시작 검사 ②·④로 멈춘다(의도한 동작이다). 대사 결과 표는 시작 검사에 들지 않는다(남아도 다음 대사가 덮어쓴다). 격리 표는 할 일이 있을 때만 쓰여 시작 검사가 잡지 못한다 — 격리 표만 지우면 다음 대사가 그 ID의 Bronze 행을 `mismatch`로 알린다.
 
 - `s3a://ads-lake/silver/<원천>/events/g<세대>/`
 - `s3a://ads-lake/silver/<원천>/errors/g<세대>/`
 - `s3a://ads-lake/checkpoints/silver/<원천>/events/g<세대>/`
 - `s3a://ads-lake/silver/<원천>/reconcile/g<세대>/`
+- `s3a://ads-lake/silver/<원천>/quarantine/g<세대>/`
 
 방법과 그 뒤:
 - 지우기 전에 LaunchAgent를 내린다.
 - 지우는 것은 Hadoop `FileSystem.delete(경로, recursive=True)`로 한다(Spark 세션, 키는 파일에서). 지운 뒤 목록으로 객체 0을 본다.
 - 로컬 잠금 파일 `~/Library/Caches/silver-pipeline/silver-<원천>-g<세대>.lock`도 지운다.
-- 다시 만들면 같은 세대가 처음부터 돈다(시작 검사 ① — 세 경로가 모두 없음).
+- 다시 만들면 같은 세대가 처음부터 돈다(시작 검사 ① — 세 표·checkpoint가 모두 없음). 목록 ID 사본은 배치에서 바로 격리 표로 간다.
 
 ## 운영(k8s)에서
 
 - 같은 잡 코드를 이미지에 넣고 같은 환경변수 이름을 쓴다.
-  - `SILVER_*` 아홉(대사는 새 설정이 없다 — 결과 표 경로는 `SILVER_LAKE_ROOT`에서 만든다. Silver 앱이 `silver/<원천>/reconcile/`에도 쓴다)
+  - `SILVER_*` 열(대사·격리 표는 새 설정이 없다 — 경로는 `SILVER_LAKE_ROOT`에서 만든다. Silver 앱이 `silver/<원천>/reconcile/`·`silver/<원천>/quarantine/`에도 쓴다). `SILVER_QUARANTINE`은 이미지 안 목록 파일 경로다(SL-9 — 2차 배포).
   - S3 넷: 키는 Secret을 파일로 붙이고 `S3_ACCESS_KEY_FILE`·`S3_SECRET_KEY_FILE`에 그 경로를 둔다.
 - 예약은 `schedule: "10 * * * *"`(UTC), `concurrencyPolicy: Forbid`, `restartPolicy` OnFailure 3회다. 잠금 래퍼·caffeinate는 쓰지 않는다.
 - ConfigMap 값은 YAML `|-` 또는 일반 문자열로 둔다. `|`처럼 끝 줄바꿈이 붙으면 잡이 시작 전에 거부한다(설정 검사는 앞뒤 공백을 지우지 않는다 — 이름이 조용히 바뀌지 않게).
 - SparkApplication에 `spark.databricks.delta.properties.defaults.setTransactionRetentionDuration`을 두지 않는다.
-  - 그 속성이 붙은 Silver·오류 표는 시작 검사가 멈춘다.
+  - 그 속성이 붙은 Silver·오류·격리 표는 시작 검사가 멈춘다.
   - 멱등 기록이 보관 기한으로 지워지면, 다시 돈 배치가 `copies`를 두 배로 만든다.
 - 읽기 상한은 원천별 값이다.
   - 메타버스: `SILVER_MAX_FILES_PER_TRIGGER=1000`, `SILVER_MAX_BYTES_PER_TRIGGER=512m`

@@ -56,13 +56,48 @@ class LoadAcknowledged(unittest.TestCase):
         self.assertEqual(len(lines), 4)
 
 
+GHOST = {"event_id": "0aabe9c8-6b77-4b20-9e52-3360a8f0b86c", "reason": "PITR 뒤 outbox 에 없음", "incident": "INC-9", "listed_by": "운영자",
+         "listed_at": "2026-11-09T06:00:00Z"}
+
+
+class LoadQuarantine(unittest.TestCase):  # SL-9 — 계획 38 §2.1 목록 파일
+    def assert_rejected(self, data):
+        with self.assertRaises(ValueError):
+            control.load_quarantine(data, "metaverse")
+
+    def test_lines(self):
+        other = GHOST | {"event_id": "3f0e6a52-1b7c-4d1e-9a3b-5c6d7e8f9a0b"}
+        self.assertEqual(control.load_quarantine(ack_file(GHOST, other).encode("utf-8"), "metaverse"), [GHOST, other])
+        self.assertEqual(control.load_quarantine(ack_file(), "metaverse"), [])
+        shipped = Path(control.__file__).resolve().parent / "quarantine" / "metaverse.json"  # 래퍼가 넘기는 파일 — 처음에는 빈 목록
+        self.assertEqual(control.load_quarantine(shipped.read_bytes(), "metaverse"), [])
+
+    def test_file_shape(self):
+        self.assert_rejected(ack_file(GHOST, domain="ads"))
+        self.assert_rejected(json.dumps({"domain": "metaverse", "lines": [], "x": 1}))
+        self.assert_rejected(json.dumps({"domain": "metaverse", "lines": {}}))
+        self.assert_rejected(json.dumps([GHOST]))
+        self.assert_rejected('{"domain": "metaverse", "domain": "metaverse", "lines": []}')
+        self.assert_rejected(b'{"domain": "metaverse", "lines": [], "x": "\xff"}')
+
+    def test_line_keys_and_values(self):
+        bad = [GHOST | {"x": 1}, {k: v for k, v in GHOST.items() if k != "incident"}, GHOST | {"event_id": GHOST["event_id"].upper()},
+               GHOST | {"event_id": GHOST["event_id"] + "\n"}, GHOST | {"event_id": "0aabe9c86b774b209e523360a8f0b86c"}, GHOST | {"event_id": 1},
+               GHOST | {"reason": ""}, GHOST | {"incident": None}, GHOST | {"listed_by": 1}, GHOST | {"listed_at": "2026-11-9T6:0:0Z"},
+               GHOST | {"listed_at": "2026-11-09 06:00:00"}, GHOST | {"listed_at": "2026-11-09T06:00:00+00:00"}, "줄"]
+        for line in bad:
+            with self.subTest(line=line):
+                self.assert_rejected(ack_file(line))
+        self.assert_rejected(ack_file(GHOST, GHOST | {"reason": "다른 이유"}))  # 같은 event_id 두 줄
+
+
 class TxnIds(unittest.TestCase):
     CK = "3f0e6a52-1b7c-4d1e-9a3b-5c6d7e8f9a0b"
 
     def test_app_id(self):
         self.assertEqual(control.txn_app_id("metaverse", 1, "events", self.CK), f"silver:metaverse:g1:events:{self.CK}")
         self.assertEqual(control.txn_app_id("ads", 12, "stops", self.CK), f"silver:ads:g12:stops:{self.CK}")
-        self.assertEqual(control.TXN_TABLES, ("events", "errors", "stops"))
+        self.assertEqual(control.TXN_TABLES, ("events", "errors", "stops", "quarantine"))
         for args in (("meta:verse", 1, "events", self.CK), ("metaverse", 0, "events", self.CK), ("metaverse", True, "events", self.CK),
                      ("metaverse", "1", "events", self.CK), ("metaverse", 1, "gold", self.CK), ("metaverse", 1, "events", "a:b"),
                      ("Metaverse", 1, "events", self.CK), ("metaverse", 1, "events", "")):
@@ -81,8 +116,8 @@ class TxnIds(unittest.TestCase):
 class StartCheck(unittest.TestCase):  # SL-3c 결정 S2 (가) — 시작 검사 ①~④
     CK, OLD = "3f0e6a52-1b7c-4d1e-9a3b-5c6d7e8f9a0b", "0aabe9c8-6b77-4b20-9e52-3360a8f0b86c"
 
-    def check(self, silver_ids=(), error_ids=(), *, checkpoint=None, finished=False):
-        control.start_check(silver_ids, error_ids, domain="metaverse", generation=1, checkpoint=checkpoint, finished=finished)
+    def check(self, silver_ids=(), error_ids=(), quarantine_ids=(), *, checkpoint=None, finished=False):
+        control.start_check(silver_ids, error_ids, quarantine_ids, domain="metaverse", generation=1, checkpoint=checkpoint, finished=finished)
 
     def ids(self, table, checkpoint=None):
         return [control.txn_app_id("metaverse", 1, table, checkpoint or self.CK)]
@@ -93,6 +128,8 @@ class StartCheck(unittest.TestCase):  # SL-3c 결정 S2 (가) — 시작 검사 
         self.check(self.ids("events"), self.ids("errors") + self.ids("stops"), checkpoint=self.CK, finished=True)  # 다시 시작
         self.check((), self.ids("stops"), checkpoint=self.CK, finished=False)  # 첫 배치가 멈춘 뒤(끝난 배치 없음)
         self.check((), (), checkpoint=self.CK, finished=False)  # checkpoint 만 만들어지고 배치 전에 죽음
+        self.check(self.ids("events"), self.ids("errors"), self.ids("quarantine"), checkpoint=self.CK, finished=True)  # (SL-9) 격리 기록 있음
+        self.check(self.ids("events"), self.ids("errors"), (), checkpoint=self.CK, finished=True)  # 격리 기록 없음 — ④에 들지 않는다(D3 (가))
 
     def test_stops(self):
         cases = [
@@ -104,6 +141,9 @@ class StartCheck(unittest.TestCase):  # SL-3c 결정 S2 (가) — 시작 검사 
             ("Silver 표에 그 기록이 없다", dict(error_ids=self.ids("errors"), checkpoint=self.CK, finished=True)),  # ④ Silver 표를 지움
             ("오류 표에 그 기록이 없다", dict(silver_ids=self.ids("events"), checkpoint=self.CK, finished=True)),  # ④ 오류 표를 지움(SL-3c 리뷰 R1)
             ("Silver·오류 표에 그 기록이 없다", dict(silver_ids=self.ids("stops"), error_ids=self.ids("stops"), checkpoint=self.CK, finished=True)),  # ④ events·errors appId 만 센다
+            ("checkpoint 가 없는데", dict(quarantine_ids=self.ids("quarantine"))),  # (SL-9) ② 격리 표 기록만 있어도
+            ("다른 checkpoint", dict(quarantine_ids=self.ids("quarantine", self.OLD), checkpoint=self.CK)),  # (SL-9) ③ 격리 표에만
+            ("Silver·오류 표에 그 기록이 없다", dict(quarantine_ids=self.ids("quarantine"), checkpoint=self.CK, finished=True)),  # 격리 기록은 ④를 채우지 않는다
         ]
         for needle, kwargs in cases:
             with self.subTest(kwargs=kwargs), self.assertRaisesRegex(control.IdentityError, needle):
@@ -119,7 +159,7 @@ class StartCheck(unittest.TestCase):  # SL-3c 결정 S2 (가) — 시작 검사 
 
 ENV = {"SILVER_LAKE_ROOT": "s3a://ads-lake/", "SILVER_BRONZE_TABLE": "s3a://ads-lake/bronze/metaverse/outbox_events", "SILVER_SOURCE_DB": "metaverse_lab",
        "SILVER_SOURCE_SCHEMA": "public", "SILVER_SOURCE_TABLE": "eventing_eventoutbox", "SILVER_ACKNOWLEDGED": "/code/pipeline/silver/acknowledged/metaverse.json",
-       "SILVER_CODE_ROOT": "/code", "SILVER_MAX_FILES_PER_TRIGGER": "200", "SILVER_MAX_BYTES_PER_TRIGGER": "512m"}
+       "SILVER_QUARANTINE": "/code/pipeline/silver/quarantine/metaverse.json", "SILVER_CODE_ROOT": "/code", "SILVER_MAX_FILES_PER_TRIGGER": "200", "SILVER_MAX_BYTES_PER_TRIGGER": "512m"}
 S3 = {"S3_ENDPOINT": "http://127.0.0.1:9000", "S3_REGION": "ap-northeast-2", "S3_ACCESS_KEY_FILE": "/keys/access", "S3_SECRET_KEY_FILE": "/keys/secret"}
 
 
@@ -133,9 +173,11 @@ class Settings(unittest.TestCase):  # SL-3c 결정 S1·정한 것 1
 
     def test_job_settings(self):
         settings = control.job_settings(ENV, "metaverse", 1)
-        self.assertEqual((settings.silver, settings.errors, settings.reconcile, settings.checkpoint),
+        self.assertEqual((settings.silver, settings.errors, settings.reconcile, settings.quarantine, settings.checkpoint),
                          ("s3a://ads-lake/silver/metaverse/events/g1", "s3a://ads-lake/silver/metaverse/errors/g1",
-                          "s3a://ads-lake/silver/metaverse/reconcile/g1", "s3a://ads-lake/checkpoints/silver/metaverse/events/g1"))
+                          "s3a://ads-lake/silver/metaverse/reconcile/g1", "s3a://ads-lake/silver/metaverse/quarantine/g1",
+                          "s3a://ads-lake/checkpoints/silver/metaverse/events/g1"))
+        self.assertEqual((settings.acknowledged, settings.quarantine_list), (ENV["SILVER_ACKNOWLEDGED"], ENV["SILVER_QUARANTINE"]))
         self.assertEqual(settings.source, {"db": "metaverse_lab", "schema": "public", "table": "eventing_eventoutbox"})
         self.assertEqual((settings.bronze, settings.max_files, settings.max_bytes, settings.code_root), (ENV["SILVER_BRONZE_TABLE"], 200, "512m", "/code"))
         for limit in ("1", "1048576", "50k", "512m", "1g"):  # Delta 가 읽는 표기(SL-5 D3 (다))
@@ -231,10 +273,11 @@ class SilverRelease(unittest.TestCase):
         before = control.silver_release(self.root)
         self.assertRegex(before, r"^silver@[0-9a-f]{12}$")
         self.write("pipeline/silver/acknowledged/metaverse.json", "{}")
+        self.write("pipeline/silver/quarantine/metaverse.json", "{}")
         self.write("pipeline/silver/__pycache__/framework.cpython-314.pyc", "junk")
         self.write("pipeline/silver/spark-submit-silver.sh", "echo")
         self.write("pipeline/common/ndjson.py", "w = 4\n")
-        self.assertEqual(control.silver_release(self.root), before)  # 넘김 목록·바이트코드·제출 스크립트·다른 공용 파일은 넣지 않는다
+        self.assertEqual(control.silver_release(self.root), before)  # 넘김·격리 목록·바이트코드·제출 스크립트·다른 공용 파일은 넣지 않는다
         for rel, text in (("pipeline/silver/adapters/metaverse.py", "y = 3\n"), ("pipeline/common/hop_rules.py", "z = 4\n"), ("pipeline/silver/pointers.py", "")):
             with self.subTest(rel=rel):
                 self.write(rel, text)

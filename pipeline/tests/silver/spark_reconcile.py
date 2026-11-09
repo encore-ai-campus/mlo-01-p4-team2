@@ -39,12 +39,12 @@ class Lake(job.Lake):
         self.offset += len(values)
         spark.createDataFrame(rows, contracts.BRONZE_SCHEMA).coalesce(1).write.format("delta").mode("append").save(self.settings.bronze)
 
-    def run(self, lines=(), adapt=job.adapt):
-        return silver_job.run(spark, self.settings, adapt, list(lines), RELEASE, log=self.logs.append)
+    def run(self, lines=(), adapt=job.adapt, quarantine=()):
+        return silver_job.run(spark, self.settings, adapt, list(lines), RELEASE, quarantine=list(quarantine), log=self.logs.append)
 
-    def reconcile(self):
+    def reconcile(self, quarantine=()):
         self.logs.clear()
-        return reconcile.reconcile(spark, self.settings, release=RELEASE, log=self.logs.append)
+        return reconcile.reconcile(spark, self.settings, release=RELEASE, quarantine=list(quarantine), log=self.logs.append)
 
     def rows(self):
         return {(r["kind"], r["window_start"]): r for r in spark.read.format("delta").load(self.settings.reconcile).collect()}
@@ -53,7 +53,8 @@ class Lake(job.Lake):
         return {k[1]: r for k, r in self.rows().items() if k[0] == "window"}
 
     def sql(self, statement):
-        spark.sql(statement.format(silver=f"delta.`{self.settings.silver}`", errors=f"delta.`{self.settings.errors}`", bronze=f"delta.`{self.settings.bronze}`"))
+        spark.sql(statement.format(silver=f"delta.`{self.settings.silver}`", errors=f"delta.`{self.settings.errors}`", bronze=f"delta.`{self.settings.bronze}`",
+                                   quarantine=f"delta.`{self.settings.quarantine}`"))
 
 
 def hour(text):
@@ -148,13 +149,16 @@ class EndToEnd(unittest.TestCase):  # 시험 3·4·5 — 실제 메타버스 어
         errors = rows[("errors", None)]
         self.assertEqual((errors["error_rows"], errors["errors_not_in_bronze"], errors["errors_repeated"]), (3, 0, 0))  # decode·contract·넘긴 tombstone
         self.assertEqual(rows[("unplaced", None)]["bronze_rows"], 0)
+        listed = rows[("quarantine", None)]  # (SL-9) 빈 목록 — 셈 모두 0
+        self.assertEqual([listed[k] for k in ("list_ids", "list_not_in_bronze", "overlap_ids", "republished_ids")], [0, 0, 0, 0])
+        self.assertEqual({r["quarantine_ids"] for r in windows.values()}, {0})
 
     def test_record_columns_and_summary(self):
         rows = list(self.lake.rows().values())
         ident = framework.checkpoint_state(spark, self.lake.settings.checkpoint)[0]
-        run = {(r["bronze_version"], r["silver_version"], r["errors_version"], r["checkpoint_id"], r["silver_release"]) for r in rows}
+        run = {(r["bronze_version"], r["silver_version"], r["errors_version"], r["quarantine_version"], r["checkpoint_id"], r["silver_release"]) for r in rows}
         self.assertEqual(run, {(self.lake.version(self.lake.settings.bronze), self.lake.version(self.lake.settings.silver),
-                                self.lake.version(self.lake.settings.errors), ident, RELEASE)})
+                                self.lake.version(self.lake.settings.errors), self.lake.version(self.lake.settings.quarantine), ident, RELEASE)})
         self.assertEqual(spark.read.format("delta").load(self.lake.settings.reconcile).schema, reconcile.RESULT_SCHEMA)
         operation, metadata = self.lake.history(self.lake.settings.reconcile)[-1]
         summary = json.loads(metadata)
@@ -294,17 +298,21 @@ class Mismatches(unittest.TestCase):  # 시험 4~8·10~13 — 합성 어댑터, 
         lake = self.lake(synthetic.value(E[0]), synthetic.value(E[1], created=NEXT_DAY), b"not json")
         lake.reconcile()
         lake.reconcile()
-        self.assertEqual(spark.read.format("delta").load(lake.settings.reconcile).count(), 2 + 2)  # 창 둘 + errors·unplaced(rows() 는 dict 라 겹친 행을 못 센다)
+        self.assertEqual(spark.read.format("delta").load(lake.settings.reconcile).count(), 2 + 3)  # 창 둘 + errors·unplaced·quarantine(rows() 는 dict 라 겹친 행을 못 센다)
         self.assertEqual([op for op, _ in lake.history(lake.settings.reconcile)], ["WRITE", "WRITE"])
-        recorded = {(r["silver_version"], r["errors_version"]) for r in lake.rows().values()}
-        self.assertEqual(recorded, {(lake.version(lake.settings.silver), lake.version(lake.settings.errors))})
-        pinned = {lake.settings.silver: lake.version(lake.settings.silver), lake.settings.errors: lake.version(lake.settings.errors)}
+        recorded = {(r["silver_version"], r["errors_version"], r["quarantine_version"]) for r in lake.rows().values()}
+        self.assertEqual(recorded, {(lake.version(lake.settings.silver), lake.version(lake.settings.errors), lake.version(lake.settings.quarantine))})
+        pinned = {path: lake.version(path) for path in (lake.settings.silver, lake.settings.errors, lake.settings.quarantine)}
         lake.sql(f"DELETE FROM {{silver}} WHERE event_id = '{E[0]}'")  # 판을 정한 뒤 끼어든 쓰기 — 대사는 정한 판을 읽고 그 판을 적는다
         lake.sql("DELETE FROM {errors} WHERE offset = 2")
+        lines = framework.listed_frame(spark, [{"event_id": E[1], "reason": "r", "incident": "INC-9", "listed_by": "운영자", "listed_at": "2026-11-09T06:00:00Z"}])
+        spark.read.format("delta").load(lake.settings.silver).join(lines, "event_id").select(  # (SL-9) 격리 표에도 끼어든 쓰기 — 읽으면 겹침
+            *[name for name, _, _ in contracts.SILVER_FIELDS + contracts.QUARANTINE_LIST_FIELDS], F.current_timestamp().alias("quarantined_at"),
+            F.lit(RELEASE).alias("quarantine_release")).write.format("delta").mode("append").save(lake.settings.quarantine)
         state = framework.table_state
         with mock.patch.object(framework, "table_state", side_effect=lambda session, path: (pinned[path], *state(session, path)[1:])):
             self.assertTrue(lake.reconcile().ok)
-        self.assertEqual({(r["silver_version"], r["errors_version"]) for r in lake.rows().values()}, {tuple(pinned.values())})
+        self.assertEqual({(r["silver_version"], r["errors_version"], r["quarantine_version"]) for r in lake.rows().values()}, {tuple(pinned.values())})
 
     def test_requires_utc(self):  # 16
         lake = self.lake(synthetic.value(E[0]))
@@ -333,14 +341,18 @@ class ExitCode(unittest.TestCase):  # D7 — 대사 불일치면 rc 3, match 면
     def test_main(self):
         lake = Lake(self)
         (lake.root / "ack.json").write_text(json.dumps({"domain": "metaverse", "lines": []}))
+        ghost = {"event_id": E[0], "reason": "r", "incident": "INC-9", "listed_by": "운영자", "listed_at": "2026-11-09T06:00:00Z"}
+        (lake.root / "quarantine.json").write_text(json.dumps({"domain": "metaverse", "lines": [ghost]}))
         env = {"SILVER_LAKE_ROOT": str(lake.root), "SILVER_BRONZE_TABLE": lake.settings.bronze, "SILVER_SOURCE_DB": "metaverse_lab",
                "SILVER_SOURCE_SCHEMA": "public", "SILVER_SOURCE_TABLE": "eventing_eventoutbox", "SILVER_ACKNOWLEDGED": str(lake.root / "ack.json"),
-               "SILVER_CODE_ROOT": str(Path(__file__).resolve().parents[3]), "SILVER_MAX_FILES_PER_TRIGGER": "10", "SILVER_MAX_BYTES_PER_TRIGGER": "1g"}
+               "SILVER_QUARANTINE": str(lake.root / "quarantine.json"), "SILVER_CODE_ROOT": str(Path(__file__).resolve().parents[3]),
+               "SILVER_MAX_FILES_PER_TRIGGER": "10", "SILVER_MAX_BYTES_PER_TRIGGER": "1g"}
         for ok, rc in ((True, 0), (False, silver_job.MISMATCH_RC)):
             with self.subTest(ok=ok), mock.patch.object(silver_job, "SparkSession") as session, mock.patch.object(silver_job, "run") as run, \
                     mock.patch.object(reconcile, "reconcile", return_value=reconcile.Result(ok, {})) as called:
                 self.assertEqual(silver_job.main(["--domain", "metaverse", "--generation", "1"], env), rc)
                 self.assertEqual((run.call_count, called.call_count), (1, 1))
+                self.assertEqual((run.call_args.kwargs["quarantine"], called.call_args.kwargs["quarantine"]), ([ghost], [ghost]))  # (SL-9) 같은 목록을 둘에
                 session.builder.appName.return_value.config.return_value.config.return_value.config.return_value.getOrCreate.return_value.stop.assert_called_once()
         with mock.patch.object(silver_job, "SparkSession"), mock.patch.object(silver_job, "run", side_effect=RuntimeError("멈춤")), \
                 mock.patch.object(reconcile, "reconcile") as called, self.assertRaisesRegex(RuntimeError, "멈춤"):

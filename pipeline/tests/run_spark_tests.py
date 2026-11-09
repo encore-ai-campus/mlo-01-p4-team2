@@ -25,7 +25,17 @@ def main():
     here = Path(__file__).resolve().parent
     suite = unittest.defaultTestLoader.discover(str(here), pattern="spark_*.py", top_level_dir=str(here))
     print(f"spark={spark.version} master={spark.sparkContext.master} ansi={spark.conf.get('spark.sql.ansi.enabled')} tests={suite.countTestCases()}", flush=True)
-    result = unittest.TextTestRunner(verbosity=2, stream=sys.stdout).run(suite)
+    delta_log = spark.sparkContext._jvm.org.apache.spark.sql.delta.DeltaLog
+
+    class Result(unittest.TextTestResult):
+        """시험이 끝날 때마다 Delta 로그 캐시를 비운다. 시험마다 새 임시 표를 만들어, 캐시(기본 60분 보관)에 남은 DeltaLog·스냅숏 상태가
+        한 JVM 의 드라이버 힙(기본 1g)을 채운다(SL-9 — 시험 111개에서 메모리 부족). 잡은 회차마다 새 프로세스라 해당이 없다."""
+
+        def stopTest(self, test):
+            super().stopTest(test)
+            delta_log.clearCache()
+
+    result = unittest.TextTestRunner(verbosity=2, stream=sys.stdout, resultclass=Result).run(suite)
     spark.stop()
     return 0 if result.wasSuccessful() and suite.countTestCases() else 1
 

@@ -1,3 +1,4 @@
 # pipeline/ 의 Python 도구가 직접 쓰는 라이브러리(광고 서버 쪽은 ads_server/requirements.txt). Spark 도구는 Spark 배포판의 pyspark 를 쓴다(pip 아님).
 psycopg[binary]~=3.3.6   # PostgreSQL(점검·시험·복구 도구)
 boto3~=1.43.120          # S3·RustFS 읽기(monitor/check.py 의 Bronze checkpoint)
+botocore~=1.43.123       # boto3 의 설정 클래스 Config 를 직접 import(monitor/check.py M5, reconcile/metaverse_hops.py). boto3 1.43.120 의 요구 >=1.43.120,<1.44.0 안

@@ -41,6 +41,13 @@ E = os.environ.get
 # PostgreSQL 노드 목록·S7 전원·필수 모드는 main() 이 읽는다(pg_nodes·flag·missing_config) — 형식이 틀려도 불러올 때 죽지 않고 JSON + rc=2 로 끝나게
 PG_PASSWORD_FILE = E("MONITOR_PG_PASSWORD_FILE", "/opt/postgresql/config/postgres-password")
 PG_USER = E("MONITOR_PG_USER", "postgres")  # 운영은 읽기 전용 감시 역할(pg_monitor 회원 — Ops 2026-11-08). 비밀번호 파일은 그 역할의 것
+# 회차가 DB 에서 끝없이 멈추지 않게(MON-3, 2026-11-09). 연결 뒤에는 libpq 에 시간 제한이 없다 — 둘을 건다:
+# - statement_timeout: 서버가 살아 있는데 문장이 막힐 때(잠금 대기 — D2 pg_total_relation_size 는 AccessExclusiveLock 뒤에서 기다린다) 10초에서 서버가 끊는다
+# - keepalive: 답을 기다리는 사이 상대가 사라지면(전원·네트워크) 약 25초(10 + 5 × 3)에서 연결 오류. tcp_user_timeout(보낸 데이터가 확인되지 않음 30초)은
+#   TCP_USER_TIMEOUT 이 있는 Linux(운영 감시 서버)에서만 걸리고 macOS 에서는 libpq 가 건너뛴다
+# 덮지 못함: 커널은 답하는데 서버 프로세스가 멈춘 경우(SIGSTOP 등) — 운영은 감시 유닛 TimeoutStartSec=120(Ops)이 회차를 끊는다
+PG_LIMITS = {"connect_timeout": 5, "options": "-c statement_timeout=10000",
+             "keepalives": 1, "keepalives_idle": 10, "keepalives_interval": 5, "keepalives_count": 3, "tcp_user_timeout": 30000}
 SLOTS = E("MONITOR_SLOTS", "ads_outbox_slot,ads_e2e_slot").split(",")
 REPLICA_LAG_BYTES = int(E("MONITOR_REPLICA_LAG_BYTES", str(64 * 1024 * 1024)))  # 임시 기준
 SLOT_INACTIVE_S = int(E("MONITOR_SLOT_INACTIVE_S", "600"))  # 설계 M1: 10분 넘게 쉼(R2 재시도 약 3분 + R3 재배치 60초보다 넉넉히)
@@ -221,7 +228,7 @@ def addr(node):
 
 def pg(host, port, dbname="postgres"):
     return psycopg.connect(host=host, port=port, user=PG_USER, password=Path(PG_PASSWORD_FILE).read_text().strip(), dbname=dbname,
-                           connect_timeout=5, autocommit=True)
+                           autocommit=True, **PG_LIMITS)
 
 
 def survey(nodes, clock=lambda: datetime.now(UTC)):
@@ -542,9 +549,13 @@ def m5():
     if BRONZE is None:  # S3 키를 읽지도, boto3 를 부르지도 않는다
         return [finding("M5", "bronze", "unsupported", "끔(MONITOR_BRONZE=none) — 이 장치가 볼 Bronze 가 아직 없다")]
     import boto3
+    from botocore.config import Config
 
     keys = [Path(f).read_text().strip() for f in S3_KEY_FILES]
-    s3 = boto3.client("s3", endpoint_url=S3_ENDPOINT, aws_access_key_id=keys[0], aws_secret_access_key=keys[1], region_name=E("S3_REGION", "ap-northeast-2"))
+    # MON-3: botocore 기본(연결·읽기 60초, legacy 재시도 5번)이면 S3 가 멈출 때 한 호출이 약 5분 — 감시 유닛 TimeoutStartSec=120 을 혼자 넘긴다.
+    # 첫 호출이 실패하면 그 예외로 M5 가 error 가 되므로 멈춤은 회차마다 약 20초(10초 × 2번 + 대기)
+    s3 = boto3.client("s3", endpoint_url=S3_ENDPOINT, aws_access_key_id=keys[0], aws_secret_access_key=keys[1], region_name=E("S3_REGION", "ap-northeast-2"),
+                      config=Config(connect_timeout=5, read_timeout=10, retries={"total_max_attempts": 2, "mode": "standard"}))
     out, (up, total) = [], brokers_up()
     for name, topic, uri in BRONZE:
         if up == 0:  # 같은 키에 error — 못 본 것을 해소로 알리지 않는다

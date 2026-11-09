@@ -102,7 +102,10 @@ KINDS = sorted(key for key in REAL if key.islower())  # 나머지 11종의 실�
 INPUT += [(REAL[key].encode(), None) for key in KINDS]  # 32~42
 POINT_ONLY = {"ledger_uuid": ..., "attempt_uuid": ..., "delta": ..., "balance_after": ...}  # POINT_C 의 raw_data 에서 point_granted 필드를 뺀다
 V4, V5 = "3f1c2b8e-5d4a-4e7b-9c6d-2a1b0c9d8e7f", str(uuid.uuid5(uuid.NAMESPACE_URL, "playdata:learning:cs:multiple-choice"))  # 행 ID, 카탈로그 ID
-NEW_KINDS = {  # 새 7종(EO-2 14b0c1d, MVR-3b): 실제 행은 T1'' 뒤라 POINT_C 를 고쳐 만든다. 값은 test_rules.EXTRA 와 같은 모양
+# 새 7종(EO-2 14b0c1d, MVR-3b)은 POINT_C 를 고쳐 만든 행이다. 값은 test_rules.EXTRA 와 같은 모양.
+# 실제 앱 행 확인 = T1'' g2 실행(앱 c802671 — Bronze 56행 = 정상 56·오류 0, 새 7종 19행), 증거 12_silver_count.json.
+# 그 증거에는 봉투(행 값)가 없어 이 행들을 실제 행으로 바꾸지 않는다(계획 35 §1.5·D9).
+NEW_KINDS = {
     "event_progress_completed": {"session_uuid": None, "progress_uuid": V4, "event_definition_uuid": V5, "event_kind": "EASTER_EGG",
                                  "completion_order": None},  # 접속 없음(비동기 완료)
     "game_play_started": {"play_uuid": V4, "game_uuid": V5, "event_definition_uuid": None},
@@ -141,7 +144,7 @@ class Adapter(unittest.TestCase):
                 self.assertEqual((found[offset][0], found[offset][2]), (code, event_id))
                 self.assertIn(needle, found[offset][1])
 
-    def test_every_kind_has_a_real_row(self):  # 새 7종은 만든 행(T1'' 실제 행으로 바꿀 때까지)
+    def test_every_kind_has_a_real_row(self):  # 새 7종은 만든 행(실제 앱 행 확인은 T1'' — NEW_KINDS 머리말)
         real = {value.encode() for value in REAL.values()}
         kinds = {self.rows[i]["event_type"] for i, (v, _) in enumerate(INPUT) if v in real}  # 실제 행은 모두 정상이어야 self.rows 에 있다
         made = [self.rows[i]["event_type"] for i in range(NEW_START, len(INPUT))]

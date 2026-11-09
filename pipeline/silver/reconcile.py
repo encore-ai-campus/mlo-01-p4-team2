@@ -34,7 +34,7 @@ from pyspark.sql import functions as F, types as T
 from pipeline.common import hop_rules
 from pipeline.silver import contracts, control, framework
 
-SOURCES = {"metaverse": hop_rules.METAVERSE}  # 원천 → 창·ID 를 꺼낼 after 열(설정의 id·time). 광고는 SL-8 이 hop_rules.ADS 로 더한다
+SOURCES = {"ads": hop_rules.ADS, "metaverse": hop_rules.METAVERSE}  # 원천 → 창·ID 를 꺼낼 after 열(설정의 id·time). 광고는 SL-8
 EXAMPLES = 10  # 줄마다 예시 수, 불일치 경보 줄 수
 MATCH, MISMATCH, COPIES = "match", "mismatch", "copies_mismatch"
 POSITION = framework.POSITION

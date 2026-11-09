@@ -407,7 +407,7 @@ class ExportCommandTests(Cases, TempDirMixin, MongoDatabaseMixin, TransactionTes
         self.export(out)
         checkpoint = ndjson.read_manifest(ndjson.manifest_path(out, "event_gaps"))["checkpoint"]
         self.assertEqual(checkpoint["scope"], "postgresql-repeatable-read-snapshot")
-        self.assertEqual(checkpoint["scanned"], {"decision": 1, "reaction": 1, "ledger_charge": 1, "bid_policy": 1, "bid": 1, "campaign_change": 1, "ad_group_change": 2})  # 실제로 훑은 행 수
+        self.assertEqual(checkpoint["scanned"], {"decision": 1, "reaction": 1, "ledger_charge": 1, "bid_policy": 1, "bid": 1, "campaign_change": 1, "ad_group_change": 2, "segment_version": 0})  # 실제로 훑은 행 수
         self.assertEqual(checkpoint, ndjson.read_manifest(ndjson.manifest_path(out, "ledger_check"))["checkpoint"])  # 세 점검이 같은 범위를 본다
 
     def case_rows_created_after_the_snapshot_began_are_not_in_the_result(self):

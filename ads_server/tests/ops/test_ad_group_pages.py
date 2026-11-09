@@ -134,6 +134,18 @@ class GroupEditTests(Cases, AdGroupPageBase):
         self.client.post(reverse("ad_group_slots", args=[self.gid]), {"slot_ids": [str(self.w.slot.slot_id)], "updated_at": self.seen()})
         self.assertEqual(self.group().slot_ids, (self.w.slot.slot_id,))
 
+    def case_a_linked_shared_slot_whose_media_is_off_is_shown_as_off(self):
+        """일괄 구성의 매체를 끄는 것 = 구성을 끄는 것(TG-S4 리뷰 M11): 켜짐은 `list_slots(active_only=True)` 와 같은 기준(구성과 매체가 모두 켜짐)이라,
+        구성은 켜져 있어도 매체가 꺼지면 "일괄(사용 중지)"(그대로 나간다)가 아니라 꺼진 구성으로 보인다. 다른 매체에 두어 개인 구성은 켜진 채로 둔다."""
+        other_media = masters.create_media(self.w.admin, "옥외 매체")
+        shared = masters.create_slot(self.w.admin, other_media.media_id, "옥상 전광판", 100, 200, 500, "초기", audience="shared", impression_share=98, click_share=1, conversion_share=1)
+        campaigns.update_ad_group(self.w.adv, self.gid, {"slot_ids": [self.w.slot.slot_id, shared.slot_id]})
+        self.assertIn("일괄(사용 중지) 구성: ", self.html())
+        masters.set_media_active(self.w.admin, other_media.media_id, False)
+        html = self.html()
+        self.assertNotIn("일괄(사용 중지) 구성: ", html)
+        self.assertRegex(html, r"지금 꺼진 구성: [^<]*옥상 전광판")
+
     def case_an_inactive_linked_slot_is_explained(self):
         masters.set_slot_active(self.w.admin, self.w.slot.slot_id, False)
         html = self.html()

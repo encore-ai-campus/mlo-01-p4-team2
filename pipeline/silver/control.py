@@ -141,7 +141,7 @@ def source_settings(data):
     return {key: data[key] for key in SOURCE_KEYS}
 
 
-JobSettings = namedtuple("JobSettings", "domain generation silver errors checkpoint bronze source acknowledged code_root max_files max_bytes")
+JobSettings = namedtuple("JobSettings", "domain generation silver errors reconcile checkpoint bronze source acknowledged code_root max_files max_bytes")
 _ENV = ("SILVER_LAKE_ROOT", "SILVER_BRONZE_TABLE", "SILVER_SOURCE_DB", "SILVER_SOURCE_SCHEMA", "SILVER_SOURCE_TABLE",
         "SILVER_ACKNOWLEDGED", "SILVER_CODE_ROOT", "SILVER_MAX_FILES_PER_TRIGGER", "SILVER_MAX_BYTES_PER_TRIGGER")
 _BYTES = re.compile(r"[1-9][0-9]*[kmg]?")  # Delta maxBytesPerTrigger 표기(k·m·g = 1024 배수) — 소문자 단위 하나만 받는다
@@ -150,7 +150,8 @@ S3_ENV = ("S3_ENDPOINT", "S3_REGION", "S3_ACCESS_KEY_FILE", "S3_SECRET_KEY_FILE"
 
 def job_settings(environ, domain, generation):
     """잡 설정(SL-3c 정한 것 1): 환경변수, 기본값 없음 — 하나라도 없거나 비면 ValueError(모두 적음). 표 경로는 15 §5.5 (가):
-    `<root>/silver/<d>/events/g<N>`·`<root>/silver/<d>/errors/g<N>`·`<root>/checkpoints/silver/<d>/events/g<N>`."""
+    `<root>/silver/<d>/events/g<N>`·`<root>/silver/<d>/errors/g<N>`·`<root>/checkpoints/silver/<d>/events/g<N>`,
+    (SL-6 D6) 대사 결과 `<root>/silver/<d>/reconcile/g<N>`."""
     if not _NAME.fullmatch(str(domain)) or type(generation) is not int or generation < 1:
         raise ValueError(f"domain 은 [a-z0-9-]+, generation 은 1 이상의 정수다: {domain!r} {generation!r}")
     missing = [name for name in _ENV if not environ.get(name, "").strip()]
@@ -167,6 +168,7 @@ def job_settings(environ, domain, generation):
         raise ValueError(f"SILVER_MAX_BYTES_PER_TRIGGER 는 1 이상의 정수 + 단위 k·m·g(없어도 됨)다: {value['SILVER_MAX_BYTES_PER_TRIGGER']!r}")
     source = source_settings({"db": value["SILVER_SOURCE_DB"], "schema": value["SILVER_SOURCE_SCHEMA"], "table": value["SILVER_SOURCE_TABLE"]})
     return JobSettings(domain, generation, f"{root}/silver/{domain}/events/g{generation}", f"{root}/silver/{domain}/errors/g{generation}",
+                       f"{root}/silver/{domain}/reconcile/g{generation}",
                        f"{root}/checkpoints/silver/{domain}/events/g{generation}", value["SILVER_BRONZE_TABLE"], source,
                        value["SILVER_ACKNOWLEDGED"], value["SILVER_CODE_ROOT"], int(value["SILVER_MAX_FILES_PER_TRIGGER"]),
                        value["SILVER_MAX_BYTES_PER_TRIGGER"])
@@ -184,6 +186,38 @@ def s3_settings(environ, settings):
     if spaced:
         raise ValueError(f"S3 설정 값에 앞뒤 공백이 있다: {', '.join(spaced)}")
     return dict(zip(("endpoint", "region", "access_key_file", "secret_key_file"), (environ[name] for name in S3_ENV)))
+
+
+def processed_bronze_version(offset_ids, commit_ids, last_offset):
+    """Silver 가 처리를 끝낸 Bronze 판(SL-6 D1 — 계획 35 §2.1). `offset_ids`·`commit_ids`: checkpoint `offsets/`·`commits/` 의 배치 번호,
+    `last_offset`: 마지막 끝난 배치의 `offsets/<N>` 내용. 반환: 판 V(Bronze `versionAsOf V` = 처리한 행) 또는 None(끝난 배치 없음 — 맞출 것이 없다).
+    마지막 offset 은 `(V+1, index -1, isStartingVersion false)` 여야 한다 — availableNow 가 끝까지 돌면 늘 그렇다(실측, 속성 변경·OPTIMIZE 판 포함).
+    처리 중인 배치(offsets > commits)·판 안의 자리(index ≥ 0)·시작 스냅숏 중·형식이 다름이면 ValueError — Delta checkpoint offset 은 내부 형식이라
+    Spark·Delta 판을 올려 바뀌면 시험(spark_reconcile)과 함께 여기서 멈춘다."""
+    if not commit_ids:
+        if offset_ids:
+            raise ValueError(f"checkpoint 에 처리 중인 배치가 있다(offsets {sorted(offset_ids)}, commits 없음) — 대사하지 않는다")
+        return None
+    last = max(commit_ids)
+    if max(offset_ids or [-1]) != last:
+        raise ValueError(f"checkpoint 에 처리 중인 배치가 있다(offsets 끝 {max(offset_ids or [-1])}, commits 끝 {last}) — 대사하지 않는다")
+    lines = last_offset.split("\n") if isinstance(last_offset, str) else []
+    if len(lines) != 3 or lines[0] != "v1":
+        raise ValueError(f"checkpoint offsets/{last} 이 'v1' + 배치 메타 + 원천 offset 하나의 세 줄이 아니다: {last_offset!r}")
+    try:
+        offset = json.loads(lines[2])
+    except ValueError as error:
+        raise ValueError(f"checkpoint offsets/{last} 의 원천 offset 이 JSON 이 아니다: {lines[2]!r}") from error
+    if not isinstance(offset, dict) or set(offset) != {"sourceVersion", "reservoirId", "reservoirVersion", "index", "isStartingVersion"}:
+        raise ValueError(f"checkpoint offsets/{last} 가 Delta 원천 offset 모양이 아니다: {lines[2]!r}")
+    version = offset["reservoirVersion"]
+    if type(offset["sourceVersion"]) is not int or offset["sourceVersion"] != 1 or type(version) is not int or version < 1 \
+            or not isinstance(offset["reservoirId"], str) or type(offset["index"]) is not int:  # JSON true 는 Python 에서 1 과 같다
+        raise ValueError(f"checkpoint offsets/{last} 의 판 표시가 다르다: {lines[2]!r}")
+    if offset["index"] != -1 or offset["isStartingVersion"] is not False:
+        raise ValueError(f"checkpoint offsets/{last} 가 판 안의 자리다(index {offset['index']!r}, isStartingVersion {offset['isStartingVersion']!r}) — "
+                         "끝까지 돌지 않은 실행 뒤에는 대사하지 않는다")
+    return version - 1
 
 
 def silver_release(root=None):

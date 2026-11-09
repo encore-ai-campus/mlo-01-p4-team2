@@ -6,6 +6,8 @@ Bronze Delta 를 readStream(`maxFilesPerTrigger` — SL-3c 결정 S3, `maxBytesP
 - 잡 코드가 Delta 확장과 `spark.sql.session.timeZone=UTC` 를 스스로 정한다 — 운영 SparkApplication 에는 제출 스크립트가 없다.
 - 시작 전에 framework.prepare(한 프로세스 한 쿼리·시작 검사 ①~④·표 만들기)를 지나야 한다.
 - 로컬 lock 은 래퍼 run-silver.sh(lockf), 예약은 launchd 견본 local.pipeline.silver-<원천>.plist(SL-5 — 15 §9 33). 운영은 ScheduledSparkApplication `concurrencyPolicy: Forbid`.
+- (SL-6 D2·D7) 스트림이 성공하면 같은 세션에서 Bronze ↔ Silver 대사(reconcile)를 돈다. 종료 코드: 0 = Silver 끝 + 대사 match(또는 맞출 배치 없음),
+  3 = Silver 쓰기는 끝났고 대사가 불일치(mismatch·copies_mismatch·Silver 중복)를 찾음 — 결과 표는 썼다. 배치 실패·멈춤·설정 오류·대사 예외는 예외 그대로(1).
 """
 import argparse
 import importlib
@@ -15,7 +17,9 @@ from pathlib import Path
 
 from pyspark.sql import SparkSession
 
-from pipeline.silver import control, framework
+from pipeline.silver import control, framework, reconcile
+
+MISMATCH_RC = 3  # 대사 불일치(Silver 쓰기는 끝남) — 고칠 때까지 매 회차 난다(runbooks/silver.md)
 
 
 def run(spark, settings, adapt, lines, release, *, log=print, broadcast_limit=framework.BROADCAST_LIMIT):
@@ -65,10 +69,12 @@ def main(argv=None, environ=None):
     spark = builder.getOrCreate()
     try:
         print(f"silver start domain={settings.domain} generation={settings.generation} release={release} acknowledged_lines={len(lines)}", flush=True)
-        run(spark, settings, adapter.adapt, lines, release, log=lambda line: print(line, flush=True))
+        log = lambda line: print(line, flush=True)  # noqa: E731
+        run(spark, settings, adapter.adapt, lines, release, log=log)
+        result = reconcile.reconcile(spark, settings, release=release, log=log)
     finally:
         spark.stop()
-    return 0
+    return 0 if result.ok else MISMATCH_RC
 
 
 if __name__ == "__main__":

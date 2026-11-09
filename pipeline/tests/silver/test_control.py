@@ -133,9 +133,9 @@ class Settings(unittest.TestCase):  # SL-3c 결정 S1·정한 것 1
 
     def test_job_settings(self):
         settings = control.job_settings(ENV, "metaverse", 1)
-        self.assertEqual((settings.silver, settings.errors, settings.checkpoint),
+        self.assertEqual((settings.silver, settings.errors, settings.reconcile, settings.checkpoint),
                          ("s3a://ads-lake/silver/metaverse/events/g1", "s3a://ads-lake/silver/metaverse/errors/g1",
-                          "s3a://ads-lake/checkpoints/silver/metaverse/events/g1"))
+                          "s3a://ads-lake/silver/metaverse/reconcile/g1", "s3a://ads-lake/checkpoints/silver/metaverse/events/g1"))
         self.assertEqual(settings.source, {"db": "metaverse_lab", "schema": "public", "table": "eventing_eventoutbox"})
         self.assertEqual((settings.bronze, settings.max_files, settings.max_bytes, settings.code_root), (ENV["SILVER_BRONZE_TABLE"], 200, "512m", "/code"))
         for limit in ("1", "1048576", "50k", "512m", "1g"):  # Delta 가 읽는 표기(SL-5 D3 (다))
@@ -177,6 +177,40 @@ class Settings(unittest.TestCase):  # SL-3c 결정 S1·정한 것 1
         for env in ({**ENV, "SILVER_LAKE_ROOT": "/tmp/lake"}, {**ENV, "SILVER_BRONZE_TABLE": "/tmp/bronze"}):  # 한쪽만 s3a 여도 필요
             with self.subTest(env=env), self.assertRaisesRegex(ValueError, "S3_ENDPOINT"):
                 control.s3_settings(env, control.job_settings(env, "metaverse", 1))
+
+
+def offset_file(**changes):
+    source = {"sourceVersion": 1, "reservoirId": "b70da633-44a9-4b0e-91db-ed12955f81a9", "reservoirVersion": 34, "index": -1, "isStartingVersion": False}
+    return 'v1\n{"batchWatermarkMs":0,"batchTimestampMs":1794153707073,"conf":{}}\n' + json.dumps({**source, **changes}, separators=(",", ":"))
+
+
+class ProcessedBronzeVersion(unittest.TestCase):  # SL-6 D1 — Silver 가 처리를 끝낸 Bronze 판(offset 모양은 계획 35 §1.2 실측)
+    def test_finished_run(self):
+        self.assertEqual(control.processed_bronze_version([0, 1, 2], [0, 1, 2], offset_file()), 33)
+        self.assertEqual(control.processed_bronze_version([0], [0], offset_file(reservoirVersion=1)), 0)
+        self.assertIsNone(control.processed_bronze_version([], [], ""))  # 끝난 배치 없음 — 맞출 것이 없다
+
+    def test_refused(self):
+        cases = {
+            "commits 없는 배치": ([0], [], ""),
+            "처리 중인 배치": ([0, 1, 2, 3], [0, 1, 2], offset_file()),
+            "판 안의 자리": ([0], [0], offset_file(index=0)),
+            "시작 스냅숏 중": ([0], [0], offset_file(reservoirVersion=33, index=4, isStartingVersion=True)),
+            "시작 스냅숏 표시만": ([0], [0], offset_file(isStartingVersion=True)),
+            "sourceVersion 2": ([0], [0], offset_file(sourceVersion=2)),
+            "sourceVersion true": ([0], [0], offset_file(sourceVersion=True)),
+            "판 문자열": ([0], [0], offset_file(reservoirVersion="34")),
+            "판 0": ([0], [0], offset_file(reservoirVersion=0)),
+            "index 문자열": ([0], [0], offset_file(index="-1")),
+            "키 더 있음": ([0], [0], offset_file(extra=1)),
+            "원천 둘": ([0], [0], offset_file() + "\n" + offset_file().split("\n")[2]),
+            "v2": ([0], [0], "v2" + offset_file()[2:]),
+            "JSON 아님": ([0], [0], "v1\n{}\nnot json"),
+            "빈 파일": ([0], [0], ""),
+        }
+        for name, (offsets, commits, text) in cases.items():
+            with self.subTest(name), self.assertRaises(ValueError):
+                control.processed_bronze_version(offsets, commits, text)
 
 
 class SilverRelease(unittest.TestCase):

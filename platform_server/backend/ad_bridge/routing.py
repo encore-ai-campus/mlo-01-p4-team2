@@ -65,16 +65,3 @@ class RoutedAdsClient:
         return self._for_decision(decision_id).get_reaction(
             decision_id=decision_id, reaction_id=reaction_id,
         )
-
-
-    def get_server_click(self, *, slot_id, path, decision_id, subject_id):
-        return self._for_slot(slot_id).get_server_click(
-            path=path, decision_id=decision_id, subject_id=subject_id,
-        )
-
-
-    def report_click(self, *, slot_id, decision_id, reaction_id, occurred_at, subject_id):
-        return self._for_slot(slot_id).report_click(
-            decision_id=decision_id, reaction_id=reaction_id,
-            occurred_at=occurred_at, subject_id=subject_id,
-        )

@@ -44,6 +44,3 @@ Desktop.ini
 
 # Intermediate supplied-game builds; final HTML lives in frontend/dist/minigames.
 /frontend/minigames/*/dist/
-
-# Local agent instructions
-AGENTS.md

@@ -145,7 +145,7 @@ class AdsClient:
 
     def _parse_reaction(self, body: bytes, decision_id: str, reaction_id: str,
                         occurred_at: str | None, subject_id: str | None, request_id: str | None,
-                        *, lookup: bool = False, reaction_type: str = "IMPRESSION") -> Reaction:
+                        *, lookup: bool = False) -> Reaction:
         """보낸 반응과 일치하는 필수 값은 검증하고 새 필드·거부 사유는 허용한다."""
         try:
             data = json.loads(body)
@@ -156,7 +156,7 @@ class AdsClient:
             raw_subject = data["subject_id"]
             received_subject = None if raw_subject is None else _uuid(raw_subject, "subject_id")
             if (received_decision != decision_id or received_reaction != reaction_id
-                    or (not lookup and received_subject != subject_id) or data["type"] != reaction_type):
+                    or (not lookup and received_subject != subject_id) or data["type"] != "IMPRESSION"):
                 raise ValueError
             # 서버가 .123을 .123000으로 표시해도 같은 UTC 시각이면 같은 반응이다.
             actual_time = _utc(data["occurred_at"], "occurred_at")
@@ -170,7 +170,7 @@ class AdsClient:
                 raise ValueError
             if reason is not None:
                 reason = reason.replace(self._config.media_key, "[REDACTED]")
-            return Reaction(received_reaction, received_decision, received_subject, reaction_type,
+            return Reaction(received_reaction, received_decision, received_subject, "IMPRESSION",
                             data["occurred_at"], data["received_at"], data["status"], reason, request_id)
         except (ValueError, KeyError, TypeError, RecursionError):
             raise AdsResponseError("광고 서버의 반응 응답이 계약 형식과 다릅니다.",
@@ -178,21 +178,12 @@ class AdsClient:
 
     def report_impression(self, *, decision_id: str | UUID, reaction_id: str | UUID,
                           occurred_at: str, subject_id: str | UUID | None = None) -> Reaction:
-        """호출자가 보관한 반응 ID·감지 시각으로 노출을 한 번 보고한다."""
-        return self._report_reaction(decision_id=decision_id, reaction_id=reaction_id,
-                                     occurred_at=occurred_at, subject_id=subject_id, reaction_type="IMPRESSION")
-
-    def report_click(self, *, decision_id, reaction_id, occurred_at, subject_id):
-        """매체의 클릭 보고를 저장한다. 서버 관측 클릭·과금 인정과는 별개다."""
-        return self._report_reaction(decision_id=decision_id, reaction_id=reaction_id,
-                                     occurred_at=occurred_at, subject_id=subject_id, reaction_type="CLICK")
-
-    def _report_reaction(self, *, decision_id, reaction_id, occurred_at, subject_id, reaction_type):
+        """호출자가 보관한 반응 ID·감지 시각으로 노출을 한 번 보고한다. 자동 재시도하지 않는다."""
         decision = _uuid(decision_id, "decision_id")
         reaction = _uuid(reaction_id, "reaction_id")
         _utc(occurred_at, "occurred_at")
         subject = None if subject_id is None else _uuid(subject_id, "subject_id")
-        payload = {"type": reaction_type, "occurred_at": occurred_at}
+        payload = {"type": "IMPRESSION", "occurred_at": occurred_at}
         if subject is not None:
             payload["subject_id"] = subject
         request = Request(
@@ -217,16 +208,16 @@ class AdsClient:
                 if len(body) > _MAX_RESPONSE_BYTES:
                     raise AdsResponseError("광고 서버 응답이 1 MiB 제한을 넘었습니다.",
                                            request_id=request_id, acknowledged=True)
-                return self._parse_reaction(body, decision, reaction, occurred_at, subject, request_id, reaction_type=reaction_type)
+                return self._parse_reaction(body, decision, reaction, occurred_at, subject, request_id)
         except HTTPError as exc:
             with exc:
                 error = self._http_error(exc)
             raise error from None
         except (URLError, OSError, HTTPException):
             if acknowledged:
-                raise AdsResponseError("반응은 접수됐지만 광고 서버의 응답 본문을 받지 못했습니다.",
+                raise AdsResponseError("노출은 접수됐지만 광고 서버의 응답 본문을 받지 못했습니다.",
                                        request_id=request_id, acknowledged=True) from None
-            raise AdsTransportError("광고 서버 연결 또는 응답 수신에 실패했습니다. 반응 접수 여부는 확인할 수 없습니다.") from None
+            raise AdsTransportError("광고 서버 연결 또는 응답 수신에 실패했습니다. 노출 접수 여부는 확인할 수 없습니다.") from None
 
 
     def get_reaction(self, *, decision_id: str | UUID, reaction_id: str | UUID) -> Reaction:
@@ -254,9 +245,3 @@ class AdsClient:
             raise error from None
         except (URLError, OSError, HTTPException):
             raise AdsTransportError("광고 서버의 반응 조회에 실패했습니다.") from None
-
-
-    def get_server_click(self, *, path, decision_id, subject_id):
-        """확정된 조회 경로에서 서버 관측 클릭을 읽는다. 경로의 기본값은 없다."""
-        from .click_lookup import fetch_click
-        return fetch_click(self, path=path, decision_id=decision_id, subject_id=subject_id)

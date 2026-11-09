@@ -4,9 +4,6 @@
   const {ContinuousExposure,visibleRatio}=window.CampusAdVisibility;
   const detector=new ContinuousExposure();
   let roof=null,nextRoof=0,roofLoading=false,portalVersion=0,portalAds=[];
-  // CSS 화면 픽셀 기준. 진입과 이탈 여유를 달리해 경계의 작은 이동에는 재요청하지 않는다.
-  const PREFETCH_MARGIN=256,EXIT_MARGIN=384;
-  let roofZone=null,roofScheduleView=null;
   const reporting=new Map();
   const csrf=()=>document.querySelector('[name=csrfmiddlewaretoken]')?.value||decodeURIComponent(document.cookie.match(/(?:^|; )(?:campus_csrftoken|csrftoken)=([^;]*)/)?.[1]||'');
   async function post(path,body={},timeout=5000){
@@ -41,16 +38,10 @@
     const send=()=>post('decisions/'+decision+'/impression/');
     send().catch(()=>setTimeout(()=>send().catch(()=>{}),1000));
   }
-  function stopRoof(){
-    if(roofZone&&roofLoading)nextRoof=0;
-    roofZone=null;
-  }
-  async function refreshRoof(zone){
-    const view=zone.view,current=()=>roofZone===zone&&!document.hidden;
-    roofLoading=true;roofScheduleView=view;
+  async function refreshRoof(view){
+    roofLoading=true;
     try{
       const started=performance.now(),batch=await post('placements/rooftop/');
-      if(!current())return;
       const remaining=Date.parse(batch.expires_at)-Date.parse(batch.server_time)-(performance.now()-started);
       if(!Number.isFinite(remaining))throw Error('ad_expiry');
       if(remaining<=0){nextRoof=performance.now()+100;return;}
@@ -58,48 +49,29 @@
       // 서버 회차는 다음 조회 시각으로만 사용하고, 표시 중인 광고를 먼저 지우지 않는다.
       const deadline=performance.now()+remaining;nextRoof=deadline;
       const entry=batch.ads[0];
-      if(batch.state!=='READY'||!entry?.ad){zone.settled=true;return;}
+      if(batch.state!=='READY'||!entry?.ad)return;
       const candidate={...entry,ad:{...entry.ad,click_url:safeUrl(entry.ad.click_url)},view};
       const img=await image(candidate.ad,true);
       // 로딩 중 회차가 끝난 후보는 버리되, 기존 이미지·링크·노출 측정은 유지한다.
-      if(!current()||performance.now()>=deadline)return;
+      if(performance.now()>=deadline)return;
       if(view.setDisplayImage('roof-ad-board',img)){
         // 실제 이미지 교체가 성공한 순간에만 클릭 대상과 새 광고의 노출 측정을 바꾼다.
         if(roof?.decision_id!==candidate.decision_id)detector.reset('roof');
-        roof=candidate;zone.settled=true;
+        roof=candidate;
       }
-    }catch{if(current())nextRoof=performance.now()+5000;}
+    }catch{nextRoof=performance.now()+5000;}
     finally{roofLoading=false;}
-  }
-  function roofGeometry(renderer,camera,canvas,width,height){
-    const bounds=canvas.getBoundingClientRect();
-    if(!(width>0&&height>0&&bounds.width>0&&bounds.height>0&&camera.zoom>0))return null;
-    const rect={left:Math.max(0,bounds.left),top:Math.max(0,bounds.top),right:Math.min(innerWidth,bounds.right),bottom:Math.min(innerHeight,bounds.bottom)};
-    if(rect.right<=rect.left||rect.bottom<=rect.top)return null;
-    const project=polygon=>polygon?.map(p=>({x:bounds.left+(p.x*camera.zoom+camera.x)*bounds.width/width,y:bounds.top+(p.y*camera.zoom+camera.y)*bounds.height/height}));
-    const points=project(renderer.displayPolygon('roof-ad-board',{placeholder:true}));
-    if(!points?.length||!points.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)))return null;
-    return {points,rect,project};
   }
   function tick({now,floor,renderer,camera,canvas,width,height,blocked}){
     const adFloor=floor==='rooftop'||(floor==='campus'&&renderer.hasDisplay?.('roof-ad-board'));
-    const geometry=adFloor&&!blocked&&!document.hidden?roofGeometry(renderer,camera,canvas,width,height):null;
-    const margin=roofZone?.view===renderer?EXIT_MARGIN:PREFETCH_MARGIN;
-    const near=geometry&&visibleRatio(geometry.points,{left:geometry.rect.left-margin,top:geometry.rect.top-margin,right:geometry.rect.right+margin,bottom:geometry.rect.bottom+margin})>0;
-    if(roofZone&&(!near||roofZone.view!==renderer))stopRoof();
-    if(near){
-      if(!roofZone){
-        roofZone={view:renderer,settled:false};
-        if(roofScheduleView!==renderer)nextRoof=0;
-      }
-      // 화면 밖에서는 접근당 한 번 미리 받는다. 표시 중에만 다음 회차를 계속 조회한다.
-      const visible=visibleRatio(geometry.points,geometry.rect)>0;
-      if(!roofLoading&&now>=nextRoof&&(!roofZone.settled||visible))refreshRoof(roofZone);
-    }
+    if(adFloor&&!document.hidden&&!roofLoading&&now>=nextRoof)refreshRoof(renderer);
     let ratio=0;
-    if(roof&&roof.view===renderer&&geometry&&document.hasFocus()){
-      const points=geometry.project(renderer.displayPolygon('roof-ad-board'));
-      if(points)ratio=visibleRatio(points,geometry.rect);
+    if(roof&&roof.view===renderer&&adFloor&&!blocked&&!document.hidden&&document.hasFocus()){
+      const bounds=canvas.getBoundingClientRect(),polygon=renderer.displayPolygon('roof-ad-board');
+      if(polygon){
+        const points=polygon.map(p=>({x:bounds.left+(p.x*camera.zoom+camera.x)*bounds.width/width,y:bounds.top+(p.y*camera.zoom+camera.y)*bounds.height/height}));
+        ratio=visibleRatio(points,{left:Math.max(0,bounds.left),top:Math.max(0,bounds.top),right:Math.min(innerWidth,bounds.right),bottom:Math.min(innerHeight,bounds.bottom)});
+      }
     }
     if(detector.observe('roof',roof?.decision_id,ratio,now))report(roof.decision_id);
   }
@@ -136,7 +108,7 @@
     }
     requestAnimationFrame(portalTick);
   }
-  document.addEventListener('visibilitychange',()=>{detector.reset();if(document.hidden)stopRoof();});
+  document.addEventListener('visibilitychange',()=>detector.reset());
   window.addEventListener('blur',()=>detector.reset());
   window.addEventListener('campus:floor-transition-end',stopPortal);
   requestAnimationFrame(portalTick);

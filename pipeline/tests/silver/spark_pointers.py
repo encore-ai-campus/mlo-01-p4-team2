@@ -7,6 +7,7 @@ import contextlib
 import io
 import json
 import re
+import shutil
 import unittest
 from unittest import mock
 
@@ -118,7 +119,7 @@ class Read(unittest.TestCase):  # 시험 1~5·8·9
         self.assertEqual(view.frame.schema, spark.read.format("delta").load(lake.settings.silver).schema)
         self.assertEqual(sorted(map(tuple, view.frame.collect())), silver_rows(lake.settings.silver))
         self.assertEqual(view.frame.count(), 3)
-        self.assertEqual(view[1:], (lake.version(lake.pointer()), "metaverse", 1, lake.settings.silver, silver_version))
+        self.assertEqual(view[1:], (lake.version(lake.pointer()), "metaverse", 1, lake.settings.silver, silver_version, None))  # LATEST — 대사 판 없음
 
     def test_domains_do_not_touch(self):  # 3 — 원천마다 포인터 표(D6)
         lake = lake_with_g1(self)
@@ -130,7 +131,7 @@ class Read(unittest.TestCase):  # 시험 1~5·8·9
         self.assertEqual((lake.version(lake.pointer()), lake.history(lake.pointer()), lake.pointer_rows()), before)
         self.assertEqual(lake.pointer("ads"), f"{lake.root}/silver/ads/pointer")
         self.assertEqual([op for op, _ in lake.history(lake.pointer("ads"))], ["WRITE", "WRITE"])
-        self.assertEqual(lake.view()[1:], (before[0], "metaverse", 1, lake.settings.silver, lake.version(lake.settings.silver)))
+        self.assertEqual(lake.view()[1:], (before[0], "metaverse", 1, lake.settings.silver, lake.version(lake.settings.silver), None))
         view = lake.view("ads")
         self.assertEqual((view.generation, view.path, {r["domain"] for r in view.frame.collect()}), (1, ads.silver, {"ads"}))
 
@@ -197,6 +198,60 @@ class Read(unittest.TestCase):  # 시험 1~5·8·9
         with mock.patch.object(framework, "table_state", side_effect=lambda session, path: (pinned.get(path, state(session, path)[0]), *state(session, path)[1:])):
             view = lake.view()
             self.assertEqual((view.pointer_version, view.generation, view.version, view.frame.count()), (pointer_before, 1, before, 3))
+
+
+class Reconciled(unittest.TestCase):  # 계획 41 r3d AG9 (나) — read_events 판 인자(Gold 가 마지막 대사가 확인한 판을 읽는다)
+    def test_reconciled_version(self):
+        lake = lake_with_g1(self)
+        lake.set("metaverse", 1)
+        checked, reconcile_version = lake.version(lake.settings.silver), lake.version(lake.settings.reconcile)
+        lake.add(synthetic.value(E[3]))
+        lake.run()  # 대사 전 — 본 표는 앞섰고 마지막 대사는 그대로
+        latest = lake.version(lake.settings.silver)
+        self.assertGreater(latest, checked)
+        view = pointers.read_events(spark, str(lake.root), "metaverse", pointers.RECONCILED)
+        self.assertEqual((view.generation, view.version, view.reconcile_version, view.frame.count()), (1, checked, reconcile_version, 3))
+        self.assertEqual(sorted(map(tuple, view.frame.collect())), silver_rows(lake.settings.silver, checked))
+        default = lake.view()  # LATEST(기본) 은 그대로 — 대사 판이 없다
+        self.assertEqual((default.version, default.reconcile_version, default.frame.count()), (latest, None, 4))
+        self.assertEqual(pointers.read_events(spark, str(lake.root), "metaverse", pointers.LATEST).version, latest)
+        self.assertTrue(lake.reconcile().ok)  # 다음 대사가 따라오면 그 판
+        view = pointers.read_events(spark, str(lake.root), "metaverse", pointers.RECONCILED)
+        self.assertEqual((view.version, view.reconcile_version, view.frame.count()), (latest, lake.version(lake.settings.reconcile), 4))
+
+    def test_reconciled_follows_the_pointer_generation(self):  # 세대와 그 세대 대사 판이 같은 포인터 판에서 나온다
+        lake = lake_with_g1(self)
+        lake.set("metaverse", 1)
+        self.assertTrue(lake.cycle(2).ok)
+        g2 = (lake.version(lake.settings.silver), lake.version(lake.settings.reconcile))
+        lake.set("metaverse", 2)
+        view = pointers.read_events(spark, str(lake.root), "metaverse", pointers.RECONCILED)
+        self.assertEqual((view.generation, view.version, view.reconcile_version, view.path), (2, *g2, lake.settings.silver))
+
+    def test_reconciled_refusals(self):
+        lake = lake_with_g1(self)
+        row = lake.set("metaverse", 1)
+        good = json.loads(lake.history(lake.settings.reconcile)[-1][1])
+
+        def refused(needle):
+            with self.assertRaisesRegex(pointers.PointerError, needle):
+                pointers.read_events(spark, str(lake.root), "metaverse", pointers.RECONCILED)
+            self.assertEqual(lake.view().version, lake.version(lake.settings.silver))  # LATEST 는 대사 표를 보지 않는다
+
+        lake.summary(lake.settings.reconcile, {k: v for k, v in good.items() if k != "checkpoint_id"})
+        refused(r"대사 요약에 \['checkpoint_id'\] 이\(가\) 없다$")
+        lake.summary(lake.settings.reconcile, {**good, "silver_version": str(good["silver_version"])})
+        refused(r"대사 요약에 \['silver_version'\] 이\(가\) 없다$")
+        lake.summary(lake.settings.reconcile, {**good, "checkpoint_id": "other"})
+        refused(re.escape(f"대사 요약의 checkpoint 'other' ≠ 포인터 행의 {row['checkpoint_id']!r}"))
+        lake.summary(lake.settings.reconcile, {**good, "silver_version": lake.version(lake.settings.silver) + 1})
+        refused("판 범위")
+        lake.summary(lake.settings.reconcile, {**good, "silver_version": -1})
+        refused("판 범위")
+        shutil.rmtree(lake.settings.reconcile.removeprefix("file://"))
+        refused(f"^포인터 g1 의 대사 결과 표가 없다: {re.escape(lake.settings.reconcile)}$")
+        with self.assertRaisesRegex(ValueError, "판 인자는 LATEST·RECONCILED 다: 3"):
+            pointers.read_events(spark, str(lake.root), "metaverse", 3)
 
 
 class Set(unittest.TestCase):  # 시험 6·7·7a·7b·10
@@ -318,7 +373,7 @@ class RealAdsAdapter(unittest.TestCase):  # 11 — 계획 §7: 실제 광고 어
         self.assertTrue(reconcile.reconcile(spark, lake.settings, release=RELEASE, quarantine=[], log=lake.logs.append).ok, lake.logs)
         pointers.set_generation(spark, str(lake.root), "ads", 1, by=BY, reason=WHY, log=lake.logs.append)
         view = pointers.read_events(spark, str(lake.root), "ads")
-        self.assertEqual(view[1:], (0, "ads", 1, lake.settings.silver, lake.version(lake.settings.silver)))
+        self.assertEqual(view[1:], (0, "ads", 1, lake.settings.silver, lake.version(lake.settings.silver), None))
         self.assertEqual(view.frame.columns, SILVER)
         self.assertEqual(sorted(map(tuple, view.frame.collect())), silver_rows(lake.settings.silver))
         self.assertEqual({r["domain"] for r in view.frame.collect()}, {"ads"})

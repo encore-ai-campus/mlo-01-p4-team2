@@ -21,7 +21,7 @@
         <div class="field">{{ form.ends_at.as_field_group }}</div>
       </div>
       <div class="field">{{ form.daily_budget.as_field_group }}</div>
-      {% if not form.errors %}<div class="notice info">예산은 매일 09:00 KST에 새로 시작해요<span class="detail">남은 일예산은 다음 날로 넘어가지 않습니다.</span></div>{% endif %}
+      {% if not form.errors %}<div class="notice info">예산은 매일 00:00 KST에 새로 시작해요<span class="detail">남은 일예산은 다음 날로 넘어가지 않습니다.</span></div>{% endif %}
       <div class="form-foot"><a class="button secondary" href="{% url 'campaign_list' %}">취소</a><button type="submit">캠페인 만들기</button></div>
     </form>
   </section>

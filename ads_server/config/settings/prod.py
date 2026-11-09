@@ -32,7 +32,7 @@ MEDIA_ROOT = env_str("MEDIA_ROOT", required=True)  # 코드·정적 파일 경�
 ASSET_PUBLIC_BASE_URL = env_str("ASSET_PUBLIC_BASE_URL", required=True)  # 결정 응답의 image_url·click_url 에 쓰는 광고 서버의 공개 주소
 ASSET_SERVABLE_CHECK = "campaigns.api.is_asset_servable"  # 중단·종료된 캠페인의 이미지는 404 (campaigns 가 판정, assets 는 모른다)
 SIGNUP_GRANT_POINTS = env_int("SIGNUP_GRANT_POINTS", 50_000)
-BUDGET_DAY_OFFSET_HOURS = env_int("BUDGET_DAY_OFFSET_HOURS", 0)
+BUDGET_DAY_OFFSET_HOURS = env_int("BUDGET_DAY_OFFSET_HOURS", 9)
 ASSET_MAX_BYTES = env_int("ASSET_MAX_BYTES", 2 * 1024 * 1024)
 STATIC_ROOT = env_str("STATIC_ROOT", default=str(BASE_DIR / "staticfiles"))
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", required=True)

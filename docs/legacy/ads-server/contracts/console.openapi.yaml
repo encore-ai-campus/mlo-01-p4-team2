@@ -20,7 +20,7 @@ info:
       조회·생성은 중첩 경로(`/campaigns/{id}/ad-groups`), 개별 접근은 얕은 경로(`/ad-groups/{id}`)를 쓴다.
     - **버전**: URL(`/api/console/v1`). 형식: JSON(UTF-8), 오류는 `application/problem+json`(RFC 9457), `snake_case`, ID는 UUID.
     - **시각은 UTC**(RFC 3339 `...Z`). KST 변환은 프론트가 한다(표시, 그리고 KST로 받은 입력을 UTC로 바꿔 보냄). **날짜 구간의 "일" 경계는 예산의 일 경계와 같다**
-      (`BUDGET_DAY_OFFSET_HOURS`, 기본 UTC 자정).
+      (`BUDGET_DAY_OFFSET_HOURS`, 기본 KST 자정 — 2026-11-10부터, 전에는 UTC 자정).
     - **금액은 정수**(`30`). 단위는 **포인트**다.
     - **인증**: 로그인 세션 쿠키. **쓰기 요청(POST·PUT·PATCH·DELETE)에는 `X-CSRFToken` 헤더**가 필요하다(쿠키 `ads_csrftoken` 값).
       같은 출처로 배포하는 것을 전제로 한다(설계 §6.6).
@@ -1009,7 +1009,7 @@ paths:
       operationId: getDailyReport
       summary: 일별 성과 (노출·클릭·전환·소진 포인트)
       description: |
-        대시보드의 지표 카드·추세 그래프용이다. **날짜 구간은 `from` 포함, `to` 미포함**이고, 날짜 경계는 예산의 일 경계(기본 UTC 자정)다.
+        대시보드의 지표 카드·추세 그래프용이다. **날짜 구간은 `from` 포함, `to` 미포함**이고, 날짜 경계는 예산의 일 경계(기본 KST 자정)다.
         `previous_totals`는 바로 앞의 같은 길이 구간이라 증감률 계산에 쓴다.
         노출·클릭·전환은 **인정된(`ACCEPTED`) 반응**만 센다.
       parameters:

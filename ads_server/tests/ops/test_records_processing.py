@@ -210,9 +210,9 @@ class AtomicityAndIdempotencyTests(Cases, ProcessingBase):
 
     def case_a_late_reprocess_after_midnight_keeps_the_received_day_and_time(self):
         """자정 뒤에 처리해도 예산 일·원장 시각은 처리 시각이 아니라 접수 시각(`received_at`) 기준이다."""
-        received = NOW.replace(hour=23, minute=59, second=59)
+        received = NOW.replace(hour=14, minute=59, second=59)  # KST 23:59:59 — 예산 일 경계는 기본 KST 자정
         view = self.receive(at=received)
-        late = received + timedelta(seconds=10)  # 다음 예산 일(UTC 자정 뒤)
+        late = received + timedelta(seconds=10)  # 다음 예산 일(KST 자정 뒤)
         self.assertEqual(self.process(view, now=late), "ACCEPTED")
         campaign = self.w.campaign.campaign_id
         self.assertEqual(billing.spend_today([campaign], now=received), {campaign: 294})

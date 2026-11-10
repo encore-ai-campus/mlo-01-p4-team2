@@ -114,26 +114,52 @@ class GoldRelease(unittest.TestCase):
             control.gold_release(self.root)
 
     def test_hashes_everything_gold_imports(self):  # Gold 가 import 하는 pipeline 모듈(전이 포함)이 모두 판 입력에 든다
+        # 문자열로 부르는 표 모듈(gold_job — importlib `pipeline.gold.tables.<원천>`)은 pipeline/gold 아래라 rglob 이 넣는다 — 아래가 그 자리를 본다
+        self.assertIn('importlib.import_module(f"pipeline.gold.tables.{settings.domain}")', (ROOT / "pipeline/gold/gold_job.py").read_text(encoding="utf-8"))
         hashed = {p.relative_to(ROOT).as_posix() for p in (*(ROOT / "pipeline/gold").rglob("*.py"), *(ROOT / "pipeline/silver").glob("*.py"),
                                                           ROOT / "pipeline/common/hop_rules.py")}
-        seen, todo = set(), [p.relative_to(ROOT).as_posix() for p in (ROOT / "pipeline/gold").rglob("*.py")]
-        while todo:
-            current = todo.pop()
-            if current in seen:
-                continue
-            seen.add(current)
-            for node in ast.walk(ast.parse((ROOT / current).read_text(encoding="utf-8"))):
-                if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("pipeline"):
-                    for alias in node.names:
-                        for candidate in (f"{node.module}.{alias.name}", node.module):
-                            path = candidate.replace(".", "/") + ".py"
-                            if (ROOT / path).is_file():
-                                todo.append(path)
-                                break
+        seen, missing = import_closure(ROOT, [p.relative_to(ROOT).as_posix() for p in (ROOT / "pipeline/gold").rglob("*.py")])
         self.assertIn("pipeline/silver/pointers.py", seen)  # 빈 검사가 아님
         self.assertIn("pipeline/common/hop_rules.py", seen)
+        self.assertIn("pipeline/gold/tables/ads.py", seen)
+        self.assertEqual(missing, [])
         self.assertEqual(sorted(seen - hashed), [])
 
+    def test_import_closure_forms(self):  # 닫힘 도구 자체 — `from pipeline.x import mod`·`from pipeline.x.mod import f`·`import pipeline.x.mod`·없는 모듈
+        files = {"pipeline/gold/a.py": "from pipeline.silver import b, c as cc\nfrom pipeline.silver.d import f\nimport pipeline.common.e\nfrom pipeline.nope import z\n",
+                 "pipeline/silver/b.py": "", "pipeline/silver/c.py": "", "pipeline/silver/d.py": "from pipeline.silver.b import g\n", "pipeline/common/e.py": ""}
+        for rel, text in files.items():
+            (self.root / rel).parent.mkdir(parents=True, exist_ok=True)
+            (self.root / rel).write_text(text, encoding="utf-8")
+        seen, missing = import_closure(self.root, ["pipeline/gold/a.py"])
+        self.assertEqual(sorted(seen), sorted(files))
+        self.assertEqual(missing, [("pipeline/gold/a.py", "pipeline.nope")])
+
+
+def import_closure(root, start):
+    """`start`(뿌리 기준 상대 경로)에서 pipeline.* import 를 따라간 파일 집합과, 파일도 폴더도 아닌 import 이름 [(파일, 이름)]."""
+    seen, missing, todo = set(), [], list(start)
+    while todo:
+        current = todo.pop()
+        if current in seen:
+            continue
+        seen.add(current)
+        for node in ast.walk(ast.parse((root / current).read_text(encoding="utf-8"))):
+            if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("pipeline"):
+                # 별칭이 모듈 파일이면 그 파일들, 아니면(함수·상수 — `from pipeline.x.mod import f`) 모듈 자체(GOLD-2 리뷰 권고 2)
+                files = [f"{node.module}.{alias.name}" for alias in node.names if (root / (f"{node.module}.{alias.name}".replace(".", "/") + ".py")).is_file()]
+                names = files or [node.module]
+            elif isinstance(node, ast.Import):  # (GOLD-1 리뷰 권고 2) `import pipeline.x` 꼴
+                names = [alias.name for alias in node.names if alias.name.startswith("pipeline")]
+            else:
+                continue
+            for candidate in names:
+                path = candidate.replace(".", "/") + ".py"
+                if (root / path).is_file():
+                    todo.append(path)
+                elif not (root / candidate.replace(".", "/")).is_dir():
+                    missing.append((current, candidate))
+    return seen, missing
 
 if __name__ == "__main__":
     unittest.main()

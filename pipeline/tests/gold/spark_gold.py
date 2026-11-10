@@ -421,6 +421,23 @@ class Recovery(unittest.TestCase):  # §2.1 정정 줄 잃지 않기 + 권고 1 
         self.assertEqual((len(lake.corrections()), lake.done()), (3, 4))
 
 
+    def test_recreated_table_is_refused(self):  # GOLD-1 리뷰 권고 1 — 표 폴더를 지우고 다시 만들어 판이 정정 기록보다 앞서면 조용히 건너뛰지 않는다
+        lake = started(self, ev("a", "10:20"), clock("12:30"))
+        for _ in range(3):
+            self.assertTrue(lake.run().ok)
+        self.assertEqual(lake.done(), 2)
+        shutil.rmtree(lake.gold_path())
+        lake.add(ev("b", "10:30"))
+        lake.reconcile()
+        with self.assertRaisesRegex(framework.GoldError, r"events_hourly/v1 의 지금 판 -1\(표 없음\) 이 정정 기록의 마지막 판 2\(gold:ads:events_hourly:v1\)보다 앞이다 — "
+                                                         r"표를 다시 만들지 말고 새 표 판\(v2\)으로"):
+            lake.run()
+        self.assertFalse(Path(lake.gold_path()).exists())  # 회차 시작에서 멈춰 아무것도 쓰지 않았다
+        spark.range(1).write.format("delta").save(lake.gold_path())  # 손으로 다시 만든 표(판 0)도 같다
+        with self.assertRaisesRegex(framework.GoldError, r"지금 판 0 이 정정 기록의 마지막 판 2"):
+            lake.run()
+
+
 class JobEntry(unittest.TestCase):
     def test_main(self):
         env = {"GOLD_LAKE_ROOT": "/lake", "GOLD_CODE_ROOT": str(Path(__file__).resolve().parents[3])}

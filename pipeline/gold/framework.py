@@ -168,12 +168,13 @@ def catch_up(spark, root, domain, table, log=print):
     """그 표의 정정이 쓰이지 않은 회차 판을 차례로 쓴다(§2.1 잃지 않기 — 권고 1~3). 첫 회차 판은 견줄 판이 없어 빈 줄로 표시만. 반환: 쓴 줄 수."""
     path = control.table_path(root, domain, table.name, table.version)
     latest = silver_framework.table_state(spark, path)[0]
-    if latest < 0:
-        return 0
     target = control.corrections_path(root, domain)
     ident = app_id(domain, table)
     done = _txn_versions(spark, target).get(ident, -1)
-    if done >= latest:
+    if done > latest:  # (GOLD-1 리뷰 권고 1) 정정이 쓰인 판보다 표가 앞 — 표 폴더를 지우고 다시 만들었다(없거나 판이 0부터). 회차 시작에서 멈춰 아무것도 쓰지 않는다
+        raise GoldError(f"{path} 의 지금 판 {latest}{'(표 없음)' if latest < 0 else ''} 이 정정 기록의 마지막 판 {done}({ident})보다 앞이다 — "
+                        f"표를 다시 만들지 말고 새 표 판(v{table.version + 1})으로 만든다(runbooks/gold.md)")
+    if latest < 0 or done == latest:
         return 0
     found = _records(spark, path, latest, done - 1 if done >= 0 else -1)  # 정정이 쓰인 마지막 판(견줄 앞 판)부터
     base = next((item for item in found if item[0] == done), None)

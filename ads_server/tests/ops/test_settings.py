@@ -54,6 +54,15 @@ class ProdSettingsTests(Cases, SimpleTestCase):
         self.assertIn("'HOSTS': ['a:1', 'b:2']", r.stdout)
         self.assertIn("'REPLICA_SET': 'rs0'", r.stdout)
 
+    def case_budget_day_boundary_defaults_to_kst_midnight(self):
+        """설계 §4.7(사용자 2026-11-10): 운영·개발 설정에 값이 없으면 9(KST 자정), 있으면 그 값(0 = UTC 자정)."""
+        show = "from django.conf import settings; print(settings.BUDGET_DAY_OFFSET_HOURS)"
+        for module, env in (("config.settings.prod", PROD_ENV), ("config.settings.dev", DB_ENV)):
+            r = run_python(show, module, env)
+            self.assertEqual((r.returncode, r.stdout.strip()), (0, "9"), (module, r.stderr[-300:]))
+            r = run_python(show, module, dict(env, BUDGET_DAY_OFFSET_HOURS="0"))
+            self.assertEqual((r.returncode, r.stdout.strip()), (0, "0"), (module, r.stderr[-300:]))
+
     def case_prod_debug_cannot_be_enabled_by_env(self):
         r = run_python("from django.conf import settings; print(settings.DEBUG)", "config.settings.prod",
                        dict(PROD_ENV, DJANGO_DEBUG="1"))

@@ -1,6 +1,6 @@
 """Step 3-2a 광고주 대시보드: 기간(오늘 포함 최근 N일, 예산 일 경계 — 설계 D3-5)·지표 카드(직전 같은 길이 대비 증감)·서버가 그린 SVG 추세 그래프와 같은 값의 표·포인트.
 
-시각은 `NOW`(2026-10-07 12:00 UTC)로 고정한다(대시보드의 `_now` 를 바꾼다). 예산 일은 UTC 자정이라 오늘은 2026-10-07 이다.
+시각은 `NOW`(2026-10-07 12:00 UTC = 21:00 KST)로 고정한다(대시보드의 `_now` 를 바꾼다). 예산 일은 기본 KST 자정이라 오늘은 2026-10-07 이다.
 """
 import re
 from unittest import mock
@@ -132,7 +132,7 @@ class DashboardTests(Cases, TestCase):
         self.assertIn('<div class="big">49,706 P</div>', wallet)  # 사용 가능한 포인트
         self.assertRegex(wallet, r"<dt>오늘 소진</dt><dd><strong>294 P</strong></dd>")
         self.assertIn("일예산 합계 50,000 P 중 1%", wallet)  # 집행 중 캠페인의 일예산 합계 대비(6-21c)
-        self.assertIn("2026-10-08 09:00", wallet)  # 다음 예산 일 시작(KST)
+        self.assertIn("2026-10-08 00:00", wallet)  # 다음 예산 일 시작(KST 자정)
         self.assertNotIn('aria-label="시작하기"', html)
 
     def case_first_use_shows_getting_started_instead_of_the_campaign_table(self):
@@ -166,7 +166,8 @@ class TopCampaignTests(Cases, TestCase):
         self.second = campaigns.create_campaign(self.w.adv, "<b>둘째</b>", NOW - 30 * DAY, None, 5000, now=NOW)
         group = campaigns.create_ad_group(self.w.adv, self.second.campaign_id, "그룹", [self.slot2.slot_id], bid_amount=400, now=NOW)
         campaigns.create_creative(self.w.adv, group.ad_group_id, "제목", "https://example.com/2", png_file((9, 9, 9)), now=NOW)
-        self.window = (NOW.replace(hour=0) - 6 * DAY, NOW.replace(hour=0) + DAY)
+        today = billing.day_start(billing.budget_day_of(NOW))  # NOW 가 속한 예산 일의 시작
+        self.window = (today - 6 * DAY, today + DAY)
 
     def case_campaign_totals_follow_the_daily_report_rules(self):
         impression(self.w, NOW - DAY)

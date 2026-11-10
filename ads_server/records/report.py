@@ -3,7 +3,7 @@
 반응이 많아져 느려지면 이 함수 안쪽만 일별 카운터나 파이프라인 결과(C4)로 바꾼다. 호출하는 쪽(콘솔)은 그대로다.
 
 - 범위는 광고주의 것으로 좁힌다: 결정에 기록된 `owner_id`·`campaign_id`·`ad_group_id`(과금과 같은 근거). 남의 캠페인·광고그룹은 없는 것과 같다(404).
-- 날짜는 **수신 시각(`received_at`)** 의 예산 일(기본 UTC 자정) 기준이고, 구간은 `from` 포함 `to` 미포함, 일 경계에 맞아야 하며 최대 92일이다.
+- 날짜는 **수신 시각(`received_at`)** 의 예산 일(기본 KST 자정 — `billing.budget_day_of`) 기준이고, 구간은 `from` 포함 `to` 미포함, 일 경계에 맞아야 하며 최대 92일이다.
 - 노출·클릭·전환은 `ACCEPTED` 만 센다(일괄 슬롯은 사람마다 한 건씩 센다). `spent` 는 **실제로 받은 포인트**다(잔액이 모자라 덜 받았으면 그만큼).
   소진은 원장의 과금이다 — 캠페인·광고주 범위는 캠페인의 과금 줄을 예산 일로 묶고, 원장에 광고그룹이 없는 광고그룹 범위는 그 광고그룹 결정의 반응으로 과금을 찾는다.
 - 전환율은 **클릭 코호트 기준**이다: 그 구간에 받은 클릭 중 인정된 전환이 이어진 클릭 수(`converted_clicks`) / 클릭 수. 전환 수는 수신일 기준이라 이전 구간 클릭의 전환이 섞인다.
@@ -32,7 +32,7 @@ def _check_window(start, end):
         if getattr(value, "tzinfo", None) is None:
             problems.append({"pointer": pointer, "message": "UTC 시각이어야 합니다."})
         elif billing.day_start(billing.budget_day_of(value)) != value:
-            problems.append({"pointer": pointer, "message": "예산 일 경계(기본 UTC 자정)에 맞아야 합니다."})
+            problems.append({"pointer": pointer, "message": "예산 일 경계에 맞아야 합니다."})
     if problems:
         raise errors.InvalidRequest(errors=problems)
     if end <= start:

@@ -1,7 +1,7 @@
 """2-10 퍼널 집계 `records.api.daily_report`: 인정된 반응을 결정과 묶어 일별로 센다(읽기 전용, 별도 테이블 없음).
 
 시각은 모두 고정한다. 결정은 `NOW`(2026-10-07 12:00 UTC)를 기준으로 며칠 앞뒤에 만들고, 반응은 결정 1초 뒤에 수신해 바로 처리한다.
-예산 일은 기본 UTC 자정이라 `NOW` 의 날은 2026-10-07 이다.
+예산 일은 기본 KST 자정(= 15:00Z)이라 `NOW`(10/7 21:00 KST)의 날은 2026-10-07 이다. 그날의 시작 `D7` 은 경계 함수로 구한다.
 """
 import threading
 import uuid
@@ -22,7 +22,7 @@ from records.models import Reaction
 from tests.support.factories import DAY, NOW, SHARES, SUBJECT, World, make_admin, make_advertiser, png_file
 from tests.support.cases import Cases
 
-D7 = datetime(2026, 10, 7, tzinfo=timezone.utc)  # NOW 가 속한 예산 일의 시작
+D7 = billing.day_start(date(2026, 10, 7))  # NOW 가 속한 예산 일의 시작(기본 KST 자정 = 10/6 15:00Z)
 SEC = timedelta(seconds=1)
 HOUR = timedelta(hours=1)
 A, B, C = ("0197a5c0-0000-7000-8000-0000000000%02x" % n for n in (0xa1, 0xb2, 0xc3))
@@ -140,8 +140,9 @@ class DailyReportCountsTests(Cases, ReportBase):
         self.report(b, "IMPRESSION", datetime(2026, 10, 7, 15, 0, tzinfo=timezone.utc))  # KST 10/8 00:00
         report = records.daily_report(w.adv, start, start + 2 * DAY)
         self.assertEqual(self.by_date(report), {date(2026, 10, 7): (1, 0, 0, 294), date(2026, 10, 8): (1, 0, 0, 294)})
+        utc_midnight = datetime(2026, 10, 7, tzinfo=timezone.utc)
         with self.assertRaises(InvalidRequest):  # UTC 자정은 이 설정에서 일 경계가 아니다
-            records.daily_report(w.adv, D7, D7 + DAY)
+            records.daily_report(w.adv, utc_midnight, utc_midnight + DAY)
 
     def test_daily_report_counts(self):
         self.run_cases()
@@ -375,7 +376,7 @@ class ReportSnapshotTests(Cases, ReportMixin, TransactionTestCase):
 
         def work():
             try:
-                self.full_funnel(NOW + 5 * HOUR, subject=B)
+                self.full_funnel(NOW + 2 * HOUR, subject=B)  # 같은 예산 일 안(KST 23:00)
             except BaseException as error:  # noqa: BLE001 — 스레드 안의 실패를 시험 실패로 올린다
                 errors.append(error)
             finally:

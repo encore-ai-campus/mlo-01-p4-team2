@@ -16,7 +16,7 @@ STATIC_ROOT = env_str("STATIC_ROOT", default=str(BASE_DIR / "staticfiles"))  # p
 ASSET_PUBLIC_BASE_URL = env_str("ASSET_PUBLIC_BASE_URL", default="http://127.0.0.1:8001")
 ASSET_SERVABLE_CHECK = "campaigns.api.is_asset_servable"  # 중단·종료된 캠페인의 이미지는 404 (campaigns 가 판정, assets 는 모른다)
 SIGNUP_GRANT_POINTS = env_int("SIGNUP_GRANT_POINTS", 50_000)
-BUDGET_DAY_OFFSET_HOURS = env_int("BUDGET_DAY_OFFSET_HOURS", 0)
+BUDGET_DAY_OFFSET_HOURS = env_int("BUDGET_DAY_OFFSET_HOURS", 9)
 ASSET_MAX_BYTES = env_int("ASSET_MAX_BYTES", 2 * 1024 * 1024)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "[::1]"])
 

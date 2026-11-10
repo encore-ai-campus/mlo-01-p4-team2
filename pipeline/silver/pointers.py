@@ -12,7 +12,10 @@
   표 이력이 바꾼 기록이고 행을 지우는 길은 없다. 포인터 행의 판들은 그때의 근거일 뿐이다 — 읽기는 읽을 때 판을 다시 정한다.
 - read_events(spark, root, domain): 그 원천 하나만. 포인터 표 판과 그 세대 본 표 판을 먼저 정해 그 판으로 읽고(D3), 본 표 열(이름·순서·형)이
   지금 코드의 contracts.SILVER_FIELDS 와 같은지 본다(옛 열 모양 세대를 읽지 않게). 격리·오류 표는 읽지 않는다(G11).
-  반환 View(frame, pointer_version, domain, generation, path, version).
+  반환 View(frame, pointer_version, domain, generation, path, version, reconcile_version).
+  판 인자(계획 41 r3d AG9 (나) — Gold): `version=LATEST`(기본 — 지금 본 표 판, reconcile_version None) 또는 `RECONCILED`(그 세대 대사 결과 표의
+  마지막 커밋 요약이 확인한 silver_version — 요약 키(SUMMARY_KEYS)와 checkpoint_id 가 포인터 행과 같아야 하고, 그 커밋 판을 reconcile_version 으로).
+  포인터 표는 한 번만 읽는다 — 세대와 그 세대 대사 판이 같은 포인터 판에서 나온다.
 - 손 도구: `spark-submit-silver.sh pipeline/silver/pointers.py set --domain <원천> --generation <N> --by <이름> --reason <이유> [--bronze-changed <이유>]`
   또는 `show --domain <원천>`. 설정은 SILVER_LAKE_ROOT 와(s3a 면) S3 넷 — control.pointer_command 가 Spark 전에 검사한다. rc 0 바꿈·보임, 2 인자·설정, 1 그 밖(PointerError 포함).
 """
@@ -33,7 +36,8 @@ POINTER_FIELDS = (
 )
 SUMMARY_KEYS = {"status": str, "silver_version": int, "bronze_version": int, "checkpoint_id": str, "silver_release": str, "bronze_table": str}
 HISTORY = 10  # show 가 찍는 마지막 커밋 수
-View = namedtuple("View", "frame pointer_version domain generation path version")
+View = namedtuple("View", "frame pointer_version domain generation path version reconcile_version")
+LATEST, RECONCILED = "latest", "reconciled"  # read_events 판 인자
 
 
 class PointerError(RuntimeError):
@@ -81,6 +85,11 @@ def _last_run(spark, path):
     return last["version"], summary if isinstance(summary, dict) else None
 
 
+def _lacking(summary):
+    """대사 요약에 없거나 형이 다른 SUMMARY_KEYS(요약이 None 이면 전부)."""
+    return [key for key, kind in SUMMARY_KEYS.items() if summary is None or type(summary.get(key)) is not kind]
+
+
 def set_generation(spark, root, domain, generation, *, by, reason, bronze_changed=None, log=print):
     """원천 `domain` 의 포인터를 세대 `generation` 으로(D1·D5 — 모듈 설명). 반환: 쓴 포인터 행 dict."""
     control.pointer_change(domain, generation, by, reason, bronze_changed)
@@ -98,7 +107,7 @@ def set_generation(spark, root, domain, generation, *, by, reason, bronze_change
         problems.append(f"대사 결과 표가 없다: {paths.reconcile}")
     else:
         reconcile_version, summary = run
-        lacking = [key for key, kind in SUMMARY_KEYS.items() if summary is None or type(summary.get(key)) is not kind]
+        lacking = _lacking(summary)
         if lacking:
             problems.append(f"{paths.reconcile} 마지막 커밋(판 {reconcile_version})의 대사 요약에 {lacking} 이(가) 없다 — 이 판의 Silver 잡으로 한 회차 돈 뒤 다시")
             summary = None
@@ -137,20 +146,38 @@ def set_generation(spark, root, domain, generation, *, by, reason, bronze_change
     return row
 
 
-def read_events(spark, root, domain):
-    """원천 하나의 지금 세대 본 표(D3 — 모듈 설명). 반환 View(frame, pointer_version, domain, generation, path, version)."""
+def read_events(spark, root, domain, version=LATEST):
+    """원천 하나의 지금 세대 본 표(D3 — 모듈 설명). `version`: LATEST 또는 RECONCILED(모듈 설명).
+    반환 View(frame, pointer_version, domain, generation, path, version, reconcile_version)."""
+    if version not in (LATEST, RECONCILED):
+        raise ValueError(f"판 인자는 LATEST·RECONCILED 다: {version!r}")
     path, pointer_version, pointer = _pointer(spark, root, domain)
     if pointer is None:
         raise PointerError(f"포인터 표가 없다: {path} — 첫 포인터를 쓰기 전에는 읽지 않는다")
-    table = control.silver_paths(root, domain, pointer["generation"]).silver
-    version = framework.table_state(spark, table)[0]
-    if version < 0:
+    paths = control.silver_paths(root, domain, pointer["generation"])
+    table = paths.silver
+    at = framework.table_state(spark, table)[0]
+    if at < 0:
         raise PointerError(f"포인터 g{pointer['generation']} 의 본 표가 없다: {table}")
-    frame = _read(spark, table, version)
+    reconcile_version = None
+    if version == RECONCILED:
+        run = _last_run(spark, paths.reconcile)
+        if run is None:
+            raise PointerError(f"포인터 g{pointer['generation']} 의 대사 결과 표가 없다: {paths.reconcile}")
+        reconcile_version, summary = run
+        lacking = _lacking(summary)
+        if lacking:
+            raise PointerError(f"{paths.reconcile} 마지막 커밋(판 {reconcile_version})의 대사 요약에 {lacking} 이(가) 없다")
+        if summary["checkpoint_id"] != pointer["checkpoint_id"]:
+            raise PointerError(f"대사 요약의 checkpoint {summary['checkpoint_id']!r} ≠ 포인터 행의 {pointer['checkpoint_id']!r}({paths.reconcile} 판 {reconcile_version})")
+        if not 0 <= summary["silver_version"] <= at:
+            raise PointerError(f"대사가 확인한 본 표 판 {summary['silver_version']} 이 {table} 의 판 범위(0~{at}) 밖이다")
+        at = summary["silver_version"]
+    frame = _read(spark, table, at)
     problem = _shape_problem(table, frame, contracts.SILVER_FIELDS)
     if problem:
         raise PointerError(problem)
-    return View(frame, pointer_version, domain, pointer["generation"], table, version)
+    return View(frame, pointer_version, domain, pointer["generation"], table, at, reconcile_version)
 
 
 def show(spark, root, domain, log=print):

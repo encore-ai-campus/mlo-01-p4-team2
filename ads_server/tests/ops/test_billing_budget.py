@@ -1,6 +1,7 @@
 import uuid
 from datetime import date
 
+from django.conf import settings
 from django.test import TestCase, override_settings
 
 from billing import api
@@ -10,17 +11,21 @@ from tests.support.cases import Cases
 
 
 class BudgetDayTests(Cases, TestCase):
-    def case_budget_day_boundary_default_utc(self):
+    def case_budget_day_boundary_default_kst_midnight(self):
+        """기본 경계는 KST 자정(사용자 2026-11-10, 설계 §4.7) — 서버 시각은 UTC 그대로다."""
+        self.assertEqual(settings.BUDGET_DAY_OFFSET_HOURS, 9)
+        self.assertEqual(api.budget_day_of(utc(2026, 10, 7, 14, 59, 59)), date(2026, 10, 7))  # KST 23:59:59
+        self.assertEqual(api.budget_day_of(utc(2026, 10, 7, 15, 0, 0)), date(2026, 10, 8))  # KST 자정
+        self.assertEqual(api.next_reset(utc(2026, 10, 7, 20)), utc(2026, 10, 8, 15))  # KST 자정 = 15:00Z
+        self.assertEqual(api.next_reset(utc(2026, 10, 7, 15, 0, 0)), utc(2026, 10, 8, 15))
+        self.assertEqual(api.day_start(date(2026, 10, 8)), utc(2026, 10, 7, 15))
+
+    @override_settings(BUDGET_DAY_OFFSET_HOURS=0)
+    def case_budget_day_boundary_utc_midnight_when_offset_is_zero(self):
         self.assertEqual(api.budget_day_of(utc(2026, 10, 7, 0, 0, 0)), date(2026, 10, 7))  # 00:00:00Z 가 새 날
         self.assertEqual(api.budget_day_of(utc(2026, 10, 6, 23, 59, 59)), date(2026, 10, 6))
         self.assertEqual(api.next_reset(utc(2026, 10, 7, 12)), utc(2026, 10, 8))  # KST 09:00 리셋
         self.assertEqual(api.next_reset(utc(2026, 10, 7, 0, 0, 0)), utc(2026, 10, 8))
-
-    @override_settings(BUDGET_DAY_OFFSET_HOURS=9)
-    def case_budget_day_offset_kst_midnight(self):
-        self.assertEqual(api.budget_day_of(utc(2026, 10, 7, 14, 59, 59)), date(2026, 10, 7))  # KST 23:59:59
-        self.assertEqual(api.budget_day_of(utc(2026, 10, 7, 15, 0, 0)), date(2026, 10, 8))  # KST 자정
-        self.assertEqual(api.next_reset(utc(2026, 10, 7, 20)), utc(2026, 10, 8, 15))  # KST 자정 = 15:00Z
 
     def case_resets_at_is_in_the_future_and_within_a_day(self):
         for hour in (0, 5, 14, 23):
@@ -59,7 +64,8 @@ class SpendTests(Cases, TestCase):
             totals[day] = totals.get(day, 0) + spent
         return totals
 
-    def case_spent_today_resets_at_boundary(self):
+    @override_settings(BUDGET_DAY_OFFSET_HOURS=0)
+    def case_spent_today_resets_at_utc_midnight_when_offset_is_zero(self):
         self.assertEqual(api.spend_today([self.camp, self.other], now=utc(2026, 10, 7, 12)), {self.camp: 10 + 30, self.other: 20 + 40})
         self.assertEqual(api.spend_today([self.camp, self.other], now=utc(2026, 10, 8, 0, 0, 0)), {self.camp: 50})  # 어제 몫 제외
         self.assertEqual(api.spend_today([self.camp], now=utc(2026, 10, 9)), {})
@@ -75,9 +81,19 @@ class SpendTests(Cases, TestCase):
             per_campaign[campaign_id] = per_campaign.get(campaign_id, 0) + spent
         self.assertEqual(api.spend_by_campaign([self.camp, self.other], date(2026, 10, 1), date(2026, 10, 10)), per_campaign)
 
+    def case_spent_today_resets_at_kst_midnight_by_default(self):
+        """기본(KST 자정): 10/7 KST 날은 15:00Z 에 끝난다 — r0·r1 은 10/7, r2~r4 는 10/8(KST)."""
+        self.assertEqual(api.spend_today([self.camp, self.other], now=utc(2026, 10, 7, 12)), {self.camp: 10, self.other: 20})
+        self.assertEqual(api.spend_today([self.camp, self.other], now=utc(2026, 10, 8, 0, 0, 0)), {self.camp: 30 + 50, self.other: 40})  # KST 10/8 09:00
+        self.assertEqual(api.spend_today([self.camp], now=utc(2026, 10, 8, 15)), {})  # KST 10/9 00:00 — 어제 몫 제외
+        wallet = api.get_wallet(self.adv, now=utc(2026, 10, 7, 12))
+        self.assertEqual((wallet.spent_today, wallet.budget_day, wallet.resets_at), (10 + 20, date(2026, 10, 7), utc(2026, 10, 7, 15)))
+        self.assertEqual(api.get_wallet(self.adv, now=utc(2026, 10, 8, 1)).spent_today, 30 + 40 + 50)
+
     def case_changing_the_budget_day_offset_needs_no_recompute(self):
-        """경계를 UTC 자정 → KST 자정으로 바꾸면 소진액이 바로 새 경계로 묶인다(전에는 재계산 명령을 돌려야 했다)."""
-        utc_view = self.by_day()
+        """경계를 UTC 자정 → KST 자정으로 바꾸면 소진액이 바로 새 경계로 묶인다(전에는 재계산 명령을 돌려야 했다). 기본은 KST 자정이다."""
+        with override_settings(BUDGET_DAY_OFFSET_HOURS=0):
+            utc_view = self.by_day()
         with override_settings(BUDGET_DAY_OFFSET_HOURS=9):
             kst_view = self.by_day()
             self.assertEqual(kst_view, self.expected_by_day())
@@ -85,7 +101,9 @@ class SpendTests(Cases, TestCase):
             self.assertEqual(sum(kst_view.values()), sum(utc_view.values()))  # 총합은 같다
             # KST 10/8 05:00 = 10/7 20:00Z: 새 경계에서는 15:00Z 이후 줄이 '오늘'이다
             self.assertEqual(api.spend_today([self.camp, self.other], now=utc(2026, 10, 7, 20)), {self.camp: 30 + 50, self.other: 40})
-        self.assertEqual(self.by_day(), utc_view)  # 되돌리면 그대로
+        with override_settings(BUDGET_DAY_OFFSET_HOURS=0):
+            self.assertEqual(self.by_day(), utc_view)  # 되돌리면 그대로
+        self.assertEqual(self.by_day(), kst_view)  # 기본은 KST 자정
 
     def test_spend(self):
         self.run_cases()

@@ -1,6 +1,6 @@
 """예산 "그날"의 경계 — **함수·설정값 한 곳**(설계 §4.7). 소진액 집계와 화면의 리셋 시각이 모두 여기서 나온다.
 
-`BUDGET_DAY_OFFSET_HOURS` 기본 0 = UTC 자정(KST 09:00 리셋). KST 자정으로 바꾸려면 9 로 둔다 — 소진액은 원장에서 바로 세므로 다시 계산할 것이 없다(6-16f).
+`BUDGET_DAY_OFFSET_HOURS` 기본 9 = KST 자정(사용자 2026-11-10). 0 이면 UTC 자정(KST 09:00 리셋) — 소진액은 원장에서 바로 세므로 바꿔도 다시 계산할 것이 없다(6-16f).
 """
 from datetime import datetime, time, timedelta, timezone
 

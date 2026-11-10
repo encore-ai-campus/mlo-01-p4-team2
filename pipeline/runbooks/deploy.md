@@ -262,7 +262,19 @@ where p.pubname = 'ads_outbox_pub';
 
 ### 예산 일 경계 — KST 자정(BD-1, 사용자 2026-11-10)
 - 예산 "그날"은 KST 자정에 바뀐다. 설정 `BUDGET_DAY_OFFSET_HOURS`의 기본값이 9다. 서버·DB 시각은 UTC 그대로다. 운영 `.env`에 이 줄이 0으로 있으면 지우거나 9로 둔다.
-- 광고 대사(hop)를 운영에 설치할 때: 원본 재구성(`records/hops.py`)은 옛 과금의 `budget_day`를 지금 경계로 다시 계산한다. 경계를 바꾸기 전 과금 가운데 KST 00:00~09:00에 생긴 것은 outbox 값과 하루 어긋난다. 그 과금이 다시 검사하는 창(시 48시간·일 8일) 안에 있으면 그 창이 불일치로 나온다(잃은 데이터가 아니다). 운영 원장은 시험 과금뿐이므로, 설치 전에 그런 과금이 창 안에 있는지 확인한다. 원장은 지우지 않는다.
+- 운영 적용(DEP-2): **2026-11-10T00:05:11Z(= 09:05:11 KST)**부터 이 경계다. 백엔드 웹과 반응 처리 둘 다 다시 시작한 시각 가운데 늦은 쪽이다. 그 전에 outbox에 실린 `ad.charge`의 `budget_day`는 UTC 날짜다. 적용 직전(2026-11-10T00:02Z) 운영 원장의 과금(CHARGE)은 0줄이었다.
+- 광고 대사(hop)를 운영에 설치할 때: 원본 재구성(`records/hops.py`)은 옛 과금의 `budget_day`를 지금 경계로 다시 계산한다. 적용 전 과금 가운데 KST 00:00~09:00(UTC 15~23시)에 생긴 것은 outbox 값과 하루 어긋난다. 그 과금이 다시 검사하는 창(시 48시간·일 8일) 안에 있으면 그 창이 불일치로 나온다(잃은 데이터가 아니다). 설치 전에 운영 DB를 읽기 전용 세션으로 보고 센다:
+
+  ```sql
+  select count(*) from billing_ledger_entry
+  where entry_type = 'CHARGE'
+    and created_at >= timestamptz '2026-11-10T00:05:11Z' - interval '8 days'
+    and created_at <  timestamptz '2026-11-10T00:05:11Z'
+    and extract(hour from created_at at time zone 'UTC') between 15 and 23;
+  ```
+
+  - 0이면 확인할 것이 없다. 2026-11-18T00:05:11Z 뒤에 설치하면 그런 과금이 모두 창 밖이라 세지 않아도 된다.
+  - 그 전에 설치했는데 0이 아니면, 그 창의 불일치는 경계 변경 때문인 알려진 것이다. 사건 기록에 적는다. 원장은 지우지 않는다.
 
 ## P8-2에서 더할 것(이번 판에는 없음)
 

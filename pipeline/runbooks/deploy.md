@@ -138,7 +138,7 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
 #### M9·M10 경보가 오면(감시 서버, MON-4)
 
 - M9 `app_db`는 광고 웹이 DB까지 닿는지를 공개 주소로 본다. 1회 실패는 `watch`(알림 없음)이고, 2회 연속이면 경보다. 상세 앞머리가 끊긴 곳이다.
-  - `HTTP 503 — 백엔드까지 닿음`: .204 → HAProxy → DB가 끊겼거나, 쓰기 입구가 대기 서버다. 같은 알림의 M1·M2(노드 직접)가 정상이면 .204 쪽 길(HAProxy, .204의 LAN 연결)을 본다. .204 journal에 `DB 경로 확인 실패` 줄이 까닭(예외 이름·SQLSTATE)을 남긴다.
+  - `HTTP 503 — 백엔드까지 닿음`: .204 → HAProxy → DB가 끊겼거나, 쓰기 입구가 대기 서버다. M1·M2(노드 직접) 경보가 없으면(알림에는 바뀐 줄만 실리므로, 감시 출력 JSON의 M1·M2 줄이 ok인지 본다) .204 쪽 길(HAProxy, .204의 LAN 연결)을 본다. .204 journal에 `DB 경로 확인 실패` 줄이 까닭(예외 이름·SQLSTATE)을 남긴다.
   - `EC2 nginx 까지 닿음 — … 응답 없음`: 프론트가 백엔드를 기다리는 중이다(.204 꺼짐·잠듦·WSL·wg-ad 터널). M10도 실패면 .204 자체다.
   - `HTTP 502`: EC2 안 프론트 프로세스, 또는 프론트 → 백엔드.
   - `HTTP 403`: EC2 nginx `location = /health/db`의 allow와 감시 서버 출발 공인 IP가 다르다. 앱 장애가 아니다.

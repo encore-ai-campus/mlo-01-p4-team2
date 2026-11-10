@@ -2,6 +2,11 @@
 (() => {
   'use strict';
   const button=document.getElementById('consultationChatOpen');if(!button)return;
+  const footer=document.querySelector('.map-shell>.map-footer');
+  if(footer){
+    const syncFooter=()=>document.documentElement.style.setProperty('--campus-help-height',`${Math.ceil(footer.getBoundingClientRect().height)}px`);
+    new ResizeObserver(syncFooter).observe(footer);syncFooter();
+  }
   button.setAttribute('aria-label','LMS 상담톡 열기');button.setAttribute('aria-expanded','false');button.setAttribute('role','button');
   const greeting=document.createElement('aside');greeting.className='consultation-greeting';greeting.setAttribute('aria-label','상담톡 안내');
   const greetingOpen=document.createElement('button');greetingOpen.type='button';greetingOpen.className='consultation-greeting-open';

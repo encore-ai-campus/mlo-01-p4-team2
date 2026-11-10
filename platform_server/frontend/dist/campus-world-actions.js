@@ -41,10 +41,11 @@
   const caption=document.createElement('span');caption.textContent='점심추천 돌림판';wheel.append(caption);
   wheel.addEventListener('click',()=>window.dispatchEvent(new CustomEvent('campus:open-service',{detail:'lunch'})));
   const guideObject=window.CampusWorlds.campus.objects.find(item=>item.id==='campus-guide-kkuwang');
-  const sites=[{button:guide,x:guideObject.x+guideObject.w/2,y:guideObject.y+guideObject.h/2},{button:wheel,x:(1000+72)*1.5,y:90*1.5}];
+  const wheelObject=window.CampusWorlds.rooftop.objects.find(item=>item.id==='roof-lunch-wheel');
+  const sites=[{button:guide,floor:'campus',x:guideObject.x+guideObject.w/2,y:guideObject.y+guideObject.h/2},{button:wheel,floor:'rooftop',x:wheelObject.x+wheelObject.w/2,y:wheelObject.y+wheelObject.h/2}];
   window.CampusWorldActions={update({floor,project,width,height,blocked}){
     for(const item of sites){
-      if(floor!=='campus'||blocked){item.button.hidden=true;continue;}
+      if(floor!==item.floor||blocked){item.button.hidden=true;continue;}
       const p=project(item.x,item.y);item.button.hidden=p.x< -120||p.x>width+120||p.y< -20||p.y>height+150;
       item.button.style.left=Math.round(p.x)+'px';item.button.style.top=Math.round(p.y)+'px';
     }

@@ -53,9 +53,10 @@
     finally{roofLoading=false;}
   }
   function tick({now,floor,renderer,camera,canvas,width,height,blocked}){
-    if(floor==='rooftop'&&!document.hidden&&!roofLoading&&now>=nextRoof)refreshRoof(renderer);
+    const adFloor=floor==='rooftop'||(floor==='campus'&&renderer.hasDisplay?.('roof-ad-board'));
+    if(adFloor&&!document.hidden&&!roofLoading&&now>=nextRoof)refreshRoof(renderer);
     let ratio=0;
-    if(roof&&floor==='rooftop'&&!blocked&&!document.hidden&&document.hasFocus()){
+    if(roof&&roof.view===renderer&&adFloor&&!blocked&&!document.hidden&&document.hasFocus()){
       const bounds=canvas.getBoundingClientRect(),polygon=renderer.displayPolygon('roof-ad-board');
       if(polygon){
         const points=polygon.map(p=>({x:bounds.left+(p.x*camera.zoom+camera.x)*bounds.width/width,y:bounds.top+(p.y*camera.zoom+camera.y)*bounds.height/height}));

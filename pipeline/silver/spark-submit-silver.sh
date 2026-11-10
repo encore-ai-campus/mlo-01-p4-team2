@@ -7,6 +7,7 @@
 # - 의존 jar: Bronze 와 같은 세트(spark4.1.4-delta4.3.1-kafka4.1.4-aws3.4.2)를 extraClassPath 로(pipeline/bronze/spark-submit-ads.sh 와 같은 이유).
 # - 코드: executor 가 Python UDF 에서 pipeline.silver·pipeline.common 을 import 하므로 두 폴더의 *.py 를 경로 그대로 zip 해 --py-files 로 보낸다.
 #   Gold 잡·시험(pipeline.gold — 드라이버만 씀)도 같은 zip 으로 import 한다(계획 41 코드 Step ①).
+#   정리 잡·시험(pipeline.vacuum — 드라이버만 씀)도 같다(계획 45 DEP3-VAC).
 #   (pipeline/·pipeline/common/ 에는 __init__.py 가 없다 — zip 안 namespace 패키지로 import 된다, Python 3.14 확인)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -19,7 +20,7 @@ DEPS="${SPARK_DEPS:-/opt/spark/jobs/deps/spark4.1.4-delta4.3.1-kafka4.1.4-aws3.4
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 dirs=()
-for d in pipeline/silver pipeline/common pipeline/gold; do [ -d "$ROOT/$d" ] && dirs+=("$d"); done
+for d in pipeline/silver pipeline/common pipeline/gold pipeline/vacuum; do [ -d "$ROOT/$d" ] && dirs+=("$d"); done
 (cd "$ROOT" && zip -qr "$WORK/pipeline-code.zip" "${dirs[@]}" -i '*.py')
 /opt/spark/current/bin/spark-submit \
   --master "${SPARK_MASTER:-spark://127.0.0.1:7077}" --deploy-mode client \

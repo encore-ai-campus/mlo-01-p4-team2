@@ -49,11 +49,14 @@ def run(spark, settings, adapt, lines, release, *, quarantine=(), log=print, bro
 
 
 def session(name, s3):
-    """잡과 포인터 도구(SL-7)의 SparkSession: Delta 확장·`spark.sql.session.timeZone=UTC` 를 스스로 정한다. `s3`: control.s3_settings 결과(None 이면 file://)."""
+    """잡과 포인터 도구(SL-7)의 SparkSession: Delta 확장·`spark.sql.session.timeZone=UTC` 를 스스로 정한다. `s3`: control.s3_settings 결과(None 이면 file://).
+    (DEP3-VAC) 이 세션이 새로 만드는 Delta 표에 `delta.deletedFileRetentionDuration = control.DELETED_FILE_RETENTION` 을 붙인다(이미 있는 표는 그대로).
+    Silver 잡·포인터 도구·Gold 잡·정리 잡이 이 세션을 쓴다."""
     builder = (SparkSession.builder.appName(name)
                .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
                .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
-               .config("spark.sql.session.timeZone", "UTC"))
+               .config("spark.sql.session.timeZone", "UTC")
+               .config("spark.databricks.delta.properties.defaults.deletedFileRetentionDuration", control.DELETED_FILE_RETENTION))
     if s3 is not None:  # 자격 증명은 파일에서 읽어 conf 로만 넘긴다(명령행·로그에 남기지 않는다 — Bronze s3a_session 과 같음)
         builder = (builder.config("spark.hadoop.fs.s3a.endpoint", s3["endpoint"]).config("spark.hadoop.fs.s3a.endpoint.region", s3["region"])
                    .config("spark.hadoop.fs.s3a.path.style.access", "true")

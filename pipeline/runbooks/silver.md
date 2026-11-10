@@ -175,7 +175,7 @@ rc 3이 나면:
   - 열: `domain`·`generation`(지금 세대)·`set_at`·`set_by`·`reason`과 근거 `reconcile_version`·`silver_version`·`silver_release`·`checkpoint_id`·`bronze_table`·`bronze_version`(확인에 쓴 대사 요약의 값).
   - 바꿀 때마다 한 행을 덮어쓰는 커밋 하나다. 커밋 `userMetadata` = `domain`·`from_generation`·`to_generation`·`set_by`·`reason`·`bronze_changed`. **표 이력이 바꾼 기록이다**(`DESCRIBE HISTORY`, 그때 행은 `versionAsOf`). 행을 지우지 않는다.
   - 포인터 행의 판들은 바꾼 순간의 근거일 뿐이다. 읽기는 그때 포인터 표 판과 본 표 판을 다시 정한다.
-  - 표가 한 행이 아니거나, 그 행 원천이 다르거나, 열 모양이 다르면(손으로 고친 표) 읽기·바꾸기가 거부한다. 되살리기(관리 Step): `` DESCRIBE HISTORY delta.`<포인터 표>` ``로 마지막 좋은 판을 찾아 ``RESTORE TABLE delta.`<포인터 표>` TO VERSION AS OF <판>``(시험이 같은 방법으로 확인한다).
+  - 표가 한 행이 아니거나, 그 행 원천이 다르거나, 열 모양이 다르면(손으로 고친 표) 읽기·바꾸기가 거부한다. 되살리기(관리 Step): `` DESCRIBE HISTORY delta.`<포인터 표>` ``로 마지막 좋은 판을 찾아 ``RESTORE TABLE delta.`<포인터 표>` TO VERSION AS OF <판>``(시험이 같은 방법으로 확인한다). 되살릴 수 있는 판은 30일 안의 판이다(표 속성 — 아래 "정리" 절).
 - 읽기 `read_events`: 그 원천 포인터 표 판과 포인터가 가리키는 세대 본 표 판을 먼저 정해 그 판으로 읽는다. 본 표 열(이름·순서·형)이 지금 코드의 Silver 열과 같아야 한다(다르면 거부 — 옛 열 모양 세대). 본 표만 읽는다(격리·오류 표는 넣지 않음). 반환에 원천·세대·경로·판(`View`)이 함께 오고, Gold는 그것을 실행 기록에 남긴다.
 - 명령(잡과 같은 `SILVER_LAKE_ROOT`, 뿌리가 `s3a://`면 S3 넷 — Silver 잡 문단과 같은 이름):
   ```bash
@@ -260,6 +260,45 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.pipeline.silver-me
 - 로컬 잠금 파일 `~/Library/Caches/silver-pipeline/silver-<원천>-g<세대>.lock`도 지운다.
 - 다시 만들면 같은 세대가 처음부터 돈다(시작 검사 ① — 세 표·checkpoint가 모두 없음). 목록 ID 사본은 배치에서 바로 격리 표로 간다.
 - 지우는 세대를 그 원천 포인터가 가리키면 먼저 포인터를 다른 세대로 옮긴다("세대 포인터" 절). 그러지 않으면 `read_events`가 거부한다(그 원천 Gold가 멈춘다). 포인터 표 `silver/<원천>/pointer/`는 세대 경로가 아니라 지우지 않는다.
+
+## 정리(옛 판 파일 — DEP3-VAC)
+
+계획 `temp/pipeline/45_vacuum-plan.md` r2. 잡: `pipeline/vacuum/vacuum_job.py --domain <원천>`.
+
+- **행은 지우지 않는다.** 표가 쓰지 않는 옛 판 데이터 파일만 30일 뒤 지운다(14 Q4). Bronze·checkpoint는 대상이 아니다.
+- **30일은 표 속성이다**: `delta.deletedFileRetentionDuration = interval 30 days`.
+  - Silver 잡·포인터 도구·Gold 잡의 세션(`silver_job.session`)이 새로 만드는 표에 붙인다. 이미 있는 표에는 붙지 않는다.
+  - Delta 4.3.1은 `VACUUM … RETAIN n HOURS`(n이 0이 아님)를 무시하고 이 속성을 쓴다.
+  - 같은 속성이 옛 판 읽기(`versionAsOf`, 포인터 `RESTORE`)의 한도다. 최신 판을 빼고, 커밋이 30일보다 오래된 판은 읽을 수 없다.
+  - 로그 보존(`delta.logRetentionDuration`)은 기본 30일 그대로다. 둘이 같아야 한다 — 로그 보존을 더 짧게 하면 Delta가 VACUUM을 오류로 멈춘다.
+- **하지 않는 것**:
+  - 손으로 `VACUUM`을 돌리거나 RETAIN을 주지 않는다.
+  - `spark.databricks.delta.retentionDurationCheck.enabled`를 끄지 않는다.
+  - 표 속성을 바꾸지 않는다. SparkApplication에 `spark.databricks.delta.properties.defaults.deletedFileRetentionDuration`을 다른 값으로 두지 않는다.
+- **대상**(원천 하나 — 다른 원천의 폴더는 열지 않는다):
+  - Silver 세대마다 `events`·`errors`·`reconcile`·`quarantine`. 세대는 폴더 `g<N>`을 나열해 찾는다.
+  - 포인터.
+  - Gold 표 폴더 전부의 판 `v<N>`(표 목록에서 뺀 표 폴더도).
+  - 정정 기록.
+  - 경로는 Silver·Gold 규칙 함수로 만든다. 규칙 밖 이름의 폴더는 `vacuum skip … reason=unknown_name` 줄로만 남기고 건드리지 않는다.
+- **로그와 종료 코드**:
+  - 줄: `vacuum start`, 표마다 `vacuum table path=… files=<지운 수> seconds=…` · `vacuum refused` · `vacuum skip … reason=no_table` · `vacuum error`, 끝에 `vacuum end … deleted_files=… refused=… errors=…`.
+  - 지운 수 = 바로 앞 `DRY RUN`의 후보 수다.
+  - rc 0 = 모두 치웠거나 표가 없음. rc 1 = 거부·오류가 있음(나머지 표는 끝까지 치운다). rc 2 = 설정(`VACUUM_LAKE_ROOT`, s3a면 S3 넷).
+- **`vacuum refused … retention=…`**: 표 속성이 30일이 아니다. 이 코드 전에 만든 로컬·lab 표다. 지우지 않는다.
+  - **운영에는 그런 표가 없다**(광고 운영 Silver·Gold 표는 이 코드가 든 이미지로 처음 만든다).
+  - 운영에서 나오면 Planner에게 알린다. 손으로 속성을 붙이지 않는다 — 표에 커밋을 쓰는 일이라 돌고 있는 잡과 겹치면 안 된다.
+- **표에 커밋을 쓰지 않는다**(`spark.databricks.delta.vacuum.logging.enabled=false` — 코드가 정한다). 그래서 판·txn·이력·대사 요약·Gold 회차 기록이 그대로다.
+  - Delta는 `<표>/_delta_log/_last_vacuum_info` 하나를 덮어쓰려 한다. 커밋이 아니고, LITE 모드만 읽는다.
+  - 쓰지 못해도 VACUUM은 계속된다. Delta 4.3.1 `LastVacuumInfo.persistLastVacuumInfo`가 치명적이지 않은 실패를 잡아 사용 기록(`delta.lastVacuumInfo.write.failure`)만 남긴다.
+  - 운영 정리 키에는 쓰기 권한이 없다. **그래서 그 쓰기 실패 기록(드라이버 로그·S3 접근 거부 기록)이 매 회차 나와도 정상이다.**
+- **돌고 있는 Silver·Gold와 겹쳐도 된다.** 지우는 파일은 지금 판이 쓰지 않고, 지운 표시가 30일보다 오래됐고, 수정 시각도 30일보다 오래된 것뿐이다. 진행 중인 쓰기의 새 파일과 30일 안 판의 파일은 남는다. 예약 시각은 자원 때문에 다른 잡과 겹치지 않게 둔다.
+- **운영(k8s)**:
+  - ScheduledSparkApplication `45 3 * * *`(UTC, 12:45 KST), `concurrencyPolicy: Forbid`, restartPolicy OnFailure 3회. 인자 `--domain ads`.
+  - 설정: `VACUUM_LAKE_ROOT`(Silver·Gold와 같은 뿌리)와 S3 넷. 정리 전용 키 — `silver/<원천>/`·`gold/<원천>/` 나열·읽기·지우기, 쓰기 없음.
+  - 이미지에 `pipeline/vacuum/`이 들어 있어야 한다.
+  - 배포 뒤 30일 안에 켠다(그 전에는 지울 것이 없다). 첫 회차에서 표마다 `vacuum table` 줄과 `vacuum end … refused=0 errors=0`을 본다.
+  - 로컬 정기 실행은 두지 않는다.
 
 ## 운영(k8s)에서
 

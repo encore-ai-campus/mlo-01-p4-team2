@@ -1,7 +1,8 @@
 # 광고 서버 계약 (매체 서버용 요약)
 
-원본은 [serving.openapi.yaml](serving.openapi.yaml)(C1 Media API, C3 Asset URL, **v1.6**)이고, 이 문서는 **연동하는 쪽이 꼭 알아야 할 것**만 모은 요약이다.
+원본은 [serving.openapi.yaml](serving.openapi.yaml)(C1 Media API, C3 Asset URL, **v1.7**)이고, 이 문서는 **연동하는 쪽이 꼭 알아야 할 것**만 모은 요약이다.
 **v1.6(확정·구현 2026-11-08)**: 결정 요청에 선택 필드 `segment`(대상 그룹 코드, 개인 슬롯만) — 원본의 "v1.6 변경". 광고 서버의 1.6.0 배포가 알려진 뒤에 보낸다.
+**v1.7(확정·구현 2026-11-10)**: 이미지(`/assets`) 200·304에 `Access-Control-Allow-Origin: *` — 원본의 "v1.7 변경". 화면이 이미지를 `crossOrigin="anonymous"`로 받아 캔버스에 그릴 수 있다(자격 증명은 싣지 않는다).
 요약과 원본이 다르면 원본이 맞다.
 
 ## 한눈에
@@ -12,7 +13,7 @@
 | 반응 보고 | `PUT /api/media/v1/decisions/{decision_id}/reactions/{reaction_id}` (`type`=`IMPRESSION`·`CONVERSION`, `occurred_at`, 일괄 슬롯은 `subject_id`) | 201 처음 / 200 같은 내용 재전송 | 409 같은 `reaction_id`에 다른 내용 · 429 · 503 |
 | **클릭** | 사용자를 **`ad.click_url`로 이동**시킨다(`GET /c/{token}`, 인증 없음). 광고 서버가 클릭을 기록하고 광고주 페이지로 302 | 302 | 404 위조·잘못된 주소 |
 | 결과 확인 | `GET .../decisions/{id}`, `GET .../reactions/{reaction_id}` | 200 | 404 없거나 다른 매체의 것 |
-| 이미지 | `GET /assets/{해시}.{png\|jpg}` (인증 없음) | 200 / 304 | 404 |
+| 이미지 | `GET /assets/{해시}.{png\|jpg}` (인증 없음, 다른 출처에서 읽기 가능 — v1.7) | 200 / 304 | 404 |
 
 **`/health`·`/assets`·`/c/`를 뺀 모든 요청**에 `X-Media-Key` 헤더(서버 간 전용, 브라우저에 노출 금지). 인증이 필요한 요청은 키가 없거나 틀리면 **401**(`WWW-Authenticate: MediaKey realm="ads-media-api"` 포함), 키는 맞지만 매체가 비활성이면 **403**이다. 모든 응답에 `X-Request-ID`가 붙으니 문의할 때 알려 달라.
 

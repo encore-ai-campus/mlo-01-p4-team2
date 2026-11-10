@@ -49,6 +49,27 @@ class ServingTests(Cases, TestCase):
     def case_cross_origin_resource_policy_header(self):
         self.assertEqual(self.client.get(self.url(self.png_name))["Cross-Origin-Resource-Policy"], "cross-origin")
 
+    def case_any_origin_may_read_200_and_304_but_404_carries_no_cors(self):
+        """crossOrigin 캔버스(메타버스 옥상)가 읽을 수 있게 200·304 에 `*`. 서빙할 수 없는 이름의 404 에는 붙지 않는다(ASC-1)."""
+        origin = {"HTTP_ORIGIN": "https://media.example"}
+        etag = f'"{self.png.sha256}"'
+        r200 = self.client.get(self.url(self.png_name), **origin)
+        r304 = self.client.get(self.url(self.png_name), HTTP_IF_NONE_MATCH=etag, **origin)
+        self.assertEqual([r200.status_code, r304.status_code], [200, 304])
+        for r in (r200, r304):
+            self.assertEqual(r["Access-Control-Allow-Origin"], "*")
+            self.assertEqual(r["Cross-Origin-Resource-Policy"], "cross-origin")
+        missing = self.client.get("/assets/" + "c" * 64 + ".png", **origin)
+        with override_settings(ASSET_SERVABLE_CHECK="tests.support.support_app.checks.deny_all"):
+            blocked = self.client.get(self.url(self.png_name), **origin)
+        self.assertEqual([missing.status_code, blocked.status_code], [404, 404])
+        for r in (missing, blocked):
+            self.assertNotIn("Access-Control-Allow-Origin", r)
+            self.assertNotIn("Cross-Origin-Resource-Policy", r)
+        for r in (r200, r304, missing, blocked):
+            self.assertNotIn("Access-Control-Allow-Credentials", r)  # `*` 와 함께 쓸 수 없고 쿠키를 쓰지 않는다
+            self.assertNotIn("Origin", r.get("Vary", ""))  # 출처마다 다르지 않다 — no-cors·cors 사본이 섞여도 같은 헤더
+
     def case_path_traversal_returns_404(self):
         absent = "a" * 64 + ".png"
         paths = [

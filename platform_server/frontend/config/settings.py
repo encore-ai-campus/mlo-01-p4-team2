@@ -30,9 +30,11 @@ USE_I18N = True
 USE_TZ = True
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 BACKEND_URL = os.environ.get('BACKEND_URL', 'http://127.0.0.1:9003').rstrip('/')
-parsed_backend = urlsplit(BACKEND_URL)
-if parsed_backend.scheme not in {'http', 'https'} or not parsed_backend.hostname or parsed_backend.username or parsed_backend.password or parsed_backend.path not in {'', '/'} or parsed_backend.query or parsed_backend.fragment:
-    raise ValueError('BACKEND_URL must be a plain HTTP(S) server address')
+MOVEMENT_BACKEND_URL = os.environ.get('MOVEMENT_BACKEND_URL', BACKEND_URL).rstrip('/')
+for name, server_url in (('BACKEND_URL', BACKEND_URL), ('MOVEMENT_BACKEND_URL', MOVEMENT_BACKEND_URL)):
+    parsed_backend = urlsplit(server_url)
+    if parsed_backend.scheme not in {'http', 'https'} or not parsed_backend.hostname or parsed_backend.username or parsed_backend.password or parsed_backend.path not in {'', '/'} or parsed_backend.query or parsed_backend.fragment:
+        raise ValueError(f'{name} must be a plain HTTP(S) server address')
 BACKEND_TIMEOUT = float(os.environ.get('BACKEND_TIMEOUT', '30'))
 
 # The trusted edge proxy must overwrite this header and restrict direct app access.

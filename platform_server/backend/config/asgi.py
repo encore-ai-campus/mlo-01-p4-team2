@@ -1,20 +1,10 @@
-import os
+"""Local composite; deploy movement_asgi and service_asgi as separate processes."""
+from .movement_asgi import application as movement_application
+from .service_asgi import application as service_application
 
-from django.core.asgi import get_asgi_application
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
-django_application = get_asgi_application()
-
-# Initialize Django before importing consumers that access account models.
-from channels.auth import AuthMiddlewareStack
-from channels.routing import ProtocolTypeRouter, URLRouter
-from channels.security.websocket import AllowedHostsOriginValidator
-
-from campus.routing import websocket_urlpatterns
-
-application = ProtocolTypeRouter({
-    "http": django_application,
-    "websocket": AllowedHostsOriginValidator(
-        AuthMiddlewareStack(URLRouter(websocket_urlpatterns))
-    ),
-})
+async def application(scope, receive, send):
+    if scope["type"] == "websocket" and scope["path"] in {"/ws/movement/", "/ws/campus/"}:
+        await movement_application(scope, receive, send)
+    else:
+        await service_application(scope, receive, send)

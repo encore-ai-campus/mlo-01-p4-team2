@@ -71,6 +71,9 @@ else:
     CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 
 DATABASE_ENGINE = os.environ.get("DATABASE_ENGINE", "sqlite").strip().lower()
+MYSQL_POOL_SIZE = int(os.environ.get("MYSQL_POOL_SIZE", "0"))
+if MYSQL_POOL_SIZE < 0:
+    raise ValueError("MYSQL_POOL_SIZE must be zero or positive")
 if DATABASE_ENGINE == "mysql":
     DATABASES = {"default": {
         "ENGINE": "django.db.backends.mysql",
@@ -80,9 +83,15 @@ if DATABASE_ENGINE == "mysql":
         "HOST": os.environ.get("MYSQL_HOST", "127.0.0.1"),
         "PORT": os.environ.get("MYSQL_PORT", "3306"),
         "OPTIONS": {"charset": "utf8mb4"},
+        "CONN_MAX_AGE": 0,
     }}
     if not DATABASES["default"]["NAME"] or not DATABASES["default"]["USER"]:
         raise ValueError("MYSQL_DATABASE and MYSQL_USER are required when DATABASE_ENGINE=mysql")
+    if MYSQL_POOL_SIZE:
+        DATABASES["default"].update(ENGINE="config.dbpool", POOL_OPTIONS={
+            "POOL_SIZE": MYSQL_POOL_SIZE, "MAX_OVERFLOW": 0, "TIMEOUT": 2,
+            "RECYCLE": 300, "PRE_PING": True,
+        })
 elif DATABASE_ENGINE == "sqlite":
     DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": DATA_DIR / "db.sqlite3"}}
 else:

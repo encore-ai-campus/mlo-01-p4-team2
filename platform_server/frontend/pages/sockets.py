@@ -12,7 +12,8 @@ class BackendSocket(AsyncWebsocketConsumer):
         self.backend = None
         self.reader = None
         headers = dict(self.scope['headers'])
-        destination = urlsplit(settings.BACKEND_URL)
+        destination = urlsplit(settings.MOVEMENT_BACKEND_URL
+            if self.scope['path'] in {'/ws/movement/', '/ws/campus/'} else settings.BACKEND_URL)
         url = urlunsplit(('wss' if destination.scheme == 'https' else 'ws', destination.netloc,
                          self.scope['path'], self.scope.get('query_string', b'').decode('ascii'), ''))
         forwarded = {}

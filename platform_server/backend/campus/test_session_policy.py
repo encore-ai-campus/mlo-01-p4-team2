@@ -14,7 +14,7 @@ from . import tests as socket_tests
 
 @override_settings(ALLOWED_HOSTS=["127.0.0.1", "localhost", "testserver"], DEBUG=False,
                    CAMPUS_LOGIN_MAX_AGE_SECONDS=60, CAMPUS_LOGIN_IDLE_TIMEOUT_SECONDS=30,
-                   CAMPUS_SESSION_ACTIVITY_WRITE_INTERVAL_SECONDS=0)
+                   CAMPUS_SESSION_ACTIVITY_WRITE_INTERVAL_SECONDS=0, CAMPUS_TEST_LEGACY_MOVEMENT=True)
 class SessionSocketTests(TransactionTestCase):
     setUp = socket_tests.CampusSocketTests.setUp
     socket = socket_tests.CampusSocketTests.socket

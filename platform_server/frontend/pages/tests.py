@@ -8,7 +8,8 @@ from .transport import BackendResponse, call_backend, passthrough
 
 
 class TransportTests(SimpleTestCase):
-    @override_settings(BACKEND_URL='http://127.0.0.1:9003', BACKEND_TIMEOUT=30)
+    @override_settings(BACKEND_URL='http://127.0.0.1:9003', BACKEND_TIMEOUT=30,
+                       MOVEMENT_BACKEND_URL='http://movement.internal:9004')
     def test_post_body_cookie_csrf_origin_and_public_host_are_forwarded(self):
         request = RequestFactory().post('/accounts/login/?next=/', {'username': 'tester'},
             HTTP_HOST='127.0.0.1:8004', HTTP_COOKIE='campus_sessionid=test-session',

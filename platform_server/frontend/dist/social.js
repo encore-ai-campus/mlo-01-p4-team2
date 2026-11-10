@@ -191,7 +191,7 @@
         open.disabled = !value || !preferences.chat;
         if(value&&!entryShown){entryShown=true;entryVisibleUntil=performance.now()+60000;focusChat();}
         status.dataset.state = value ? 'ready' : 'waiting';
-        status.textContent = value ? 'Enter로 채팅 · Esc로 이동' : (config.socketPath ? '연결 중에는 메시지를 보낼 수 없어요.' : '로그인 후 채팅을 사용할 수 있어요.');
+        status.textContent = value ? 'Enter로 채팅 · Esc로 이동' : (config.chatSocketPath ? '연결 중에는 메시지를 보낼 수 없어요.' : '로그인 후 채팅을 사용할 수 있어요.');
         if (!value) {
           finishPending();
           if (editing) leaveEditor();

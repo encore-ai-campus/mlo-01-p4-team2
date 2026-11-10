@@ -1,5 +1,4 @@
 import asyncio
-from datetime import datetime
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -13,12 +12,12 @@ from django.utils import timezone
 
 from accounts.models import Profile
 from accounts.session_policy import ACTIVITY, STARTED
-from eventing.models import ChatMessage, EventOutbox, PlatformSession
+from eventing.models import EventOutbox, PlatformSession
 from config.asgi import application
 from . import consumers
 
 
-@override_settings(ALLOWED_HOSTS=["127.0.0.1", "localhost", "testserver"], DEBUG=False)
+@override_settings(ALLOWED_HOSTS=["127.0.0.1", "localhost", "testserver"], DEBUG=False, CAMPUS_TEST_LEGACY_MOVEMENT=True)
 class CampusSocketTests(TransactionTestCase):
     def setUp(self):
         consumers.room = consumers.CampusRoom()
@@ -242,92 +241,6 @@ class CampusSocketTests(TransactionTestCase):
                 await a.send_json_to(self.movement(x=1300))
                 self.assertEqual((await b.receive_json_from())["player"]["x"], 1300)
 
-    async def test_chat_reaches_sender_and_other_floor_with_server_identity(self):
-        async with self.connections(self.a, self.b) as (a, b):
-            first, second = await self.welcome_pair(a, b)
-            await b.send_json_to(self.movement(floor="rooftop", y=1610))
-            await a.receive_json_from()
-            await b.send_json_to({"type": "chat", "text": "  안녕하세요!  ",
-                                  "nickname": "사칭", "playerId": first["selfId"], "floor": "campus"})
-            own, other = await b.receive_json_from(), await a.receive_json_from()
-            self.assertEqual(own, other)
-            self.assertEqual(own["type"], "chat")
-            message = own["message"]
-            self.assertEqual(message["playerId"], second["selfId"])
-            self.assertEqual(message["nickname"], "조원 둘")
-            self.assertEqual(message["floor"], "rooftop")
-            self.assertEqual(message["text"], "안녕하세요!")
-            self.assertIsNotNone(datetime.fromisoformat(message["sentAt"]).tzinfo)
-            self.assertTrue(message["id"])
-            @database_sync_to_async
-            def stored_message():
-                saved = ChatMessage.objects.get(pk=message["id"])
-                event = EventOutbox.objects.get(event_type="chat_sent")
-                return saved.body, str(saved.floor.floor_uuid), event.raw_data
-
-            body, floor_uuid, raw = await stored_message()
-            self.assertEqual(body, message["text"])
-            self.assertEqual(raw["message_uuid"], message["id"])
-            self.assertEqual(raw["floor_uuid"], floor_uuid)
-            self.assertNotIn("text", raw)
-            self.assertNotIn("nickname", raw)
-            self.assertTrue(await a.receive_nothing())
-            self.assertTrue(await b.receive_nothing())
-
-    async def test_invalid_chat_is_rejected_without_broadcast_or_losing_presence(self):
-        async with self.connections(self.a, self.b) as (a, b):
-            await self.welcome_pair(a, b)
-            for text in [None, [], True, "", "   ", "가" * 201, "bad\x00text", "\ud800"]:
-                await a.send_json_to({"type": "chat", "text": text})
-                self.assertEqual((await a.receive_json_from())["type"], "chat_error")
-            self.assertTrue(await b.receive_nothing())
-            await a.send_json_to(self.movement(x=1300))
-            self.assertEqual((await b.receive_json_from())["type"], "move")
-
-    async def test_chat_accepts_200_unicode_characters_and_keeps_html_as_text(self):
-        async with self.connections(self.a, self.b) as (a, b):
-            await self.welcome_pair(a, b)
-            text = "🎮" * 200
-            await a.send_json_to({"type": "chat", "text": text})
-            self.assertEqual((await a.receive_json_from())["message"]["text"], text)
-            self.assertEqual((await b.receive_json_from())["message"]["text"], text)
-            await asyncio.sleep(0.81)
-            text = '<img src=x onerror="alert(1)">'
-            await a.send_json_to({"type": "chat", "text": text})
-            self.assertEqual((await a.receive_json_from())["message"]["text"], text)
-            self.assertEqual((await b.receive_json_from())["message"]["text"], text)
-
-    async def test_chat_rate_limit_does_not_throttle_the_next_movement(self):
-        async with self.connections(self.a, self.b) as (a, b):
-            await self.welcome_pair(a, b)
-            clock = {"now": 1000.0}
-            with patch.object(consumers, "time", SimpleNamespace(monotonic=lambda: clock["now"])):
-                await a.send_json_to({"type": "chat", "text": "첫 메시지"})
-                await a.receive_json_from()
-                await b.receive_json_from()
-                await a.send_json_to({"type": "chat", "text": "너무 빠른 메시지"})
-                self.assertEqual((await a.receive_json_from())["type"], "chat_error")
-                self.assertTrue(await b.receive_nothing())
-                await a.send_json_to(self.movement(x=1300))
-                self.assertEqual((await b.receive_json_from())["player"]["x"], 1300)
-                clock["now"] += 0.81
-                await a.send_json_to({"type": "chat", "text": "다음 메시지"})
-                self.assertEqual((await a.receive_json_from())["message"]["text"], "다음 메시지")
-                self.assertEqual((await b.receive_json_from())["message"]["text"], "다음 메시지")
-
-    async def test_chat_uses_new_nickname_and_rejects_a_logged_out_session(self):
-        async with self.connections(self.a, self.b) as (a, b):
-            first, _ = await self.welcome_pair(a, b)
-            await database_sync_to_async(Profile.objects.filter(user=self.alice).update)(nickname="새 닉네임")
-            await a.send_json_to({"type": "chat", "text": "이름 변경 후"})
-            self.assertEqual((await a.receive_json_from())["message"]["nickname"], "새 닉네임")
-            self.assertEqual((await b.receive_json_from())["message"]["nickname"], "새 닉네임")
-            await database_sync_to_async(self.a.logout)()
-            await asyncio.sleep(0.81)
-            await a.send_json_to({"type": "chat", "text": "로그아웃 후 전송"})
-            self.assertEqual(await a.receive_output(timeout=2), {"type": "websocket.close", "code": 4401})
-            self.assertEqual(await b.receive_json_from(), {"type": "leave", "id": first["selfId"]})
-
     async def test_door_request_from_an_old_tab_is_ignored(self):
         # 문은 없앴다(계획 M1). 배포 중 옛 탭이 보내는 door 는 아무 일도 하지 않고 연결은 그대로다
         async with self.connections(self.a, self.b) as (a, b):
@@ -336,6 +249,15 @@ class CampusSocketTests(TransactionTestCase):
             await a.send_json_to({"type": "door", "doorId": "door-storage", "open": True})
             self.assertTrue(await a.receive_nothing())
             self.assertTrue(await b.receive_nothing())
+
+    async def test_public_chat_is_rejected_on_the_movement_alias(self):
+        async with self.connections(self.a, self.b) as (a, b):
+            await self.welcome_pair(a, b)
+            await a.send_json_to({'type': 'chat', 'text': '이동 연결로 보낸 채팅'})
+            self.assertEqual((await a.receive_json_from())['type'], 'control_error')
+            self.assertTrue(await b.receive_nothing(timeout=.02))
+            await a.send_json_to(self.movement(x=1300))
+            self.assertEqual((await b.receive_json_from())['type'], 'move')
 
     async def test_expired_legacy_socket_does_not_create_a_new_platform_session(self):
         @database_sync_to_async

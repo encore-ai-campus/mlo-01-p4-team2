@@ -1120,6 +1120,12 @@
       while(k<slots.length)entities.push(slots[k++]);
       return entities;
     }
+    function actorInView(actor,camera,width,height){
+      const q=projectActor(actor),x=q.x*camera.zoom+camera.x,y=q.y*camera.zoom+camera.y;
+      // Keep partial bodies, 52px jumps, 72px pokes and capped 155px names at the viewport edge.
+      const side=100*camera.zoom+80,top=160*camera.zoom+24,bottom=100*camera.zoom+24;
+      return x+side>=0&&x-side<=width&&y+bottom>=0&&y-top<=height;
+    }
     function draw(ctx,{camera,actors,t=0,path=[],hover,nearby,viewportWidth,viewportHeight,showNicknames=true,floorOverlay}) {
       actors=[...actors,...(D.npcs||[])];
       city?.draw(ctx);
@@ -1129,7 +1135,8 @@
       if(path.length){ctx.strokeStyle='#2586789c';ctx.lineWidth=1.5/camera.zoom;ctx.setLineDash([4/camera.zoom,5/camera.zoom]);ctx.beginPath();let q=projectGround(actors[0].x,actors[0].y);ctx.moveTo(q.x,q.y);for(const a of path){q=projectGround(a.x,a.y);ctx.lineTo(q.x,q.y);}ctx.stroke();ctx.setLineDash([]);}
       const focused=hover||nearby;if(focused&&focused.id!=='roof-ad-board'&&focused.type!=='stairs'&&focused.type!=='floor-portal'&&focused.type!=='booth-interaction'){const r=footprint(focused);plane(r.x-3,r.y-3,r.w+6,r.h+6,groundHeight(r.x+r.w/2,r.y+r.h/2)+.5,'#37a29022','#258876');}
       const visible=sprites.filter(s=>{const b=s.b;return b.x*camera.zoom+camera.x<viewportWidth&&b.y*camera.zoom+camera.y<viewportHeight&&(b.x+b.w)*camera.zoom+camera.x>0&&(b.y+b.h)*camera.zoom+camera.y>0;});
-      const entities=placeActors(visible,actors);
+      const drawnActors=actors.filter(actor=>actorInView(actor,camera,viewportWidth,viewportHeight));
+      const entities=placeActors(visible,drawnActors);
       for(const e of entities){
         if(e.actor){drawActor(ctx,e.actor,t,camera.zoom);continue;}
         const blocked=e.isWall&&actors.some(a=>{const q=projectActor(a),b=e.b;return q.x>b.x+10&&q.x<b.x+b.w-10&&q.y>b.y+55&&q.y<b.y+b.h+7&&q.y<e.depth+20;});
@@ -1142,7 +1149,7 @@
       // Keep the stair destination marker readable above nearby walls.
       for(const marker of visible.filter(s=>s.o.type==='stair-portal'))drawSprite(ctx,marker);
       drawLabels(ctx,actors);
-      for(const actor of actors)if(actor===actors[0]||(showNicknames&&actor.nickname))drawName(ctx,actor,camera.zoom,actor.nickname||(actor===actors[0]?'나':''),actor===actors[0],t);
+      for(const actor of drawnActors)if(actor===actors[0]||(showNicknames&&actor.nickname))drawName(ctx,actor,camera.zoom,actor.nickname||(actor===actors[0]?'나':''),actor===actors[0],t);
     }
     // 확대·카메라 이동 전 광고 이미지의 실제 사각형을 투영한다. 테두리는 포함하지 않는다.
     function displayPolygon(id){

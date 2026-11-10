@@ -1,8 +1,12 @@
 # 플랫폼 Kafka 토픽 정리
 
-최종 갱신: **2026-10-15** · 대상: **프론트·백엔드 분리 플랫폼 (`frontend/`, `backend/`)**
+최종 갱신: **2026-10-22** · 대상: **프론트·백엔드 분리 플랫폼 (`frontend/`, `backend/`)**
 
-현재 **7개 토픽, 15개 이벤트**의 생성·Outbox 저장·Kafka 전송 코드가 구현된 상태임. 학습 답안과 실제 포인트 지급이 연결되어 있으며, 이동 이벤트도 위치 체크포인트와 함께 DB Outbox에 저장하도록 변경됨.
+**7개 토픽, 15개 이벤트**를 정의함. DB 최신 위치는 약 5초마다 저장하고, 일반 이동 표본은 사용자당 최소 30초 간격으로 생성함.
+
+단일 발행기의 신규 접수를 최근 1초당 최대 100건으로 제한함. 완료된 Outbox 행은 한국 시간 매일 08:30 이후 정리함.
+
+이번 변경은 로컬 코드이며 운영 미배포 상태임.
 
 위 개수는 코드에 정의된 발행 구성을 뜻함. 실제 Kafka 전송은 브로커 설정과 발행기 실행이 필요함. `KAFKA_BOOTSTRAP_SERVERS`가 비어 있으면 이동·REST·LEARNING을 포함한 모든 이벤트가 발생 시 Outbox에 대기함.
 
@@ -15,7 +19,7 @@
 | `raw.board` | `post_created`, `post_updated`, `post_deleted`, `post_read` | 커뮤니티 게시글 작성·수정·삭제·상세 조회 |
 | `raw.comment` | `comment_created`, `comment_updated`, `comment_deleted` | 댓글·대댓글 작성·수정·삭제 |
 | `raw.content_usage` | `content_open_requested`, `quiz_answered` | 게임·심리 테스트·Python·SQL 학습 열기 요청, 객관식·빈칸 답안 채점 결과 |
-| `raw.movement` | `movement_observed`, `floor_transferred` | 변경된 최신 위치를 약 5초마다 저장한 체크포인트·층 전환 |
+| `raw.movement` | `movement_observed`, `floor_transferred` | 30초 이동 표본·즉시 기록하는 층 전환 |
 | `raw.points` | `point_granted` | 정답에 대한 실제 지급 내역과 지급 직후 잔액 |
 
 포인트 사용·광고 입찰 이벤트는 현재 Raw 범위에서 제외함. 찌르기 효과와 보유 포인트·내역 조회도 새 Raw 이벤트를 만들지 않음. 유튜브 홈페이지 팝업도 새 Raw 이벤트를 추가하지 않으며 기존 7개 토픽·15개 이벤트·메시지 계약을 유지함.
@@ -169,30 +173,48 @@
 
 ## 5. 이동 로그 수집 흐름
 
-매 이동마다 이벤트를 메모리 큐에 넣던 경로를 제거하고, 기존 위치 저장 체크포인트를 재사용함. 실시간 화면 이동과 다른 사용자에게 보내는 웹소켓 동기화는 계속 유지함.
+실시간 화면 이동과 웹소켓 동기화는 기존 방식을 유지함. **DB 최신 위치 저장과 Kafka용 이동 표본 생성을 분리함.**
 
-1. 서버가 받아들인 위치 정보가 바뀌면 `position_dirty=True`로 표시하고 최신 위치와 관측 시각을 메모리에 유지함.
-2. 일반 체크포인트는 마지막 체크포인트로부터 약 5초가 지났고 `position_dirty=True`인 경우에만 저장함. 변경 표시가 없는 사용자는 위치 저장·Outbox 기록을 건너뜀. 이를 위해 모든 사용자의 좌표를 DB에서 다시 조회하지 않음.
-3. 사용자 위치(`last_position`, `last_position_at`)를 갱신하고 이전 저장 위치와 층 또는 x/y가 달라졌으면 `movement_observed` 한 건을 **같은 DB 트랜잭션**으로 Outbox에 기록함. 방향만 바뀌면 복원용 방향만 저장하고 이동 이벤트는 생성하지 않음. 여러 이동은 저장 시점의 최신 위치 한 건으로 모음.
-4. 저장이 성공하면 처리한 위치의 변경 표시를 해제함. 저장 중 더 최신 위치가 들어오면 변경 표시를 유지해서 다음 체크포인트에서 저장함. Outbox 기록에 실패하면 위치 갱신도 취소하고 다음 체크포인트에서 재시도함.
-5. 백그라운드 발행기가 Outbox의 이벤트를 `raw.movement`로 전송함. **5초는 위치 기록 간격이며 실제 Kafka 전송 시각을 보장하는 간격은 아님.**
+| 처리 | 주기와 조건 |
+|---|---|
+| DB 최신 위치 저장 | 위치가 바뀌었을 때 약 5초 간격 |
+| `movement_observed` 생성 | 사용자당 마지막 생성 이후 최소 30초 간격 |
+| 최초 이동 표본 | 이전 생성 시각이 없으면 첫 위치 저장에서 즉시 허용 |
+| `floor_transferred` 생성 | 층 이동을 저장하는 시점에 즉시 생성 |
 
-`position_dirty`는 현재 `moving=True`인지가 아니라 **지난 저장 이후 위치 정보가 바뀌었는지**를 나타냄. 따라서 잠깐 움직였다가 멈춘 사용자도 마지막 변경 위치를 한 번 저장하고, 그 뒤 변경이 없으면 기록하지 않음. 위치 정보에는 층·좌표·방향이 포함되지만 Kafka Raw에는 방향 필드를 넣지 않음. 정지 또는 방향 변경만으로 이동 이벤트가 추가되지 않음.
+1. 위치 정보가 바뀌면 `position_dirty=True`로 표시함. 서버는 최신 위치와 관측 시각을 기억함.
+2. 기존 5초 체크포인트에서 `last_position`, `last_position_at`을 저장함.
+3. 층 또는 좌표가 바뀌면 `movement_event_pending`에 미기록 표본을 보관함. JSON에는 위치·원래 관측 시각·세션 UUID가 들어감.
+4. 서버 현재 시각으로 마지막 이동 이벤트 생성 후 30초가 지났는지 확인함. 간격이 충족되면 최신 미기록 표본을 Outbox에 기록함.
+5. `last_movement_event_at`을 갱신하고 미기록 표본을 비움. 위치·미기록 표본·Outbox 변경은 행 잠금과 한 트랜잭션으로 확정함.
+6. Outbox 생성에 실패하면 이번 위치와 표본 변경도 취소함. 다음 체크포인트에서 재시도함.
 
-**최종 위치와 층 전환 처리**
+방향만 바뀌면 복원용 방향을 저장함. 방향 변경은 새 이동 표본을 만들거나 기존 표본의 관측 시각을 바꾸지 않음.
 
-- 층 이동·웹소켓 접속 종료·명시적 로그아웃·세션 만료에는 미저장 최종 위치를 5초 제한을 기다리지 않고 저장함.
-- 층 이동에는 위치 갱신·`movement_observed`·`floor_transferred`를 같은 트랜잭션으로 기록함.
-- 이미 저장한 관측 시각과 같거나 더 오래된 좌표는 위치를 덮어쓰지 않고 이동 이벤트도 추가하지 않음. 오래된 탭이나 중복 종료 처리로 인한 중복 기록을 방지함.
-- 일반 주기 확인은 5초 제한을 유지함. 위치를 갱신하지 않은 사용자에 대한 이동 이벤트는 생성하지 않음.
+**멈춘 사용자와 재접속**
 
-이동 토픽·이벤트 필드·스키마 `1.0`은 유지함. 수집 빈도와 저장·재시도 방식만 변경함.
+- 위치를 저장한 뒤 사용자가 멈춰도 미기록 표본은 DB에 남음.
+- 소비자는 다음 표본 허용 시각을 메모리에서 확인함. 30초가 지난 뒤 기존 체크포인트 기회에 마지막 표본을 한 번 기록함.
+- 정지 후 표본 처리에서는 DB의 미기록 표본만 읽음. 재접속한 소켓의 오래된 좌표로 최신 DB 위치를 덮어쓰지 않음.
+- 미기록 표본이 없는 정지 사용자는 이 처리를 위한 DB 조회를 추가하지 않음.
+- 재시작·재접속 후에도 DB에 보관한 표본과 마지막 생성 시각을 사용함.
+- 종료 전에 30초가 지나지 않은 표본은 DB에 보존함. 연결이 종료된 경우, 남은 표본은 이후 재접속 때 처리함.
+
+**최종 위치와 층 전환**
+
+- 층 이동·접속 종료·로그아웃·세션 만료의 최종 DB 위치 저장은 기존 즉시 저장 경로를 유지함.
+- `floor_transferred`는 30초를 기다리지 않음. 같은 시점의 `movement_observed`에는 30초 제한을 적용함.
+- 같거나 오래된 관측 시각의 좌표는 최신 위치를 덮어쓰지 않음. 저장된 미기록 표본은 허용 시각에 처리할 수 있음.
+
+이동 토픽·이벤트 필드·스키마 `1.0`은 유지함. `occurred_at`은 표본의 원래 관측 시각임.
+
+**30초는 이벤트 생성의 최소 간격임.** 정지·저장 지연·Kafka 적체에 따라 실제 전송 간격은 달라짐.
 
 ## 6. 저장·전송 방식
 
 | 구분 | 처리 방식 | 실패 처리 |
 |---|---|---|
-| `movement_observed` | 변경된 위치의 체크포인트 → 위치 DB 갱신 + Outbox 저장 → Kafka | 위치와 Outbox를 함께 확정하고, 전송 실패 시 DB에 남겨두고 재시도 |
+| `movement_observed` | 5초 위치 저장 → 미기록 표본 보관 → 30초 조건 충족 시 Outbox → Kafka | 위치·표본·Outbox 변경을 함께 확정하고, 전송 실패 시 Outbox에 보존 |
 | 그 외 모든 이벤트 | DB Outbox → Kafka | DB에 남겨두고 재시도 |
 
 주요 서비스 변경과 Outbox 기록을 같은 DB 트랜잭션으로 저장함. Kafka의 전송 성공 응답을 받은 뒤 전송 완료로 표시함.
@@ -214,27 +236,53 @@ Producer는 `acks=all`, `enable.idempotence=True`를 사용함. ACK 직후 종�
 수신 서비스는 `event_uuid` 기준으로 중복을 제거해야 함. 브로커 주소가 없으면 이벤트는 Outbox에 대기함.
 
 
+**발행 완료 행 정리**
+
+- 한국 시간 `Asia/Seoul` 기준 매일 08:30 이후 하루 한 번 정리함.
+- 60초마다 시각을 확인하므로 실제 시작은 08:30보다 최대 약 60초 늦을 수 있음.
+- 당일 08:30까지 발행 완료된 행만 삭제함. 미발행 행과 이후 완료 행은 보존함.
+- 1,000행씩 삭제하고 각 묶음을 확정함. 삭제 직전 완료 조건을 다시 확인함.
+- 완료 날짜를 `var/outbox-cleanup.json`에 기록함. 실패하면 다음 확인에서 남은 행을 다시 처리함.
+- 08:30 이후 재시작하면 아직 수행하지 않은 당일 정리를 실행함.
+- Kafka 연결 여부와 독립적으로 실행함. 다중 소켓 구성에서는 `campus_jobs`를 한 프로세스만 실행함.
+- 완료 행도 하루 동안 누적됨. 미발행 적체까지 지우거나 디스크 파일을 줄이는 처리는 아님.
+
 ## 7. 설정·실행·검증
 
 - 연결 정보는 `backend/.env`에서 설정함. 예시는 `backend/.env.example`에 있음.
 - `KAFKA_BOOTSTRAP_SERVERS`가 발행기 시작에 필요하며, 인증을 사용하는 환경에서는 `KAFKA_SECURITY_PROTOCOL`, `KAFKA_SASL_MECHANISM`, `KAFKA_SASL_USERNAME`, `KAFKA_SASL_PASSWORD`도 설정함.
 - 기본 출처는 `CAMPUS_RAW_SOURCE=platform_server_1`임.
 - 빈 조회 최대 간격은 `CAMPUS_OUTBOX_IDLE_POLL_SECONDS=0.25`, MySQL 발행기 연결 재사용 수명은 `CAMPUS_OUTBOX_CONNECTION_MAX_AGE_SECONDS=60`으로 조정함. 변경 후 백엔드를 재시작함.
-- `run-campus.py`와 `manage.py runserver` 모두 실제 서비스 프로세스에서 발행기를 시작함. 자동 재시작을 감시하는 부모 프로세스에서는 시작하지 않으며, 마이그레이션·검사·테스트 명령도 발행기를 시작하지 않음.
+- `run-campus.py`와 `manage.py runserver` 모두 실제 서비스 프로세스에서 발행기와 정리기를 시작함. 자동 재시작을 감시하는 부모 프로세스에서는 시작하지 않으며, 마이그레이션·검사·테스트 명령도 발행기를 시작하지 않음.
 - 토픽 생성, 파티션·복제 수 설정과 수신 서비스 구독은 별도로 관리함. 토픽·이벤트 코드가 구현되었다는 사실과 실제 브로커 송수신 확인을 구분함.
+
+### 과거 검증 기록
+
+아래 기록은 이전 코드의 검증 결과임. 이번 변경의 운영 검증을 뜻하지 않음.
 
 2026-10-13 기준 검증: 이동 체크포인트·정지 사용자 제외·최종 위치·오래된 좌표 제외·Outbox 실패 시 전체 취소·전송 재시도와 기존 학습·포인트 기능을 포함한 **테스트 66개 통과**. DB 스키마 변경 없이 기존 Outbox를 사용함. 이 검증은 실제 브로커 연결 검증과 별개임.
 
 2026-10-14 AWS 운영 환경에서 브로커 3대와 7개 Raw 토픽을 확인하고, 기존 대기 로그 716건의 ACK 발행과 실제 브로커 메시지 조회를 검증함. 이후에도 신규 로그 발행이 이어지는 것을 확인함. 이 확인은 플랫폼 발행 측까지이며 수신 서비스의 정제·집계 완료를 뜻하지 않음. 2026-10-15 AWS의 MySQL Outbox로 이전하고 기존 데이터·UUID·발행 상태를 보존함. Kafka 3대·7개 토픽·실제 메시지 조회와 대기 0건을 재확인함. 좌표가 포함된 `raw_data`·`payload_json`은 숫자 원문과 fingerprint를 유지하도록 MySQL에서 LONGTEXT + JSON_VALID 검사로 저장함. Django와 Kafka에서는 기존 JSON 객체로 사용하며 토픽·이벤트·스키마 버전은 변경하지 않음. 연결 주소·인증값은 운영 `.env`에서 관리하고 저장소에 넣지 않음.
 
-백엔드 폴더에서 다음 명령으로 검증할 수 있음. 동시 제출 검증을 위해 별도의 파일 테스트 DB를 사용함.
+### 이번 변경 적용과 검증
 
-```powershell
-cd C:\3rd-pr-f\backend
-python manage.py check
-python manage.py makemigrations --check --dry-run
-python manage.py test learning.tests eventing.test_publisher campus.test_publisher_startup campus.test_movement_outbox --settings=config.kafka_test_settings --noinput
+서비스 시작 전에 새 프로필 필드를 적용해야 함. 다음 명령은 설정한 서비스 DB를 변경함.
+
+```bash
+cd backend
+python manage.py migrate --noinput
 ```
+
+로컬 검증은 별도 SQLite를 사용하며, 실제 Kafka ACK 처리율과 운영 MySQL을 검증하지 않음.
+
+```bash
+cd backend
+python manage.py check --settings=config.outbox_test_settings
+python manage.py makemigrations --check --dry-run --settings=config.outbox_test_settings
+python manage.py test eventing.test_publisher eventing.test_publisher_efficiency eventing.test_cleanup campus.test_publisher_startup campus.test_movement_sampling --settings=config.outbox_test_settings --noinput
+```
+
+이번 변경은 운영에 배포하지 않았음. 브로커 재전송과 장애 복구에서는 수신 측 중복 제거가 필요함.
 
 실행 방법은 [RUN_GUIDE.md](RUN_GUIDE.md)를 참고함.
 
@@ -244,8 +292,10 @@ python manage.py test learning.tests eventing.test_publisher campus.test_publish
 |---|---|
 | [backend/eventing/events.py](backend/eventing/events.py) | 토픽 매핑, 필드 검증, 메시지 구조, Outbox 기록 |
 | [backend/campus/consumers.py](backend/campus/consumers.py) | 변경 표시와 약 5초 체크포인트, 실시간 이동·최종 위치 처리 |
-| [backend/campus/positions.py](backend/campus/positions.py) | 위치 갱신과 이동 Outbox를 같은 트랜잭션으로 저장 |
-| [backend/eventing/publisher.py](backend/eventing/publisher.py) | Outbox 전송, Kafka ACK 확인, 실패 재시도 |
+| [backend/campus/positions.py](backend/campus/positions.py) | 5초 위치 저장과 30초 표본 생성 분리, 정지·재접속 시 미기록 표본 처리 |
+| [backend/accounts/migrations/0010_profile_movement_sampling.py](backend/accounts/migrations/0010_profile_movement_sampling.py) | 마지막 표본 시각과 미기록 위치 필드 추가 |
+| [backend/eventing/publisher.py](backend/eventing/publisher.py) | 초당 100건 접수 제한, 비동기 발행, ACK 일괄 완료 표시 |
+| [backend/eventing/cleanup.py](backend/eventing/cleanup.py) | 한국 시간 매일 08:30 완료 행 정리 |
 | [backend/learning/services.py](backend/learning/services.py) | 학습 열기·답안 채점·포인트·Outbox를 연결 |
 | [backend/learning/point_integration.py](backend/learning/point_integration.py) | 실제 지갑 적립과 지급 원장 |
 | [backend/accounts/views.py](backend/accounts/views.py), [backend/accounts/session_policy.py](backend/accounts/session_policy.py) | 로그아웃·세션 만료의 최종 위치 저장 |

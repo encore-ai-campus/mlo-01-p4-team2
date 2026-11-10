@@ -20,3 +20,5 @@ class CampusConfig(AppConfig):
                 start_session_cleanup()
                 from eventing.publisher import start_outbox_publisher
                 start_outbox_publisher()
+                from eventing.cleanup import start_outbox_cleanup
+                start_outbox_cleanup()

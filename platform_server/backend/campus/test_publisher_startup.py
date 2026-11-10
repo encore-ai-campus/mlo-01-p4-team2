@@ -16,8 +16,10 @@ class PublisherStartupTests(SimpleTestCase):
                 patch.dict(os.environ, {"RUN_MAIN": "true" if child else ""}), \
                 patch("campus.menu_updater.start_menu_updater"), \
                 patch("accounts.session_cleanup.start_session_cleanup"), \
-                patch("eventing.publisher.start_outbox_publisher") as start:
+                patch("eventing.publisher.start_outbox_publisher") as start, \
+                patch("eventing.cleanup.start_outbox_cleanup") as cleanup:
             config.ready()
+            self.assertEqual(cleanup.call_count, start.call_count)
             return start.call_count
 
     def test_documented_launcher_child_starts_publisher(self):

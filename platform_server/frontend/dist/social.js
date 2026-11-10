@@ -42,6 +42,7 @@
       const CHAT_IDLE_MS = 30000, FADE_MS = 400;
       let connected = false, pending = false, pendingTimer = null, editing = false, composing = false;
       let visibleUntil = 0, idleTimer = null, fadeTimer = null;
+      let entryShown=false,entryVisibleUntil=0;
       try {
         const stored = JSON.parse(localStorage.getItem(storageKey) || '{}');
         for (const key of Object.keys(preferences)) if (typeof stored?.[key] === 'boolean') preferences[key] = stored[key];
@@ -67,7 +68,7 @@
       function revealChat() {
         if (!preferences.chat) return;
         clearDisplayTimers();frame.hidden = false;frame.classList.remove('is-fading');
-        shell.dataset.chatVisible = 'true';visibleUntil = performance.now()+CHAT_IDLE_MS;
+        shell.dataset.chatVisible = 'true';visibleUntil = Math.max(entryVisibleUntil,performance.now()+CHAT_IDLE_MS);
         scheduleHide();
       }
       function leaveEditor({focusMap = true} = {}) {
@@ -188,6 +189,7 @@
       function setConnected(value) {
         connected = value;stickerButton.disabled=!value;if(!value)closeStickerPicker();input.disabled = !value;send.disabled = !value || pending;
         open.disabled = !value || !preferences.chat;
+        if(value&&!entryShown){entryShown=true;entryVisibleUntil=performance.now()+60000;focusChat();}
         status.dataset.state = value ? 'ready' : 'waiting';
         status.textContent = value ? 'Enter로 채팅 · Esc로 이동' : (config.socketPath ? '연결 중에는 메시지를 보낼 수 없어요.' : '로그인 후 채팅을 사용할 수 있어요.');
         if (!value) {

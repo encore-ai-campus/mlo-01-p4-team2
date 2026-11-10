@@ -3,17 +3,13 @@ const context=vm.createContext({window:{}});
 vm.runInContext(fs.readFileSync(path.join(__dirname,'../dist/map-data.js'),'utf8'),context);
 const D=context.window.CampusData;
 const overlap=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
-test('storage doorway stays open and clear of boxes, cabinets and the printer partition',()=>{
- // 창고 문은 없앴다(계획 M1): 앞벽(y=126)의 틈이 늘 열린 출입구다
- const storage=D.rooms.find(r=>r.id==='storage'),front=D.walls.filter(w=>w.y1===126&&w.y2===126).sort((a,b)=>a.x1-b.x1);
- const gap=front.slice(1).map((w,i)=>[front[i].x2,w.x1]).find(([a,b])=>b-a>=40&&a>=storage.x&&b<=storage.x+storage.w);
- assert.ok(gap,'storage front wall keeps its doorway');assert.ok(!D.objects.some(o=>o.id==='door-storage'));
- const threshold={x:gap[0],y:126-4.5,w:gap[1]-gap[0],h:9};
- for(const o of D.objects.filter(o=>['cabinet','box'].includes(o.type)))assert.equal(overlap(o,threshold),false);
- const walls=D.walls.filter(w=>w.y1===126&&w.y2===126);
- assert.ok(walls.every(w=>w.x2<=threshold.x||w.x1>=threshold.x+threshold.w));
- const printer=D.objects.find(o=>o.type==='printer');assert.ok(walls.every(w=>w.x2<=printer.x||w.x1>=printer.x+printer.w));
+test('former storage enclosure and printer are removed',()=>{
+ const storage=D.rooms.find(r=>r.id==='storage');
+ assert.ok(!D.objects.some(o=>o.type==='printer'||o.id==='door-storage'));
+ assert.ok(!D.walls.some(w=>w.y1===storage.y+storage.h&&w.y2===storage.y+storage.h&&w.x1>=storage.x&&w.x2<=storage.x+storage.w));
+ assert.ok(!D.walls.some(w=>w.x1===storage.x&&w.x2===storage.x&&w.y1>=storage.y&&w.y2<=storage.y+storage.h));
 });
+
 test('lounge seating remains separated from the front wall and nearby furniture',()=>{
  const sofa=D.objects.find(o=>o.type==='sofa'&&o.dir==='up'&&o.roomId==='lounge1');
  assert.ok(946.5-(sofa.y+sofa.h)>=45);
@@ -26,7 +22,8 @@ test('classroom prompts, old panels and glass doors are removed while the PLAYDA
   assert.equal(room.info,false);assert.equal(room.label,false);
  }
  assert.equal(D.objects.filter(o=>o.type==='glass-door').length,0);
- assert.ok(D.objects.find(o=>o.id==='class3-4-noticeboard').mounted);
+ assert.ok(D.objects.find(o=>o.id==='roof-ad-board'&&o.type==='wall-poster'));
+ assert.ok(!D.objects.some(o=>o.id==='class3-4-noticeboard'));
 });
 
 test('consultation tables, monitors and chairs fit inside their rooms with separate footprints',()=>{
@@ -34,8 +31,8 @@ test('consultation tables, monitors and chairs fit inside their rooms with separ
   const desk=D.objects.find(o=>o.type==='desk'&&o.roomId===room.id);
   assert.ok(desk.x>=room.x+30&&desk.x+desk.w<=room.x+room.w-12);
   assert.ok(desk.y>=room.y+30&&desk.y+desk.h<=room.y+room.h-40);
-  const monitor=D.objects.find(o=>o.type==='monitor'&&o.x>=desk.x&&o.x+o.w<=desk.x+desk.w&&o.y>=desk.y&&o.y+o.h<=desk.y+desk.h);
-  assert.ok(monitor,'The display belongs completely on the tabletop');
+  assert.ok(!D.objects.some(o=>o.type==='monitor'&&o.roomId===room.id));
+  assert.equal(D.objects.filter(o=>o.type==='chair'&&o.roomId===room.id).length,2);
   for(const chair of D.objects.filter(o=>o.type==='chair'&&o.x>=room.x&&o.x<room.x+room.w&&o.y>=room.y&&o.y<room.y+room.h))assert.equal(overlap(chair,desk),false);
  }
 });

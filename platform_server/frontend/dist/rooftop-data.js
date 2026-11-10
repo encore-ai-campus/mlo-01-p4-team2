@@ -13,19 +13,20 @@
   const stairRoom=campus.rooms.find(r=>r.id==='stairs');
   Object.assign(stairRoom,{labelX:stairs.x+stairs.w*.13,labelY:stairs.y+stairs.h*.86});
   // This shortcut requires E near the extinguisher; walking past it never transfers.
-  Object.assign(extinguisher,{portalGlow:true,portalRadius:18,portalFloorClip:{x:lounge2.x+6,y:lounge2.y+6,w:lounge2.w-12,h:lounge2.h-12},renderHeight:80,toFloor:'rooftop',arrival:[850,950],confirmTransfer:false,description:'가까이에서 E를 누르면 옥상 왼편 포탈로 이동할지 확인합니다. 예를 누르면 이동합니다.'});
+  Object.assign(extinguisher,{portalGlow:true,portalRadius:18,portalFloorClip:{x:lounge2.x+6,y:lounge2.y+6,w:lounge2.w-12,h:lounge2.h-12},renderHeight:80,toFloor:'rooftop',arrival:[1110,1000],confirmTransfer:false,description:'가까이에서 E를 누르면 옥상 왼편 포탈로 이동할지 확인합니다. 예를 누르면 이동합니다.'});
   campus.portals=[{x:stairs.x,y:stairs.y,w:stairs.w,h:stairs.h*.24,objectId:stairs.id}];
   const width=2448,height=1800,rooms=[],objects=[],walls=[];
-  const bounds={x:64,y:64,w:2320,h:1672};
+  const rearEdge=411.5; // Preserve rear clearance as booth backs move to x=677.
+  const bounds={x:rearEdge,y:64,w:2384-rearEdge,h:1672};
   const terrace={x:1179,y:64,w:225,h:1672,axis:'x',levels:5,rise:12,lanes:[[140,285],[900,1240]]};
   const step=terrace.w/terrace.levels,top=terrace.levels*terrace.rise,lowerX=terrace.x+terrace.w;
   const elevationAt=(x,y)=>x<bounds.x||x>bounds.x+bounds.w||y<bounds.y||y>bounds.y+bounds.h?0:x<terrace.x?top:x<lowerX?(terrace.levels-Math.floor((x-terrace.x)/step))*terrace.rise:0;
-  const surfaces=[{x:64,y:64,w:terrace.x-64,h:1672,z:top,floor:'roof'}];
+  const surfaces=[{x:rearEdge,y:64,w:terrace.x-rearEdge,h:1672,z:top,floor:'roof'}];
   for(let i=0;i<terrace.levels;i++)surfaces.push({x:terrace.x+i*step,y:64,w:step,h:1672,z:(terrace.levels-i)*terrace.rise,floor:'roof',stair:true});
   surfaces.push({x:lowerX,y:64,w:2384-lowerX,h:1672,z:0,floor:'roof'});
   const room=(id,name,x,y,w,h,target,extra={})=>rooms.push({id,name,x,y,w,h,target,floor:'roof',...extra});
-  room('roof-plaza','분수 광장',64,64,2320,1672,[1680,1110],{label:false,description:'유튜브·심리 테스트·게임 부스 세 개를 바닥의 긴 방향을 따라 나란히 배치한 광장입니다. 분수 둘레의 원형 포장과 산책로, 벤치·꽃 화단을 갖춘 휴게 광장입니다. 입구 왼편의 광고·행사 게시판을 확인할 수 있습니다.'});
-  room('roof-upper','위쪽 휴게 광장',90,100,920,1510,[350,950],{labelX:300,labelY:970,description:'옥상 중앙 계단 위의 휴게 광장입니다. 아래쪽 광장과 길이를 맞췄고 유튜브·심리 테스트·게임 부스를 배치했습니다. 오른쪽 입구로 부스 안에 들어갈 수 있습니다.',tags:['휴게 광장','중앙 계단 연결']});
+  room('roof-plaza','분수 광장',rearEdge,64,2384-rearEdge,1672,[1680,1110],{label:false,description:'유튜브·심리 테스트·게임 부스 세 개를 바닥의 긴 방향을 따라 나란히 배치한 광장입니다. 분수 둘레의 원형 포장과 산책로, 벤치·꽃 화단을 갖춘 휴게 광장입니다. 입구 왼편의 광고·행사 게시판을 확인할 수 있습니다.'});
+  room('roof-upper','위쪽 휴게 광장',rearEdge+26,100,1010-rearEdge-26,1510,[rearEdge+286,950],{labelX:300,labelY:970,description:'옥상 중앙 계단 위의 휴게 광장입니다. 아래쪽 광장과 길이를 맞췄고 유튜브·심리 테스트·게임 부스를 배치했습니다. 오른쪽 입구로 부스 안에 들어갈 수 있습니다.',tags:['휴게 광장','중앙 계단 연결']});
   room('roof-terrace','중앙 계단형 쉼터',terrace.x,64,terrace.w,1672,[1224,950],{labelX:1160,labelY:590,description:'맵의 1/2 지점에 세로로 길게 놓은 다섯 단 쉼터입니다. 낮은 단과 난간을 따라 두 계단 통로로 오갈 수 있습니다.',tags:['중앙 1/2','세로 배치','낮은 5단 계단']});
   room('festival-youtube','01 유튜브 스튜디오',1425,175,310,400,[1565,530],{labelX:1570,labelY:552,description:'영상 제작을 테마로 꾸민 열린 부스입니다. 영상 화면과 재생 버튼 기념패를 배치했습니다.',tags:['SECTION 01','YouTube','촬영 · 영상 편집']});
   room('festival-instagram','02 심리테스트',1740,175,310,400,[1880,530],{labelX:1885,labelY:552,description:'성격과 기분을 알아보는 심리 테스트 공간입니다. 심리테스트 안내 보드를 두고 부스 안에서 E를 누르면 심심테스트가 열립니다.',tags:['SECTION 02','심리 테스트','성격 · 감정 유형']});
@@ -34,10 +35,10 @@
   const tree=(x,y)=>obj('tree',x,y,42,42,{solid:true,renderHeight:105});
   const planter=(x,y,w=100)=>obj('planter',x,y,w,30);
   // The same rear wall runs over both landings and every stair tier.
-  walls.push({x1:64,y1:64,x2:2384,y2:64,height:420,topZ:420},
+  walls.push({x1:rearEdge,y1:64,x2:2384,y2:64,height:420,topZ:420},
     {x1:2384,y1:64,x2:2384,y2:1736},
-    {x1:64,y1:1736,x2:2384,y2:1736},{x1:64,y1:64,x2:64,y2:1736});
-  for(const x of [98,2300])for(const y of x===98?[130,1100,1320]:[130,750,1320]){if(x!==2300)planter(x-8,y+30,63);tree(x,x===2300&&y===1320?1540:y);}
+    {x1:rearEdge,y1:1736,x2:2384,y2:1736},{x1:rearEdge,y1:64,x2:rearEdge,y2:1736});
+  for(const y of [130,750,1320])tree(2300,y===1320?1540:y);
   for(let i=0;i<terrace.levels;i++){
     const x=terrace.x+i*step;
     for(const [y,h] of [[310,240],[670,210],[1400,240]])obj('terrace-bench',x+11,y,22,h);
@@ -80,7 +81,7 @@
   // Align booth backs on the long floor axis; projection supplies the 45-degree view.
   // Rotate the complete local
   // layout 90 degrees so the open entrances face right, including all colliders.
-  const boothLayout=[['festival-youtube',1440,420,300],['festival-instagram',1755,420,760],['festival-booth3',2070,420,1220]];
+  const boothLayout=[['festival-youtube',1440,677,300],['festival-instagram',1755,677,760],['festival-booth3',2070,677,1220]];
   for(const [roomId,oldX,newX,newY] of boothLayout){
     const r=rooms.find(r=>r.id===roomId);
     Object.assign(r,{x:newX,y:newY-10,w:194,h:320,target:[newX+190,newY+140],labelX:newX+154,labelY:newY+315});
@@ -94,7 +95,7 @@
     const cx=shell.x+shell.w/2,cy=shell.y+shell.h/2;
     obj('booth-interaction',shell.x+10,shell.y+10,shell.w-20,shell.h-20,{id:shell.roomId+'-interaction',name:shell.platform==='youtube'?'유튜브 부스 안내':shell.platform==='psych'?'심리테스트 안내':shell.platform==='game'?'게임 선택':'기본 부스 안내',roomId:shell.roomId,platform:shell.platform,action:'booth',solid:false,renderHeight:0});
   }
-  const shortcut=obj('floor-portal',810,910,80,80,{id:'roof-lounge2-portal',name:'18F 라운지 2로 이동',roomId:'roof-upper',toFloor:'campus',arrival:[extinguisher.x+extinguisher.w/2,extinguisher.y+extinguisher.h/2],approach:[850,950],confirmTransfer:false,solid:false,portalStyle:'compact',portalScale:1.5,portalRadius:12,portalLabel:'18F',renderHeight:80,description:'18층 통합 강의실과 연결된 포탈입니다. 가까이에서 E를 누르면 18층 라운지 2로 이동합니다.',tags:['18층 라운지 2 연결','E키 이동']});
+  const shortcut=obj('floor-portal',1070,960,80,80,{id:'roof-lounge2-portal',name:'18F 라운지 2로 이동',roomId:'roof-upper',toFloor:'campus',arrival:[extinguisher.x+extinguisher.w/2,extinguisher.y+extinguisher.h/2],approach:[1110,1000],confirmTransfer:false,solid:false,portalStyle:'compact',portalScale:1.5,portalRadius:12,portalLabel:'18F',renderHeight:80,description:'18층 통합 강의실과 연결된 포탈입니다. 가까이에서 E를 누르면 18층 라운지 2로 이동합니다.',tags:['18층 라운지 2 연결','E키 이동']});
   for(const [i,o] of objects.filter(o=>o.type==='balloons').entries()){const [, ,x,y]=boothLayout[i];Object.assign(o,{x:x+285,y:y+170});}
   for(let i=objects.length-1;i>=0;i--)if(['laptop','keyboard','monitor'].includes(objects[i].type))objects.splice(i,1);
   obj('guide-npc',1794,798,52,44,{id:'roof-lunch-wheel',name:'점심추천 돌림판',action:'lunch',roomId:'roof-plaza',solid:true,renderHeight:0});

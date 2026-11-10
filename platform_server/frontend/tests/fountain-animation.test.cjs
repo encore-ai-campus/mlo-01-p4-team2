@@ -9,8 +9,8 @@ function setup(reduced){
  function frame(t){strokes.length=0;renderer.draw(g,{camera:{zoom:1,x:0,y:0},actors:[],t,viewportWidth:10000,viewportHeight:10000});return JSON.stringify(strokes);}
  return {frame,data,before};
 }
-test('fountain water changes with elapsed time without modifying basin, map or collision data',()=>{
- const s=setup(false);assert.notEqual(s.frame(0),s.frame(500));assert.equal(JSON.stringify(s.data),s.before);
+test('removed fountain has no object or water animation',()=>{
+ const s=setup(false);assert.equal(s.data.objects.length,0);assert.equal(s.frame(0),'[]');assert.equal(s.frame(500),'[]');assert.equal(JSON.stringify(s.data),s.before);
 });
 test('reduced motion keeps water still and nonfinite frame time remains safe',()=>{
  const s=setup(true);assert.equal(s.frame(0),s.frame(500));assert.equal(s.frame(0),s.frame(NaN));

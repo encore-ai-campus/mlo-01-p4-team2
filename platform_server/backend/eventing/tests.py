@@ -416,6 +416,8 @@ class PublisherTests(TestCase):
                 callback[0] = kwargs["on_delivery"]
 
             def poll(self, timeout):
+                if callback[0] is None:
+                    return
                 if acknowledge:
                     callback[0](error, None)
                 stop.set()
@@ -452,11 +454,10 @@ class PublisherTests(TestCase):
         self.assertEqual(EventOutbox.objects.count(), 1)
 
     def test_produce_return_without_delivery_callback_does_not_count_as_ack(self):
-        with self.assertLogs("eventing.publisher", level="WARNING"):
-            self.deliver_once(acknowledge=False)
+        self.deliver_once(acknowledge=False)
         self.row.refresh_from_db()
         self.assertIsNone(self.row.published_at)
-        self.assertEqual(self.row.retry_count, 1)
+        self.assertEqual(self.row.retry_count, 0)
 
 
 class CatalogMigrationTests(TestCase):

@@ -1,0 +1,178 @@
+/* A collapsible left SNB owns the HUD; the map fills the remaining viewport. */
+.map-shell { --snb-width: 300px; --map-footer-height: 76px; }
+.campus-snb { position: absolute; z-index: 10; inset: 0 auto 0 0; width: var(--snb-width); background: #fffdf8; border-right: 1px solid #dce7e1; box-shadow: 4px 0 22px #23433112; transform: translateX(-100%); transition: transform .22s ease; }
+.campus-snb-content { height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: 22px 18px; scrollbar-width: thin; display: flex; flex-direction: column; gap: 15px; }
+.map-shell[data-snb-open=true] .campus-snb { transform: translateX(0); }
+.campus-snb-toggle { position: absolute; z-index: 11; left: 0; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 30px; height: 64px; border: 1px solid #dce7e1; border-left: 0; border-radius: 0 12px 12px 0; background: #fffdf8; color: #167d79; box-shadow: 3px 2px 10px #23433115; cursor: pointer; transition: left .22s ease; }
+.campus-snb-toggle:focus-visible { outline: 3px solid #167d7966; outline-offset: 2px; }
+.campus-snb-toggle svg { transform: rotate(180deg); }
+.map-shell[data-snb-open=true] .campus-snb-toggle { left: var(--snb-width); }
+.map-shell[data-snb-open=true] .campus-snb-toggle svg { transform: none; }
+.map-shell>.viewport { left: 0; width: 100%; transition: none; }
+.map-shell[data-snb-open=true]>.viewport { left: var(--snb-width); width: calc(100% - var(--snb-width)); }
+.campus-snb .map-toolbar { position: static; display: flex; flex-wrap: wrap; width: 100%; max-width: none; padding: 0 0 16px; background: transparent; border: 0; border-bottom: 1px solid #e3ebe4; border-radius: 0; box-shadow: none; }
+.campus-snb .map-guide-toggle { width: 100%; padding: 0; flex-wrap: wrap; gap: 12px; }
+.campus-snb .map-title { width: calc(100% - 28px); }
+.campus-snb .map-current-room { display: block; max-width: 100%; order: 3; border: 0; padding-left: 40px; font-size: 12px; }
+.campus-snb .map-guide-chevron { position: absolute; right: 20px; top: 31px; }
+.snb-section-title { margin: 3px 0 0; font-size: 11px; font-weight: 750; letter-spacing: .5px; color: #7a8d81; }
+.campus-snb .map-status-tools { position: static; display: flex; flex-direction: column; align-items: stretch; gap: 12px; max-width: none; width: 100%; }
+.campus-snb .presence-status { position: static; text-align: center; white-space: normal; }
+.campus-snb .map-controls { position: static; width: 100%; max-width: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; }
+.campus-snb .map-wallet-anchor { width: 100%; }
+.campus-snb .map-wallet { width: 100%; }
+.campus-snb .map-wallet-history { position: static; margin-top: 10px; width: 100%; max-height: 300px; box-shadow: none; }
+.campus-snb .map-footer { position: static; width: 100%; min-height: 0; display: flex; flex-direction: column-reverse; align-items: stretch; justify-content: flex-start; gap: 22px; margin: 0; padding: 0; border: 0; background: transparent; }
+.campus-snb .map-footer>.map-player-tools { width: 100%; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding: 0 0 18px; border: 0; border-bottom: 1px solid #e3ebe4; }
+.campus-snb .map-footer .map-player { display: flex; gap: 10px; align-items: center; }
+.campus-snb .map-footer .map-player-copy { display: flex; flex-direction: column; gap: 5px; }
+.campus-snb .map-footer .settings-button { min-height: 38px; padding: 8px; }
+.campus-snb .map-footer>.map-key-guide { display: grid; grid-template-columns: 1fr; gap: 12px; width: 100%; }
+.campus-snb .map-key-item,.campus-snb .jump-key-button,.campus-snb .chat-open { display: flex; align-items: center; gap: 9px; font-size: 12px; }
+.campus-snb .map-key-item kbd { min-width: 42px; justify-content: center; }
+.campus-snb .campus-space-guide { position: static; width: 100%; max-width: none; padding: 14px 6px; border: 0; border-bottom: 1px solid #e3ebe4; border-radius: 0; box-shadow: none; background: transparent; flex: none; }
+.campus-snb .campus-space-guide[hidden] { display: none; }
+.campus-snb .campus-space-guide #roomNav { max-height: 290px; flex: none; }
+.map-shell .board-shortcut,.map-shell .chat-panel { bottom: 18px; }
+@media(max-width:700px) {
+ .map-shell { --snb-width: min(286px, calc(100vw - 48px)); }
+ .map-shell[data-snb-open=true]>.viewport { left: 0; width: 100%; }
+ .campus-snb-content { padding: 20px 16px; }
+}
+@media(prefers-reduced-motion:reduce) { .campus-snb,.campus-snb-toggle,.map-shell>.viewport { transition: none; } }
+
+.campus-snb [hidden] { display: none !important; }
+.campus-snb .map-view-tools { display: flex; flex-direction: column; align-items: stretch; width: 100%; gap: 12px; }
+
+.campus-snb .presence-status { border: 0; border-radius: 0; box-shadow: none; background: transparent; padding: 4px 0; text-align: left; }
+.snb-interactions { border: 0; padding: 0; color: #55796c; }
+.snb-interactions>summary { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; list-style: none; cursor: pointer; font-size: 13px; font-weight: 700; color: #167d79; }
+.snb-interactions>summary::-webkit-details-marker { display: none; }
+.snb-interactions>summary::after { content: '⌄'; font-size: 18px; transition: transform .18s; }
+.snb-interactions[open]>summary::after { transform: rotate(180deg); }
+.snb-interactions>summary:focus-visible { outline: 2px solid #167d7970; outline-offset: 3px; border-radius: 4px; }
+.campus-snb .snb-interactions .map-key-guide { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 10px 0 8px; }
+@media(prefers-reduced-motion:reduce) { .snb-interactions>summary::after { transition: none; } }
+
+.campus-snb .presence-status { font-size: 14px; line-height: 1.6; }
+.snb-interactions>summary::after { content: none; }
+.snb-interaction-chevron { flex: none; width: 12px; height: 12px; color: #879b8a; transition: transform .18s; }
+.snb-interactions[open] .snb-interaction-chevron { transform: rotate(180deg); }
+@media(prefers-reduced-motion:reduce) { .snb-interaction-chevron { transition: none; } }
+
+/* Quiet wallet styling; online count has its own clear visual hierarchy. */
+.campus-snb .map-wallet { min-width: 0; min-height: 58px; padding: 12px 14px; gap: 10px; border: 1px solid #dae6df; border-radius: 11px; background: #f3f8f5; box-shadow: none; color: #167d79; }
+.campus-snb .map-wallet-coin { width: 27px; height: 27px; filter: none; }
+.campus-snb .map-wallet-copy { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.campus-snb .map-wallet-label { margin: 0; color: #4e7167; font-size: 13px; font-weight: 650; letter-spacing: 0; }
+.campus-snb .map-wallet-value { gap: 3px; color: #167d79; }
+.campus-snb #mapWalletBalance { color: #167d79; font-size: var(--wallet-font-size,20px); line-height: 1.2; }
+.campus-snb .map-wallet-unit { color: #5d8377; font-size: 11px; }
+.campus-snb .map-wallet-toggle { width: 12px; height: 12px; color: #879b8a; }
+.campus-snb .map-wallet:hover,.campus-snb .map-wallet[aria-expanded=true] { background: #e9f3ee; border-color: #a9c9bb; }
+.campus-snb .map-wallet:focus-visible { outline: 3px solid #167d7966; outline-offset: 3px; }
+.campus-snb .map-wallet[data-state=loading] #mapWalletBalance,.campus-snb .map-wallet[data-state=unavailable] #mapWalletBalance { color: #7c9187; }
+.campus-snb .map-wallet.is-earned { background: #e2f3e9; border-color: #75b59a; }
+.campus-snb .map-wallet-history { border-color: #dae6df; border-radius: 11px; }
+.campus-snb .presence-status { display: flex; align-items: center; gap: 7px; min-height: 34px; font-size: 15px; color: #4f7065; padding: 0 2px; }
+.campus-snb .presence-status[data-state=connected]::before { display: none; }
+.snb-presence-icon { position: relative; display: inline-flex; align-items: center; margin-right: 3px; color: #167d79; }
+.snb-presence-icon i { position: absolute; right: -1px; bottom: 1px; width: 7px; height: 7px; background: #329b78; border: 2px solid #fffdf8; border-radius: 50%; }
+.snb-presence-label { font-weight: 500; }
+.snb-presence-count { margin-left: auto; font-size: 18px; line-height: 1.3; font-weight: 800; color: #167d79; font-variant-numeric: tabular-nums; }
+.snb-presence-unit { font-size: 13px; color: #6e877b; }
+.campus-snb .map-status-tools { gap: 10px; }
+.snb-services button { min-height: 54px; border-radius: 11px; }
+
+/* Account information is visually distinct from actionable service cards. */
+.campus-snb .map-wallet { min-height: 48px; padding: 8px 2px; border: 0; border-radius: 7px; background: transparent; box-shadow: none; }
+.campus-snb .map-wallet:hover,.campus-snb .map-wallet[aria-expanded=true] { background: #edf5ef; border-color: transparent; }
+.campus-snb .map-wallet.is-earned { background: #e2f3e9; }
+.campus-snb .map-wallet-anchor { padding-bottom: 17px; margin-bottom: 2px; border-bottom: 1px solid #dce7e1; }
+.campus-snb .map-wallet-coin { width: 25px; height: 25px; }
+.snb-services { gap: 9px; }
+.snb-services button { min-height: 52px; padding: 13px 15px; }
+
+.snb-student-menu { border-top: 1px solid #e0e8e2; padding-top: 10px; }
+.snb-student-menu>summary { cursor: pointer; padding: 10px 0; color: #167d79; font-size: 13px; font-weight: 700; }
+.snb-student-menu nav { display: grid; gap: 3px; padding: 4px 0 7px; }
+.snb-student-placeholder { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 8px; font-size: 12px; color: #778d80; }
+.snb-student-placeholder small { font-size: 10px; color: #83998b; background: #edf2ed; border-radius: 5px; padding: 3px 6px; white-space: nowrap; }
+
+/* Long student menus must scroll, never compress the footer into overlapping columns. */
+.campus-snb-content>* { flex-shrink: 0; }
+.campus-snb .map-footer { display: grid; grid-template-columns: minmax(0,1fr); grid-auto-flow: row; width: 100%; height: auto; min-height: max-content; flex: none; gap: 16px; }
+.campus-snb .map-footer>.map-player-tools { grid-column: 1; grid-row: 1; min-width: 0; width: 100%; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.campus-snb .map-footer>.snb-interactions { grid-column: 1; grid-row: 2; display: block; width: 100%; min-width: 0; }
+.campus-snb .map-footer .snb-interactions>summary { width: 100%; margin: 0; }
+.campus-snb .map-footer .map-player-copy { min-width: 0; }
+.campus-snb .map-footer .account-name { max-width: 130px; }
+.campus-snb .snb-student-menu { width: 100%; min-width: 0; }
+.campus-snb .snb-student-menu>.snb-section-title { margin: 4px 0 10px; }
+
+.campus-snb .map-current-room { display: none; }
+
+/* Keep only the campus identity header fixed while the menu scrolls below it. */
+.campus-snb>.map-toolbar { position: fixed; top: 0; left: 0; z-index: 20; box-sizing: border-box; width: 100%; padding: 22px 18px 16px; background: #fffdf8; }
+.campus-snb .campus-snb-content { padding-top: calc(var(--snb-header-height, 102px) + 15px); scroll-padding-top: calc(var(--snb-header-height, 102px) + 15px); }
+@media(max-width:700px) { .campus-snb>.map-toolbar { padding: 20px 16px 16px; } }
+
+.campus-snb-content { position: relative; z-index: 0; isolation: isolate; }
+
+.campus-snb .snb-logout { width: 100%; margin-top: auto; padding-top: 18px; border-top: 1px solid #e0e8e2; }
+.campus-snb .snb-logout .settings-logout { margin-top: 0; min-height: 42px; }
+
+.campus-snb .snb-player { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 60px; padding-bottom: 15px; border-bottom: 1px solid #e0e8e2; }
+.campus-snb .snb-player .map-player-copy { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.campus-snb .snb-player .account-name { max-width: 220px; }
+.campus-snb .map-footer>.map-player-tools { justify-content: flex-end; }
+
+.campus-snb .snb-account-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: auto; padding-top: 18px; border-top: 1px solid #e0e8e2; }
+.campus-snb .snb-account-actions>.settings-button { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 42px; margin: 0; }
+.campus-snb .snb-account-actions>.snb-logout { margin: 0; padding: 0; border: 0; }
+.campus-snb .map-footer>.snb-interactions { grid-row: auto; }
+
+.campus-snb .snb-player .map-player-label { display: none; }
+.campus-snb .snb-player .map-player-copy { flex-direction: row; align-items: center; gap: 0; }
+
+/* Match campus status labels and show a sharp face portrait instead of a tiny sprite. */
+.campus-snb .presence-status,.campus-snb .map-wallet-label { font-family: inherit; font-size: 15px; font-weight: 650; line-height: 1.6; letter-spacing: 0; color: #4f7065; }
+.campus-snb .snb-player .avatar-preview { display: block; width: 52px; height: 52px; flex: 0 0 52px; object-fit: contain; image-rendering: auto; }
+.campus-snb .snb-player { gap: 13px; min-height: 70px; }
+.campus-snb .snb-presence-label { font: inherit; letter-spacing: inherit; }
+
+.campus-snb .map-wallet-anchor>#privateMessagesOpen { display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 12px; }
+.campus-snb .map-wallet-anchor>#privateMessagesOpen[hidden] { display: none; }
+
+.campus-snb #privateMessagesOpen { gap: 8px; }
+.campus-snb #privateMessagesOpen #dmBadge { display: inline-flex; align-items: center; justify-content: center; flex: none; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: #cf564e; color: #fff; font-size: 11px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.campus-snb #privateMessagesOpen #dmBadge[hidden] { display: none; }
+
+/* Keyboard interaction help returns to the map footer. */
+.map-shell>.map-footer {min-height:54px;justify-content:center}
+.map-shell[data-snb-open=true]>.map-footer {left:var(--snb-width)}
+.map-shell>.viewport {height:calc(100% - var(--map-footer-height));bottom:var(--map-footer-height)}
+.map-shell>.map-footer>.map-key-guide {display:flex;justify-content:center;flex-wrap:wrap;gap:9px 18px}
+@media(max-width:700px){
+  .map-shell>.map-footer {min-height:54px;padding:10px 12px;flex-direction:row}
+  .map-shell[data-snb-open=true]>.map-footer {left:0}
+  .map-shell>.map-footer>.map-key-guide {gap:7px 12px}
+}
+
+/* Translucent keyboard help with crisp text and keycaps. */
+.map-shell>.map-footer {
+  background:rgba(255,255,255,.6);opacity:1;backdrop-filter:none;-webkit-backdrop-filter:none;
+  border-top:1px solid #cbd8cf;box-shadow:0 -2px 10px #183d3610;color:#36564c;
+}
+.map-shell>.map-footer .map-key-item,
+.map-shell>.map-footer .chat-open,
+.map-shell>.map-footer .jump-key-button {color:#36564c;font-weight:600}
+.map-shell>.map-footer .map-key-item>kbd,
+.map-shell>.map-footer .chat-open kbd,
+.map-shell>.map-footer .jump-key-button kbd {
+  background:#f0f5f1;color:#245e53;border-color:#b9cfc3;
+  border-bottom-color:#9fb9ab;font-weight:700;
+}
+
+/* Let the map continue beneath the translucent help bar. */
+.map-shell>.viewport {height:100%;bottom:0}

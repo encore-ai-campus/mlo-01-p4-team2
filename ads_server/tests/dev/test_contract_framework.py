@@ -108,14 +108,20 @@ class ContractCheckerTests(Cases, SimpleTestCase):
     def case_binary_and_empty_responses(self):
         image = Fake(200, b"\x89PNG\r\n", {
             "Content-Type": "image/png", "ETag": "abc", "Cache-Control": "no-cache", "X-Content-Type-Options": "nosniff",
-            "Cross-Origin-Resource-Policy": "cross-origin",
+            "Cross-Origin-Resource-Policy": "cross-origin", "Access-Control-Allow-Origin": "*",
         })
         self.assertEqual(self.problems(image, "/assets/{asset_name}"), [])
         self.assertTrue(self.problems(Fake(200, None, image.headers), "/assets/{asset_name}"))  # 본문 없음
         wrong_cache = Fake(200, b"x", {**image.headers, "Cache-Control": "max-age=3600"})
         self.assertTrue(self.problems(wrong_cache, "/assets/{asset_name}"))  # const: no-cache
-        self.assertEqual(self.problems(Fake(304, None, {"ETag": "abc", "Cache-Control": "no-cache"}), "/assets/{asset_name}"), [])
-        self.assertTrue(self.problems(Fake(304, None, {}), "/assets/{asset_name}"))  # 304 에도 ETag·Cache-Control
+        for name, wrong in (("Access-Control-Allow-Origin", "https://media.example"), ("Cross-Origin-Resource-Policy", "same-site")):
+            self.assertTrue(self.problems(Fake(200, b"x", {**image.headers, name: wrong}), "/assets/{asset_name}"), name)  # const
+            self.assertTrue(self.problems(Fake(200, b"x", {k: v for k, v in image.headers.items() if k != name}), "/assets/{asset_name}"), name)
+        not_modified = {"ETag": "abc", "Cache-Control": "no-cache", "Cross-Origin-Resource-Policy": "cross-origin", "Access-Control-Allow-Origin": "*"}
+        self.assertEqual(self.problems(Fake(304, None, not_modified), "/assets/{asset_name}"), [])
+        self.assertTrue(self.problems(Fake(304, None, {}), "/assets/{asset_name}"))  # 304 에도 ETag·Cache-Control·CORP·ACAO(1.7)
+        for name in ("Cross-Origin-Resource-Policy", "Access-Control-Allow-Origin"):
+            self.assertTrue(self.problems(Fake(304, None, {k: v for k, v in not_modified.items() if k != name}), "/assets/{asset_name}"), name)
 
     def case_problem_status_must_match_the_http_status(self):
         """RFC 9457 §3.1.2: 본문 status 가 HTTP 상태와 다르면 클라이언트와 로그가 서로 다른 오류로 읽는다."""
@@ -144,8 +150,9 @@ class ContractCheckerTests(Cases, SimpleTestCase):
             self.assertTrue(any("WWW-Authenticate" in f for f in found), (label, found))
 
     def case_statuses_that_forbid_a_body_are_checked(self):
-        self.assertEqual(self.problems(Fake(304, None, {"ETag": "abc", "Cache-Control": "no-cache"}), "/assets/{asset_name}"), [])
-        found = self.problems(Fake(304, b"unexpected body", {"ETag": "abc", "Cache-Control": "no-cache"}), "/assets/{asset_name}")
+        headers = {"ETag": "abc", "Cache-Control": "no-cache", "Cross-Origin-Resource-Policy": "cross-origin", "Access-Control-Allow-Origin": "*"}
+        self.assertEqual(self.problems(Fake(304, None, headers), "/assets/{asset_name}"), [])
+        found = self.problems(Fake(304, b"unexpected body", headers), "/assets/{asset_name}")
         self.assertTrue(any("본문이 없어야" in f for f in found), found)
 
     def case_retry_after_accepts_only_ascii_digits(self):

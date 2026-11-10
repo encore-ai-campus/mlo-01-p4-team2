@@ -28,6 +28,7 @@ def _asset_headers(view):
         response = view(request, *args, **kwargs)
         response["Cache-Control"] = "no-cache"
         response["Cross-Origin-Resource-Policy"] = "cross-origin"  # 다른 출처 페이지가 이미지를 삽입할 수 있어야 한다
+        response["Access-Control-Allow-Origin"] = "*"  # crossOrigin 캔버스(메타버스 옥상)가 픽셀을 읽는다. 공개 파일·쿠키 없음이라 자격 증명 헤더는 두지 않는다
         return response
 
     return wrapper

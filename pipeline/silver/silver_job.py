@@ -4,8 +4,11 @@ Bronze Delta 를 readStream(`maxFilesPerTrigger` — SL-3c 결정 S3, `maxBytesP
 - 설정은 환경변수다(기본값 없음 — control.job_settings). 넘김 목록 파일·코드 뿌리(silver_release)도 설정으로 받는다.
   s3a 경로면 S3 연결 설정 넷도 필요하다(control.s3_settings — 키는 파일에서 읽어 conf 로만).
 - 잡 코드가 Delta 확장과 `spark.sql.session.timeZone=UTC` 를 스스로 정한다 — 운영 SparkApplication 에는 제출 스크립트가 없다.
-- 시작 전에 framework.prepare(한 프로세스 한 쿼리·시작 검사 ①~④·표 만들기)를 지나야 한다.
+- 시작 전에 framework.prepare(한 프로세스 한 쿼리·시작 검사 ①~④·표 만들기)를 지나야 한다. (SL-9) 그다음 스트림 전에 framework.move_quarantined 가
+  격리 목록(`SILVER_QUARANTINE`)의 ID 를 본 표에서 격리 표로 옮긴다.
 - 로컬 lock 은 래퍼 run-silver.sh(lockf), 예약은 launchd 견본 local.pipeline.silver-<원천>.plist(SL-5 — 15 §9 33). 운영은 ScheduledSparkApplication `concurrencyPolicy: Forbid`.
+- (SL-6 D2·D7) 스트림이 성공하면 같은 세션에서 Bronze ↔ Silver 대사(reconcile)를 돈다. 종료 코드: 0 = Silver 끝 + 대사 match(또는 맞출 배치 없음),
+  3 = Silver 쓰기는 끝났고 대사가 불일치(mismatch·copies_mismatch·Silver 중복)를 찾음 — 결과 표는 썼다. 배치 실패·멈춤·설정 오류·대사 예외는 예외 그대로(1).
 """
 import argparse
 import importlib
@@ -15,13 +18,17 @@ from pathlib import Path
 
 from pyspark.sql import SparkSession
 
-from pipeline.silver import control, framework
+from pipeline.silver import control, framework, reconcile
+
+MISMATCH_RC = 3  # 대사 불일치(Silver 쓰기는 끝남) — 고칠 때까지 매 회차 난다(runbooks/silver.md)
 
 
-def run(spark, settings, adapt, lines, release, *, log=print, broadcast_limit=framework.BROADCAST_LIMIT):
-    """스트림 쿼리 하나를 끝까지 돈다(availableNow). 배치가 실패하면(멈춤·결함) awaitTermination 이 예외를 낸다. 반환: 끝난 쿼리."""
+def run(spark, settings, adapt, lines, release, *, quarantine=(), log=print, broadcast_limit=framework.BROADCAST_LIMIT):
+    """스트림 쿼리 하나를 끝까지 돈다(availableNow). 배치가 실패하면(멈춤·결함) awaitTermination 이 예외를 낸다. 반환: 끝난 쿼리.
+    `quarantine`: 격리 목록 줄(control.load_quarantine) — 스트림 전 옮기기와 배치 판정이 같은 목록을 쓴다."""
     spark.conf.set("spark.sql.session.timeZone", "UTC")  # event_date = produced_at 의 UTC 날짜(배치 세션은 쿼리 시작 때 이 세션을 복제한다)
     known = framework.prepare(spark, settings)
+    framework.move_quarantined(spark, settings, quarantine, release, log=log)
     state = {"id": None}
 
     def checkpoint():
@@ -32,7 +39,7 @@ def run(spark, settings, adapt, lines, release, *, log=print, broadcast_limit=fr
             state["id"] = ident
         return state["id"]
 
-    ctx = framework.BatchContext(settings, adapt, lines, release, log, broadcast_limit, checkpoint)
+    ctx = framework.BatchContext(settings, adapt, lines, quarantine, release, log, broadcast_limit, checkpoint)
     query = (spark.readStream.format("delta").option("maxFilesPerTrigger", settings.max_files).option("maxBytesPerTrigger", settings.max_bytes)
              .load(settings.bronze)
              .writeStream.option("checkpointLocation", settings.checkpoint).trigger(availableNow=True)
@@ -41,18 +48,9 @@ def run(spark, settings, adapt, lines, release, *, log=print, broadcast_limit=fr
     return query
 
 
-def main(argv=None, environ=None):
-    parser = argparse.ArgumentParser(description="Silver 잡 — 원천 하나·세대 하나")
-    parser.add_argument("--domain", required=True)
-    parser.add_argument("--generation", type=int, required=True)
-    args = parser.parse_args(argv)
-    environ = os.environ if environ is None else environ
-    settings = control.job_settings(environ, args.domain, args.generation)  # Spark 전에 검사
-    s3 = control.s3_settings(environ, settings)
-    lines = control.load_acknowledged(Path(settings.acknowledged).read_bytes(), settings.domain)
-    release = control.silver_release(settings.code_root)
-    adapter = importlib.import_module(f"pipeline.silver.adapters.{settings.domain}")
-    builder = (SparkSession.builder.appName(f"silver-{settings.domain}-g{settings.generation}")
+def session(name, s3):
+    """잡과 포인터 도구(SL-7)의 SparkSession: Delta 확장·`spark.sql.session.timeZone=UTC` 를 스스로 정한다. `s3`: control.s3_settings 결과(None 이면 file://)."""
+    builder = (SparkSession.builder.appName(name)
                .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
                .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
                .config("spark.sql.session.timeZone", "UTC"))
@@ -62,13 +60,30 @@ def main(argv=None, environ=None):
                    .config("spark.hadoop.fs.s3a.aws.credentials.provider", "org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider")
                    .config("spark.hadoop.fs.s3a.access.key", Path(s3["access_key_file"]).read_text().strip())
                    .config("spark.hadoop.fs.s3a.secret.key", Path(s3["secret_key_file"]).read_text().strip()))
-    spark = builder.getOrCreate()
+    return builder.getOrCreate()
+
+
+def main(argv=None, environ=None):
+    parser = argparse.ArgumentParser(description="Silver 잡 — 원천 하나·세대 하나")
+    parser.add_argument("--domain", required=True)
+    parser.add_argument("--generation", type=int, required=True)
+    args = parser.parse_args(argv)
+    environ = os.environ if environ is None else environ
+    settings = control.job_settings(environ, args.domain, args.generation)  # Spark 전에 검사
+    s3 = control.s3_settings(environ, (settings.silver, settings.bronze))
+    lines = control.load_acknowledged(Path(settings.acknowledged).read_bytes(), settings.domain)
+    quarantine = control.load_quarantine(Path(settings.quarantine_list).read_bytes(), settings.domain)  # (SL-9) Spark 전에 검사
+    release = control.silver_release(settings.code_root)
+    adapter = importlib.import_module(f"pipeline.silver.adapters.{settings.domain}")
+    spark = session(f"silver-{settings.domain}-g{settings.generation}", s3)
     try:
-        print(f"silver start domain={settings.domain} generation={settings.generation} release={release} acknowledged_lines={len(lines)}", flush=True)
-        run(spark, settings, adapter.adapt, lines, release, log=lambda line: print(line, flush=True))
+        print(f"silver start domain={settings.domain} generation={settings.generation} release={release} acknowledged_lines={len(lines)} quarantine_lines={len(quarantine)}", flush=True)
+        log = lambda line: print(line, flush=True)  # noqa: E731
+        run(spark, settings, adapter.adapt, lines, release, quarantine=quarantine, log=log)
+        result = reconcile.reconcile(spark, settings, release=release, quarantine=quarantine, log=log)
     finally:
         spark.stop()
-    return 0
+    return 0 if result.ok else MISMATCH_RC
 
 
 if __name__ == "__main__":

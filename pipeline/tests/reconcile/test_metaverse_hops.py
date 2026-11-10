@@ -387,6 +387,7 @@ class RunTests(unittest.TestCase):
         manifest, lines = self.verdicts("day")
         self.assertEqual([(l["window_start"], l["confirmed"]) for l in lines], [("2026-11-02T00:00:00Z", True), ("2026-11-03T00:00:00Z", True), ("2026-11-04T00:00:00Z", True)])
         self.assertEqual(manifest["checkpoint"]["inputs"], {"hop_outbox": state["outbox_manifest_sha256"], "pipeline": state["pipeline_manifest_sha256"]})
+        self.assertEqual(manifest["checkpoint"]["rule_sha256"], hop_rules.rule_sha256())  # 판정 사슬에 적는 규칙 판(MVR-3a 리뷰 r1 기록 1 — M10)
         self.assertIn("reconcile metaverse day: ok rc=0", output)
         rc, state, _, _, _ = self.run_once(files, table_of(unique_db_rows()), now="2026-11-05T00:17:00+00:00", window="day")  # 다음 회차 — 사슬이 한 세대 늘어남
         manifest2, _ = self.verdicts("day")

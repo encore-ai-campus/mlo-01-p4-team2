@@ -20,6 +20,8 @@
 - `settings` 는 출처 dict `{"db","schema","table"}`(control.source_settings 가 잡 입구에서 검사 — SL-3c 결정 S1, SL-8 도 같음).
 check_adapted 는 이 약속을 Spark 식으로 확인한다. 어긋나면 배치를 멈춘다(SV7 '설정 이상은 멈춤').
 배치 판정(SL-3b)과 쓰기·멱등·정체성(SL-3c)은 아래 두 절이다. 잡 입구는 silver_job.py.
+(SL-9 — 계획 temp/pipeline/38_silver-quarantine-sl9.md) 유령 격리: 판정은 목록 ID 의 접은 행을 본 표 전체 확인에서 빼 격리 표와 맞추고(quarantine_check),
+쓰기는 할 일이 있을 때만 격리 MERGE(txn appId `quarantine`), 스트림 전 시작 옮기기는 move_quarantined 다.
 """
 import json
 import time
@@ -219,11 +221,37 @@ def full_check(folded, silver, conflict_ids, broadcast=True):
     return merge, decided
 
 
+def listed_frame(spark, lines):
+    """격리 목록 줄(control.load_quarantine) → DataFrame(event_id + contracts.QUARANTINE_LIST_FIELDS). listed_at 은 세션 UTC 로 읽는다(부르는 쪽이 UTC 확인)."""
+    rows = [(line["event_id"], line["reason"], line["incident"], line["listed_by"], line["listed_at"]) for line in lines]
+    frame = spark.createDataFrame(rows, "event_id string, quarantine_reason string, quarantine_incident string, quarantine_listed_by string, listed_at string")
+    return frame.select("event_id", "quarantine_reason", "quarantine_incident", "quarantine_listed_by",
+                        F.to_timestamp("listed_at", "yyyy-MM-dd'T'HH:mm:ss'Z'").alias("quarantine_listed_at"))
+
+
+def quarantine_check(listed_rows, quarantined, conflict_ids):
+    """격리 목록 ID 의 접은 행 판정(SL-9 — 계획 38 §2.3 ②). `listed_rows`: 목록 ID 의 접은 행(작음), `quarantined`: 격리 표 투영
+    (event_id·event_date·content_sha256), `conflict_ids`: 오류 표 conflict ID. 오류 표 conflict 에 있음 → conflict((a)와 같음), 격리 표에 없음 → 넣음,
+    같은 해시 → copies, 다른 해시 → conflict(격리 표 그대로). 반환: (격리 MERGE 원본 = 판정이 없는 행, 충돌 판정 DF — full_check 와 같은 열)."""
+    ids = F.broadcast(listed_rows.select("event_id"))
+    existing = (quarantined.select("event_id", "event_date", "content_sha256").join(ids, "event_id", "left_semi").groupBy("event_id")
+                .agg(F.min("event_date").alias("_date"), F.min("content_sha256").alias("_sha"), F.max("content_sha256").alias("_sha_max")))
+    known = conflict_ids.select("event_id").join(ids, "event_id", "left_semi").distinct().withColumn("_known", F.lit(True))
+    joined = listed_rows.join(existing, "event_id", "left").join(known, "event_id", "left")
+    reason = (F.when(F.col("_known"), F.lit("이미 conflict 로 오류 표에 있는 event_id 의 새 사본"))
+              .when(F.col("_sha").isNotNull() & ((F.col("_sha") != F.col("_sha_max")) | (F.col("_sha") != F.col("content_sha256"))),
+                    F.lit("격리 목록 ID 의 새 사본 — 격리 표의 그 행과 내용이 다르다")))
+    decided = joined.withColumn("_reason", reason).where(F.col("_reason").isNotNull()).select(
+        "event_id", F.col("_reason").alias("reason"), F.when(F.col("_sha").isNotNull(), F.col("event_id")).alias("existing_event_id"),
+        F.col("_date").alias("existing_event_date"))
+    return listed_rows.join(decided.select("event_id"), "event_id", "left_anti"), decided
+
+
 BROADCAST_LIMIT = 1_000_000  # 배치 고유 event_id 가 이만큼까지 broadcast(15 §2.1b 실측 범위). 넘으면 broadcast 없이 — SL-3c 결정 S3
-Judgement = namedtuple("Judgement", "stop merge errors stops mismatches ids broadcast check_seconds cached")
+Judgement = namedtuple("Judgement", "stop merge errors stops mismatches ids broadcast check_seconds cached quarantine")
 
 
-def judge(ok, errors, lines, bronze_table, silver, conflict_ids, broadcast_limit=BROADCAST_LIMIT):
+def judge(ok, errors, lines, bronze_table, silver, conflict_ids, broadcast_limit=BROADCAST_LIMIT, quarantine_lines=(), quarantined=None):
     """배치 판정(15 §2.1 2~4단계, 쓰기 없음). 입력은 check_adapted 를 지난 어댑터 결과(dedupe_bronze 를 지난 배치에서 나온 것).
     반환 Judgement:
     - stop: 넘기지 못한 멈춤 줄이 있으면 참 — 그때는 접기·전체 확인을 하지 않고 merge·errors 는 None, stops 에 진단 행(D4).
@@ -232,17 +260,27 @@ def judge(ok, errors, lines, bronze_table, silver, conflict_ids, broadcast_limit
       contracts.error_rows 로 배치 열을 붙여 쓴다.
     - stops: 진단 행(stop 이 거짓이면 빈 DF). mismatches: 행 수가 다른 범위 줄.
     - ids: 접은 행 수(= broadcast 크기), broadcast: 전체 확인을 broadcast 로 했나, check_seconds: 전체 확인(4단계) 시간(드라이버 단조 시계).
-    - cached: 판정이 persist 한 DF(접은 행·충돌 판정) — 부르는 쪽이 쓰기를 마친 뒤 unpersist 한다(SL-3b 리뷰 참고 2)."""
+    - cached: 판정이 persist 한 DF(접은 행·충돌 판정) — 부르는 쪽이 쓰기를 마친 뒤 unpersist 한다(SL-3b 리뷰 참고 2).
+    - quarantine: (SL-9) 격리 MERGE 원본(MERGE_SOURCE 열 + 목록 열) 또는 None(목록이 빔). 목록 ID 의 접은 행은 본 표 전체 확인에 들어가지 않는다 —
+      격리 '목록'과 맞춘다(격리 '표'와 맞추면 새 세대·Bronze 재생에서 유령이 (d)로 본 표에 되살아남 — 15 §9 37). `quarantined`: 격리 표 투영."""
     _require_utc(ok.sparkSession)
     adapter_errors, stops, mismatches = acknowledge(errors, lines, bronze_table)
     if stops.limit(1).count():
-        return Judgement(True, None, None, stops, mismatches, None, None, None, ())
+        return Judgement(True, None, None, stops, mismatches, None, None, None, (), None)
     folded, in_batch = fold(ok)
     folded = folded.persist()  # 접기 창(정상 행 셔플)이 broadcast 크기 세기·전체 확인·MERGE 원본에서 다시 돌지 않게
-    ids = folded.count()
+    main, listed = folded, None
+    if quarantine_lines:
+        listed = listed_frame(ok.sparkSession, quarantine_lines)
+        main = folded.join(F.broadcast(listed.select("event_id")), "event_id", "left_anti")
+    ids = main.count()
     use_broadcast = ids <= broadcast_limit
     started = time.monotonic()
-    merge, decided = full_check(folded, silver, conflict_ids, broadcast=use_broadcast)
+    merge, decided = full_check(main, silver, conflict_ids, broadcast=use_broadcast)
+    quarantine = None
+    if listed is not None:
+        to_quarantine, held = quarantine_check(folded.join(F.broadcast(listed.select("event_id")), "event_id", "left_semi"), quarantined, conflict_ids)
+        decided, quarantine = decided.unionByName(held), to_quarantine.join(listed, "event_id")
     decided = decided.persist()  # Silver 투영·오류 표를 한 번만 훑는다(MERGE 원본과 충돌 행이 함께 씀)
     decided.count()
     check_seconds = time.monotonic() - started
@@ -252,7 +290,7 @@ def judge(ok, errors, lines, bronze_table, silver, conflict_ids, broadcast_limit
                                                         "existing_event_id", "existing_event_date")
     decided_rows = _judged(decided_rows, existing_id=F.col("existing_event_id"), existing_date=F.col("existing_event_date"))
     return Judgement(False, merge, adapter_errors.unionByName(in_batch_rows).unionByName(decided_rows), stops, mismatches,
-                     ids, use_broadcast, check_seconds, (folded, decided))
+                     ids, use_broadcast, check_seconds, (folded, decided), quarantine)
 
 
 # ---------------------------------------------------------------- 쓰기·멱등·정체성(SL-3c)
@@ -263,10 +301,21 @@ MERGE_SQL = """MERGE INTO delta.`{path}` t USING silver_merge_source s
   ON t.event_date = s.event_date AND t.event_id = s.event_id
 WHEN MATCHED AND t.content_sha256 = s.content_sha256 THEN UPDATE SET t.copies = t.copies + s.copies
 WHEN NOT MATCHED THEN INSERT *"""  # 15 §2.1. 해시가 다른 같은 ID 는 전체 확인이 먼저 막는다
+# (SL-9) 배치 격리 MERGE — 같은 해시면 copies 만(quarantined_at 은 처음 넣을 때 그대로), 다른 해시는 판정이 먼저 뺀다(quarantine_check)
+QUARANTINE_MERGE_SQL = """MERGE INTO delta.`{path}` t USING silver_merge_source s ON t.event_id = s.event_id
+WHEN MATCHED AND t.content_sha256 = s.content_sha256 THEN UPDATE SET t.copies = t.copies + s.copies
+WHEN NOT MATCHED THEN INSERT *"""
+# 시작 옮기기(계획 38 §2.3 ①) — 둘 다 txn 없이 키로 멱등, 할 일이 없으면 커밋도 없다(38 §1.3 ④⑥). Delta 4.3.1 은 DELETE 의 하위 질의를 받지 않는다(①)
+MOVE_INSERT_SQL = "MERGE INTO delta.`{path}` t USING silver_quarantine_source s ON t.event_id = s.event_id WHEN NOT MATCHED THEN INSERT *"
+MOVE_DELETE_SQL = "MERGE INTO delta.`{path}` t USING silver_quarantine_source s ON t.event_id = s.event_id WHEN MATCHED THEN DELETE"
 
 
 class SilverStop(RuntimeError):
     """넘기지 못한 멈춤 줄이 있어 배치를 멈췄다 — 진단 행은 오류 표에 남겼다(D4 `stops` appId). 넘김 목록에 줄을 더하거나 원인을 고친 뒤 다시 돈다."""
+
+
+class QuarantineError(RuntimeError):
+    """시작 옮기기(SL-9)가 앞조건·확인에서 어긋났다 — 스트림 전에 멈춘다(rc 1). 사람이 두 표를 본다(runbook 유령 격리 절)."""
 
 
 def _jvm(spark):
@@ -306,17 +355,19 @@ def _ddl(fields):
 
 
 def prepare(spark, settings):
-    """잡 시작 검사(스트림 쿼리 전, SL-3c 결정 S2): 한 프로세스 한 쿼리, RETENTION, 시작 검사 ①~④, 두 표 만들기(없을 때만).
+    """잡 시작 검사(스트림 쿼리 전, SL-3c 결정 S2): 한 프로세스 한 쿼리, RETENTION, 시작 검사 ①~④, 세 표 만들기(없을 때만 — (SL-9) 격리 표 포함).
     반환: checkpoint 식별자(없으면 None — 첫 배치에서 metadata 를 읽는다)."""
     if spark.streams.active:
         raise RuntimeError("한 프로세스에 스트림 쿼리는 하나다 — 이미 도는 쿼리가 있다")
     ident, finished = checkpoint_state(spark, settings.checkpoint)
     tables = ((settings.silver, contracts.SILVER_FIELDS, " PARTITIONED BY (event_date)"),  # SV4: produced_at 의 UTC 날짜
-              (settings.errors, contracts.ADAPTER_ERROR_FIELDS + contracts.ERROR_EXTRA_FIELDS, ""))
+              (settings.errors, contracts.ADAPTER_ERROR_FIELDS + contracts.ERROR_EXTRA_FIELDS, ""),
+              (settings.quarantine, contracts.QUARANTINE_FIELDS, ""))  # 드물고 작아 나누지 않는다(계획 38 §2.2)
     states = [table_state(spark, path) for path, _, _ in tables]
     if any(retention for _, _, retention in states):
         raise control.IdentityError(f"표 속성에 {RETENTION} 이 있다 — 멱등 기록이 지워질 수 있어 돌지 않는다")
-    control.start_check(states[0][1], states[1][1], domain=settings.domain, generation=settings.generation, checkpoint=ident, finished=finished)
+    control.start_check(states[0][1], states[1][1], states[2][1], domain=settings.domain, generation=settings.generation, checkpoint=ident,
+                        finished=finished)
     for (path, fields, extra), (version, _, _) in zip(tables, states):
         if version < 0:
             spark.sql(f"CREATE TABLE IF NOT EXISTS delta.`{path}` ({_ddl(fields)}) USING delta{extra}")
@@ -327,14 +378,15 @@ def prepare(spark, settings):
     return ident
 
 
-def merge_events(session, path, merge, app_id, batch_id, metadata):
-    """Silver MERGE(15 §2.1 SQL). 멱등 설정 둘과 userMetadata 를 **배치 세션**에 두고(C2 — 바깥 세션 설정은 foreachBatch 안 MERGE 에 보이지 않음),
-    성공·실패 모두 finally 로 셋 다 지운다(SL-2 ④ 남으면 다른 표에 엉뚱한 기록, ⑦ 하나만 남으면 다음 DML 오류)."""
+def merge_events(session, path, merge, app_id, batch_id, metadata, sql=MERGE_SQL):
+    """Silver MERGE(15 §2.1 SQL — (SL-9) 격리 MERGE 는 `sql=QUARANTINE_MERGE_SQL`). 멱등 설정 둘과 userMetadata 를 **배치 세션**에 두고
+    (C2 — 바깥 세션 설정은 foreachBatch 안 MERGE 에 보이지 않음), 성공·실패 모두 finally 로 셋 다 지운다(SL-2 ④ 남으면 다른 표에 엉뚱한 기록,
+    ⑦ 하나만 남으면 다음 DML 오류)."""
     merge.createOrReplaceTempView("silver_merge_source")
     try:
         for key, value in zip(TXN_CONF, (app_id, str(batch_id), json.dumps(metadata, ensure_ascii=False, sort_keys=True))):
             session.conf.set(key, value)
-        session.sql(MERGE_SQL.format(path=path))
+        session.sql(sql.format(path=path))
     finally:
         for key in TXN_CONF:
             session.conf.unset(key)
@@ -346,7 +398,70 @@ def append_errors(rows, path, app_id, batch_id):
     rows.write.format("delta").mode("append").option("txnAppId", app_id).option("txnVersion", batch_id).save(path)
 
 
-BatchContext = namedtuple("BatchContext", "settings adapt lines release log broadcast_limit checkpoint")
+def _silver_columns(frame):
+    return frame.select(*[name for name, _, _ in contracts.SILVER_FIELDS])
+
+
+def _run_sql(spark, frame, sql):
+    frame.createOrReplaceTempView("silver_quarantine_source")
+    try:
+        spark.sql(sql)
+    finally:
+        spark.catalog.dropTempView("silver_quarantine_source")
+
+
+def move_quarantined(spark, settings, lines, release, log=print):
+    """시작 옮기기(SL-9 — 계획 38 §2.3 ①, prepare 뒤·스트림 전, 표 하나에 쓰는 쪽은 잡 하나). `lines`: control.load_quarantine 결과.
+    본 표에 남은 목록 ID 를 격리 표로 옮긴다: 전 값(목록 ID 에 한정한 (본 ∪ 격리)의 (ID 집합, copies 합) — Silver 열의 서로 다른 행, D7) →
+    지우기 전 앞조건(두 표에 다 있는 목록 ID 는 Silver 열이 같아야 함 — 4와 6 사이에서 죽은 상태뿐) → 격리 표 NOT MATCHED 넣기 → 본 표 MATCHED 지우기 →
+    확인(본 ∩ (격리 ∩ 목록) = ∅, 전 = 뒤). 어긋나면 QuarantineError(rc 1). 어디에도 없는 목록 ID 는 "아직"(멈추지 않음 — 15 §9 37).
+    반환: {"moved", "already", "pending"}."""
+    if not lines:
+        return {"moved": 0, "already": 0, "pending": 0}
+    _require_utc(spark)
+    started = time.monotonic()
+    listed = listed_frame(spark, lines)
+    ids = F.broadcast(listed.select("event_id"))
+
+    def read(path):  # 쓰기 뒤에는 새로 읽는다
+        return spark.read.format("delta").load(path)
+
+    def found(path):
+        return {row[0] for row in read(path).select("event_id").join(ids, "event_id", "left_semi").distinct().collect()}
+
+    def totals():
+        rows = _silver_columns(read(settings.silver)).join(ids, "event_id", "left_semi").unionByName(
+            _silver_columns(read(settings.quarantine)).join(ids, "event_id", "left_semi")).distinct()
+        row = rows.agg(F.sort_array(F.collect_set("event_id")).alias("ids"), F.sum("copies").alias("copies")).first()
+        return list(row["ids"]), row["copies"] or 0
+
+    in_main, in_quarantine = found(settings.silver), found(settings.quarantine)
+    counts = {"moved": len(in_main), "already": len(in_quarantine - in_main),
+              "pending": len({line["event_id"] for line in lines} - in_main - in_quarantine)}
+    if in_main:
+        before = totals()
+        both = in_main & in_quarantine
+        if both:
+            pick = F.broadcast(spark.createDataFrame([(i,) for i in sorted(both)], "event_id string"))
+            ours, theirs = (_silver_columns(read(path)).join(pick, "event_id", "left_semi") for path in (settings.silver, settings.quarantine))
+            if ours.exceptAll(theirs).limit(1).count() or theirs.exceptAll(ours).limit(1).count():
+                raise QuarantineError(f"본 표와 격리 표에 같은 목록 ID 가 다른 행으로 있다 — 지우지 않고 멈춘다(되돌리기 순서·손으로 고친 표를 본다): {sorted(both)[:10]}")
+        moved_at = datetime.now(timezone.utc)
+        source = _silver_columns(read(settings.silver)).join(ids, "event_id", "left_semi").join(listed, "event_id").select(
+            *[F.col(name) for name, _, _ in contracts.SILVER_FIELDS + contracts.QUARANTINE_LIST_FIELDS],
+            F.lit(moved_at).cast("timestamp").alias("quarantined_at"), F.lit(release).alias("quarantine_release"))
+        _run_sql(spark, source, MOVE_INSERT_SQL.format(path=settings.quarantine))
+        _run_sql(spark, read(settings.quarantine).select("event_id").join(ids, "event_id", "left_semi").distinct(), MOVE_DELETE_SQL.format(path=settings.silver))
+        left = found(settings.silver) & found(settings.quarantine)
+        after = totals()
+        if left or after != before:
+            raise QuarantineError(f"격리 옮기기 확인이 어긋났다 — 두 표에 남은 ID {sorted(left)[:10]}, 전 (ID {len(before[0])}·copies {before[1]}) "
+                                  f"뒤 (ID {len(after[0])}·copies {after[1]})")
+    log(f"silver quarantine moved={counts['moved']} already={counts['already']} pending={counts['pending']} seconds={round(time.monotonic() - started, 3)}")
+    return counts
+
+
+BatchContext = namedtuple("BatchContext", "settings adapt lines quarantine release log broadcast_limit checkpoint")
 
 
 def _table_size(session, path):
@@ -384,7 +499,8 @@ def process_batch(ctx, batch, batch_id):
         error_table = session.read.format("delta").load(settings.errors)
         judgement = judge(ok, errors, ctx.lines, session.read.format("delta").load(settings.bronze),
                           session.read.format("delta").load(settings.silver).select("event_id", "event_date", "content_sha256"),
-                          error_table.where(F.col("error_code") == "conflict").select("event_id"), broadcast_limit=ctx.broadcast_limit)
+                          error_table.where(F.col("error_code") == "conflict").select("event_id"), broadcast_limit=ctx.broadcast_limit,
+                          quarantine_lines=ctx.quarantine, quarantined=session.read.format("delta").load(settings.quarantine))
         detected = datetime.now(timezone.utc)
         if judgement.stop:
             append_errors(contracts.error_rows(judgement.stops, silver_release=ctx.release, detected_at=detected, batch_id=batch_id),
@@ -399,8 +515,16 @@ def process_batch(ctx, batch, batch_id):
                 f"error_rows={error_rows} ids={judgement.ids} broadcast={str(judgement.broadcast).lower()} seconds={record['check']['seconds']}")
         written = {"silver_written_at": F.lit(detected).cast("timestamp"), "silver_release": F.lit(ctx.release)}
         merge = judgement.merge.select(*[written.get(name, F.col(name)).alias(name) for name, _, _ in contracts.SILVER_FIELDS])
+        quarantine = None
+        if judgement.quarantine is not None:  # (SL-9) 목록 ID 의 사본 — 할 일이 있을 때만 격리 MERGE(D3 (가): 빈 MERGE 는 txn 때문에 커밋을 남긴다)
+            moved = {**written, "quarantined_at": F.lit(detected).cast("timestamp"), "quarantine_release": F.lit(ctx.release)}
+            quarantine = judgement.quarantine.select(*[moved.get(name, F.col(name)).alias(name) for name, _, _ in contracts.QUARANTINE_FIELDS])
+            record["quarantine_rows"] = quarantine.count()
         record["pre_write_seconds"] = round(clock() - started, 3)  # 쓰기 앞까지(쓰기 시간은 커밋 기록·로그 줄의 전체 시간에서 뺀다)
         merge_events(session, settings.silver, merge, app["events"], batch_id, record)
+        if record.get("quarantine_rows"):
+            merge_events(session, settings.quarantine, quarantine, app["quarantine"], batch_id, record, sql=QUARANTINE_MERGE_SQL)
+            ctx.log(f"silver quarantine batch={batch_id} rows={record['quarantine_rows']}")
         append_errors(contracts.error_rows(judgement.errors, silver_release=ctx.release, detected_at=detected, batch_id=batch_id),
                       settings.errors, app["errors"], batch_id)
         ctx.log(f"silver batch batch={batch_id} bronze_rows={record['bronze_rows']} ok_rows={record['ok_rows']} "

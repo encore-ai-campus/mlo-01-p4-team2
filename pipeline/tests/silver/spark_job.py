@@ -45,7 +45,7 @@ class Lake:
         self.root = Path(folder)
         env = {"SILVER_LAKE_ROOT": folder, "SILVER_BRONZE_TABLE": f"{folder}/bronze/metaverse/outbox_events", "SILVER_SOURCE_DB": SOURCE["db"],
                "SILVER_SOURCE_SCHEMA": SOURCE["schema"], "SILVER_SOURCE_TABLE": SOURCE["table"], "SILVER_ACKNOWLEDGED": f"{folder}/ack.json",
-               "SILVER_CODE_ROOT": folder, "SILVER_MAX_FILES_PER_TRIGGER": str(max_files), "SILVER_MAX_BYTES_PER_TRIGGER": max_bytes}
+               "SILVER_QUARANTINE": f"{folder}/quarantine.json", "SILVER_CODE_ROOT": folder, "SILVER_MAX_FILES_PER_TRIGGER": str(max_files), "SILVER_MAX_BYTES_PER_TRIGGER": max_bytes}
         self.settings = control.job_settings(env, "metaverse", 1)
         self.offset, self.logs = 0, []
 
@@ -199,7 +199,7 @@ class Records(unittest.TestCase):
         lake = Lake(self)
         env = {"SILVER_LAKE_ROOT": str(lake.root), "SILVER_BRONZE_TABLE": lake.settings.bronze, "SILVER_SOURCE_DB": "metaverse_lab",
                "SILVER_SOURCE_SCHEMA": "public", "SILVER_SOURCE_TABLE": "eventing_eventoutbox", "SILVER_ACKNOWLEDGED": str(lake.root / "ack.json"),
-               "SILVER_CODE_ROOT": str(Path(__file__).resolve().parents[3]), "SILVER_MAX_FILES_PER_TRIGGER": "10",  # 저장소 뿌리(control 은 zip 에서 온다)
+               "SILVER_QUARANTINE": str(lake.root / "quarantine.json"), "SILVER_CODE_ROOT": str(Path(__file__).resolve().parents[3]), "SILVER_MAX_FILES_PER_TRIGGER": "10",  # 저장소 뿌리(control 은 zip 에서 온다)
                "SILVER_MAX_BYTES_PER_TRIGGER": "1g"}
         with self.assertRaisesRegex(ValueError, "SILVER_MAX_FILES_PER_TRIGGER"):
             silver_job.main(["--domain", "metaverse", "--generation", "1"], {k: v for k, v in env.items() if k != "SILVER_MAX_FILES_PER_TRIGGER"})
@@ -209,11 +209,18 @@ class Records(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "S3_ENDPOINT, S3_REGION, S3_ACCESS_KEY_FILE, S3_SECRET_KEY_FILE"):
             silver_job.main(["--domain", "metaverse", "--generation", "1"], s3a)
         (lake.root / "ack.json").write_text(json.dumps({"domain": "metaverse", "lines": []}))
+        with self.assertRaisesRegex(FileNotFoundError, "quarantine.json"):  # (SL-9) 격리 목록도 Spark 전에 읽는다
+            silver_job.main(["--domain", "metaverse", "--generation", "1"], env)
+        (lake.root / "quarantine.json").write_text(json.dumps({"domain": "ads", "lines": []}))
+        with self.assertRaisesRegex(ValueError, "격리 목록"):
+            silver_job.main(["--domain", "metaverse", "--generation", "1"], env)
+        (lake.root / "quarantine.json").write_text(json.dumps({"domain": "metaverse", "lines": []}))
         keys = {"S3_ENDPOINT": "http://127.0.0.1:1", "S3_REGION": "r", "S3_ACCESS_KEY_FILE": str(lake.root / "no-access-key"),
                 "S3_SECRET_KEY_FILE": str(lake.root / "no-secret-key")}
         with self.assertRaisesRegex(FileNotFoundError, "no-access-key"):
             silver_job.main(["--domain", "metaverse", "--generation", "1"], {**s3a, **keys})
         (lake.root / "ack.json").write_text(json.dumps({"domain": "nosuch", "lines": []}))
+        (lake.root / "quarantine.json").write_text(json.dumps({"domain": "nosuch", "lines": []}))
         with self.assertRaises(ModuleNotFoundError):
             silver_job.main(["--domain", "nosuch", "--generation", "1"], env)
         self.assertFalse(spark.sparkContext._jsc.sc().isStopped())

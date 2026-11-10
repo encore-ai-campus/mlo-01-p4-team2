@@ -178,6 +178,11 @@ class Contract(unittest.TestCase):
         self.assertEqual(reason("learning_session_completed", raw("learning_session_completed", correct_count=11)),
                          "raw_data.correct_count 가 total_questions 보다 크다")  # 필드 사이 규칙(값 규칙을 모두 지난 뒤)
 
+    def test_new_choice_sets(self):  # 새 선택값 네 필드의 받는 집합을 글자로(앱 events.py _CHOICES :92-95 @ c802671 — MVR-3b 리뷰 W11)
+        self.assertEqual({key: rules._CHOICES[key] for key in ("event_kind", "status", "subject", "difficulty")},
+                         {"event_kind": {"MAIN", "EASTER_EGG"}, "status": {"SUCCESS", "FAILED", "INTERRUPTED", "FINISHED"},
+                          "subject": {"PYTHON", "SQL", "CS"}, "difficulty": {"BEGINNER", "INTERMEDIATE", "ADVANCED"}})
+
     def test_uuid_versions(self):  # 모든 (종류, *_uuid 필드)에 v5 를 넣어 본다: 카탈로그·정의 참조만 받는다
         v3 = str(uuid.uuid3(uuid.NAMESPACE_URL, "x"))
         for (event_type, version), fields in rules.FIELDS.items():

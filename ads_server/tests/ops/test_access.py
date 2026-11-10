@@ -25,6 +25,7 @@ EXPECTED_PUBLIC = {
     "/api/media/v1/health", "/api/media/v1/decisions", "/api/media/v1/decisions/<str:decision_id>",
     "/api/media/v1/decisions/<str:decision_id>/reactions/<str:reaction_id>",
     "/c/<str:token>",  # 클릭 관측(C1 v1.1): 최종 사용자 브라우저가 연다. 서명 토큰이 곧 자격이다
+    "/health/db",  # 감시 M9(MON-4): 앱 → DB 경로 확인. 세션·사용자를 보지 않고 200/503 만 답한다(공개는 EC2 nginx 가 감시 서버로만)
 }
 LOGIN_ONLY = {"/accounts/logout/"}  # 로그인은 필요하지만 역할은 무관
 

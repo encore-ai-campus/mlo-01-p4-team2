@@ -39,6 +39,8 @@
     <key>S3_SECRET_KEY_FILE</key><string>/opt/rustfs/config/secret-key</string>
     <key>MONITOR_DISK</key><string>pg|/opt/postgresql,reconcile_ads|__HOME__/Library/Caches/ads-pipeline/reconcile|du</string>
     <key>MONITOR_OUTBOX</key><string>ads_lab|ads_pipeline_lab|public.events_outbox,ads_e2e|ads_pipeline_e2e|public.events_outbox,metaverse_lab|metaverse_lab|public.eventing_eventoutbox</string>
+    <key>MONITOR_APP_URL</key><string>none</string>
+    <key>MONITOR_LAN</key><string>none</string>
   </dict>
 </dict>
 </plist>

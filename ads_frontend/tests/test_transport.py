@@ -111,6 +111,16 @@ class TransportTests(BackendCase):
         with override_settings(BACKEND_URL="http://127.0.0.1:9"):
             self.assertEqual(self.client.get("/advertiser/").status_code, 502)
 
+    def test_the_db_health_check_goes_to_the_backend_with_its_status(self):
+        """감시 M9(MON-4): `/health/db` 는 프론트의 `/health/` 와 달리 백엔드로 가고 상태·몸이 그대로 온다(503 도). 백엔드에 못 닿으면 502."""
+        for status, body in ((200, b'{"status": "ok"}'), (503, b'{"status": "unavailable"}')):
+            FakeBackend.routes = {"/health/db": (status, [("Content-Type", "application/json")], body)}
+            r = self.client.get("/health/db")
+            self.assertEqual((r.status_code, r.content), (status, body))
+        self.assertEqual([seen["path"] for seen in FakeBackend.seen], ["/health/db", "/health/db"])
+        with override_settings(BACKEND_URL="http://127.0.0.1:9"):
+            self.assertEqual(self.client.get("/health/db").status_code, 502)
+
     def test_health_does_not_need_the_backend(self):
         self.assertEqual(self.client.get("/health/").json(), {"service": "ads-frontend", "status": "ok"})
         self.assertEqual(FakeBackend.seen, [])

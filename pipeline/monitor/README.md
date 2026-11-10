@@ -15,6 +15,14 @@
 | S7 | 점검을 돌리는 **이 장치 자신**: DB primary와의 시계 차이(노드 조회 순간에 잰다 — 뒤 점검의 Kafka 명령 시간은 들어가지 않음), (macOS) 배터리·잠듦 방지, 지난 회차 뒤 공백(`gap` — `MONITOR_GAP_S`가 0보다 클 때만) | 차이 > 1초, primary를 모르면 `clock_skew` error, 배터리 < 20%(AC 아님), 잠듦 방지 없음(`MONITOR_S7_POWER=0`이면 전원 줄은 `unsupported`), 지난 회차 뒤 `MONITOR_GAP_S`초 넘게 지남(`gap` — 아래) |
 | D1 | `MONITOR_DISK`의 경로마다 그 파일 시스템의 여유(`shutil.disk_usage` — free / total. df의 Capacity는 used/(used+avail)라 기준이 다르다). 셋째 칸이 `du`면 그 폴더 아래 보통 파일 크기 합도 detail에 적는다(추세용, 링크는 따라가지 않음) | 여유 < `MONITOR_DISK_MIN_FREE_PCT`(20 — runbook deploy.md ①·③ 기준), 경로를 볼 수 없음(설정이 틀렸거나 폴더가 사라짐). `MONITOR_DISK=none`이면 `disk` 줄 하나가 `unsupported`(디스크가 없는 장치 — 관리 장치·감시 서버) |
 | D2 | `MONITOR_OUTBOX`의 표마다 primary의 그 DB에서 `pg_total_relation_size`(색인·TOAST 포함)와 추정 행 수(`reltuples` — ANALYZE 전이면 -1) | 크기 > `MONITOR_OUTBOX_MAX_BYTES`(5 GiB — deploy.md ② 추정 90일) "P1-6 정리를 할 때", 표가 없음(alert). primary를 모르거나 그 DB에 못 닿으면 같은 키에 error(지난 값 유지) |
+| M9 | (MON-4) 앱 → DB 끝에서 끝: `MONITOR_APP_URL`(운영 공개 HTTPS `/health/db` — EC2 nginx → 프론트 → wg-ad → 백엔드 → HAProxy 쓰기 → `select pg_is_in_recovery()`)에 GET(소켓 동작마다 10초). 성공은 200이고 몸이 `{"status": "ok"}`일 때만. `none`이면 `app_db` `unsupported` | `app_db` — 2회 연속 실패(아래 `watch`). 상세 앞머리가 끊긴 곳을 가른다: 503(몸 `unavailable`) = 백엔드 → DB(또는 쓰기 입구가 대기 서버), 502 = nginx → 프론트·프론트 → 백엔드, 403 = nginx allow와 출발 IP가 다름, 그 밖 HTTP·200인데 몸이 다름 = 경로·앱 이상, TLS = 인증서, 연결 단계 실패 = EC2에 닿지 못함, **응답 단계 시간 초과·끊김 = EC2까지는 닿음**(운영 프론트는 백엔드를 30초 기다려 .204 쪽이 조용히 없으면 이쪽이 먼저 끊는다 — .204 꺼짐·잠듦·WSL·터널). 뒤에 M10 조합(B 도 실패 → .204 LAN 끊김, B 정상 → DB 노드는 M1·M2 / 외부 길·EC2·앱, B 없음) |
+| M10 | (MON-4) .204 LAN 닿음: `MONITOR_LAN`의 주소마다 GET(동작마다 3초) — **HTTP 응답이 오면(상태 무관) 닿음**. 운영은 .204 portproxy 9105 → WSL node_exporter `/`(portproxy는 Windows가 TCP를 먼저 받으므로 연결만으로는 WSL을 보지 못한다). `none`이면 `lan` `unsupported` | `lan:<이름>` — 2회 연속 응답 없음 ".204 LAN 끊김(유선·전원·잠듦·Windows·WSL) 또는 portproxy·exporter(인프라)". A가 정상이면 "앱 길은 살아 있음"을 붙인다(portproxy만 멈춤). **유선은 붙은 채 앱·DB 길만 깨지면 못 잡는다**(M9만) |
+
+- **`watch`(M9·M10, MON-4)**: 1회 실패는 `watch`다. 알리지 않고 rc에도 들지 않는다. 연속 2회면 `alert`, 성공하면 `ok`(경보였으면 `[해소]`).
+  - 한 번 전달한 경보는 해소가 **전달될** 때까지 실패하는 동안 `alert`로 둔다. "전달된 수준"은 상태 파일 `levels`이고, 웹훅이 실패하지 않은 회차(알릴 변화가 없는 회차 포함)에만 바뀐다.
+  - 이 규칙이 없으면 경보 → 성공(웹훅 실패) → 1회 실패 → 성공 순서에서 `[해소]`가 영영 가지 않는다(리뷰 C2).
+  - 연속 수는 상태 파일의 `streak`(이번 회차 키만)에 있다. 상태 파일이 깨져 새로 시작하면 0부터다.
+  - 요청 예외(연결·TLS·시간 초과·응답 끊김·`http.client.HTTPException`)는 모두 그 점검의 실패다. `M9·M10:run` error는 코드 결함일 때만 나온다(첫 회에 바로 경보가 가므로).
 
 - PostgreSQL 노드는 `MONITOR_PG_NODES`의 노드마다 한 번 물어(`pg_is_in_recovery()`·논리 슬롯·`now()`) primary를 스스로 찾는다. M1·M2 primary 쪽은 그 노드에서, `synced`는 대기 서버에서 본다(키 `synced:<host:port>:<슬롯>`).
 - primary가 정확히 하나가 아니면(0개·갈라짐·조회 실패 — 비밀번호 파일을 못 읽는 것 포함) `M1·M2:run` error 한 줄이 되고, 지난 M1·M2 값은 그대로 둔다(해소로 알리지 않음). 메시지에는 primary 목록·닿은 노드 수·닿지 못한 노드 주소와 오류 이름만 있다. switchover 직후 한 회차는 이 error가 날 수 있다.
@@ -60,7 +68,12 @@ P2-4b에서 더한 것:
 - `MONITOR_CODE_COMMIT`: 있으면 이 저장소의 HEAD가 이 커밋 40자(소문자)이고 미커밋·추적 안 된 파일이 없을 때만 점검한다(아니면 `code_pin`). 빈 값·자리 표시(`__COMMIT__`)는 `bad_config`. 손 실행(④)에는 두지 않는다.
 - 이름 겹침·칸 수·`du`가 아닌 셋째 칸·상대 경로·`스키마.표`가 아닌 표·범위 밖 수는 `bad_config`(이름과 까닭만).
 
-- **필수 모드**(`MONITOR_REQUIRE_ALL=1`): 기본값이 모두 로컬 시험대를 가리키므로, 운영에서 하나만 빠져도 조용히 lab을 보고 ok를 낼 수 있다. 필수 모드에서는 아래가 하나라도 없거나 비면(공백만 포함) 점검하지 않고 rc=2(`missing_config`, 빠진 이름만)로 끝난다: `MONITOR_PG_NODES`, `MONITOR_PG_PASSWORD_FILE`, `MONITOR_CONNECT_REST`, `MONITOR_KAFKA`, `MONITOR_KAFKA_BIN`, `MONITOR_JAVA_HOME`, `MONITOR_BRONZE`, `S3_ENDPOINT`, `S3_ACCESS_KEY_FILE`, `S3_SECRET_KEY_FILE`, `MONITOR_SLOTS`, `MONITOR_STATE`, `MONITOR_S7_POWER`, `MONITOR_R7`, `MONITOR_DISK`, `MONITOR_OUTBOX`, `MONITOR_PG_USER`. 디스크를 보지 않는 장치는 `MONITOR_DISK=none`으로 "명시적으로 끔"을 적는다. `MONITOR_BRONZE=none`이면 S3 세 변수(`S3_ENDPOINT`·`S3_ACCESS_KEY_FILE`·`S3_SECRET_KEY_FILE`)는 필수가 아니다.
+MON-4에서 더한 것:
+- `MONITOR_APP_URL`: M9 주소 하나(`http://`·`https://`) 또는 `none`(기본 — 로컬 시험대에는 볼 앱 경로가 없다).
+- `MONITOR_LAN`: `이름|http(s) 주소` 쉼표 목록 또는 `none`(기본).
+- 주소가 아니거나(scheme·호스트·공백·포트) 이름 겹침·칸 수가 틀리면 `bad_config`다.
+
+- **필수 모드**(`MONITOR_REQUIRE_ALL=1`): 기본값이 모두 로컬 시험대를 가리키므로, 운영에서 하나만 빠져도 조용히 lab을 보고 ok를 낼 수 있다. 필수 모드에서는 아래가 하나라도 없거나 비면(공백만 포함) 점검하지 않고 rc=2(`missing_config`, 빠진 이름만)로 끝난다: `MONITOR_PG_NODES`, `MONITOR_PG_PASSWORD_FILE`, `MONITOR_CONNECT_REST`, `MONITOR_KAFKA`, `MONITOR_KAFKA_BIN`, `MONITOR_JAVA_HOME`, `MONITOR_BRONZE`, `S3_ENDPOINT`, `S3_ACCESS_KEY_FILE`, `S3_SECRET_KEY_FILE`, `MONITOR_SLOTS`, `MONITOR_STATE`, `MONITOR_S7_POWER`, `MONITOR_R7`, `MONITOR_DISK`, `MONITOR_OUTBOX`, `MONITOR_PG_USER`, `MONITOR_APP_URL`, `MONITOR_LAN`(MON-4 — 보지 않는 장치는 `none`). 디스크를 보지 않는 장치는 `MONITOR_DISK=none`으로 "명시적으로 끔"을 적는다. `MONITOR_BRONZE=none`이면 S3 세 변수(`S3_ENDPOINT`·`S3_ACCESS_KEY_FILE`·`S3_SECRET_KEY_FILE`)는 필수가 아니다.
 - `MONITOR_S7_POWER`·`MONITOR_REQUIRE_ALL`·`MONITOR_R7`은 `0`·`1`만 받는다. 그 밖(`true`·`yes`·`off`·빈 값)은 `bad_config` — `true`를 끔으로 읽어 필수 모드가 조용히 꺼지지 않게.
 
 비밀값(DB 비밀번호·RustFS 키·웹훅 주소)은 저장소에 두지 않는다. 파일 경로나 환경 변수로만 받고 출력하지 않는다.
@@ -87,6 +100,7 @@ P2-4b에서 더한 것:
 
 - 같은 `check.py`를 감시 서버(alarnt)에서 systemd 타이머(1분)로 돌린다(Ops 반영). 웹훅(Discord)은 이 서버에만 두고, 주소는 사용자가 넣는다.
   - 지금 범위의 운영 값: `MONITOR_PG_USER=pipeline_monitor`, `MONITOR_CONNECT_REST`에 노트북 셋의 `:8088`, `MONITOR_BRONZE=none`(운영 Bronze(k3s·S3) 전 — 생기면 Bronze 목록과 S3 세 변수를 넣는다), `MONITOR_DISK=none`.
+  - MON-4: `MONITOR_APP_URL=https://<광고 웹 공개 주소>/health/db`(EC2 nginx가 이 경로를 감시 서버 출발 공인 IP에만 연다), `MONITOR_LAN=ads|http://<.204 LAN 주소>:9105/`(portproxy → node_exporter, 인프라 것).
   - 디스크는 감시 서버가 직접 볼 수 없으므로, 디스크가 있는 장치마다(노트북 셋의 WSL — 데이터 폴더와 `/mnt/c`, 광고 서버의 대사 폴더, 메타버스 대사 장치) 같은 `check.py`를 "D1만" 돌린다(결정 B). 노드·앱 서버의 D1은 이번 운영 적용 범위 밖이다 — 점검 고르기 설정은 그때 더한다.
 - 노트북 3대의 S7(잠듦·배터리)은 macOS 밖이라 `unsupported`다. 감시 서버에서는 잠든 노트북이 그 회차에 바로 경보가 된다 — M2 `synced:<노드>:<슬롯>` "노드 접속 실패"(alert), 그 노트북이 primary면 `M1·M2:run` error. 막는 것은 P8-2 잠자기 금지 설정이다(16 :193 — 판단만, 코드 없음).
 - 감시 서버에 주기 감시를 켜기 전까지 운영 매일 손 점검은 관리 장치에서 `runbooks/deploy.md` ④ 명령으로 돌린다(필수 모드·`MONITOR_S7_POWER=0`·`MONITOR_DISK=none`·`MONITOR_BRONZE=none`·`MONITOR_R7=1`). 감시 서버 주기 감시를 켜면 ④ 손 점검은 `MONITOR_R7=0`이다(위 R7 절).

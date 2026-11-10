@@ -74,6 +74,19 @@ class AdGroupSlot(models.Model):
         constraints = [models.UniqueConstraint(fields=["ad_group", "slot"], name="campaigns_ad_group_slot_unique")]
 
 
+class AdGroupSegment(models.Model):
+    """광고그룹의 대상 그룹 T(DRD O11, 설계 §10 "대상 그룹 타기팅" ③): 0개 이상, **없으면 전체가 대상**. 구성 연결(`AdGroupSlot`)과 같은 모양이다.
+    목록을 바꾸면 연결 행을 바꾸고 이력은 변경 로그(`SEGMENTS_CHANGED`)에 남는다. 그룹 쪽은 `PROTECT` — 그룹은 지우지 않고 보관한다(R-6)."""
+
+    ad_group_segment_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
+    ad_group = models.ForeignKey(AdGroup, on_delete=models.CASCADE, related_name="segment_links", db_index=False)  # db_index=False: campaigns_ad_group_segment_unique 가 이 열로 시작해 FK 색인이 겹친다(계획서 부록 B-1)
+    segment = models.ForeignKey("masters.Segment", on_delete=models.PROTECT, related_name="+")
+
+    class Meta:
+        db_table = "campaigns_ad_group_segment"
+        constraints = [models.UniqueConstraint(fields=["ad_group", "segment"], name="campaigns_ad_group_segment_unique")]
+
+
 class Creative(models.Model):
     """광고주 소유의 소재 목록(6-9c, 설계 §10 "소재 목록"). 광고그룹에는 `AdGroupCreative` 로 연결하고, 광고그룹이 그중 하나를 선택한다.
     화면의 "삭제"는 보관(`archived_at`)이다 — 행은 남는다(감사 기록·연결 기록이 참조). 끝나지 않은 캠페인의 광고그룹이 선택한 소재는 보관하지 못한다(6-24 — 연결만 남은 소재는 보관할 수 있다).
@@ -146,7 +159,7 @@ class Bid(AppendOnlyModel):
 
 
 CAMPAIGN_CHANGES = ("CREATED", "STATUS_CHANGED", "BUDGET_CHANGED", "PERIOD_CHANGED")
-AD_GROUP_CHANGES = ("CREATED", "ENABLED_CHANGED", "SLOTS_CHANGED", "CREATIVE_SELECTED")
+AD_GROUP_CHANGES = ("CREATED", "ENABLED_CHANGED", "SLOTS_CHANGED", "CREATIVE_SELECTED", "SEGMENTS_CHANGED")
 
 
 class ChangeTarget(models.TextChoices):

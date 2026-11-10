@@ -41,11 +41,24 @@ class DecisionEventTests(Cases, TestCase):
             "campaign_id": str(d.campaign_id), "ad_group_id": str(d.ad_group_id), "creative_id": str(d.creative_id),
             "charge_shares": {"IMPRESSION": d.impression_share, "CLICK": d.click_share, "CONVERSION": d.conversion_share},
             "bid_id": str(d.bid_id), "bid_version": d.bid_version, "bid_policy_id": str(d.bid_policy_id), "policy_version": d.policy_version,
-            "bid_amount": d.bid_amount, "applied_amount": d.applied_amount,
+            "bid_amount": d.bid_amount, "applied_amount": d.applied_amount, "target_segment_ids": [],
         })
+        self.assertEqual((row.schema_version, p["segment_rule"], p["segment_id"], p["segment_active"]), (3, "segment/v1", None, None))  # v3 — 그룹 없는 요청(TG-S3)
         self.assertEqual((d.bid_amount, d.applied_amount), (800, 500))
         self.assertEqual((p["selection_policy"], p["candidate_count"], p["rejected_counts"]), (d.selection_policy, d.candidate_count, d.rejected_counts))
         self.assertNotIn(str(d.owner_id), str(p))  # 광고주 계정은 싣지 않는다
+
+    def case_a_targeted_decision_carries_its_targets_sorted(self):
+        """대상 그룹을 고른 광고의 결정 이벤트는 판정에 쓴 T 를 문자열 정렬로 싣는다(창 내용 해시가 순서를 본다, DRD §5.6 v3) — 결정 행과 같은 목록."""
+        w = World()
+        groups = [masters.create_segment(w.admin, w.slot.media_id, code, code.upper(), now=NOW) for code in ("mlo", "skn", "aio")]
+        w.api.update_ad_group(w.adv, w.group.ad_group_id, {"segment_ids": [g.segment_id for g in groups]}, now=NOW)
+        view = decide(w, segment="skn")
+        p = decision_events().get().payload
+        d = Decision.objects.get(pk=view.decision_id)
+        ids = sorted(str(g.segment_id) for g in groups)
+        self.assertEqual((p["selected"]["target_segment_ids"], [str(s) for s in d.target_segment_ids]), (ids, ids))
+        self.assertEqual((p["segment_id"], p["segment_active"], p["segment_rule"]), (str(groups[1].segment_id), True, "segment/v1"))
 
     def case_a_decision_without_an_ad_is_still_an_event(self):
         w = World(with_creative=False)

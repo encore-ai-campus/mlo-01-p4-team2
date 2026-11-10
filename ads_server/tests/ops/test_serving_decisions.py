@@ -3,14 +3,15 @@ import json
 import uuid
 from unittest import mock
 
-from django.db import OperationalError
+from django.db import OperationalError, connection
 from django.test import Client, TestCase, TransactionTestCase, override_settings, tag
+from django.test.utils import CaptureQueriesContext
 
 from masters import api as masters
 from records.models import Decision
 from serving_api.clicks import parse_token
 from tests.support.contract_support import Contract, ProviderContractMixin
-from tests.support.factories import NOW, World, media_api
+from tests.support.factories import NOW, World, make_slot, media_api
 from tests.support.cases import Cases
 
 BASE = "/api/media/v1"
@@ -349,6 +350,103 @@ class GetDecisionTests(Cases, DecisionApiBase):
         self.assertEqual(self.get(f"/decisions/{created['decision_id']}").json()["slot_id"], created["slot_id"])  # 식별은 ID
 
     def test_get_decision(self):
+        self.run_cases()
+
+
+@tag("security")
+class DecisionSegmentTests(Cases, DecisionApiBase):
+    """C1 1.6 `segment`(TG-S3, 설계 §10 "대상 그룹 타기팅" ④⑤⑦): 검사 순서, 등록되지 않은 값, 일괄 슬롯, 맞춤과 결정 기록."""
+
+    def setUp(self):
+        super().setUp()
+        self.mlo = masters.create_segment(self.w.admin, self.w.slot.media_id, "mlo", "MLO", now=NOW)
+        self.skn = masters.create_segment(self.w.admin, self.w.slot.media_id, "skn", "SKN", now=NOW)
+
+    def ask(self, segment, **body):
+        return self.post({"slot_id": str(self.w.slot.slot_id), "subject_id": SUBJECT, "segment": segment, **body})
+
+    def target(self, *segments):
+        group = self.w.api.get_ad_group(self.w.adv, self.w.group.ad_group_id)
+        self.w.api.update_ad_group(self.w.adv, group.ad_group_id, {"segment_ids": [s.segment_id for s in segments]}, now=NOW)
+
+    def refused(self, response, code, pointer):
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertContract(self.contract, "/decisions", "post", response)
+        self.assertEqual((response.json()["code"], [e["pointer"] for e in response.json()["errors"]]), (code, [pointer]))
+
+    def case_a_non_string_segment_is_400_before_the_slot_is_looked_up(self):
+        for value in (None, 5, ["mlo"], {"code": "mlo"}, True):
+            response = self.post({"slot_id": str(uuid.uuid4()), "subject_id": SUBJECT, "segment": value})  # 없는 슬롯이어도 본문 검증이 먼저
+            self.refused(response, "invalid_request", "/segment")
+        self.assertEqual(Decision.objects.count(), 0)
+
+    def case_checks_run_in_order_404_403_subject_then_segment(self):
+        self.assertEqual(self.post({"slot_id": str(uuid.uuid4()), "subject_id": SUBJECT, "segment": "nope"}).status_code, 404)
+        self.refused(self.post({"slot_id": str(self.w.slot.slot_id), "segment": "nope"}), "invalid_request", "/subject_id")
+        self.refused(self.ask("nope"), "unknown_segment", "/segment")
+        masters.set_media_active(self.w.admin, self.w.slot.media_id, False)
+        self.assertEqual(self.ask("nope").status_code, 403)
+        self.assertEqual(Decision.objects.count(), 0)
+
+    def case_values_not_registered_for_this_media_are_unknown(self):
+        other = make_slot(self.w.admin)
+        masters.create_segment(self.w.admin, other.media_id, "aio", "AIO", now=NOW)
+        for value in ("", "MLO", "aio", "a" * 40, " mlo", "mlo\n", "-mlo"):  # 빈 값·대문자·다른 매체의 코드·길이·공백·줄바꿈·형식
+            self.refused(self.ask(value), "unknown_segment", "/segment")
+        for value in ("m\u0000lo", "\ud800"):  # 저장할 수 없는 문자는 본문 전체 검증(v1.5)이 슬롯 확인 전에 400 — DB 에 닿지 않는다
+            response = self.ask(value)
+            self.assertEqual((response.status_code, response.json()["code"]), (400, "invalid_request"))
+        self.assertEqual(Decision.objects.count(), 0)
+
+    def case_a_shared_slot_refuses_even_a_registered_segment(self):
+        shared = masters.create_slot(self.w.admin, self.w.slot.media_id, "일괄", 100, 200, 500, "초기", audience="shared", impression_share=98, click_share=1, conversion_share=1)
+        for value in ("mlo", "nope"):  # 등록된 값도 없는 값도 — 일괄 슬롯은 코드를 찾기 전에 거절한다(리뷰 R3)
+            self.refused(self.post({"slot_id": str(shared.slot_id), "segment": value}), "segment_not_allowed", "/segment")
+        self.assertEqual(Decision.objects.count(), 0)
+
+    def case_a_targeted_ad_goes_only_to_its_live_group_and_the_decision_records_why(self):
+        self.target(self.mlo)
+        response = self.ask("mlo")
+        self.assertEqual(response.status_code, 201)
+        self.assertContract(self.contract, "/decisions", "post", response)
+        self.assertIsNotNone(response.json()["ad"])
+        d = Decision.objects.get(pk=response.json()["decision_id"])
+        self.assertEqual((d.segment_id, d.segment_active, d.target_segment_ids, d.segment_rule), (self.mlo.segment_id, True, [self.mlo.segment_id], "segment/v1"))
+        for segment in ("skn", None):
+            body = self.ask(segment) if segment else self.post()
+            d = Decision.objects.get(pk=body.json()["decision_id"])
+            self.assertIsNone(body.json()["ad"], segment)
+            self.assertEqual((d.rejected_counts, d.target_segment_ids, d.segment_rule), ({"segment_not_targeted": 1}, None, "segment/v1"))
+        masters.update_segment(self.w.admin, self.mlo.segment_id, 1, is_active=False, now=NOW)
+        archived = self.ask("mlo")  # 보관된 그룹은 받는다 — 결정에 남기고 "그룹 없음"으로 맞춘다
+        self.assertEqual(archived.status_code, 201)
+        self.assertIsNone(archived.json()["ad"])
+        d = Decision.objects.get(pk=archived.json()["decision_id"])
+        self.assertEqual((d.segment_id, d.segment_active), (self.mlo.segment_id, False))
+
+    def case_an_untargeted_ad_still_goes_to_every_request(self):
+        for segment in ("mlo", None):
+            body = (self.ask(segment) if segment else self.post()).json()
+            self.assertIsNotNone(body["ad"], segment)
+            d = Decision.objects.get(pk=body["decision_id"])
+            self.assertEqual((d.target_segment_ids, d.segment_rule), ([], "segment/v1"))
+        self.assertEqual(Decision.objects.filter(segment_id=self.mlo.segment_id, segment_active=True).count(), 1)
+
+    def case_resolving_the_segment_adds_no_query(self):
+        """코드는 슬롯 읽기와 같은 쿼리(서브쿼리)에서, T 는 후보 쿼리(배열 서브쿼리)에서 푼다 — `segment` 를 싣거나 광고가 대상 그룹을 골라도 결정 쿼리 수는 같다(리뷰 R2)."""
+        def count(send):
+            with CaptureQueriesContext(connection) as queries:
+                response = send()
+            self.assertIsNotNone(response.json()["ad"])
+            return len(queries)
+
+        self.post()  # 첫 요청의 일회성 읽기를 뺀다
+        plain = count(self.post)
+        self.assertEqual(count(lambda: self.ask("mlo")), plain)
+        self.target(self.mlo, self.skn)
+        self.assertEqual(count(lambda: self.ask("mlo")), plain)
+
+    def test_decision_segment(self):
         self.run_cases()
 
 

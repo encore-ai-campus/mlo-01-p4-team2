@@ -10,7 +10,7 @@ from foundation.api import errors, json_depth
 UUID_PATTERN = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")  # 계약 `Uuid`(하이픈 36자만)
 CONTEXT_MAX_BYTES, CONTEXT_MAX_DEPTH, CONTEXT_MAX_PROPERTIES = 4096, 4, 50
 FORBIDDEN_CONTEXT_KEYS = frozenset({"login_id", "username", "password", "password_hash", "nickname", "email"})  # 직접 식별자(계약 `Context`)
-_FIELDS = frozenset({"slot_id", "subject_id", "context"})
+_FIELDS = frozenset({"slot_id", "subject_id", "context", "segment"})
 
 
 @dataclass(frozen=True)
@@ -18,6 +18,7 @@ class DecisionRequest:
     slot_id: uuid.UUID
     subject_id: str | None  # 가명 UUID(소문자 표기). 수집만 한다. 있어야 하는지는 슬롯 성격이 정한다(`records.decide`)
     context: dict
+    segment: str | None = None  # 대상 그룹 코드(C1 1.6). 여기서는 문자열인지만 본다 — 등록 여부·슬롯 성격은 슬롯 확인 뒤 `records.decide` 가 본다
 
 
 def _error(pointer, message):
@@ -68,10 +69,13 @@ def parse_decision_request(body):
     problems = [_error(f"/{key}", "알 수 없는 속성입니다.") for key in body if key not in _FIELDS]
     slot_id = _uuid_field(body, "slot_id", problems)
     subject = _uuid_field(body, "subject_id", problems) if "subject_id" in body else None  # 필수 여부는 슬롯 성격에 달려 있어 서비스가 판단한다
+    segment = body.get("segment")
+    if "segment" in body and not isinstance(segment, str):  # `null` 도 여기서 400(슬롯 확인 전 — subject_id 의 형식 오류와 같다). 빈 문자열은 문자열이라 뒤에서 unknown_segment
+        problems.append(_error("/segment", "문자열(대상 그룹 코드)이어야 합니다. 그룹이 없으면 보내지 않습니다."))
     if problems:
         raise errors.InvalidRequest(errors=problems)
     context = validate_context(body["context"]) if "context" in body else {}
-    return DecisionRequest(slot_id=slot_id, subject_id=None if subject is None else str(subject), context=context)
+    return DecisionRequest(slot_id=slot_id, subject_id=None if subject is None else str(subject), context=context, segment=segment)
 
 
 # ---------------------------------------------------------------- 반응 (계약 `ReactionRequest`)

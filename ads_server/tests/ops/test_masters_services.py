@@ -2,7 +2,7 @@ import dataclasses
 import uuid
 from unittest import mock
 
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import Model
 from django.test import TestCase, TransactionTestCase, tag
 from django.utils import timezone
@@ -11,11 +11,11 @@ from events.api import event_id_for
 from events.models import EventOutbox
 from foundation.errors import Conflict, Forbidden, InvalidRequest, NotFound, StaleVersion
 from foundation.logging import request_id_var
-from foundation.models import AuditLog
+from foundation.models import AppendOnlyError, AuditLog
 from masters import api
-from masters.models import BidPolicy, Media, MediaDeactivation, Slot
+from masters.models import BidPolicy, Media, MediaDeactivation, Segment, SegmentVersion, Slot
 from tests.support.concurrency import run_together
-from tests.support.factories import SHARES, make_admin, make_advertiser
+from tests.support.factories import DAY, NOW, SHARES, make_admin, make_advertiser
 from tests.support.cases import Cases
 
 
@@ -360,3 +360,138 @@ class ConcurrentPolicyTests(TransactionTestCase):
         self.assertEqual(([type(e).__name__ for e in errors], sum(r is not None for r in results)), (["StaleVersion"], 1), errors)  # 진 쪽은 충돌 안내여야 한다(교착·잠금 초과 같은 DB 오류가 아니다)
         self.assertEqual(versions(slot.slot_id), [1, 2])  # 두 번째 버전이 정확히 하나
         self.assertIn(api.get_slot(slot.slot_id).policy.cap, (600, 700))
+
+
+@tag("security")
+class SegmentServiceTests(Cases, TestCase):
+    """대상 그룹 카탈로그(TG-S1, DRD M7·M8, 설계 §10 "대상 그룹 타기팅" ②): 현재 값은 그룹 행, 판 표는 바뀔 때마다 그때 상태 전체를 남기는 이력,
+    판마다 `ad.segment_changed` 하나 — 셋이 같은 트랜잭션이다."""
+
+    def setUp(self):
+        self.admin = make_admin()
+        self.media = api.create_media(self.admin, "메타버스")
+
+    def segment_events(self, segment_id):
+        return list(EventOutbox.objects.filter(event_name="ad.segment_changed", aggregate_id=segment_id).order_by("created_at").values_list("event_id", "payload"))
+
+    def case_create_writes_the_row_version_1_event_and_audit_together(self):
+        g = api.create_segment(self.admin, self.media.media_id, "mlo", " MLO 과정 ", now=NOW)
+        self.assertEqual((g.code, g.name, g.is_active, g.version, g.created_at), ("mlo", "MLO 과정", True, 1, NOW))
+        v = SegmentVersion.objects.get(segment_id=g.segment_id)
+        self.assertEqual((v.version, v.name, v.is_active, v.changed_by, v.changed_at), (1, "MLO 과정", True, self.admin.pk, NOW))
+        [(event_id, payload)] = self.segment_events(g.segment_id)
+        self.assertEqual(event_id, event_id_for("ad.segment_changed", v.segment_version_id))  # 원천 = 판 행
+        self.assertEqual(payload, {"segment_id": str(g.segment_id), "segment_version_id": str(v.segment_version_id), "version": 1, "media_id": str(self.media.media_id),
+                                   "code": "mlo", "name": "MLO 과정", "is_active": True, "changed_at": "2026-10-07T12:00:00+00:00"})  # 바꾼 관리자는 싣지 않는다
+        audit = AuditLog.objects.get(action="masters.segment_created")
+        self.assertEqual((audit.actor_id, audit.target_id, audit.detail["code"]), (self.admin.pk, str(g.segment_id), "mlo"))
+
+    def case_the_code_must_match_the_format_and_is_never_trimmed(self):
+        for bad in ("", "MLO", "1mlo", "-mlo", "ml_o", " mlo", "mlo ", "m" * 33, "과정", None, 7):
+            with self.subTest(code=bad), self.assertRaises(InvalidRequest) as caught:
+                api.create_segment(self.admin, self.media.media_id, bad, "이름")
+            self.assertEqual(caught.exception.errors[0]["pointer"], "/code")
+        for good in ("m", "mlo", "skn-2", "a" + "b" * 31):
+            api.create_segment(self.admin, self.media.media_id, good, "이름")
+        with self.assertRaises(IntegrityError), transaction.atomic():  # DB 도 형식을 지킨다(서비스를 거치지 않은 쓰기). 저장점 — 실패한 문장 뒤에도 시험 트랜잭션을 계속 쓴다
+            Segment.objects.create(media_id=self.media.media_id, code="Bad", name="x")
+        self.assertFalse(Segment.objects.filter(code="Bad").exists())
+
+    def case_the_code_is_unique_per_media_but_free_across_media(self):
+        api.create_segment(self.admin, self.media.media_id, "mlo", "MLO")
+        with self.assertRaises(Conflict):
+            api.create_segment(self.admin, self.media.media_id, "mlo", "다른 이름")
+        other = api.create_media(self.admin, "다른 매체")
+        api.create_segment(self.admin, other.media_id, "mlo", "MLO")  # 그룹은 매체별이다
+        self.assertEqual(SegmentVersion.objects.count(), 2)  # 거절된 등록은 판도 이벤트도 남기지 않는다
+        self.assertEqual(EventOutbox.objects.filter(event_name="ad.segment_changed").count(), 2)
+        with self.assertRaises(NotFound):
+            api.create_segment(self.admin, uuid.uuid4(), "skn", "SKN")
+        with mock.patch("masters.services.events.record_segment_changed", side_effect=IntegrityError("outbox CHECK")), \
+                self.assertRaises(IntegrityError) as caught:  # 코드 충돌이 아닌 무결성 오류는 409 로 바꾸지 않는다
+            api.create_segment(self.admin, self.media.media_id, "aio", "AIO")
+        self.assertNotIsInstance(caught.exception, Conflict)
+        self.assertFalse(Segment.objects.filter(code="aio").exists())
+
+    def case_the_code_cannot_be_changed(self):
+        g = Segment.objects.get(pk=api.create_segment(self.admin, self.media.media_id, "mlo", "MLO").segment_id)
+        g.code = "skn"
+        with self.assertRaises(ValueError):
+            g.save()
+        self.assertEqual(Segment.objects.get(pk=g.pk).code, "mlo")
+
+    def case_rename_archive_and_restore_each_add_a_full_version_and_an_event(self):
+        g = api.create_segment(self.admin, self.media.media_id, "mlo", "MLO", now=NOW)
+        g2 = api.update_segment(self.admin, g.segment_id, 1, name="MLO 과정", now=NOW + DAY)
+        g3 = api.update_segment(self.admin, g.segment_id, 2, is_active=False, now=NOW + 2 * DAY)
+        g4 = api.update_segment(self.admin, g.segment_id, 3, is_active=True, now=NOW + 3 * DAY)
+        self.assertEqual([(x.version, x.name, x.is_active) for x in (g2, g3, g4)], [(2, "MLO 과정", True), (3, "MLO 과정", False), (4, "MLO 과정", True)])
+        rows = list(SegmentVersion.objects.filter(segment_id=g.segment_id).order_by("version").values_list("version", "name", "is_active", "changed_at"))
+        self.assertEqual(rows, [(1, "MLO", True, NOW), (2, "MLO 과정", True, NOW + DAY), (3, "MLO 과정", False, NOW + 2 * DAY), (4, "MLO 과정", True, NOW + 3 * DAY)])
+        self.assertEqual([(p["version"], p["name"], p["is_active"], p["code"]) for _, p in self.segment_events(g.segment_id)],
+                         [(1, "MLO", True, "mlo"), (2, "MLO 과정", True, "mlo"), (3, "MLO 과정", False, "mlo"), (4, "MLO 과정", True, "mlo")])
+        current = Segment.objects.get(pk=g.segment_id)
+        self.assertEqual((current.name, current.is_active), ("MLO 과정", True))  # 현재 값의 원본은 그룹 행
+        self.assertEqual([x.version for x in api.list_segments(self.admin, self.media.media_id)], [4])
+        changed = AuditLog.objects.filter(action="masters.segment_changed").order_by("log_id")  # UUIDv7 — 쓴 순서
+        self.assertEqual([e.detail["previous"] for e in changed],
+                         [{"name": "MLO", "is_active": True}, {"name": "MLO 과정", "is_active": True}, {"name": "MLO 과정", "is_active": False}])
+
+    def case_a_change_that_changes_nothing_writes_nothing(self):
+        g = api.create_segment(self.admin, self.media.media_id, "mlo", "MLO")
+        for change in ({"name": " MLO "}, {"is_active": True}, {}):
+            self.assertEqual(api.update_segment(self.admin, g.segment_id, 1, **change).version, 1, change)
+        self.assertEqual(SegmentVersion.objects.count(), 1)
+        self.assertFalse(AuditLog.objects.filter(action="masters.segment_changed").exists())
+
+    def case_a_stale_version_or_a_bad_value_is_rejected_without_writing(self):
+        g = api.create_segment(self.admin, self.media.media_id, "mlo", "MLO")
+        api.update_segment(self.admin, g.segment_id, 1, name="MLO 2")
+        for bad in (1, 3, None):
+            with self.subTest(expected=bad), self.assertRaises(StaleVersion):
+                api.update_segment(self.admin, g.segment_id, bad, is_active=False)
+        for change in ({"name": " "}, {"is_active": "false"}, {"is_active": 0}):
+            with self.subTest(change=change), self.assertRaises(InvalidRequest):
+                api.update_segment(self.admin, g.segment_id, 2, **change)
+        with self.assertRaises(NotFound):
+            api.update_segment(self.admin, uuid.uuid4(), 1, name="x")
+        self.assertEqual(SegmentVersion.objects.filter(segment_id=g.segment_id).count(), 2)
+        self.assertTrue(Segment.objects.get(pk=g.segment_id).is_active)
+
+    def case_an_event_failure_leaves_neither_the_row_nor_a_version(self):
+        g = api.create_segment(self.admin, self.media.media_id, "mlo", "MLO")
+        with mock.patch("masters.services.events.record_segment_changed", side_effect=RuntimeError("outbox down")):
+            with self.assertRaises(RuntimeError):
+                api.create_segment(self.admin, self.media.media_id, "skn", "SKN")
+            with self.assertRaises(RuntimeError):
+                api.update_segment(self.admin, g.segment_id, 1, is_active=False)
+        self.assertFalse(Segment.objects.filter(code="skn").exists())
+        self.assertEqual((Segment.objects.get(pk=g.segment_id).is_active, SegmentVersion.objects.count()), (True, 1))
+
+    def case_only_admins_and_versions_are_append_only(self):
+        g = api.create_segment(self.admin, self.media.media_id, "mlo", "MLO")
+        adv = make_advertiser()
+        for call in (lambda: api.create_segment(adv, self.media.media_id, "skn", "SKN"), lambda: api.update_segment(adv, g.segment_id, 1, name="x"),
+                     lambda: api.list_segments(adv, self.media.media_id)):
+            with self.assertRaises(Forbidden):
+                call()
+        v = SegmentVersion.objects.get()
+        with self.assertRaises(AppendOnlyError):
+            v.delete()
+        with self.assertRaises(AppendOnlyError):
+            SegmentVersion.objects.filter(pk=v.pk).update(name="x")
+        with self.assertRaises(IntegrityError), transaction.atomic():  # 그룹 행은 지우지 않는다(판이 PROTECT 로 가리킨다 — ProtectedError 는 IntegrityError)
+            Segment.objects.filter(pk=g.segment_id).delete()
+
+    def test_segment_service(self):
+        self.run_cases()
+
+
+class ConcurrentSegmentTests(TransactionTestCase):
+    def test_two_changes_from_the_same_version_one_wins(self):
+        """같은 판에서 동시에 바꾸면 정확히 한쪽만 성공하고 진 쪽은 충돌 안내다(그룹 행 잠금 — 판 번호의 유일 제약 오류가 아니다)."""
+        admin_a, admin_b = make_admin(), make_admin()
+        g = api.create_segment(admin_a, api.create_media(admin_a, "매체").media_id, "mlo", "MLO")
+        results, errors = run_together([lambda a=a, n=n: api.update_segment(a, g.segment_id, 1, name=n) for a, n in ((admin_a, "가"), (admin_b, "나"))])
+        self.assertEqual(([type(e).__name__ for e in errors], sum(r is not None for r in results)), (["StaleVersion"], 1), errors)
+        self.assertEqual(list(SegmentVersion.objects.order_by("version").values_list("version", flat=True)), [1, 2])

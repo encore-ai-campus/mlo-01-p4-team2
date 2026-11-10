@@ -147,3 +147,52 @@ class BidPolicy(AppendOnlyModel):
                 condition=Exact(F("impression_share") + F("click_share") + F("conversion_share"), 100), name="masters_policy_shares_sum_100",
             ),
         ]
+
+
+SEGMENT_CODE_PATTERN = r"^[a-z][a-z0-9-]{0,31}$"  # 매체가 C1 `segment` 로 보내는 코드 그대로(DRD M7, R-1 의 예외)
+
+
+class Segment(models.Model):
+    """대상 그룹(DRD M7, 설계 §10 "대상 그룹 타기팅" ②): 매체가 정한 사용자 묶음의 카탈로그. **현재 값의 원본은 이 행**이고,
+    만들 때와 이름·보관 상태가 바뀔 때마다 같은 트랜잭션에서 판(`SegmentVersion`)에 그때 상태 전체를 한 줄 더한다. 행을 지우지 않는다(보관 = `is_active` 거짓)."""
+
+    segment_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
+    media = models.ForeignKey(Media, on_delete=models.PROTECT, related_name="segments", db_index=False)  # db_index=False: masters_segment_code_per_media 가 이 열로 시작해 FK 색인이 겹친다(계획서 부록 B-1)
+    code = models.CharField(max_length=32)  # 등록 뒤 바꿀 수 없다(save 가 막는다 — 서비스는 이 열을 고치지 않는다)
+    name = models.CharField(max_length=100)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = "masters_segment"
+        constraints = [
+            models.UniqueConstraint(fields=["media", "code"], name="masters_segment_code_per_media"),
+            models.CheckConstraint(condition=Q(code__regex=SEGMENT_CODE_PATTERN), name="masters_segment_code_format"),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self._state.adding:
+            current = type(self).objects.filter(pk=self.pk).values("code").first()
+            if current is not None and current["code"] != self.code:
+                raise ValueError("대상 그룹의 코드(code)는 바꿀 수 없다.")
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.media_id}/{self.code}"
+
+
+class SegmentVersion(AppendOnlyModel):
+    """대상 그룹 판(DRD M8): 그룹을 만들 때(판 1)와 이름·보관 상태가 바뀔 때마다 그때 상태 전체. 열 모양은 입찰 정책(M3)과 같지만
+    **현재 값은 최대 판이 아니라 `Segment`** 다(결정 경로는 `Segment` 만 읽는다). `ad.segment_changed` 의 원천이다."""
+
+    segment_version_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
+    segment = models.ForeignKey(Segment, on_delete=models.PROTECT, related_name="versions", db_index=False)  # db_index=False: masters_segment_version_per_segment 가 이 열로 시작해 FK 색인이 겹친다
+    version = models.PositiveIntegerField()
+    name = models.CharField(max_length=100)
+    is_active = models.BooleanField()
+    changed_by = models.UUIDField()  # FK 가 아니다(입찰 정책과 같은 이유). 이벤트에는 싣지 않는다
+    changed_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table = "masters_segment_version"
+        constraints = [models.UniqueConstraint(fields=["segment", "version"], name="masters_segment_version_per_segment")]

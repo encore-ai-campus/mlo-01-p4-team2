@@ -112,6 +112,40 @@ class GroupEditTests(Cases, AdGroupPageBase):
         self.assertContains(r, "구성을 하나 이상 고르세요", status_code=400)
         self.assertEqual(self.group().slot_ids, (self.w.slot.slot_id,))
 
+    def case_a_linked_shared_slot_is_shown_as_retired_and_not_offered(self):
+        """이미 고른 일괄 구성(TG-S4): 켜져 있으면 꺼진 구성 문구가 아니라 "일괄(사용 중지)"로 보이고, 선택지에 없고, 보내도 400이다.
+        끄면(매체가 개인 송출로 바꾼 뒤 운영자가 끔 — Q10) 다른 꺼진 구성처럼 보인다(리뷰 R1). 구성을 다시 저장하면 빠진다."""
+        shared = masters.create_slot(self.w.admin, self.w.slot.media_id, "옥상 전광판", 100, 200, 500, "초기", audience="shared", impression_share=98, click_share=1, conversion_share=1)
+        both = {self.w.slot.slot_id, shared.slot_id}
+        campaigns.update_ad_group(self.w.adv, self.gid, {"slot_ids": list(both)})  # 서비스는 그대로 받는다(화면만 막음)
+        html = self.html()
+        self.assertIn("일괄(사용 중지) 구성: ", html)
+        self.assertIn("옥상 전광판", html)
+        self.assertIn("<td>일괄(사용 중지)</td>", html)  # 구성별 결과 표의 유형 칸(문서 27 D9)
+        self.assertNotIn(f'name="slot_ids" value="{shared.slot_id}"', html)
+        self.assertNotIn("지금 꺼진 구성", html)
+        sent = self.client.post(reverse("ad_group_slots", args=[self.gid]), {"slot_ids": [str(s) for s in both], "updated_at": self.seen()})
+        self.assertEqual(sent.status_code, 400)  # 화면에서 일괄을 직접 보내도(리뷰 R2)
+        self.assertEqual(set(self.group().slot_ids), both)
+        masters.set_slot_active(self.w.admin, shared.slot_id, False)
+        html = self.html()
+        self.assertNotIn("일괄(사용 중지) 구성: ", html)  # 꺼진 일괄은 "그대로 나간다"고 말하지 않는다
+        self.assertRegex(html, r"지금 꺼진 구성: [^<]*옥상 전광판")
+        self.client.post(reverse("ad_group_slots", args=[self.gid]), {"slot_ids": [str(self.w.slot.slot_id)], "updated_at": self.seen()})
+        self.assertEqual(self.group().slot_ids, (self.w.slot.slot_id,))
+
+    def case_a_linked_shared_slot_whose_media_is_off_is_shown_as_off(self):
+        """일괄 구성의 매체를 끄는 것 = 구성을 끄는 것(TG-S4 리뷰 M11): 켜짐은 `list_slots(active_only=True)` 와 같은 기준(구성과 매체가 모두 켜짐)이라,
+        구성은 켜져 있어도 매체가 꺼지면 "일괄(사용 중지)"(그대로 나간다)가 아니라 꺼진 구성으로 보인다. 다른 매체에 두어 개인 구성은 켜진 채로 둔다."""
+        other_media = masters.create_media(self.w.admin, "옥외 매체")
+        shared = masters.create_slot(self.w.admin, other_media.media_id, "옥상 전광판", 100, 200, 500, "초기", audience="shared", impression_share=98, click_share=1, conversion_share=1)
+        campaigns.update_ad_group(self.w.adv, self.gid, {"slot_ids": [self.w.slot.slot_id, shared.slot_id]})
+        self.assertIn("일괄(사용 중지) 구성: ", self.html())
+        masters.set_media_active(self.w.admin, other_media.media_id, False)
+        html = self.html()
+        self.assertNotIn("일괄(사용 중지) 구성: ", html)
+        self.assertRegex(html, r"지금 꺼진 구성: [^<]*옥상 전광판")
+
     def case_an_inactive_linked_slot_is_explained(self):
         masters.set_slot_active(self.w.admin, self.w.slot.slot_id, False)
         html = self.html()
@@ -119,6 +153,70 @@ class GroupEditTests(Cases, AdGroupPageBase):
         self.assertIn("꺼진 구성 — 노출 안 됨", html)
 
     def test_group_edit(self):
+        self.run_cases()
+
+
+@tag("security")
+class SegmentSectionTests(Cases, AdGroupPageBase):
+    """TG-S2 광고 상세의 "대상 그룹": 고른 구성의 매체에 속한 살아 있는 그룹 + 이미 연결된 그룹(보관 표시)을 고르고, 경고 둘을 보인다."""
+
+    def setUp(self):
+        super().setUp()
+        self.mlo = masters.create_segment(self.w.admin, self.w.slot.media_id, "mlo", "<b>MLO</b>")
+        self.skn = masters.create_segment(self.w.admin, self.w.slot.media_id, "skn", "SKN")
+
+    def save(self, *segment_ids):
+        return self.client.post(reverse("ad_group_segments", args=[self.gid]), {"segment_ids": [str(s) for s in segment_ids], "updated_at": self.seen()})
+
+    def case_choices_are_live_groups_of_the_chosen_slot_media_and_saving_links_them(self):
+        elsewhere = masters.create_segment(self.w.admin, make_slot(self.w.admin).media_id, "aio", "AIO")
+        html = self.html()
+        self.assertIn(f'name="segment_ids" value="{self.mlo.segment_id}"', html)
+        self.assertNotIn(str(elsewhere.segment_id), html)  # 고른 구성에 없는 매체의 그룹
+        self.assertNotIn("<b>MLO</b>", html)  # 이름은 이스케이프된다
+        r = self.save(self.mlo.segment_id)
+        self.assertRedirects(r, self.detail, fetch_redirect_response=False)  # 안내 메시지는 다음 화면에서 읽는다
+        self.assertEqual(self.group().segment_ids, (self.mlo.segment_id,))
+        self.assertContains(self.client.get(self.detail), "대상 그룹을 바꿨습니다.")
+        self.assertRedirects(self.save(), self.detail)  # 모두 풀면 전체가 대상
+        self.assertEqual(self.group().segment_ids, ())
+
+    def case_an_archived_linked_group_is_shown_and_warned_and_cannot_be_chosen_anew(self):
+        self.save(self.mlo.segment_id)
+        masters.update_segment(self.w.admin, self.mlo.segment_id, 1, is_active=False)
+        html = self.html()
+        self.assertIn("보관됨", html)
+        self.assertIn("고른 대상 그룹이 모두 보관됐습니다", html)
+        self.assertRedirects(self.save(self.mlo.segment_id, self.skn.segment_id), self.detail)  # 연결된 보관 그룹은 남는다
+        self.assertNotIn("모두 보관됐습니다", self.html())
+        self.save(self.skn.segment_id)
+        r = self.save(self.mlo.segment_id)  # 뺀 뒤 다시 고르기 — 보관돼 고를 수 없다(화면에 없는 값을 보냄)
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(self.group().segment_ids, (self.skn.segment_id,))
+
+    def case_a_slot_media_without_any_chosen_group_is_warned(self):
+        other = make_slot(self.w.admin, name="다른 매체 위치")
+        self.client.post(reverse("ad_group_slots", args=[self.gid]), {"slot_ids": [str(self.w.slot.slot_id), str(other.slot_id)], "updated_at": self.seen()})
+        self.assertNotIn("대상 그룹이 없는 매체", self.html())  # 대상 그룹을 고르지 않았으면 전체가 대상 — 경고 없음
+        self.save(self.mlo.segment_id)
+        warning = f"대상 그룹이 없는 매체: {masters.get_slot(other.slot_id).media_name}"
+        self.assertIn(warning, self.html())
+        aio = masters.create_segment(self.w.admin, other.media_id, "aio", "AIO")
+        self.save(self.mlo.segment_id, aio.segment_id)
+        self.assertNotIn("대상 그룹이 없는 매체", self.html())
+        masters.update_segment(self.w.admin, aio.segment_id, 1, is_active=False)  # 그 매체의 연결 그룹이 보관되면 다시 경고(모두 보관은 아니라 다른 경고는 없다 — 리뷰 R1)
+        html = self.html()
+        self.assertIn(warning, html)
+        self.assertNotIn("모두 보관됐습니다", html)
+
+    def case_a_stale_form_is_refused(self):
+        seen = self.seen()
+        self.save(self.mlo.segment_id)
+        r = self.client.post(reverse("ad_group_segments", args=[self.gid]), {"segment_ids": [str(self.skn.segment_id)], "updated_at": seen})
+        self.assertEqual(r.status_code, 409)
+        self.assertEqual(self.group().segment_ids, (self.mlo.segment_id,))
+
+    def test_segment_section(self):
         self.run_cases()
 
 

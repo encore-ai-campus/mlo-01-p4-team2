@@ -76,6 +76,45 @@ class DecisionSnapshotTests(Cases, TestCase):
             Decision.objects.create(campaign_id=uuid.uuid4(), **base)  # 일부만 채움
         Decision.objects.create(**base)  # 광고 없음
 
+    def case_segment_columns_follow_the_r1_bundle_in_db(self):
+        """대상 그룹 열의 묶음(DRD R1 ①~④, TG-S3)을 DB 가 지킨다."""
+        base = dict(media_id=uuid.uuid4(), slot_id=uuid.uuid4(), subject_id=SUBJECT, audience="individual", selection_policy="p", candidate_count=0)
+        group, rule = uuid.uuid4(), "segment/v1"
+        with_ad = {f.attname: getattr(row, f.attname) for row in [Decision.objects.get(pk=decide(World()).decision_id)]
+                   for f in Decision._meta.concrete_fields if f.attname != "decision_id"}
+        bad = {
+            "① 규칙 표시 없이 그룹": dict(base, segment_id=group, segment_active=True),
+            "① 규칙 표시 없이 스냅샷": dict(base, target_segment_ids=[]),
+            "② 그룹만": dict(base, segment_rule=rule, segment_id=group),
+            "② 활성만": dict(base, segment_rule=rule, segment_active=True),
+            "③ 광고 없음인데 스냅샷": dict(base, segment_rule=rule, target_segment_ids=[]),
+            "③ 광고 있음인데 스냅샷 없음": dict(with_ad, target_segment_ids=None),
+            "④ 일괄 슬롯의 그룹": dict(base, audience="shared", subject_id=None, segment_rule=rule, segment_id=group, segment_active=True),
+        }
+        for label, values in bad.items():
+            with self.subTest(label), self.assertRaises(IntegrityError), transaction.atomic():
+                Decision.objects.create(**values)
+        Decision.objects.create(**base)  # 이 기능 이전 결정 — 넷 다 NULL
+        Decision.objects.create(**dict(base, segment_rule=rule, segment_id=group, segment_active=False))  # 보관된 그룹을 받은 광고 없음
+
+    def case_a_decision_from_before_segments_is_rebuilt_and_backfilled_as_v2(self):
+        """행마다 판(DRD §5.6 v3): `segment_rule` 이 NULL 인 옛 결정은 원본 재구성(구간 ①)과 백필(같은 쓰기 함수) 모두 v2 모양·판 2, 새 결정은 v3."""
+        from events.models import EventOutbox
+        from records import hops, services
+
+        new = Decision.objects.get(pk=decide(World()).decision_id)
+        old = Decision.objects.create(media_id=new.media_id, slot_id=new.slot_id, subject_id=SUBJECT, audience="individual", selection_policy="p",
+                                      candidate_count=0, decided_at=NOW)
+        with transaction.atomic():
+            services._record_decision_event(old, old.decided_at)  # backfill._writer 가 부르는 함수
+        rows = {r.aggregate_id: r for r in EventOutbox.objects.filter(event_name="ad.decision")}
+        self.assertEqual((rows[new.pk].schema_version, rows[old.pk].schema_version), (3, 2))
+        self.assertEqual(rows[new.pk].payload["segment_rule"], "segment/v1")
+        self.assertFalse({"segment_id", "segment_active", "segment_rule"} & rows[old.pk].payload.keys())
+        for d in (new, old):
+            doc = hops._document(hops._decision_event(d))
+            self.assertEqual((doc["schema_version"], doc["payload"]), (rows[d.pk].schema_version, rows[d.pk].payload))
+
     def case_charge_shares_follow_the_policy_rule_in_db(self):
         """결정에 남긴 비율(6-10c)도 DB 가 지킨다: 광고가 있으면 각각 1~98·합 100, 광고 없음이면 비어 있다."""
         base = dict(media_id=uuid.uuid4(), slot_id=uuid.uuid4(), subject_id=SUBJECT, audience="individual", selection_policy="p", candidate_count=1)

@@ -1,6 +1,7 @@
 """결정(Decision)의 불변 스냅샷(설계 §4.4-1). 입찰·정책·소재를 나중에 고쳐도 과거 결정은 변하지 않는다."""
 import uuid
 
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.db.models import F, Q
 from django.db.models.lookups import Exact
@@ -39,6 +40,11 @@ class Decision(AppendOnlyModel):
     trace = models.JSONField(default=dict)
     candidate_count = models.PositiveIntegerField()
     rejected_counts = models.JSONField(default=dict)
+    # 대상 그룹(DRD R1 묶음, 설계 §10 "대상 그룹 타기팅" ⑦). 모두 NULL 열 — 이 기능 이전 결정은 넷 다 NULL(원본 재구성·백필이 이벤트 판 2로 만든다)
+    segment_id = models.UUIDField(null=True, blank=True)  # 요청 그룹(카탈로그 M7 행). FK 아님: 결정은 과거 사실이고 그룹은 보관만 된다
+    segment_active = models.BooleanField(null=True, blank=True)  # 결정할 때 그 그룹이 살아 있었나. 거짓 = 보관된 그룹을 받아 "그룹 없음"으로 맞췄다
+    target_segment_ids = ArrayField(models.UUIDField(), null=True, blank=True)  # 뽑힌 광고그룹의 대상 그룹 스냅샷(정렬). 빈 목록 = 전체 대상, 광고 없음이면 NULL
+    segment_rule = models.CharField(max_length=32, null=True, blank=True)  # 이 결정에 적용한 대상 그룹 규칙(`segment/v1`). NULL = 이 기능 이전 결정
 
     class Meta:
         db_table = "records_decision"
@@ -65,6 +71,24 @@ class Decision(AppendOnlyModel):
             models.CheckConstraint(  # 개인 슬롯의 결정은 사람이 있고, 일괄 슬롯의 결정은 사람이 없다(계약 C1 `subject_id`)
                 condition=(Q(audience=Audience.INDIVIDUAL, subject_id__isnull=False) | Q(audience=Audience.SHARED, subject_id__isnull=True)),
                 name="records_decision_subject_by_audience",
+            ),
+            # 대상 그룹 열의 묶음(DRD R1 ①~④). 규칙 표시 없이 그룹 값만 있는 행은 원본 재구성이 v2 로 만들어 그룹이 조용히 빠지므로 막는다(①)
+            models.CheckConstraint(
+                condition=Q(segment_rule__isnull=False) | Q(segment_id__isnull=True, segment_active__isnull=True, target_segment_ids__isnull=True),
+                name="records_decision_segment_needs_rule",
+            ),
+            models.CheckConstraint(  # ② 양방향 — CHECK 는 NULL 이면 통과하므로 한 방향만 쓰면 빈칸이 생긴다
+                condition=Q(segment_id__isnull=True, segment_active__isnull=True) | Q(segment_id__isnull=False, segment_active__isnull=False),
+                name="records_decision_segment_active_with_id",
+            ),
+            models.CheckConstraint(  # ③ 규칙을 적용한 결정은 광고 있음 ⇔ 대상 그룹 스냅샷 있음
+                condition=(Q(segment_rule__isnull=True) | Q(creative_id__isnull=True, target_segment_ids__isnull=True)
+                           | Q(creative_id__isnull=False, target_segment_ids__isnull=False)),
+                name="records_decision_targets_with_ad",
+            ),
+            models.CheckConstraint(  # ④ 일괄 슬롯의 결정은 요청 그룹이 없다(`subject_id` 와 같은 방식, 계약 C1 1.6)
+                condition=Q(audience=Audience.INDIVIDUAL) | Q(segment_id__isnull=True),
+                name="records_decision_segment_by_audience",
             ),
         ]
         indexes = [

@@ -56,9 +56,14 @@ class TypeTests(Cases, unittest.TestCase):
         for kw in bad:
             with self.assertRaises((TypeError, ValueError), msg=kw):
                 cand(**kw)
-        for kw in (dict(slot_id="x"), dict(now=naive), dict(now=kst)):
+        for kw in (dict(target_segment_ids={uuid.uuid4()}), dict(target_segment_ids=frozenset({"mlo"}))):  # frozenset·UUID 만
             with self.assertRaises((TypeError, ValueError), msg=kw):
-                AdRequest(**{"slot_id": SLOT, "now": NOW, **kw})
+                cand(**kw)
+        segment = uuid.uuid4()
+        for kw in (dict(slot_id="x"), dict(now=naive), dict(now=kst), dict(audience="everyone"), dict(segment_active=True),
+                   dict(segment_id=segment), dict(segment_id=segment, segment_active=1), dict(segment_id="mlo", segment_active=True)):
+            with self.assertRaises((TypeError, ValueError), msg=kw):
+                AdRequest(**{"slot_id": SLOT, "now": NOW, "audience": "individual", **kw})
 
     def case_types_are_immutable_and_period_end_may_be_none(self):
         c = cand(period_end=None)
@@ -70,7 +75,7 @@ class TypeTests(Cases, unittest.TestCase):
             Eligible.of(c, 0)  # 적용 금액은 1 이상
 
     def case_request_subject_is_optional(self):
-        self.assertIsNone(AdRequest(slot_id=SLOT, now=NOW).subject_id)
+        self.assertIsNone(AdRequest(slot_id=SLOT, now=NOW, audience="individual").subject_id)
         self.assertIsInstance(uuid.uuid4(), uuid.UUID)
 
     def test_type(self):

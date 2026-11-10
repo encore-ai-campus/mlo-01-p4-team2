@@ -20,6 +20,7 @@ from events import api as events, hops, ndjson, store
 from events.models import EventOutbox
 from events.relay import relay_batch
 from foundation.models import AuditLog
+from masters import api as masters
 from records import api as records
 from records.models import Decision, Reaction
 from records.processing import reaction_ref
@@ -126,7 +127,8 @@ class WindowedSummaryTests(Cases, TestCase):
     AS_OF = NOW + 3 * DAY  # 2026-10-10 12:00 — 10-09 까지의 창은 닫혔고 10-10 은 열려 있다
     SINCE = datetime(2026, 10, 7, tzinfo=UTC)
     STREAM = {events.NAMES["decision"]: "결정", events.NAMES["reaction_received"]: "접수", events.NAMES["reaction"]: "처리", events.NAMES["charge"]: "처리",  # 과금은 판정과 같은 시각
-              events.NAMES["bid_policy_changed"]: "정책", events.NAMES["bid_added"]: "입찰", events.NAMES["campaign_changed"]: "캠페인", events.NAMES["ad_group_changed"]: "광고그룹"}
+              events.NAMES["bid_policy_changed"]: "정책", events.NAMES["bid_added"]: "입찰", events.NAMES["campaign_changed"]: "캠페인", events.NAMES["ad_group_changed"]: "광고그룹",
+              events.NAMES["segment_changed"]: "대상 그룹"}
 
     def setUp(self):
         w = World(ends_in=None)
@@ -137,6 +139,9 @@ class WindowedSummaryTests(Cases, TestCase):
             view, _ = records.receive_reaction(w.slot.media_id, d.decision_id, uuid.uuid4(), "IMPRESSION", at, {"type": "IMPRESSION"}, now=at)
             if at != NOW + DAY:
                 records.process_reaction(view.inbox_id, now=at + timedelta(seconds=7))  # 10-08 낮의 반응은 아직 판정 전(처리 시각 없음)
+        g = masters.create_segment(w.admin, w.slot.media_id, "mlo", "MLO", now=NOW - DAY)  # 대상 그룹 판: 10-06(--since 앞)·10-08·10-10(열린 창)
+        masters.update_segment(w.admin, g.segment_id, 1, name="MLO 과정", now=NOW + DAY)
+        masters.update_segment(w.admin, g.segment_id, 2, is_active=False, now=NOW + 3 * DAY)
 
     def everything(self):
         """전부 읽은 기대 이벤트(예전 방식의 입력)."""
@@ -144,7 +149,7 @@ class WindowedSummaryTests(Cases, TestCase):
 
     def case_the_source_hop_matches_summarizing_everything_at_once(self):
         docs = self.everything()
-        self.assertEqual({d["event_name"] for d in docs}, set(self.STREAM))  # 여덟 종류가 모두 있다(과금·구성의 첫 정책·광고그룹의 첫 입찰·캠페인 생성·광고그룹 생성과 소재 선택 포함)
+        self.assertEqual({d["event_name"] for d in docs}, set(self.STREAM))  # 아홉 종류가 모두 있다(과금·구성의 첫 정책·광고그룹의 첫 입찰·캠페인 생성·광고그룹 생성과 소재 선택 포함)
         for since, size in ((None, hops.DAY), (self.SINCE, hops.DAY), (None, hops.HOUR)):
             lines, open_windows, _read, _largest = events.summarize_windows(records.source_streams(), self.AS_OF, 120, since, size)
             self.assertEqual((lines, open_windows), events.summarize(docs, self.AS_OF, 120, since, size), (since, size))

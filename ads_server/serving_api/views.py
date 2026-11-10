@@ -55,7 +55,7 @@ def health(request):
 def create_decision(request):
     fields = parse_decision_request(parse_json(request))
     with transaction.atomic():  # 응답에 필요한 조회까지 한 트랜잭션: 커밋 전 어느 단계가 실패해도 되돌린다. 503 은 "성공을 확인하지 못했다"이다(계약 Unavailable — 커밋 응답이 끊기면 저장됐을 수 있다)
-        decision = records.decide(request.media.media_id, fields.slot_id, subject_id=fields.subject_id, context=fields.context)
+        decision = records.decide(request.media.media_id, fields.slot_id, subject_id=fields.subject_id, context=fields.context, segment=fields.segment)
         body = _decision_body(decision)
     response = JsonResponse(body, status=201)  # 커밋된 뒤에만 여기에 온다
     response["Location"] = f"{BASE}/decisions/{decision.decision_id}"

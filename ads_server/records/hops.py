@@ -4,7 +4,7 @@
 (`tests/tools/load_test.py` 의 `verify_events` 도 같은 기대값을 쓴다). 형식은 `events` 의 빌더를 쓴다.
 
 생성 시각(`produced_at`)은 종류마다 생성 규약이 정한 원본 시각이다: 결정 = 결정 시각, 접수 = 수신 시각, 판정 = 처리 시각(`processed_at`),
-과금 = 그 과금을 일으킨 반응의 처리 시각(과금과 판정은 같은 처리 트랜잭션의 같은 `now` 를 쓴다), 입찰 정책 = 정책 버전의 변경 시각, 입찰 = 입찰 버전을 만든 시각, 캠페인·광고그룹 변경 = 변경 로그의 변경 시각.
+과금 = 그 과금을 일으킨 반응의 처리 시각(과금과 판정은 같은 처리 트랜잭션의 같은 `now` 를 쓴다), 입찰 정책 = 정책 버전의 변경 시각, 입찰 = 입찰 버전을 만든 시각, 캠페인·광고그룹 변경 = 변경 로그의 변경 시각, 대상 그룹 = 그룹 판의 변경 시각.
 """
 from functools import reduce
 from operator import or_
@@ -35,12 +35,13 @@ def expected_events():
     expected.update(_bid_event(b) for b in campaigns.bid_versions())
     expected.update(_campaign_change_event(v) for v in campaigns.change_rows(campaigns.ChangeTarget.CAMPAIGN))
     expected.update(_ad_group_change_event(v) for v in campaigns.change_rows(campaigns.ChangeTarget.AD_GROUP))
+    expected.update(_segment_event(v) for v in masters.segment_versions())
     return expected
 
 
 def source_streams():
     """① 구간을 창으로 읽는 흐름(`events.summarize_windows` 용, 외부 검토 00d3067 P3-3). `expected_events` 와 같은 매핑을 창 하나·종류 하나씩 적용한다:
-    결정(결정 시각) / 접수(수신 시각) / 판정과 그 과금(처리 시각) / 입찰 정책(변경 시각) / 입찰(만든 시각) / 캠페인·광고그룹 변경(변경 시각). 호출한 쪽의 읽기 스냅샷 안에서 쓴다."""
+    결정(결정 시각) / 접수(수신 시각) / 판정과 그 과금(처리 시각) / 입찰 정책(변경 시각) / 입찰(만든 시각) / 캠페인·광고그룹 변경(변경 시각) / 대상 그룹 판(변경 시각). 호출한 쪽의 읽기 스냅샷 안에서 쓴다."""
     return [
         events.table_stream(Decision.objects.all(), "decided_at", lambda rows: [_document(_decision_event(d)) for d in rows]),
         events.table_stream(Reaction.objects.all(), "received_at", lambda rows: [_document(_received_event(r)) for r in rows]),
@@ -49,6 +50,7 @@ def source_streams():
         campaigns.bid_stream(lambda views: [_document(_bid_event(b)) for b in views]),
         campaigns.change_stream(campaigns.ChangeTarget.CAMPAIGN, lambda views: [_document(_campaign_change_event(v)) for v in views]),
         campaigns.change_stream(campaigns.ChangeTarget.AD_GROUP, lambda views: [_document(_ad_group_change_event(v)) for v in views]),
+        masters.segment_stream(lambda views: [_document(_segment_event(v)) for v in views]),
     ]
 
 
@@ -85,8 +87,9 @@ def unresolved_charges(batch=2000, examples=10):
 
 
 def _document(item):
+    """판은 행마다(`ad.decision` 은 대상 그룹 규칙이 있는 결정만 v3, 이전 결정은 v2 — DRD §5.6)."""
     event_id, (name, _key, produced_at, payload) = item
-    return events.normal_document(event_id, name, events.SCHEMA_VERSIONS[name], produced_at, payload)
+    return events.normal_document(event_id, name, events.schema_version_of(name, payload), produced_at, payload)
 
 
 def _decision_event(d):
@@ -94,10 +97,12 @@ def _decision_event(d):
     selected = None if d.creative_id is None else {
         "campaign_id": d.campaign_id, "ad_group_id": d.ad_group_id, "creative_id": d.creative_id, "charge_shares": charge_shares(d), "bid_id": d.bid_id,
         "bid_version": d.bid_version, "bid_policy_id": d.bid_policy_id, "policy_version": d.policy_version, "bid_amount": d.bid_amount, "applied_amount": d.applied_amount,
+        "target_segment_ids": d.target_segment_ids,
     }
     return events.event_id_for(name, d.decision_id), (name, d.decision_id, d.decided_at, events.decision_payload(
         decision_id=d.decision_id, media_id=d.media_id, slot_id=d.slot_id, decided_at=d.decided_at, audience=d.audience, subject_id=d.subject_id,
         selected=selected, selection_policy=d.selection_policy, candidate_count=d.candidate_count, rejected_counts=d.rejected_counts,
+        segment_rule=d.segment_rule, segment_id=d.segment_id, segment_active=d.segment_active,
     ))
 
 
@@ -152,4 +157,12 @@ def _ad_group_change_event(v):
     return events.event_id_for(name, v.change_id), (name, v.target_id, v.changed_at, events.ad_group_changed_payload(
         ad_group_id=v.target_id, campaign_id=v.campaign_id, change_id=v.change_id, change_type=v.change_type,
         previous_value=v.previous_value, new_value=v.new_value, changed_at=v.changed_at,
+    ))
+
+
+def _segment_event(v):
+    name = events.NAMES["segment_changed"]
+    return events.event_id_for(name, v.segment_version_id), (name, v.segment_id, v.changed_at, events.segment_changed_payload(
+        segment_id=v.segment_id, segment_version_id=v.segment_version_id, version=v.version, media_id=v.media_id, code=v.code, name=v.name,
+        is_active=v.is_active, changed_at=v.changed_at,
     ))

@@ -79,7 +79,7 @@ SECURE_CSP = {
 }
 # 끄는 배포 점검(사유):
 # - W003 CSRF 미들웨어 없음: CSRF 는 백엔드가 검사한다 — 프론트는 입력·쿠키·토큰을 그대로 넘긴다
-# - W004·W008 HSTS·HTTPS 리다이렉트: 앞단 nginx 가 맡는다(백엔드와 같다, 설계 §10 "배포 구성")
+# - W004·W008 HSTS·HTTPS 리다이렉트: Django 가 아니라 앞단 nginx 자리다(백엔드와 같다). 운영 앞단은 IP 인증서라 nginx 도 두지 않는다(설계 §10 "배포 구성" ③)
 # - W027 nonce: 화면 전용 엔진(ui.rendering)이 요청의 nonce 를 문맥에 직접 넣는다 — 설정의 TEMPLATES 를 쓰지 않아 검사가 그것을 보지 못한다
 SILENCED_SYSTEM_CHECKS = ["security.W003", "security.W004", "security.W008", "security.W027"]
 LOGGING = {

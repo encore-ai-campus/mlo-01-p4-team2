@@ -1,4 +1,4 @@
-"""관리자 운영 화면(Step 3-1: 매체·슬롯·키, 입찰 정책, 광고 모니터링·중단·재검토, 광고주·포인트). 뷰는 서비스를 부르고 그리기만 한다 — 규칙은 각 서비스(masters·campaigns·billing·foundation), 예외의 화면 변환은 console/errors.
+"""관리자 운영 화면(Step 3-1: 매체·슬롯·키, 입찰 정책, 광고 모니터링·중단·재검토, 광고주·포인트 / 대상 그룹 TG-S1). 뷰는 서비스를 부르고 그리기만 한다 — 규칙은 각 서비스(masters·campaigns·billing·foundation), 예외의 화면 변환은 console/errors.
 
 화면은 Django admin 의 모양(`admin/base_site.html`)을 쓴다 — 그리는 것은 프론트다(화면 데이터, 설계 §6.6 "6-15 분리"). 상태를 바꾸는 주소는 POST 만 받고 처리 뒤 목록으로 돌아간다(PRG).
 예외: 키 발급·교체는 **평문 키를 그 응답에 한 번만** 보여 줘야 해서 리다이렉트하지 않는다 — 대신 폼마다 새 요청 키를 실어 서비스가 한 번만 발급한다.
@@ -20,7 +20,9 @@ from masters import api as masters
 
 from ..errors import HANDLED, fetch, message_of, run_action, submit
 from ..paging import page_of
-from .forms import AdjustForm, BulkPolicyForm, KeyIssueForm, KeyRotateForm, MediaForm, PolicyForm, ReleaseForm, SlotForm
+from .forms import (
+    AdjustForm, BulkPolicyForm, KeyIssueForm, KeyRotateForm, MediaForm, PolicyForm, ReleaseForm, SegmentActiveForm, SegmentForm, SegmentRenameForm, SlotForm,
+)
 
 
 def _render(request, template, title, status=200, **context):
@@ -43,14 +45,16 @@ def media_list(request):
     return _render(request, "operator/media_list.html", "매체", status=status, media=masters.list_media(request.user), form=form)
 
 
-def media_detail(request, media_id, status=200, slot_form=None):
-    """매체 상세. `slot_form` 은 오류와 함께 다시 그릴 구성 만들기 폼(제출 뷰가 넘긴다)."""
+def media_detail(request, media_id, status=200, slot_form=None, segment_form=None):
+    """매체 상세. `slot_form`·`segment_form` 은 오류와 함께 다시 그릴 구성 만들기·대상 그룹 등록 폼(제출 뷰가 넘긴다)."""
     media = fetch(masters.get_media, request.user, media_id)
     return _render(
         request, "operator/media_detail.html", f"매체: {media.name}", status=status, media=media,
         slots=masters.list_slots(active_only=False, media_id=media.media_id), keys=masters.list_media_keys(request.user, media.media_id),
         slot_form=slot_form or SlotForm(), issue_form=KeyIssueForm(initial={"request_key": secrets.token_urlsafe(16)}),
         rotate_form=KeyRotateForm(initial={"request_key": secrets.token_urlsafe(16)}, auto_id="rotate_%s"),  # 한 화면의 두 폼 — 칸 id 가 겹치지 않게
+        segments=masters.list_segments(request.user, media.media_id),
+        segment_form=segment_form or SegmentForm(auto_id="segment_%s"),  # 구성 만들기 폼과 같은 칸 이름(name)이 있다 — id 가 겹치지 않게
     )
 
 
@@ -140,6 +144,40 @@ def key_rotate(request, media_id):
     return _issue_key(request, media_id, KeyRotateForm,
                       lambda media, data: masters.rotate_media_key(request.user, media.media_id, data["grace_seconds"], data["label"],
                                                                    request_key=data["request_key"]))
+
+
+@require_POST
+def segment_create(request, media_id):
+    form = SegmentForm(request.POST, auto_id="segment_%s")
+    _, status = submit(form, lambda d: masters.create_segment(request.user, media_id, d["code"], d["name"]))
+    if status is not None:
+        return media_detail(request, media_id, status=status, segment_form=form)
+    messages.success(request, f"대상 그룹 ‘{form.cleaned_data['code']}’을(를) 등록했습니다.")
+    return redirect("operator:media_detail", media_id=media_id)
+
+
+def _segment_change(request, segment_id, form_class, change, success):
+    """대상 그룹 바꾸기(이름·보관·되살리기)의 공통 흐름: 돌아갈 매체를 먼저 확인하고, 폼이 맞으면 서비스를 부른 뒤 매체 상세로 돌아간다.
+    그 사이 다른 곳에서 바뀌었으면(본 판이 다름) 서비스가 거절하고 그 문구가 메시지로 남는다."""
+    media = fetch(masters.get_media, request.user, request.POST.get("media_id"))
+    form = form_class(request.POST)
+    if form.is_valid():
+        run_action(request, masters.update_segment, request.user, segment_id, form.cleaned_data["expected_version"], **change(form.cleaned_data),
+                   success=success(form.cleaned_data))
+    else:
+        messages.error(request, "화면이 오래됐거나 입력이 올바르지 않습니다. 새로 불러와 다시 시도하세요.")
+    return redirect("operator:media_detail", media_id=media.media_id)
+
+
+@require_POST
+def segment_name(request, segment_id):
+    return _segment_change(request, segment_id, SegmentRenameForm, lambda d: {"name": d["name"]}, lambda d: "대상 그룹 이름을 바꿨습니다.")
+
+
+@require_POST
+def segment_active(request, segment_id):
+    return _segment_change(request, segment_id, SegmentActiveForm, lambda d: {"is_active": d["active"]},
+                           lambda d: "대상 그룹을 되살렸습니다." if d["active"] else "대상 그룹을 보관했습니다.")
 
 
 @require_POST

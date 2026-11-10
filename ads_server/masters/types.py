@@ -73,3 +73,40 @@ class SlotView:
     audience: str  # `individual` | `shared`
     is_active: bool
     policy: PolicyView  # 현재 정책. 슬롯은 항상 정책을 가진다(create_slot 이 함께 만든다)
+    segment: "RequestSegment | None" = None  # `get_slot(…, segment_code=)` 이 그 매체 카탈로그에서 찾은 요청 그룹(못 찾았거나 묻지 않았으면 None)
+
+
+@dataclass(frozen=True)
+class RequestSegment:
+    """C1 결정 요청의 그룹 코드를 그 슬롯 매체의 카탈로그(DRD M7)로 푼 값 — 결정이 그 순간의 상태를 남긴다(잠그지 않고 읽는다, 설계 §10 ⑧)."""
+
+    segment_id: uuid.UUID
+    is_active: bool
+
+
+@dataclass(frozen=True)
+class SegmentView:
+    """대상 그룹의 현재 값(DRD M7)과 그 판 번호(운영 화면이 바꿀 때 `expected_version` 으로 되돌려 보낸다 — 광고주 쪽 읽기는 판을 읽지 않아 `None`)."""
+
+    segment_id: uuid.UUID
+    media_id: uuid.UUID
+    code: str
+    name: str
+    is_active: bool
+    version: int | None
+    created_at: datetime
+
+
+@dataclass(frozen=True)
+class SegmentVersionView:
+    """대상 그룹 판 하나(DRD M8) — `ad.segment_changed` 의 원천. 매체·코드는 그룹 행(M7)의 값이다(바뀌지 않는다)."""
+
+    segment_version_id: uuid.UUID
+    segment_id: uuid.UUID
+    media_id: uuid.UUID
+    code: str
+    version: int
+    name: str
+    is_active: bool
+    changed_by: uuid.UUID
+    changed_at: datetime

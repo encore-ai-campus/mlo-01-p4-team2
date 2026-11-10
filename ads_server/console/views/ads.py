@@ -18,13 +18,16 @@ from masters import api as masters
 
 from ..errors import HANDLED, form_errors, message_of, submit
 from ..forms import EXISTING, NEW, AdCreateForm
+from ..queries.ad_groups import individual_slots
 from .common import present
 
 
 def _render(request, form, choices, effects=None, status=200):
     slots = {str(s.slot_id): s for s in choices["slots"]}
+    medias = {s.media_id: s.media_name for s in choices["slots"]}
     return present(request, "console/ad_create.html", {
         "form": form, "slots": choices["slots"], "creatives": choices["creatives"],  # 고른 소재 미리보기(제목·이동 주소·이미지)
+        "segments": [(medias.get(g.media_id, ""), g) for g in choices["segments"]],  # (매체 이름, 그룹) — 화면이 매체별로 묶는다
         "effects": [effect_row(slots.get(str(e.slot_id)), e) for e in effects] if effects else None,
         "max_bytes": settings.ASSET_MAX_BYTES,
     }, status=status)
@@ -37,16 +40,19 @@ def effect_row(slot, effect):
 
 
 def _choices(user):
-    """고를 수 있는 것: 끝나지 않은 캠페인(일시 중지·중단 포함), 켜진 게재 위치(매체 포함), 내 소재."""
+    """고를 수 있는 것: 끝나지 않은 캠페인(일시 중지·중단 포함), 켜진 게재 위치(매체 포함), 내 소재, 그 위치들의 매체에 속한 살아 있는 대상 그룹.
+    대상 그룹이 고른 구성의 매체 것인지는 서비스가 본다(화면은 매체 이름을 함께 보인다)."""
+    slots = individual_slots()  # 일괄 구성은 화면에서 고를 수 없다(TG-S4)
     return {
         "campaigns": [c for c in campaigns.list_campaigns(user) if c.status != campaigns.CampaignStatus.ENDED],
-        "slots": masters.list_slots(active_only=True),
+        "slots": slots,
         "creatives": [owned.creative for owned in campaigns.list_owned_creatives(user)],
+        "segments": sorted((g for g in masters.segments(media_ids={s.media_id for s in slots}) if g.is_active), key=lambda g: (str(g.media_id), g.code)),
     }
 
 
 def _form(choices, data=None, files=None, initial=None):
-    return AdCreateForm(data, files, initial=initial, campaigns=choices["campaigns"], slots=choices["slots"], creatives=choices["creatives"])
+    return AdCreateForm(data, files, initial=initial, campaigns=choices["campaigns"], slots=choices["slots"], creatives=choices["creatives"], segments=choices["segments"])
 
 
 def ad_create(request):
@@ -82,7 +88,7 @@ def ad_create(request):
             creative = {"creative_id": d["creative_id"]}
         else:
             creative = {"creative": {"title": d["title"], "redirect_url": d["redirect_url"], "image_file": d["image"]}}
-        return campaigns.create_ad(request.user, d["campaign_id"], ad_group={"name": d["group_name"], "slot_ids": d["slot_ids"], "bid_amount": d["bid_amount"]},
+        return campaigns.create_ad(request.user, d["campaign_id"], ad_group={"name": d["group_name"], "slot_ids": d["slot_ids"], "segment_ids": d["segment_ids"], "bid_amount": d["bid_amount"]},
                                    request_key=d["request_key"], **creative)
 
     created, status = submit(form, create, pointers=AdCreateForm.POINTERS, image_field="image")

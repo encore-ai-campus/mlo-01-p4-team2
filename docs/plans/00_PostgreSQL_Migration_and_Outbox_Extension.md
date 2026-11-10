@@ -126,6 +126,7 @@ DB 전체를 builtin `C.UTF-8`로 만든다. 그래서 ICU·glibc가 바뀌어�
 | `ad.bid_added` v1 | `bid_id` | `ad_group_id` | `bid_id`, `ad_group_id`, `bid_version`, `amount`, `created_at` |
 | `ad.campaign_changed` v1 | `change_id` | `campaign_id` | `campaign_id`, `change_id`, `change_type`, `previous_value`, `new_value`, `changed_at` |
 | `ad.ad_group_changed` v1 | `change_id` | `ad_group_id` | `ad_group_id`, `campaign_id`, `change_id`, `change_type`, `previous_value`, `new_value`, `changed_at` |
+| `ad.segment_changed` v1 (대상 그룹 타기팅 TG-S1, 2026-11-08 — §8.3) | `segment_version_id` | `segment_id` | `segment_id`, `segment_version_id`, `version`, `media_id`, `code`, `name`, `is_active`, `changed_at` |
 
 - (2026-11-04: Kafka 메시지 키는 `event_id`로 바뀌었다 — 설계 §10 C2. `aggregate_id`는 대상 키로 남는다.)
 - `event_id`는 기존 규칙대로 `event_id_of(event_name, source_id)`(UUIDv5)로 만든다.
@@ -258,8 +259,9 @@ PostgreSQL은 기본값 없는 NULL 열 추가가 표를 다시 쓰지 않는다
 |---|---|---|
 | 가격 모델 C4 | Insight 저장(설계안 §5.4: `insight_id`, `kind`, `model_version`, `valid_from`/`valid_until`, `payload`, 승인 상태) | 새 표 |
 | 추천 적용 | `BidPolicy.insight_id`(NULL 허용). `change_source` 계산에 `insight_id IS NOT NULL → RECOMMENDATION`을 더한다. 추천이 정책·입찰 버전을 자동으로 쓰기 시작하므로 구간 대조의 원천 스트림 색인 `masters_bid_policy(changed_at)`·`campaigns_bid(created_at)`도 이때 둔다(P2-3·P2-4는 작은 표라 색인 없이 훑는다) | NULL 열, 색인 2개 |
-| 가격 실험 | `Decision` 실험군 열(설계안 §3.2.1 `pricing_experiment_id`·`experiment_variant`) + `ad.decision` v3 | NULL 열, 이벤트는 설계안대로 v3 |
+| 가격 실험 | `Decision` 실험군 열(설계안 §3.2.1 `pricing_experiment_id`·`experiment_variant`) + `ad.decision` 다음 판(**v4** — v3는 대상 그룹 타기팅이 먼저 쓴다, 2026-11-08) | NULL 열, 이벤트는 다음 판 |
 | 기본 입찰 제안의 효과 측정(설계안 §5.2 (a)) | `Bid`에 입찰 때 보여 준 기본값 | NULL 열 |
+| **대상 그룹 타기팅**(사용자 2026-11-08 — 설계서 §10 "대상 그룹 타기팅", 구현 2026-11-08 TG-S1~S4: 마이그레이션 `masters/0003_segment`·`campaigns/0003_ad_group_segment`·`records/0003_decision_segment`) | 대상 그룹 `masters_segment`·판 `masters_segment_version`(추가 전용)·광고그룹-대상 그룹 `campaigns_ad_group_segment`, `Decision` 열 넷(`segment_id`·`segment_active`·`target_segment_ids`·`segment_rule`), 변경 로그 종류 `SEGMENTS_CHANGED`(CHECK 목록을 넓힘), `ad.decision` v3·`ad.segment_changed` v1. 가격 피처: 그룹 × 슬롯별 공급·경쟁(그룹 때문에 빠진 후보는 `rejected_counts`의 `segment_not_targeted`) | 새 표 셋, NULL 열 넷, CHECK 하나 넓힘, R1 CHECK 추가(대상 그룹 열 묶음) |
 
 ## 9. 위험과 대응
 
@@ -304,7 +306,7 @@ PostgreSQL은 기본값 없는 NULL 열 추가가 표를 다시 쓰지 않는다
   - 운영 배치: 홈서버 노트북 3대에 한 대씩.
   - 장애 시험: 파이프라인 계획 P5(E-P2·E-P2b·E-P3). 광고 서버 쪽 `failure_test.py`의 클러스터 시나리오는 그 결과를 보고 다시 정한다.
 - `masters.create_slot`의 `except IntegrityError`(P2-3 검토, 선택): 블록 안의 모든 무결성 오류를 "같은 이름의 구성" 409로 바꾼다 — 같은 블록의 감사·outbox 쓰기 결함(CHECK·NOT NULL)도 이름 충돌로 보인다. `is_unique_violation`이 아니면 다시 올리도록 고친다. 실패 방식이 바뀌므로 따로 한다.
-- C4 Insight 저장·`ad.insight_recorded`, `ad.decision` v3: 가격 모델 단계(§8.3).
+- C4 Insight 저장·`ad.insight_recorded`, `ad.decision` 다음 판(v4 — v3는 대상 그룹 타기팅, 2026-11-08): 가격 모델 단계(§8.3).
 
 ---
 

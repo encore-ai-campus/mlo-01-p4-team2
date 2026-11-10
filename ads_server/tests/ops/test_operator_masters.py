@@ -98,20 +98,31 @@ class SlotPageTests(Cases, OperatorBase):
         self.detail = reverse("operator:media_detail", args=[self.media.media_id])
 
     def post_slot(self, **over):
-        data = {"name": "로비 배너", "audience": "shared", "floor": 100, "base": 200, "cap": 500,
+        data = {"name": "로비 배너", "audience": "individual", "floor": 100, "base": 200, "cap": 500,
                 "impression_share": 10, "click_share": 85, "conversion_share": 5, "reason": "개설", **over}
         return self.client.post(reverse("operator:slot_create", args=[self.media.media_id]), data)
 
     def case_create_slot_shows_audience_and_shares_and_says_the_audience_is_fixed(self):
         self.assertRedirects(self.post_slot(), self.detail)
         (slot,) = masters.list_slots(active_only=False, media_id=self.media.media_id)
-        self.assertEqual((slot.audience, slot.policy.floor, slot.policy.cap), ("shared", 100, 500))
+        self.assertEqual((slot.audience, slot.policy.floor, slot.policy.cap), ("individual", 100, 500))
         self.assertEqual((slot.policy.impression_share, slot.policy.click_share, slot.policy.conversion_share), (10, 85, 5))
+        masters.create_slot(self.admin, self.media.media_id, "옥상", 100, 200, 500, "초기", audience="shared", impression_share=98, click_share=1, conversion_share=1)
         html = self.client.get(self.detail).content.decode()
         self.assertIn("로비 배너", html)
-        self.assertIn("<td>일괄</td>", html)
+        self.assertIn("<td>개인</td>", html)
+        self.assertIn("<td>일괄</td>", html)  # 이미 있는 일괄 구성은 목록에 그대로 보인다(서비스로 만든 것)
         self.assertIn("노출 10% · 클릭 85% · 전환 5%", html)
         self.assertIn("만든 뒤 바꿀 수 없습니다", html)
+
+    def case_the_form_offers_only_individual_and_refuses_shared(self):
+        """일괄은 화면에서만 사용 중지(TG-S4, 설계 §10 "일괄 슬롯") — 폼에 선택지가 없고, 보내도 400·구성 없음."""
+        html = self.client.get(self.detail).content.decode()
+        self.assertIn('value="individual"', html)
+        self.assertNotIn('value="shared"', html)
+        self.assertIn("일괄은 사용 중지", html)
+        self.assertEqual(self.post_slot(audience="shared").status_code, 400)
+        self.assertEqual(masters.list_slots(active_only=False, media_id=self.media.media_id), [])
 
     def case_policy_errors_go_next_to_the_fields(self):
         r = self.post_slot(floor=300, base=200)
@@ -147,6 +158,51 @@ class SlotPageTests(Cases, OperatorBase):
         self.assertEqual(self.client.get(reverse("operator:media_detail", args=["not-a-uuid"])).status_code, 404)
 
     def test_slot_page(self):
+        self.run_cases()
+
+
+@tag("security")
+class SegmentPageTests(Cases, OperatorBase):
+    """TG-S1 운영 화면의 대상 그룹: 매체 상세에서 등록·이름 바꾸기·보관·되살리기. 화면이 본 판을 함께 보내 그 사이의 변경을 덮지 않는다."""
+
+    def setUp(self):
+        super().setUp()
+        self.media = masters.create_media(self.admin, "메타버스")
+        self.detail = reverse("operator:media_detail", args=[self.media.media_id])
+
+    def change(self, route, segment_id, **data):
+        return self.client.post(reverse(f"operator:{route}", args=[segment_id]), {"media_id": self.media.media_id, **data}, follow=True)
+
+    def case_register_rename_archive_and_restore_from_the_media_page(self):
+        r = self.client.post(reverse("operator:segment_create", args=[self.media.media_id]), {"code": "mlo", "name": "<b>MLO</b>"})
+        self.assertRedirects(r, self.detail)
+        [g] = masters.list_segments(self.admin, self.media.media_id)
+        html = self.client.get(self.detail).content.decode()
+        self.assertIn("<code>mlo</code>", html)
+        self.assertNotIn("<b>MLO</b>", html)  # 이름은 이스케이프된다
+        self.assertIn('name="expected_version" value="1"', html)
+        self.assertContains(self.change("segment_name", g.segment_id, expected_version=1, name="MLO 과정"), "대상 그룹 이름을 바꿨습니다.")
+        self.assertContains(self.change("segment_active", g.segment_id, expected_version=2, active="0"), "대상 그룹을 보관했습니다.")
+        html = self.client.get(self.detail).content.decode()
+        self.assertIn("보관됨", html)
+        self.assertIn("되살리기", html)
+        self.assertContains(self.change("segment_active", g.segment_id, expected_version=3, active="1"), "대상 그룹을 되살렸습니다.")
+        self.assertEqual([(x.name, x.is_active, x.version) for x in masters.list_segments(self.admin, self.media.media_id)], [("MLO 과정", True, 4)])
+        self.assertTrue(AuditLog.objects.filter(action="masters.segment_created", actor_id=self.admin.pk).exists())
+
+    def case_errors_are_shown_and_nothing_is_written(self):
+        url = reverse("operator:segment_create", args=[self.media.media_id])
+        g = masters.create_segment(self.admin, self.media.media_id, "mlo", "MLO")
+        self.assertContains(self.client.post(url, {"code": "mlo", "name": "다시"}), "같은 코드의 대상 그룹이 이미 있습니다.", status_code=409)
+        self.assertContains(self.client.post(url, {"code": "MLO", "name": "대문자"}), "영문 소문자로 시작", status_code=400)
+        self.assertContains(self.change("segment_name", g.segment_id, expected_version=7, name="새 이름"), "다른 곳에서 먼저 바뀌었습니다")  # 오래된 화면
+        self.assertContains(self.change("segment_active", g.segment_id, active="0"), "화면이 오래됐거나 입력이 올바르지 않습니다.")  # 본 판이 없다
+        self.assertEqual(self.change("segment_active", uuid.uuid4(), expected_version=1, active="0").status_code, 404)
+        self.assertEqual(self.client.post(reverse("operator:segment_name", args=[g.segment_id]), {"media_id": uuid.uuid4(), "expected_version": 1, "name": "x"}).status_code, 404)
+        self.assertEqual(self.client.get(reverse("operator:segment_active", args=[g.segment_id])).status_code, 405)  # 상태를 바꾸는 주소는 POST 만
+        self.assertEqual([(x.code, x.name, x.is_active, x.version) for x in masters.list_segments(self.admin, self.media.media_id)], [("mlo", "MLO", True, 1)])
+
+    def test_segment_page(self):
         self.run_cases()
 
 

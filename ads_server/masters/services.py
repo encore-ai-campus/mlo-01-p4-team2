@@ -1,4 +1,5 @@
 """masters 의 규칙. 관리자 전용이며 모든 변경은 감사 로그에 남는다(위협 T23)."""
+import dataclasses
 import hashlib
 import hmac
 import math
@@ -9,14 +10,16 @@ from datetime import timedelta
 
 from django.core.exceptions import ImproperlyConfigured
 from django.db import IntegrityError, connection, transaction
-from django.db.models import OuterRef, Q, Subquery
+from django.db.models import Max, OuterRef, Q, Subquery
 from django.utils import timezone
 
 from events import api as events
-from foundation.api import MAX_AMOUNT, clean_request_key, clean_text, errors, is_int, parse_uuid, parse_uuids, record_audit, require_admin
+from foundation.api import MAX_AMOUNT, clean_request_key, clean_text, errors, is_int, parse_uuid, parse_uuids, record_audit, require_admin, violated_constraint
 
-from .models import MAX_SHARE, MIN_FLOOR, MIN_SHARE, SHARE_FIELDS, Audience, BidPolicy, Media, MediaDeactivation, MediaKey, Slot
-from .types import IssuedKey, MediaIdentity, MediaKeyView, MediaView, PolicyView, SlotView
+from .models import (
+    MAX_SHARE, MIN_FLOOR, MIN_SHARE, SEGMENT_CODE_PATTERN, SHARE_FIELDS, Audience, BidPolicy, Media, MediaDeactivation, MediaKey, Segment, SegmentVersion, Slot,
+)
+from .types import IssuedKey, MediaIdentity, MediaKeyView, MediaView, PolicyView, RequestSegment, SegmentVersionView, SegmentView, SlotView
 
 
 def _validated_shares(floor, base, cap, impression_share, click_share, conversion_share):
@@ -279,12 +282,26 @@ def set_slot_active(actor, slot_id, active):
         _audit(actor, "masters.slot_active_changed", ("masters.slot", slot_id), {"active": bool(active)})
 
 
-def get_slot(slot_id):
+def get_slot(slot_id, segment_code=None):
+    """슬롯과 현재 정책. `segment_code`(C1 결정 요청의 그룹 코드, 형식은 `is_segment_code` 로 먼저 본 값)를 주면 **같은 질의**에서 그 슬롯 매체의
+    카탈로그로 풀어 `SlotView.segment` 에 싣는다(결정 경로의 질의 수 그대로 — 설계 §10 "대상 그룹 타기팅" ⑥). 그 매체에 없는 코드면 `segment` 가 None."""
+    rows = _current_policies().filter(slot_id=parse_uuid(slot_id, "게재 위치"))
+    if segment_code is not None:
+        match = Segment.objects.filter(media_id=OuterRef("slot__media_id"), code=segment_code)  # (매체, 코드)는 유일하다
+        rows = rows.annotate(request_segment_id=Subquery(match.values("segment_id")[:1]), request_segment_active=Subquery(match.values("is_active")[:1]))
     try:
-        row = _current_policies().filter(slot_id=parse_uuid(slot_id, "게재 위치")).get()
+        row = rows.get()
     except BidPolicy.DoesNotExist:
         raise errors.NotFound("게재 위치를 찾을 수 없습니다.")
-    return _slot_view(row.slot, row)
+    view = _slot_view(row.slot, row)
+    if segment_code is not None and row.request_segment_id is not None:
+        view = dataclasses.replace(view, segment=RequestSegment(segment_id=row.request_segment_id, is_active=row.request_segment_active))
+    return view
+
+
+def is_segment_code(value):
+    """대상 그룹 코드의 형식(`SEGMENT_CODE_PATTERN`)인가. 아니면 어느 매체에도 등록될 수 없어 카탈로그에 묻지 않는다(NUL·짝 없는 서로게이트가 DB 에 닿지 않게)."""
+    return isinstance(value, str) and _SEGMENT_CODE.fullmatch(value) is not None
 
 
 def slot_names(slot_ids):
@@ -305,6 +322,123 @@ def get_slots_with_policy(slot_ids):
     """여러 슬롯의 현재 정책을 **질의 한 번**으로(결정 조립용). 없는·형식이 틀린 ID 는 결과에 없다."""
     rows = _current_policies().filter(slot_id__in=parse_uuids(slot_ids))
     return {row.slot_id: _slot_view(row.slot, row) for row in rows}
+
+
+# ---------------------------------------------------------------- 대상 그룹 (설계 §10 "대상 그룹 타기팅" ②, DRD M7·M8)
+
+_SEGMENT_CODE = re.compile(SEGMENT_CODE_PATTERN)
+
+
+def _segment_version_view(v, segment):
+    return SegmentVersionView(
+        segment_version_id=v.segment_version_id, segment_id=segment.segment_id, media_id=segment.media_id, code=segment.code,
+        version=v.version, name=v.name, is_active=v.is_active, changed_by=v.changed_by, changed_at=v.changed_at,
+    )
+
+
+def _add_segment_version(actor, segment, version, now):
+    """판 한 줄(그룹 행의 지금 상태 전체)과 그 이벤트(`ad.segment_changed`) — 그룹 행과 **같은 트랜잭션**에서. 값만 넘긴다(계획 docs/plans/00 D1)."""
+    v = SegmentVersion.objects.create(segment=segment, version=version, name=segment.name, is_active=segment.is_active, changed_by=actor.pk, changed_at=_now(now))
+    events.record_segment_changed(
+        now=v.changed_at, segment_id=segment.segment_id, segment_version_id=v.segment_version_id, version=v.version, media_id=segment.media_id,
+        code=segment.code, name=v.name, is_active=v.is_active, changed_at=v.changed_at,
+    )
+    return v
+
+
+def _segment_view(segment, version):
+    return SegmentView(segment_id=segment.segment_id, media_id=segment.media_id, code=segment.code, name=segment.name, is_active=segment.is_active,
+                       version=version, created_at=segment.created_at)
+
+
+def create_segment(actor, media_id, code, name, now=None):
+    """대상 그룹 등록(판 1). 코드는 매체가 C1 `segment` 로 보내는 값 그대로이고 바꿀 수 없다 — 공백을 다듬지 않는다(다듬으면 매체가 보내는 값과 갈린다)."""
+    require_admin(actor)
+    if not isinstance(code, str) or not _SEGMENT_CODE.fullmatch(code):
+        raise errors.InvalidRequest(errors=[{"pointer": "/code", "message": "코드는 영문 소문자로 시작하고 영문 소문자·숫자·하이픈(-)만 쓰는 1~32자여야 합니다."}])
+    name = clean_text(name, "그룹 이름", "/name")
+    try:
+        with transaction.atomic():
+            media = _get_media(media_id)
+            segment = Segment.objects.create(media=media, code=code, name=name, created_at=_now(now))
+            _add_segment_version(actor, segment, 1, segment.created_at)
+            _audit(actor, "masters.segment_created", ("masters.segment", segment.segment_id), {"media_id": str(media.media_id), "code": code, "name": name})
+    except IntegrityError as error:
+        if violated_constraint(error) != "masters_segment_code_per_media":  # 같은 블록의 판·감사·outbox 결함을 코드 충돌로 가리지 않는다(plans/00 §11 create_slot 과 같은 결함 모양)
+            raise
+        raise errors.Conflict("이 매체에 같은 코드의 대상 그룹이 이미 있습니다.")
+    return _segment_view(segment, 1)
+
+
+def update_segment(actor, segment_id, expected_version, *, name=None, is_active=None, now=None):
+    """이름 바꾸기·보관(`is_active=False`)·되살리기(`True`). 바뀐 것이 있으면 그룹 행을 고치고 새 판 한 줄을 더한다(같은 트랜잭션).
+    `expected_version` 은 화면이 본 판 — 그 사이 바뀌었으면 거절한다. 그룹 행 하나만 잠근다(설계 §10 "대상 그룹 타기팅" ⑧). 바뀐 것이 없으면 판을 쓰지 않는다."""
+    require_admin(actor)
+    if name is not None:
+        name = clean_text(name, "그룹 이름", "/name")
+    if is_active is not None and not isinstance(is_active, bool):
+        raise errors.InvalidRequest(errors=[{"pointer": "/is_active", "message": "참·거짓이어야 합니다."}])
+    with transaction.atomic():
+        try:
+            segment = Segment.objects.select_for_update().get(pk=parse_uuid(segment_id, "대상 그룹"))
+        except Segment.DoesNotExist:
+            raise errors.NotFound("대상 그룹을 찾을 수 없습니다.")
+        current = segment.versions.order_by("-version").values_list("version", flat=True).first()
+        if current != expected_version:
+            raise errors.StaleVersion(f"{segment.code}: 다른 곳에서 먼저 바뀌었습니다(현재 판 {current}).")
+        before = {"name": segment.name, "is_active": segment.is_active}
+        segment.name = before["name"] if name is None else name
+        segment.is_active = before["is_active"] if is_active is None else is_active
+        if {"name": segment.name, "is_active": segment.is_active} == before:
+            return _segment_view(segment, current)
+        segment.save(update_fields=["name", "is_active"])
+        _add_segment_version(actor, segment, current + 1, now)
+        _audit(actor, "masters.segment_changed", ("masters.segment", segment.segment_id),
+               {"version": current + 1, "name": segment.name, "is_active": segment.is_active, "previous": before})
+    return _segment_view(segment, current + 1)
+
+
+def list_segments(actor, media_id):
+    """매체의 대상 그룹(보관 포함, 코드순)과 각각의 현재 판. 운영 화면용, 질의 한 번."""
+    require_admin(actor)
+    rows = Segment.objects.filter(media_id=parse_uuid(media_id, "매체")).annotate(version=Max("versions__version")).order_by("code")
+    return [_segment_view(s, s.version) for s in rows]
+
+
+def segments(segment_ids=(), media_ids=()):
+    """광고주 화면용 대상 그룹(코드순, 보관 포함, 판은 읽지 않음): `segment_ids` 의 그룹과 `media_ids` 매체의 그룹. 형식이 틀린 ID 는 없다고 본다. 질의 한 번."""
+    ids, medias = parse_uuids(segment_ids), parse_uuids(media_ids)
+    if not ids and not medias:
+        return []
+    rows = Segment.objects.filter(Q(pk__in=ids) | Q(media_id__in=medias)).order_by("code", "segment_id")
+    return [_segment_view(s, None) for s in rows]
+
+
+def lock_segments(segment_ids):
+    """대상 그룹 행을 **공유 잠금**(`FOR SHARE`, ID 순)으로 읽는다 — 광고그룹이 대상 그룹을 고르는 사이 보관되는 경쟁만 막는다(설계 §10 "대상 그룹 타기팅" ⑧,
+    잠금 순서의 마지막). 보관(`update_segment`)은 그 행을 배타 잠금으로 쥐므로 서로 기다린다. 호출한 트랜잭션이 끝날 때 놓인다. {segment_id: SegmentView}(판은 `None`).
+    ORM 에 `FOR SHARE` 가 없어 ORM 이 만든 조회에 잠금 절만 붙인다(`media_active_for_share` 와 같다)."""
+    ids = sorted(set(parse_uuids(segment_ids)), key=str)
+    if not ids:
+        return {}
+    query = Segment.objects.filter(pk__in=ids).order_by("segment_id").values_list("segment_id", "media_id", "code", "name", "is_active", "created_at")
+    sql, params = query.query.sql_with_params()
+    with connection.cursor() as cursor:
+        cursor.execute(f"{sql} FOR SHARE", params)
+        rows = cursor.fetchall()
+    return {row[0]: SegmentView(segment_id=row[0], media_id=row[1], code=row[2], name=row[3], is_active=row[4], version=None, created_at=row[5]) for row in rows}
+
+
+def segment_versions():
+    """모든 대상 그룹 판(`SegmentVersionView`)을 훑는다 — 이벤트 누락 점검·기대 이벤트용 읽기."""
+    return (_segment_version_view(v, v.segment) for v in SegmentVersion.objects.select_related("segment").iterator(chunk_size=2000))
+
+
+def segment_stream(to_documents):
+    """대상 그룹 판을 변경 시각(`changed_at`) 창으로 읽는 흐름(구간 manifest 의 원본 구간). `to_documents(views)` 가 창 하나의 `SegmentVersionView` 를 문서로 바꾼다.
+    ponytail: changed_at 색인이 없어 창마다 표를 다 훑는다 — 관리자가 손으로 늘리는 작은 표(입찰 정책 `policy_stream` 과 같다). 자동으로 쓰기 시작하면 (changed_at) 색인."""
+    return events.table_stream(SegmentVersion.objects.select_related("segment"), "changed_at",
+                               lambda rows: to_documents([_segment_version_view(v, v.segment) for v in rows]))
 
 
 # ---------------------------------------------------------------- 매체 키 (C1 인증)

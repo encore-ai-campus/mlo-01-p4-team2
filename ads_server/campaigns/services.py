@@ -7,6 +7,7 @@ from datetime import datetime, timezone as dt_timezone
 from urllib.parse import urlsplit
 
 from django.conf import settings
+from django.contrib.postgres.expressions import ArraySubquery
 from django.db import IntegrityError, transaction
 from django.db.models import Count, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce, Greatest
@@ -21,7 +22,7 @@ from masters import api as masters
 from . import transitions as tr
 from .changes import record_change
 from .errors import LimitExceeded, NotSuspended, ReviewPending
-from .models import AdGroup, AdGroupCreative, AdGroupSlot, Bid, Campaign, CampaignStatus, ChangeTarget, Creative, CreativeImage, ReviewRequest, ReviewStatus
+from .models import AdGroup, AdGroupCreative, AdGroupSegment, AdGroupSlot, Bid, Campaign, CampaignStatus, ChangeTarget, Creative, CreativeImage, ReviewRequest, ReviewStatus
 from .types import (
     AdGroupEffects, AdGroupView, AdvertiserUsage, BidView, CampaignView, CandidateFacts, CreatedAd, CreativeUse, CreativeView, MonitoredCampaign, OwnedCreative,
     ReviewQueueItem, ReviewRequestView, SlotEffect, SuspensionView,
@@ -155,12 +156,13 @@ def _current_bid(ad_group):
     return Bid.objects.filter(ad_group=ad_group).order_by("-bid_version").first()
 
 
-def _ad_group_view(g, bid=None, slot_ids=None):
-    """`slot_ids`: 이미 읽은 게재 위치(목록이 한 번에 읽는다). 없으면 그 그룹의 것을 읽는다."""
+def _ad_group_view(g, bid=None, slot_ids=None, segment_ids=None):
+    """`slot_ids`·`segment_ids`: 이미 읽은 게재 위치·대상 그룹(목록이 한 번에 읽는다). 없으면 그 그룹의 것을 읽는다."""
     slot_ids = tuple(sorted(g.slot_links.values_list("slot_id", flat=True) if slot_ids is None else slot_ids, key=str))
+    segment_ids = tuple(sorted(g.segment_links.values_list("segment_id", flat=True) if segment_ids is None else segment_ids, key=str))
     return AdGroupView(
         ad_group_id=g.ad_group_id, campaign_id=g.campaign_id, name=g.name, enabled=g.enabled, creative_id=g.creative_id,
-        slot_ids=slot_ids, current_bid=_bid_view(bid) if bid else None, created_at=g.created_at, updated_at=g.updated_at,
+        slot_ids=slot_ids, current_bid=_bid_view(bid) if bid else None, created_at=g.created_at, updated_at=g.updated_at, segment_ids=segment_ids,
     )
 
 
@@ -514,12 +516,44 @@ def _validated_slots(slot_ids):
     return ids
 
 
-def create_ad_group(user, campaign_id, name, slot_ids, bid_amount=None, now=None):
-    """광고그룹(광고)을 만든다. 아무 게재 위치나 함께 고를 수 있다 — 과금은 위치마다 정책의 반응 비율로 나뉜다(6-10d, 과금 단위 없음)."""
+def _validated_segment_ids(segment_ids):
+    """대상 그룹 ID 목록의 모양만 본다(0개 이상 — 비면 전체가 대상). 있는지·살아 있는지·매체는 `_link_segments` 가 잠금 안에서 본다."""
+    if not isinstance(segment_ids, (list, tuple)):
+        raise _problem("/segment_ids", "대상 그룹 목록이어야 합니다.")
+    try:
+        ids = [parse_uuid(s, "대상 그룹") for s in segment_ids]
+    except errors.NotFound:
+        raise _problem("/segment_ids", "대상 그룹 ID 형식이 올바르지 않습니다.")
+    if len(set(ids)) != len(ids):
+        raise _problem("/segment_ids", "같은 대상 그룹을 두 번 고를 수 없습니다.")
+    return ids
+
+
+def _link_segments(group, slot_ids, segment_ids, current=frozenset()):
+    """광고그룹의 대상 그룹을 `segment_ids` 로 맞춘다(설계 §10 "대상 그룹 타기팅" ③·⑧). **잠금 순서의 마지막**(광고주 → 캠페인 → 광고그룹 → 소재 → 카탈로그)에 부른다.
+    고른 그룹 행을 공유 잠금으로 읽고, **새로 고르는** 그룹(`current` 밖)은 살아 있고 이 광고그룹이 고른 구성(`slot_ids`)의 매체 것이어야 한다 — 아니면 400.
+    이미 연결된 그룹은 보관됐거나 구성에서 그 매체가 빠져도 남는다(화면이 경고한다). 변경 로그는 부른 쪽이 쓴다."""
+    found = masters.lock_segments(segment_ids)
+    new = [s for s in segment_ids if s not in current]
+    if new:
+        medias = {s.media_id for s in masters.get_slots_with_policy(slot_ids).values()}
+        for segment_id in new:
+            segment = found.get(segment_id)
+            if segment is None or not segment.is_active or segment.media_id not in medias:
+                raise _problem("/segment_ids", "없거나 고를 수 없는 대상 그룹이 있습니다(보관된 그룹, 고른 구성의 매체가 아닌 그룹은 고를 수 없습니다).")
+    if current:  # 새로 만든 광고그룹은 지울 연결이 없다(질의를 하나 아낀다)
+        group.segment_links.exclude(segment_id__in=segment_ids).delete()
+    AdGroupSegment.objects.bulk_create([AdGroupSegment(ad_group=group, segment_id=s) for s in segment_ids if s not in current])
+
+
+def create_ad_group(user, campaign_id, name, slot_ids, bid_amount=None, now=None, segment_ids=(), link_segments=True):
+    """광고그룹(광고)을 만든다. 아무 게재 위치나 함께 고를 수 있다 — 과금은 위치마다 정책의 반응 비율로 나뉜다(6-10d, 과금 단위 없음).
+    `segment_ids`: 대상 그룹 T(0개 이상, 비면 전체). `link_segments=False` 는 `create_ad` 가 소재를 연결한 **뒤에** `_link_segments` 를 부르려고 쓴다(잠금 순서 — 카탈로그가 마지막)."""
     require_advertiser(user)
     now = _now(now)
     name = clean_text(name, "광고 이름", "/name")
     ids = _validated_slots(slot_ids)
+    segment_ids = _validated_segment_ids(segment_ids)
     if bid_amount is not None:
         _amount(bid_amount, "/bid_amount")
     with transaction.atomic():
@@ -533,9 +567,11 @@ def create_ad_group(user, campaign_id, name, slot_ids, bid_amount=None, now=None
         bid = Bid.objects.create(ad_group=group, bid_version=1, amount=bid_amount, created_by=user.pk, created_at=now) if bid_amount is not None else None
         if bid is not None:
             _record_bid_event(bid)
-        _record_ad_group_change(group, "CREATED", None, {"enabled": group.enabled, "slot_ids": ids, "creative_id": None}, now)  # 소재는 뒤이어 연결될 때 CREATIVE_SELECTED
-        _audit(user, "ad_group.created", ("campaigns.ad_group", group.ad_group_id), {"name": name, "slots": len(ids)})
-    return _ad_group_view(group, bid, ids)  # 방금 넣은 게재 위치(검증한 ID, 중복 없음)를 다시 읽지 않는다
+        _record_ad_group_change(group, "CREATED", None, {"enabled": group.enabled, "slot_ids": ids, "creative_id": None, "segment_ids": segment_ids}, now)  # 소재는 뒤이어 연결될 때 CREATIVE_SELECTED
+        _audit(user, "ad_group.created", ("campaigns.ad_group", group.ad_group_id), {"name": name, "slots": len(ids), "segments": len(segment_ids)})
+        if link_segments:
+            _link_segments(group, ids, segment_ids)
+    return _ad_group_view(group, bid, ids, segment_ids)  # 방금 넣은 게재 위치·대상 그룹(검증한 ID, 중복 없음)을 다시 읽지 않는다
 
 
 def get_ad_group(user, ad_group_id):
@@ -548,23 +584,26 @@ def list_ad_groups(user, campaign_id):
     c = _campaign(user, campaign_id)
     latest = Bid.objects.filter(ad_group=OuterRef("pk")).order_by("-bid_version").values("bid_id")[:1]
     groups = list(AdGroup.objects.filter(campaign=c).annotate(current_bid_id=Subquery(latest)).order_by("created_at"))
-    slots = {}
+    slots, segments = {}, {}
     for group_id, slot_id in AdGroupSlot.objects.filter(ad_group__in=groups).values_list("ad_group_id", "slot_id"):
         slots.setdefault(group_id, []).append(slot_id)
+    for group_id, segment_id in AdGroupSegment.objects.filter(ad_group__in=groups).values_list("ad_group_id", "segment_id"):
+        segments.setdefault(group_id, []).append(segment_id)
     bids = Bid.objects.in_bulk([g.current_bid_id for g in groups if g.current_bid_id is not None])
-    return [_ad_group_view(g, bids.get(g.current_bid_id), slots.get(g.pk, ())) for g in groups]
+    return [_ad_group_view(g, bids.get(g.current_bid_id), slots.get(g.pk, ()), segments.get(g.pk, ())) for g in groups]
 
 
-AD_GROUP_FIELDS = {"name", "enabled", "slot_ids"}  # 소재 선택은 연결 하나로(`link_creative(select=True)`, 6-13e)
+AD_GROUP_FIELDS = {"name", "enabled", "slot_ids", "segment_ids"}  # 소재 선택은 연결 하나로(`link_creative(select=True)`, 6-13e)
 
 
 def update_ad_group(user, ad_group_id, changes, now=None, expected_updated_at=None):
-    """이름·켜기/끄기·게재 위치. `expected_updated_at`(화면이 본 마지막 변경 시각)을 주면
+    """이름·켜기/끄기·게재 위치·대상 그룹. `expected_updated_at`(화면이 본 마지막 변경 시각)을 주면
     잠금 안에서 대조해 다르면 409 — 옛 폼이 같은 칸의 최신 변경을 덮지 않게(외부 검토 41d2288 P3). 켜기/끄기처럼 바꿀 값이 분명한 동작은 주지 않는다."""
     require_advertiser(user)
     now = _now(now)
     if set(changes) - AD_GROUP_FIELDS or not changes:
         raise _problem("/", f"바꿀 수 있는 필드: {sorted(AD_GROUP_FIELDS)}")
+    segment_ids = _validated_segment_ids(changes["segment_ids"]) if "segment_ids" in changes else None
     with transaction.atomic():
         g = _locked_group(user, ad_group_id, now)
         _assert_seen(expected_updated_at, g.updated_at)
@@ -580,12 +619,18 @@ def update_ad_group(user, ad_group_id, changes, now=None, expected_updated_at=No
             slots_before = set(g.slot_links.values_list("slot_id", flat=True))  # 지우기 전에 읽는다 — 변경 로그의 이전 값
             g.slot_links.exclude(slot_id__in=ids).delete()
             AdGroupSlot.objects.bulk_create([AdGroupSlot(ad_group=g, slot_id=s) for s in ids if s not in slots_before])
+        if segment_ids is not None:
+            segments_before = set(g.segment_links.values_list("segment_id", flat=True))
+            slots_now = ids if "slot_ids" in changes else list(g.slot_links.values_list("slot_id", flat=True))
+            _link_segments(g, slots_now, segment_ids, segments_before)  # 이 동작은 소재를 잠그지 않는다 — 카탈로그가 마지막
         g.updated_at = now
         g.save()
         if "enabled" in changes:  # 값이 그대로면 쓰지 않는다. 이름은 싣지 않는다(표시용, 계획 §5.1)
             _record_ad_group_change(g, "ENABLED_CHANGED", {"enabled": enabled_before}, {"enabled": g.enabled}, now)
         if "slot_ids" in changes:
             _record_ad_group_change(g, "SLOTS_CHANGED", {"slot_ids": slots_before}, {"slot_ids": ids}, now)
+        if segment_ids is not None:  # 값이 그대로면 쓰지 않는다(record_change)
+            _record_ad_group_change(g, "SEGMENTS_CHANGED", {"segment_ids": segments_before}, {"segment_ids": segment_ids}, now)
         _audit(user, "ad_group.updated", ("campaigns.ad_group", g.ad_group_id), {"changed": sorted(changes)})
     return _ad_group_view(g, _current_bid(g))
 
@@ -793,11 +838,12 @@ def create_ad(user, campaign_id, ad_group, creative=None, creative_id=None, now=
             done = _created_by_key(user, request_key, now)
             if done is not None:
                 return done
-            g = _part("/ad_group", create_ad_group, user, campaign_id, now=now, **ad_group)
+            g = _part("/ad_group", create_ad_group, user, campaign_id, now=now, link_segments=False, **ad_group)
             if creative_id is not None:
                 _part("/creative", link_creative, user, g.ad_group_id, creative_id, now=now)
             else:
                 _part("/creative", create_creative, user, g.ad_group_id, now=now, **creative)
+            _part("/ad_group", _link_segments, AdGroup.objects.get(pk=g.ad_group_id), list(g.slot_ids), list(g.segment_ids))  # 소재 잠금 뒤 — 카탈로그가 마지막
             if request_key is not None:
                 AdGroup.objects.filter(pk=g.ad_group_id).update(request_key=request_key)  # 동시에 같은 키가 오면 여기서 유일 제약이 막는다
     except IntegrityError:
@@ -906,10 +952,11 @@ def candidate_facts_for_slot(slot_id):
     비활성화된 광고주의 광고도 꺼진 것으로 본다(Step 3-1d — 캠페인 상태는 그대로라 다시 활성화하면 다시 후보다).
 
     기간·금액 판정은 넣지 않는다(판정은 engine 한 곳). 상태 갱신이 늦은 종료 캠페인이 섞여 와도 engine 이 거른다.
-    입찰이 없는 광고그룹은 후보가 아니다.
+    입찰이 없는 광고그룹은 후보가 아니다. 대상 그룹 T 는 같은 질의의 하위 질의(배열)다 — 질의 수 그대로(설계 §10 "대상 그룹 타기팅" ⑥). 보관된 그룹도 연결이 남아 있으면 든다(맞춤은 engine).
     """
     slot_id = parse_uuid(slot_id, "게재 위치")
     latest = Bid.objects.filter(ad_group=OuterRef("pk")).order_by("-bid_version")
+    targets = AdGroupSegment.objects.filter(ad_group=OuterRef("pk")).order_by("segment_id").values("segment_id")
     rows = (
         AdGroup.objects.filter(
             enabled=True, creative__isnull=False, campaign__status=CampaignStatus.ACTIVE, campaign__owner__is_active=True, slot_links__slot_id=slot_id,
@@ -919,6 +966,7 @@ def candidate_facts_for_slot(slot_id):
             bid_id=Subquery(latest.values("bid_id")[:1]),
             bid_version=Subquery(latest.values("bid_version")[:1]),
             bid_amount=Subquery(latest.values("amount")[:1]),
+            target_segment_ids=ArraySubquery(targets),
         )
         .filter(bid_version__isnull=False)
         .order_by("ad_group_id")
@@ -931,6 +979,7 @@ def candidate_facts_for_slot(slot_id):
             campaign_status=g.campaign.status, ad_group_enabled=g.enabled,
             period_start=g.campaign.starts_at, period_end=g.campaign.ends_at,
             daily_budget=g.campaign.daily_budget, title=g.creative.title, redirect_url=g.creative.redirect_url, image_name=g.creative.image_name,
+            target_segment_ids=tuple(g.target_segment_ids),
         )
         for g in rows
     ]

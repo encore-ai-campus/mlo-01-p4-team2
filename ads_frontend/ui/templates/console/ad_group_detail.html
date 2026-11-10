@@ -42,7 +42,7 @@
           <thead><tr><th scope="col">구성</th><th scope="col">유형</th><th scope="col">하한 ~ 상한</th><th scope="col">결과</th><th scope="col" class="num">적용금액</th><th scope="col" class="num">노출 / 클릭 / 전환</th></tr></thead>
           <tbody>
           {% for slot, e, charges in effects %}
-            <tr><td>{% if slot %}{{ slot.media_name }} · {{ slot.name }}{% else %}{{ e.slot_id }}{% endif %}</td><td>{% if slot %}{{ slot.audience|audience_label }}{% endif %}</td><td>{% if slot %}{{ slot.policy.floor|p }} ~ {{ slot.policy.cap|p }}{% endif %}</td><td>{{ e.reason|effect_label }}</td><td class="num">{% if e.applied_amount is not None %}{{ e.applied_amount|p }}{% else %}—{% endif %}</td><td class="num">{% if charges %}{{ charges.IMPRESSION|number }} / {{ charges.CLICK|number }} / {{ charges.CONVERSION|p }}{% else %}—{% endif %}</td></tr>
+            <tr><td>{% if slot %}{{ slot.media_name }} · {{ slot.name }}{% else %}{{ e.slot_id }}{% endif %}</td><td>{% if slot %}{% if slot.audience == "shared" %}일괄(사용 중지){% else %}{{ slot.audience|audience_label }}{% endif %}{% endif %}</td><td>{% if slot %}{{ slot.policy.floor|p }} ~ {{ slot.policy.cap|p }}{% endif %}</td><td>{{ e.reason|effect_label }}</td><td class="num">{% if e.applied_amount is not None %}{{ e.applied_amount|p }}{% else %}—{% endif %}</td><td class="num">{% if charges %}{{ charges.IMPRESSION|number }} / {{ charges.CLICK|number }} / {{ charges.CONVERSION|p }}{% else %}—{% endif %}</td></tr>
           {% endfor %}
           </tbody>
         </table>
@@ -88,7 +88,32 @@
         {% if page.inactive_linked %}
         <p class="helptext">지금 꺼진 구성: {% for s in page.inactive_linked %}{{ s.media_name }} · {{ s.name }}{% if not forloop.last %}, {% endif %}{% endfor %} — 구성을 다시 저장하면 빠집니다.</p>
         {% endif %}
+        {% if page.shared_linked %}
+        <p class="helptext">일괄(사용 중지) 구성: {% for s in page.shared_linked %}{{ s.media_name }} · {{ s.name }}{% if not forloop.last %}, {% endif %}{% endfor %} — 지금은 그대로 나가지만 새로 고를 수 없고, 구성을 다시 저장하면 빠집니다.</p>
+        {% endif %}
         <div class="form-end"><button type="submit" class="secondary">구성 저장</button></div>
+      </form>
+      <form method="post" action="{% url 'ad_group_segments' group.ad_group_id %}" class="rule">{% csrf_token %}
+        {% if segments_form.non_field_errors %}<div class="notice error" role="alert">{{ segments_form.non_field_errors }}</div>{% endif %}
+        {{ segments_form.updated_at }}
+        <fieldset class="slots">
+          <legend>대상 그룹(선택)</legend>
+          {% for media_name, g in page.segment_rows %}
+          <label class="slot"><input type="checkbox" name="segment_ids" value="{{ g.segment_id }}"{% if g.segment_id|stringformat:"s" in segments_form.segment_ids.value %} checked{% endif %}>
+            <span class="name">{% if media_name %}{{ media_name }}{% else %}고른 구성에 없는 매체{% endif %} · {{ g.name }}</span><span class="muted">{{ g.code }}{% if not g.is_active %} · 보관됨{% endif %}</span></label>
+          {% empty %}
+          <p class="muted">고른 구성의 매체에 등록된 대상 그룹이 없습니다.</p>
+          {% endfor %}
+        </fieldset>
+        {{ segments_form.segment_ids.errors }}
+        <p class="helptext">고르지 않으면 모든 사용자에게 나갑니다. 고르면 그 그룹의 사용자에게만 나갑니다. 보관된 그룹은 새로 고를 수 없습니다.</p>
+        {% if page.archived_only %}
+        <p class="notice warning" role="status">고른 대상 그룹이 모두 보관됐습니다 — 이 광고는 어느 사용자에게도 나가지 않습니다.</p>
+        {% endif %}
+        {% if page.uncovered_media %}
+        <p class="notice warning" role="status">대상 그룹이 없는 매체: {{ page.uncovered_media|join:", " }} — 그 매체의 구성에는 이 광고가 나가지 않습니다.</p>
+        {% endif %}
+        <div class="form-end"><button type="submit" class="secondary">대상 그룹 저장</button></div>
       </form>
     </section>
   </div>

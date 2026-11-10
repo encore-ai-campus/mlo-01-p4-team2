@@ -11,7 +11,7 @@ from django.views.decorators.http import require_POST
 from campaigns import api as campaigns
 
 from ..errors import fetch, run_action, submit
-from ..forms import BidForm, CreativeUploadForm, GroupNameForm, GroupSlotsForm
+from ..forms import BidForm, CreativeUploadForm, GroupNameForm, GroupSegmentsForm, GroupSlotsForm
 from ..queries.ad_groups import ad_group_page
 from .ads import effect_row
 from .common import present
@@ -25,6 +25,7 @@ def ad_group_detail(request, ad_group_id, status=200, **bound):
         "bid_form": BidForm(initial={"expected_version": group.current_bid.bid_version if group.current_bid else None}),
         "name_form": GroupNameForm(initial={"name": group.name, "updated_at": group.updated_at.isoformat()}),
         "slots_form": GroupSlotsForm(slots=page.choices, initial={"slot_ids": [str(s) for s in group.slot_ids], "updated_at": group.updated_at.isoformat()}),
+        "segments_form": GroupSegmentsForm(segments=page.segment_choices, initial={"segment_ids": [str(s) for s in group.segment_ids], "updated_at": group.updated_at.isoformat()}),
         "upload_form": CreativeUploadForm(prefix="new"),
         **bound,
     }
@@ -62,6 +63,15 @@ def ad_group_slots(request, ad_group_id):
     form = GroupSlotsForm(request.POST, slots=page.choices)
     return _submit(request, ad_group_id, form, lambda d: campaigns.update_ad_group(request.user, ad_group_id, {"slot_ids": d["slot_ids"]}, expected_updated_at=d["updated_at"]),
                    "구성을 바꿨습니다.", slots_form=form)
+
+
+@require_POST
+def ad_group_segments(request, ad_group_id):
+    """대상 그룹 T. 새로 고르는 그룹이 보관됐거나 고른 구성의 매체 것이 아니면 서비스가 400(그 사이 바뀐 경우 포함)."""
+    page = fetch(ad_group_page, request.user, ad_group_id)
+    form = GroupSegmentsForm(request.POST, segments=page.segment_choices)
+    return _submit(request, ad_group_id, form, lambda d: campaigns.update_ad_group(request.user, ad_group_id, {"segment_ids": d["segment_ids"]}, expected_updated_at=d["updated_at"]),
+                   "대상 그룹을 바꿨습니다. 다음 결정부터 적용됩니다.", segments_form=form)
 
 
 @require_POST

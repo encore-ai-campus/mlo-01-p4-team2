@@ -22,8 +22,8 @@ class PolicyValuesForm(forms.Form):
 
 class SlotForm(PolicyValuesForm):
     name = forms.CharField(label="구성 이름", max_length=100, strip=False)
-    audience = forms.ChoiceField(label="보는 사람", choices=Audience.choices,
-                                 help_text="개인: 결정 하나를 한 사람이 봅니다. 일괄: 여러 사람이 같은 광고를 봅니다. 만든 뒤 바꿀 수 없습니다.")
+    audience = forms.ChoiceField(label="보는 사람", choices=[(Audience.INDIVIDUAL, Audience.INDIVIDUAL.label)],  # 일괄은 화면에서 사용 중지(TG-S4) — 서비스·C1 은 그대로
+                                 help_text="개인: 결정 하나를 한 사람이 봅니다. 일괄(여러 사람이 같은 광고를 봄)은 사용 중지라 새로 만들 수 없습니다. 만든 뒤 바꿀 수 없습니다.")
     reason = forms.CharField(label="사유", max_length=200, strip=False, required=False, help_text="비우면 ‘없음’으로 남습니다.")  # 비면 서비스가 채운다(6-8c)
     field_order = ["name", "audience"]  # 첫 정책 값(하한·기준가·상한·비율·사유)은 그 뒤
 
@@ -76,3 +76,25 @@ class AdjustForm(forms.Form):
     amount = forms.IntegerField(label="조정 포인트", help_text="더하면 양수, 빼면 음수. 앞선 항목을 바로잡을 때도 반대 부호의 새 항목으로 넣습니다.")
     note = forms.CharField(label="사유", max_length=200, strip=False)
     request_key = forms.CharField(max_length=64, widget=forms.HiddenInput)
+
+
+class SegmentForm(forms.Form):
+    """대상 그룹 등록(설계 §10 "대상 그룹 타기팅" ②). 코드는 다듬지 않는다(`strip=False`) — 매체가 보내는 값 그대로여야 해서, 형식은 서비스가 판단한다."""
+
+    code = forms.CharField(label="코드", max_length=32, strip=False,
+                           help_text="매체가 결정 요청의 segment 로 보내는 값 그대로입니다(영문 소문자로 시작, 영문 소문자·숫자·하이픈 1~32자). 등록 뒤 바꿀 수 없습니다.")
+    name = forms.CharField(label="그룹 이름", max_length=100, strip=False)
+
+
+class SegmentRenameForm(forms.Form):
+    """이름 바꾸기. 화면이 본 판을 숨김 칸으로 실어 그 사이 바뀌었으면 서비스가 거절한다(낙관적 잠금)."""
+
+    name = forms.CharField(max_length=100, strip=False)
+    expected_version = forms.IntegerField(min_value=1, widget=forms.HiddenInput)
+
+
+class SegmentActiveForm(forms.Form):
+    """보관(0)·되살리기(1). 화면이 본 판을 함께 싣는다."""
+
+    active = forms.TypedChoiceField(choices=[("0", "보관"), ("1", "되살리기")], coerce=lambda value: value == "1")
+    expected_version = forms.IntegerField(min_value=1, widget=forms.HiddenInput)

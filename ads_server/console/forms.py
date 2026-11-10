@@ -127,6 +127,7 @@ class AdCreateForm(forms.Form):
     campaign_id = forms.ChoiceField(label="집행할 캠페인")
     group_name = forms.CharField(label="광고 이름", max_length=100, strip=False)
     slot_ids = forms.MultipleChoiceField(label="구성", widget=forms.CheckboxSelectMultiple, required=False)
+    segment_ids = forms.MultipleChoiceField(label="대상 그룹", widget=forms.CheckboxSelectMultiple, required=False)  # 0개 이상 — 비면 전체가 대상
     bid_amount = forms.IntegerField(label="입찰 금액(포인트)")
     creative_source = forms.ChoiceField(label="소재", choices=[(EXISTING, "등록된 소재 쓰기"), (NEW, "새로 올리기")], widget=forms.RadioSelect, initial=NEW)
     creative_id = forms.ChoiceField(label="등록된 소재", required=False)
@@ -139,14 +140,15 @@ class AdCreateForm(forms.Form):
 
     # 서비스 오류의 위치(`create_ad` 가 부분 이름을 붙인다) → 이 폼의 칸
     POINTERS = {
-        "/ad_group/name": "group_name", "/ad_group/slot_ids": "slot_ids", "/ad_group/bid_amount": "bid_amount",
+        "/ad_group/name": "group_name", "/ad_group/slot_ids": "slot_ids", "/ad_group/segment_ids": "segment_ids", "/ad_group/bid_amount": "bid_amount",
         "/creative": "creative_source", "/creative/title": "title", "/creative/redirect_url": "redirect_url",
     }
 
-    def __init__(self, *args, campaigns=(), slots=(), creatives=(), **kwargs):
+    def __init__(self, *args, campaigns=(), slots=(), creatives=(), segments=(), **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["campaign_id"].choices = [(str(c.campaign_id), c.name) for c in campaigns]
         self.fields["slot_ids"].choices = [(str(s.slot_id), s.name) for s in slots]
+        self.fields["segment_ids"].choices = [(str(g.segment_id), g.name) for g in segments]
         creatives = [(str(c.creative_id), c.title) for c in creatives]
         self.has_creatives = bool(creatives)  # 없으면 화면이 고르는 칸을 그리지 않는다
         self.fields["creative_id"].choices = [("", "고르세요")] + creatives
@@ -197,6 +199,19 @@ class GroupSlotsForm(forms.Form):
         kwargs.setdefault("auto_id", "slots_%s")  # 이름 폼과 같은 화면 — 숨긴 updated_at 의 id 가 겹치지 않게
         super().__init__(*args, **kwargs)
         self.fields["slot_ids"].choices = [(str(s.slot_id), s.name) for s in slots]
+
+
+class GroupSegmentsForm(forms.Form):
+    """대상 그룹 T(0개 이상, 비면 전체). 고를 수 있는 것 = 고른 구성의 매체에 속한 살아 있는 그룹 + 이미 연결된 그룹(보관됐어도 — 빼려면 체크를 푼다).
+    `updated_at` 은 화면이 본 광고그룹의 마지막 변경 시각 — 그 사이 바뀌었으면 서비스가 거절한다."""
+
+    segment_ids = forms.MultipleChoiceField(label="대상 그룹", widget=forms.CheckboxSelectMultiple, required=False)
+    updated_at = forms.DateTimeField(widget=forms.HiddenInput)
+
+    def __init__(self, *args, segments=(), **kwargs):
+        kwargs.setdefault("auto_id", "segments_%s")  # 이름·구성 폼과 같은 화면 — 숨긴 updated_at 의 id 가 겹치지 않게
+        super().__init__(*args, **kwargs)
+        self.fields["segment_ids"].choices = [(str(g.segment_id), g.name) for g in segments]
 
 
 class CreativeEditForm(forms.Form):

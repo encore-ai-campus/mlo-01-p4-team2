@@ -18,6 +18,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.postgres",  # ArrayField(결정의 대상 그룹 스냅샷 uuid[], TG-S3). 연결마다의 형 등록 조회는 프로세스당 한 번(lru_cache)이라 결정 경로 질의 수에 들지 않는다
     "axes",
     "foundation.apps.FoundationConfig",
     "assets.apps.AssetsConfig",

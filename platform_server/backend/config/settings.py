@@ -61,14 +61,20 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = []  # Presentation data only; HTML belongs to frontend.
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
-# Redis 주소가 있으면 여러 프로세스가 채널 계층·공유 상태를 Redis 로 나눈다(계획 M2·M3).
-# 없으면 지금처럼 한 프로세스의 메모리로 돈다(로컬 개발·시험·되돌리기).
+# 기존 주소는 역할별 주소가 비어 있을 때 함께 사용한다.
 CAMPUS_REDIS_URL = os.environ.get("CAMPUS_REDIS_URL", "").strip()
-if CAMPUS_REDIS_URL:
-    # 방송 한 번이 PUBLISH 한 번이다(기본 계층은 방송마다 Redis 를 네 번 오간다). 비교는 loadtest/settings_redis_core.py
-    CHANNEL_LAYERS = {"default": {"BACKEND": "channels_redis.pubsub.RedisPubSubChannelLayer", "CONFIG": {"hosts": [CAMPUS_REDIS_URL]}}}
-else:
-    CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
+CAMPUS_MOVEMENT_REDIS_URL = os.environ.get("CAMPUS_MOVEMENT_REDIS_URL", "").strip() or CAMPUS_REDIS_URL
+CAMPUS_SERVICE_REDIS_URL = os.environ.get("CAMPUS_SERVICE_REDIS_URL", "").strip() or CAMPUS_REDIS_URL
+if bool(CAMPUS_MOVEMENT_REDIS_URL) != bool(CAMPUS_SERVICE_REDIS_URL):
+    raise ValueError("Configure both CAMPUS_MOVEMENT_REDIS_URL and CAMPUS_SERVICE_REDIS_URL, or use CAMPUS_REDIS_URL.")
+CHANNEL_LAYERS = {"default": (
+    {"BACKEND": "channels_redis.pubsub.RedisPubSubChannelLayer", "CONFIG": {"hosts": [CAMPUS_MOVEMENT_REDIS_URL]}}
+    if CAMPUS_MOVEMENT_REDIS_URL else {"BACKEND": "channels.layers.InMemoryChannelLayer"}
+)}
+# 같은 주소이면 하나의 계층을 재사용해 메모리 개발과 기존 단일 Redis 동작을 유지한다.
+if CAMPUS_SERVICE_REDIS_URL != CAMPUS_MOVEMENT_REDIS_URL:
+    CHANNEL_LAYERS["service"] = {"BACKEND": "channels_redis.pubsub.RedisPubSubChannelLayer",
+                                 "CONFIG": {"hosts": [CAMPUS_SERVICE_REDIS_URL], "prefix": "campus.service"}}
 
 DATABASE_ENGINE = os.environ.get("DATABASE_ENGINE", "sqlite").strip().lower()
 MYSQL_POOL_SIZE = int(os.environ.get("MYSQL_POOL_SIZE", "0"))

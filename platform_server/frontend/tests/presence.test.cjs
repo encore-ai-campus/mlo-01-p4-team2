@@ -5,8 +5,9 @@ const assert = require('node:assert/strict');
 
 function app({authenticated = true, secure = false, floors, restore = false, session} = {}) {
   const elements = new Map(), sockets = [], timers = new Map(), intervals = new Map(), listeners = new Map();
-  let clock = 0, nextTimer = 0, redirected = null, expired = 0;
+  let clock = 0, nextTimer = 0, redirected = null, expired = 0, logoutPosts = 0;
   const chats = [], chatErrors = [], connectionChanges = [], restores = [], controlErrors = [], jumps = [], pokes = [];
+  const logoutChanges = [];
   const events = [];
   function domElement() {
     return {
@@ -22,6 +23,7 @@ function app({authenticated = true, secure = false, floors, restore = false, ses
     if (!elements.has(id)) elements.set(id, {
       ...domElement(),
       addEventListener(name, callback) {listeners.set(id + ':' + name, callback);},
+      submit() {if(id==='campusLogoutForm')logoutPosts++;},
     });
     return elements.get(id);
   }
@@ -49,7 +51,7 @@ function app({authenticated = true, secure = false, floors, restore = false, ses
   const presence = context.window.CampusPresence.create({player, width: 1632, height: 820, floors, onAuthExpired() {expired++;},
     onRestore(position) {restores.push(position);if(restore)Object.assign(player,position);},
     onChat(message) {chats.push(message);}, onChatError(message) {chatErrors.push(message);}, onConnectionChange(value) {connectionChanges.push(value);},
-    onControlError(message) {controlErrors.push(message);}, onJump(message) {jumps.push(message);}, onPoke(message) {pokes.push(message);}});
+    onControlError(message) {controlErrors.push(message);}, onLogoutPending(value) {logoutChanges.push(value);}, onJump(message) {jumps.push(message);}, onPoke(message) {pokes.push(message);}});
   const peer = (changes = {}) => ({id: 'peer', nickname: '조원 이름', avatar: 'female-2', x: 1200, y: 437,
     dir: 'down', color: '#4e9b91', moving: false, ...changes});
   const movement = () => sockets.findLast(socket=>new URL(socket.url).pathname==='/ws/movement/');
@@ -58,7 +60,9 @@ function app({authenticated = true, secure = false, floors, restore = false, ses
     socket.receive({type: 'welcome', selfId, chatToken:token, players: [peer({id: selfId, nickname: '내 이름'}), peer()]});
     if(readyChat)chat().receive({type:'chat_ready'});
   }
-  return {presence, player, sockets, timers, intervals, listeners, element, peer, welcome, movement, chat, events, chats, chatErrors, connectionChanges, restores, controlErrors, jumps, pokes,
+  return {presence, player, sockets, timers, intervals, listeners, element, peer, welcome, movement, chat, events, chats, chatErrors, connectionChanges, restores, controlErrors, jumps, pokes, logoutChanges,
+    submitLogout() {let prevented=false;const result=listeners.get('campusLogoutForm:submit')({preventDefault(){prevented=true;}});assert.equal(prevented,true);return result;},
+    get logoutPosts() {return logoutPosts;},
     tick(t, dt = .016) {clock = t; presence.tick(t, dt);},
     get redirected() {return redirected;}, get expired() {return expired;}};
 }
@@ -159,6 +163,38 @@ test('control results match request IDs and disconnect rejects pending actions',
  const f=app({floors});f.welcome();const result=f.presence.command('open_booth',{objectId:'roof-booth-3'});const packet=f.sockets[0].sent.at(-1);
  f.sockets[0].receive({type:'control_result',requestId:packet.requestId,result:{type:'booth_open'}});assert.equal((await result).type,'booth_open');
  const pending=f.presence.command('interact');f.presence.close();await assert.rejects(pending,/연결/);assert.equal(f.timers.size,0);
+});
+test('logout waits for saved acknowledgement and sends the HTTP form once',async()=>{
+ const f=app({floors});f.welcome();f.presence.setInput(['w']);
+ const submitted=f.submitLogout(),packet=f.movement().sent.at(-1);
+ assert.equal(packet.action,'prepare_logout');assert.equal(f.logoutPosts,0);assert.equal(f.presence.connected,true);
+ assert.deepEqual(plain(f.presence.inputKeys),[]);assert.deepEqual(f.logoutChanges,[true]);
+ await f.submitLogout();assert.equal(f.movement().sent.filter(message=>message.action==='prepare_logout').length,1);
+ f.movement().receive({type:'control_result',requestId:packet.requestId,result:{saved:true}});
+ await submitted;assert.equal(f.logoutPosts,1);assert.equal(f.presence.connected,false);
+ await f.submitLogout();assert.equal(f.logoutPosts,1);
+});
+test('logout errors and missing save confirmation keep the session open for retry',async()=>{
+ for(const response of [{error:'위치 저장에 실패했어요.'},{result:{saved:false}}]){
+  const f=app({floors});f.welcome();const submitted=f.submitLogout(),packet=f.movement().sent.at(-1);
+  f.movement().receive({type:'control_result',requestId:packet.requestId,...response});await submitted;
+  assert.equal(f.logoutPosts,0);assert.equal(f.presence.connected,true);assert.deepEqual(f.logoutChanges,[true,false]);assert.equal(f.controlErrors.length,1);
+  const retry=f.submitLogout(),next=f.movement().sent.at(-1);
+  f.movement().receive({type:'control_result',requestId:next.requestId,result:{saved:true}});await retry;assert.equal(f.logoutPosts,1);
+ }
+});
+test('logout timeout ignores a late acknowledgement and permits a new request',async()=>{
+ const f=app({floors});f.welcome();const submitted=f.submitLogout(),packet=f.movement().sent.at(-1);
+ const [id,timer]=[...f.timers].find(([,timer])=>timer.delay===10000);f.timers.delete(id);timer.callback();await submitted;
+ assert.equal(f.logoutPosts,0);assert.match(f.controlErrors[0],/다시 시도/);assert.deepEqual(f.logoutChanges,[true,false]);
+ const retry=f.submitLogout(),next=f.movement().sent.at(-1);
+ f.movement().receive({type:'control_result',requestId:packet.requestId,result:{saved:true}});assert.equal(f.logoutPosts,0);
+ f.movement().receive({type:'control_result',requestId:next.requestId,result:{saved:true}});await retry;assert.equal(f.logoutPosts,1);
+});
+test('logout without a movement connection sends no HTTP and can retry after connection',async()=>{
+ const f=app({floors});await f.submitLogout();assert.equal(f.logoutPosts,0);assert.match(f.controlErrors[0],/연결/);
+ f.welcome();const retry=f.submitLogout(),packet=f.movement().sent.at(-1);
+ f.movement().receive({type:'control_result',requestId:packet.requestId,result:{saved:true}});await retry;assert.equal(f.logoutPosts,1);
 });
 test('unexpected disconnection reconnects once and expired authentication cannot retry',()=>{
  const f=app({floors});f.welcome();f.sockets[0].close(1006);assert.equal(f.timers.size,1);[...f.timers.values()][0].callback();assert.equal(f.sockets.length,3);f.presence.close();

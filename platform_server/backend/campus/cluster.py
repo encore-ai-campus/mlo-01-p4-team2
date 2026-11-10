@@ -1,6 +1,6 @@
 """여러 프로세스가 캠퍼스 한 곳을 나눠 맡을 때 서로의 사람을 알리는 흐름(계획 docs/metaverse-multiprocess-plan.md M3).
 
-Redis 주소(settings.CAMPUS_REDIS_URL)가 없으면 아무 일도 하지 않는다: 한 프로세스가 모든 사람을 가진다.
+이동 Redis 주소가 없으면 아무 일도 하지 않는다: 한 프로세스가 모든 사람을 가진다.
 
 프로세스마다 채널 계층(campus.cluster 그룹)에 '프로세스 채널' 하나를 두고 서로 알린다.
 - 입장·퇴장: 생기는 즉시. 받은 프로세스는 자기 소켓에 join·leave 를 보낸다(welcome 과 join 사이에 빈틈이 없게).
@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 def enabled():
-    return bool(getattr(settings, "CAMPUS_REDIS_URL", ""))
+    return bool(settings.CAMPUS_MOVEMENT_REDIS_URL)
 
 
 def session_hash(key):
@@ -183,7 +183,7 @@ class Cluster:
         try:
             if self.async_redis is None:
                 from redis import asyncio as aioredis
-                self.async_redis = aioredis.Redis.from_url(settings.CAMPUS_REDIS_URL)
+                self.async_redis = aioredis.Redis.from_url(settings.CAMPUS_MOVEMENT_REDIS_URL)
             pipe = self.async_redis.pipeline(transaction=False)
             for key, user_id, position, observed_at in rows:
                 pipe.set(position_key(key), json.dumps({"user": str(user_id), "position": position, "observedAt": observed_at.isoformat()}),
@@ -208,7 +208,7 @@ def stored_position(session_key, user_id):
     try:
         if _sync_redis is None:
             import redis
-            _sync_redis = redis.Redis.from_url(settings.CAMPUS_REDIS_URL, socket_timeout=1)
+            _sync_redis = redis.Redis.from_url(settings.CAMPUS_MOVEMENT_REDIS_URL, socket_timeout=1)
         raw = _sync_redis.get(position_key(session_key))
     except Exception:  # noqa: BLE001 — Redis 가 안 되면 DB 의 5초 체크포인트로 갈음한다
         logger.warning("Could not read the live campus position from Redis", exc_info=True)

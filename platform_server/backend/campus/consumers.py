@@ -187,6 +187,7 @@ def note_slow_db(what, started):
 
 
 class CampusConsumer(AsyncWebsocketConsumer):
+    logout_prepared = False
     session_check_interval = 10
     idle_timeout = 60
     position_interval = 5
@@ -197,6 +198,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         self.player_id = None
+        self.logout_prepared = False
         self.guard_task = None
         self.motion_task = None
         self.controller = None
@@ -371,6 +373,11 @@ class CampusConsumer(AsyncWebsocketConsumer):
             return
         if not isinstance(data, dict):
             return
+        if self.logout_prepared and data.get("type") in {"input", "move"}:
+            return
+        if self.server_control and data.get("type") == "control" and data.get("action") == "prepare_logout":
+            await self.receive_control(data)
+            return
         if timezone.now().timestamp() * 1000 >= self.policy_status.get("expiresAt", 0):
             if await self.current_identity() is None:
                 await self.session_expired({"reason": self.policy_status.get("reason", "signed_out")})
@@ -532,7 +539,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
                 seconds = now - previous
                 previous = now
                 async with self.control_lock:
-                    if self.player_id not in room.players:
+                    if self.player_id not in room.players or self.logout_prepared:
                         return
                     events = self.controller.tick(seconds, now)
                     moved = self.pose_changed()
@@ -559,14 +566,22 @@ class CampusConsumer(AsyncWebsocketConsumer):
         arguments = data.get("data", {})
         if not isinstance(arguments, dict):
             return
+        if self.logout_prepared and action != "prepare_logout":
+            await self.send_packet({"type": "control_result", "requestId": request_id,
+                                    "error": "로그아웃 처리 중입니다."})
+            return
         # 점프(꾸밈 동작)는 조작마다 DB 를 보지 않는다(계획 M8): 소켓 DB 스레드는 하나라 포화되면 그 사람의 다음 메시지가 모두 밀렸다.
         # 만료 시각 확인(메시지마다)·10초 세션 확인·로그아웃 알림이 지킨다. 상태를 바꾸는 조작은 그대로 확인한다
-        if action != "jump" and await self.current_identity() is None:
-            await self.session_expired({"reason": self.policy_status.get("reason", "signed_out")})
-            return
-        self.last_seen = time.monotonic()
-        async with self.control_lock:
-            try:
+        try:
+            if action != "jump" and await self.current_identity() is None:
+                await self.session_expired({"reason": self.policy_status.get("reason", "signed_out")})
+                return
+            self.last_seen = time.monotonic()
+            async with self.control_lock:
+                if action == "prepare_logout":
+                    result = await self.prepare_logout()
+                    await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
+                    return
                 if action == "jump":
                     result = await self.receive_jump(arguments)
                     await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
@@ -588,8 +603,42 @@ class CampusConsumer(AsyncWebsocketConsumer):
                 await self.send_control_state()
                 await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
                 await self.touch_activity()
-            except ControlError as error:
-                await self.send_packet({"type": "control_result", "requestId": request_id, "error": str(error)})
+        except ControlError as error:
+            await self.send_packet({"type": "control_result", "requestId": request_id, "error": str(error)})
+        except DatabaseError:
+            if action != "prepare_logout":
+                raise
+            logging.getLogger(__name__).exception("Could not save the final logout position")
+            await self.send_packet({"type": "control_result", "requestId": request_id,
+                                    "error": "마지막 위치를 저장하지 못했어요. 다시 시도해 주세요."})
+
+    async def prepare_logout(self):
+        if self.logout_prepared:
+            return {"saved": True}
+        self.controller.input([])
+        self.controller.route.clear()
+        self.controller.pose["moving"] = False
+        self.poke_requested = False
+        await self.stop_poke()
+        saving = getattr(self, "saving", None)
+        if saving is not None:
+            await saving
+        state = {**self.state, **self.controller.pose, "moving": False}
+        observed_at = timezone.now()
+        transfer = self.pending_floor_transfer
+        self.movement_event_due_at = await socket_db.run(
+            self.store_position_now, state, observed_at, transfer[0] if transfer else None,
+            require_session=True)
+        self.state.update(state)
+        self.position_changed_at = observed_at
+        self.position_dirty = False
+        self.pending_floor_transfer = None
+        self.logout_prepared = True
+        session_registry.update(self.player_id, self.state, observed_at)
+        async with room.lock:
+            room.players[self.player_id] = self.state.copy()
+            room.pending_moves[self.player_id] = self.state.copy()
+        return {"saved": True}
 
     async def receive_jump(self, arguments):
         expected = self.current_poke_scope()
@@ -793,17 +842,21 @@ class CampusConsumer(AsyncWebsocketConsumer):
     async def store_position(self, position, observed_at, transfer_from=None):
         return await socket_db.run(self.store_position_now, position, observed_at, transfer_from)
 
-    def store_position_now(self, position, observed_at, transfer_from=None):
+    def store_position_now(self, position, observed_at, transfer_from=None, *, require_session=False):
         user = self.session_user()
+        if require_session and user is None:
+            raise ControlError("로그인 상태를 확인한 뒤 다시 시도해 주세요.")
         if user is not None:
             if position is None:
                 flush_movement_event(user)
             elif transfer_from:
-                record_floor_transfer(
+                saved = record_floor_transfer(
                     user, self.platform_session_uuid, transfer_from, position["floor"], position, observed_at
                 )
             else:
-                save_position(user, position, observed_at, session_uuid=self.platform_session_uuid)
+                saved = save_position(user, position, observed_at, session_uuid=self.platform_session_uuid)
+            if require_session and not saved:
+                raise ControlError("마지막 위치를 저장하지 못했어요. 다시 시도해 주세요.")
             return movement_event_due_at(user)
 
     async def checkpoint(self, force=False, wait=True):

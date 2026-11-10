@@ -3,7 +3,6 @@ import logging
 
 from django.contrib.auth import login
 from django.conf import settings
-from campus import session_registry
 from accounts.session_policy import notify_expiry
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
@@ -28,16 +27,9 @@ from eventing.events import SESSION_KEY, end_platform_session
 
 class CampusLogoutView(LogoutView):
     def post(self, request, *args, **kwargs):
-        # Same CSRF-protected POST saves the final frame before deleting the session.
+        # The movement socket saves and acknowledges its final position before this POST.
         legacy = getattr(settings, "CAMPUS_TEST_LEGACY_MOVEMENT", False)
         key = request.session.session_key
-        if not legacy and request.user.is_authenticated:
-            snapshot = session_registry.latest(key, request.user.pk)
-            if snapshot:
-                try:
-                    save_position(request.user, *snapshot, session_uuid=request.session.get(SESSION_KEY))
-                except DatabaseError:
-                    logging.getLogger(__name__).exception("Could not save server-owned logout position")
         raw = request.POST.get("last_position", "") if legacy else ""
         if request.user.is_authenticated and 0 < len(raw) <= 1024:
             try:

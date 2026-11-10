@@ -23,7 +23,7 @@
   const lunchWheel=window.CampusLunchWheel?.create();
   let menuRequest=null,menuVersion=0;
   let directMessages=null;
-  const isDialogOpen=(includeClassroom=true,includeTyping=true)=>directMessages?.blocking||(includeClassroom&&classroom.blocking)||window.CampusLearning?.blocking||window.CampusGuide?.blocking||window.CampusSession?.ending||floorTransition.blocking||$('lunchDialog').open||dialog.open||boardDialog.open||exitDialog.open||transferDialog.open||$('settingsDialog').open||(includeTyping&&social.isTyping)||boothUI.blocking;
+  const isDialogOpen=(includeClassroom=true,includeTyping=true)=>logoutPending||directMessages?.blocking||(includeClassroom&&classroom.blocking)||window.CampusLearning?.blocking||window.CampusGuide?.blocking||window.CampusSession?.ending||floorTransition.blocking||$('lunchDialog').open||dialog.open||boardDialog.open||exitDialog.open||transferDialog.open||$('settingsDialog').open||(includeTyping&&social.isTyping)||boothUI.blocking;
   const renderers=new Map();
   const displayRefresh=new Map();
   let renderer=window.CampusIsometric.create({data:D}), P=renderer.projection, scene=renderer.scene;
@@ -60,7 +60,7 @@
     onJump:()=>jump.trigger(),
     onExit(){keys.clear();focusPlayer();canvas.focus({preventScroll:true});}
   })||{blocking:false,applyState(){},tick(){}};
-  const presence=window.CampusPresence.create({player,width:D.width,height:D.height,floors:worlds,onRestore:position=>restorePosition(position),onState:state=>applyControlState(state),onControlEvent:event=>applyControlEvent(event),onPoke:event=>poke.receive(event),onJump:event=>jump.receive(event),onAuthExpired(){keys.clear();player.moving=false;},onChat:message=>social.receive(message),onChatError:message=>social.reportError(message),onConnectionChange:value=>social.setConnected(value),onControlError:message=>toast(message)});
+  const presence=window.CampusPresence.create({player,width:D.width,height:D.height,floors:worlds,onRestore:position=>restorePosition(position),onState:state=>applyControlState(state),onControlEvent:event=>applyControlEvent(event),onPoke:event=>poke.receive(event),onJump:event=>jump.receive(event),onAuthExpired(){keys.clear();player.moving=false;},onChat:message=>social.receive(message),onChatError:message=>social.reportError(message),onConnectionChange:value=>social.setConnected(value),onControlError:message=>toast(message),onLogoutPending(pending){logoutPending=pending;$('exitYes').disabled=$('exitNo').disabled=pending;keys.clear();player.moving=false;}});
   const poke=window.CampusPoke.create({getPlayer:()=>player,getPresence:()=>presence,getClassroom:()=>classroom,getInput:()=>classroom.blocking?classroom.inputKeys:[...keys],isBlocked:()=>isDialogOpen(false),notify:toast});
   const jump=window.CampusJump.create({getPlayer:()=>player,getPresence:()=>presence,getClassroom:()=>classroom,isBlocked:()=>isDialogOpen(false),notify:toast});
   directMessages=window.CampusMessages.create({config:JSON.parse($('campusViewConfig')?.textContent||'{}').privateMessages||{},
@@ -223,9 +223,7 @@
   }
   function confirmExit(){
     if(!exitDialog.open||!logoutForm||logoutPending)return;
-    logoutPending=true;$('exitYes').disabled=true;$('exitNo').disabled=true;
-    keys.clear();player.moving=false;
-    // Submit the existing POST form with Django's CSRF token and session cookie.
+    // The shared submit handler saves the server position before the HTTP logout.
     logoutForm.requestSubmit();
   }
   function showDetail(item,{keyboard=false}={}){

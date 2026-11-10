@@ -7,6 +7,7 @@ DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memor
 INSTALLED_APPS = [app for app in INSTALLED_APPS if app != "daphne"]
 CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 CAMPUS_REDIS_URL = ""
+CAMPUS_MOVEMENT_REDIS_URL = CAMPUS_SERVICE_REDIS_URL = ""
 KAFKA_BOOTSTRAP_SERVERS = ""
 CAMPUS_SESSION_CLEANUP_ENABLED = False
 CAMPUS_OUTBOX_CLEANUP_STATE = Path(tempfile.gettempdir()) / "platform-outbox-test-cleanup.json"

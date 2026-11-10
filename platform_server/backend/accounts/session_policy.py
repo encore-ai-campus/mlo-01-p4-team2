@@ -49,10 +49,21 @@ def invalid_status(reason="signed_out"):
 
 
 def notify_expiry(key, reason):
-    layer = get_channel_layer()
-    if layer:
-        async_to_sync(layer.group_send)(session_registry.session_group(key),
-                                       {"type": "session.expired", "reason": reason})
+    aliases = ("default", "service") if "service" in settings.CHANNEL_LAYERS else ("default",)
+    first_error = None
+    for alias in aliases:
+        try:
+            layer = get_channel_layer(alias)
+            if layer:
+                async_to_sync(layer.group_send)(session_registry.session_group(key),
+                                               {"type": "session.expired", "reason": reason})
+        except Exception as error:
+            # 한쪽 Redis가 실패해도 다른 역할의 연결에 종료 알림을 시도한다.
+            logger.warning("Could not notify session expiry on %s", alias, exc_info=True)
+            if first_error is None:
+                first_error = error
+    if first_error is not None:
+        raise first_error
 
 
 def expire_record(record, data, reason, *, now=None, notify=True):

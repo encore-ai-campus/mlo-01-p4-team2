@@ -89,7 +89,7 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
   MONITOR_PG_NODES=<LAP1_IP>:5437,<LAP2_IP>:5437,<LAP3_IP>:5437 MONITOR_PG_USER=pipeline_monitor MONITOR_PG_PASSWORD_FILE=… \
   MONITOR_CONNECT_REST=http://<LAP1_IP>:8088,http://<LAP2_IP>:8088,http://<LAP3_IP>:8088 \
   MONITOR_KAFKA=<LAP1_IP>:9097,<LAP2_IP>:9097,<LAP3_IP>:9097 MONITOR_KAFKA_BIN=… MONITOR_JAVA_HOME=… \
-  MONITOR_BRONZE=none \
+  MONITOR_BRONZE=none MONITOR_APP_URL=none MONITOR_LAN=none \
   MONITOR_OUTBOX="ads|ads|public.events_outbox,metaverse|<메타버스 DB>|public.eventing_eventoutbox" \
   <python> pipeline/monitor/check.py; echo "rc=$?"
 ```
@@ -99,6 +99,7 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
 - `MONITOR_CONNECT_REST`: 쉼표 목록이다. 회차마다 앞에서부터 처음 응답한 곳을 쓴다(R7 재시작 요청도 그곳). 앞 주소가 응답하지 않았으면 M3 `connect_rest` ok 줄에 그 주소만 남는다. 경보는 따로 낸다: 회차마다 목록의 모든 주소에 `GET /`(5초)를 보내, 응답하지 않는 주소마다 `connect_rest:<주소>` alert(Connect Worker 프로세스만 멈춘 것도 — 그 Task는 남은 Worker로 옮겨져 커넥터 줄은 RUNNING일 수 있다). 셋 모두 응답하지 않으면 그 셋의 alert와 `M3:run` error다.
 - `MONITOR_BRONZE=none`: 운영 Bronze(k3s·S3)가 아직 없다. M5는 `bronze` `unsupported` 한 줄이고, S3 세 변수(`S3_ENDPOINT`·`S3_ACCESS_KEY_FILE`·`S3_SECRET_KEY_FILE`)는 필요 없다. Bronze가 생기면 `MONITOR_BRONZE` 목록과 S3 세 변수를 넣는다.
 - `MONITOR_DISK=none`: 관리 장치에는 볼 디스크가 없다(D1은 `unsupported` 한 줄). 노트북 디스크는 ①로 본다.
+- `MONITOR_APP_URL=none`·`MONITOR_LAN=none`(MON-4): M9(앱 → DB 끝에서 끝)·M10(.204 LAN 닿음)은 감시 서버가 1분마다 본다. 관리 장치는 EC2 nginx의 `/health/db` 허용 출발지가 아니다. 그래서 손 점검에서는 끈다(각 `unsupported` 한 줄).
 - `MONITOR_OUTBOX`(D2): ②의 outbox 크기를 같은 감시 계정(`MONITOR_PG_USER`)·같은 노드로 함께 본다 — 그 계정에 두 DB의 CONNECT와 `public` 스키마 USAGE(둘 다 기본은 PUBLIC에 있다)가 있어야 한다. 표 권한은 필요 없다(`pg_total_relation_size`·`pg_class`만 읽는다). USAGE가 없으면 표 이름을 풀지 못해 D2가 error(InsufficientPrivilege)다. 5 GiB를 넘으면 "P1-6 정리를 할 때" 경보다.
 - `MONITOR_GAP_S`·`MONITOR_CODE_COMMIT`은 두지 않는다(하루 한 번 손 실행 — 공백 경보가 날마다 울리지 않게, 작업 저장소에서 돎).
 - `MONITOR_KAFKA_BIN`·`MONITOR_JAVA_HOME`은 꼭 준다.
@@ -133,6 +134,21 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
   - 시계 차이: 그 장치와 찾은 primary의 차이(노드 조회 순간). primary를 모르면 `clock_skew` error다.
   - 전원(배터리·잠듦): `MONITOR_S7_POWER=0`이라 `unsupported`(끔)다. 관리 장치의 전원은 파이프라인과 관계없다.
   - **운영 노트북 3대의 잠자기는 이 점검의 S7 밖이다.** Windows·Linux용 S7이 없다(계획 16 §3.3). 잠든 노트북은 그 회차에 M2 `synced:<노드>:<슬롯>` "노드 접속 실패"(alert)로, primary면 `M1·M2:run` error로 바로 드러난다(P2-4b 판단). 막는 것은 P8-2 잠자기 금지 설정이다. 2026-11-05 사고(아래 끝 절)가 그 종류다.
+
+#### M9·M10 경보가 오면(감시 서버, MON-4)
+
+- M9 `app_db`는 광고 웹이 DB까지 닿는지를 공개 주소로 본다. 1회 실패는 `watch`(알림 없음)이고, 2회 연속이면 경보다. 상세 앞머리가 끊긴 곳이다.
+  - `HTTP 503 — 백엔드까지 닿음`: .204 → HAProxy → DB가 끊겼거나, 쓰기 입구가 대기 서버다. 같은 알림의 M1·M2(노드 직접)가 정상이면 .204 쪽 길(HAProxy, .204의 LAN 연결)을 본다. .204 journal에 `DB 경로 확인 실패` 줄이 까닭(예외 이름·SQLSTATE)을 남긴다.
+  - `EC2 nginx 까지 닿음 — … 응답 없음`: 프론트가 백엔드를 기다리는 중이다(.204 꺼짐·잠듦·WSL·wg-ad 터널). M10도 실패면 .204 자체다.
+  - `HTTP 502`: EC2 안 프론트 프로세스, 또는 프론트 → 백엔드.
+  - `HTTP 403`: EC2 nginx `location = /health/db`의 allow와 감시 서버 출발 공인 IP가 다르다. 앱 장애가 아니다.
+  - `TLS 실패`: EC2 인증서 갱신을 본다. `EC2 에 닿지 못함`: 인터넷·EC2·nginx.
+- M10 `lan:<이름>`은 .204가 LAN에서 답하는지 본다(portproxy → WSL exporter의 HTTP 응답). 실패면 .204 전원·유선·Windows·WSL을 본다. "A 정상"이 붙으면 앱 길은 살아 있고 portproxy·exporter(인프라) 쪽이다.
+- 유선은 붙은 채 앱·DB 길만 깨지면 M10은 정상이고 M9만 울린다.
+- 운영 설정(자리 표시만 — 실제 값은 저장소에 두지 않는다):
+  - EC2 nginx 사이트의 server 블록 안에 `location = /health/db { allow <감시 서버 출발 공인 IP>; deny all; proxy_pass http://127.0.0.1:8001; }`(`proxy_set_header`는 server 수준에만).
+  - 감시 서버 `monitor.env`에 `MONITOR_APP_URL`·`MONITOR_LAN`(값 모양은 `monitor/README.md` 운영 절).
+  - nginx location을 지우면 M9가 403이 된다. 그때는 `MONITOR_APP_URL=none` 한 줄로 M9만 끈다.
 
 #### M3 FAILED가 보이면 — 자동 3번(check.py) 뒤에는 사용자 확인 뒤에만
 

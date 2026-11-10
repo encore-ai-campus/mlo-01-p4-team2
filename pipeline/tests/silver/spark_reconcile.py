@@ -353,7 +353,10 @@ class ExitCode(unittest.TestCase):  # D7 — 대사 불일치면 rc 3, match 면
                 self.assertEqual(silver_job.main(["--domain", "metaverse", "--generation", "1"], env), rc)
                 self.assertEqual((run.call_count, called.call_count), (1, 1))
                 self.assertEqual((run.call_args.kwargs["quarantine"], called.call_args.kwargs["quarantine"]), ([ghost], [ghost]))  # (SL-9) 같은 목록을 둘에
-                session.builder.appName.return_value.config.return_value.config.return_value.config.return_value.getOrCreate.return_value.stop.assert_called_once()
+                chain = session.builder.appName.return_value  # silver_job.session 의 .config 넷(Delta 둘·시간대·표 속성 기본값 — DEP3-VAC)
+                for _ in range(4):
+                    chain = chain.config.return_value
+                chain.getOrCreate.return_value.stop.assert_called_once()
         with mock.patch.object(silver_job, "SparkSession"), mock.patch.object(silver_job, "run", side_effect=RuntimeError("멈춤")), \
                 mock.patch.object(reconcile, "reconcile") as called, self.assertRaisesRegex(RuntimeError, "멈춤"):
             silver_job.main(["--domain", "metaverse", "--generation", "1"], env)

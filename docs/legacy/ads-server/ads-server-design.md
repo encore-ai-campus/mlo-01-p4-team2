@@ -89,6 +89,7 @@
 | `GET /decisions/{decision_id}/reactions/{reaction_id}` | 반응의 **처리 결과** 조회(`RECEIVED`/`ACCEPTED`/`REJECTED`) | 200 | 401, 404 |
 | `GET /health` | 상태 확인(인증 없음) | 200 | |
 | `GET /assets/{sha256}.{jpg\|png}` (루트 경로) | 소재 이미지(C3) | 200 / 304 | 404 |
+| `GET /health/db` (루트 경로) [MON-4, 2026-11-10] | **앱 → DB 경로 확인**(감시 M9 — 매체 계약 밖, 인증 없음). 앱의 연결(HAProxy 쓰기 입구)로 `select pg_is_in_recovery()` 한 번. 세션·사용자를 보지 않는다. 공개는 EC2 nginx가 감시 서버 출발 IP에만 연다 | 200 `{"status":"ok"}` | 503 `{"status":"unavailable"}`(연결 실패·DB 오류·쓰기 입구가 대기 서버 — 값·주소·예외 문구는 싣지 않고 로그 한 줄) |
 | `GET /c/{token}` (루트 경로) [v1.1, 2-8 구현] | **클릭 관측**: 결정 응답의 `ad.click_url`. 클릭을 반응으로 기록하고 결정에 저장된 `redirect_url`로 이동(인증·쿠키 없음) | **302** | 404(무효 토큰·없는 결정·광고 없는 결정) |
 
 **설계 선택**

@@ -12,17 +12,22 @@
   목록의 모든 Connect 주소에 GET /(응답 없으면 connect_rest:<주소> alert — Planner (나)), 웹훅 User-Agent(Discord 가 기본 UA 를 거절).
 - PostgreSQL: MONITOR_PG_NODES(host:port 목록)의 노드마다 물어 primary 를 스스로 찾는다. M1·M2 primary 쪽은 그 노드에서, synced 는 대기 서버에서.
   primary 가 정확히 하나가 아니면 M1·M2:run error(지난 값 유지 — 해소로 알리지 않음), S7 clock_skew 도 error.
+- M9·M10(MON-4, 계획 46): M9 = 앱 → DB 끝에서 끝(MONITOR_APP_URL — 공개 HTTPS /health/db, 200 {"status":"ok"} 만 성공, 실패는 503·502·403·응답 없음·TLS·
+  닿지 못함으로 나눔), M10 = .204 LAN 닿음(MONITOR_LAN — HTTP 응답이 오면 닿음). 둘 다 `none` 이면 unsupported. 2회 연속 실패면 alert, 1회는 watch(알리지 않음),
+  한 번 전달한 경보는 해소가 전달될 때까지 실패 동안 alert(리뷰 C2). 연속 수는 상태 파일의 streak.
 - R7(FAILED 커넥터·Task 자동 재시작 — 설계 01 R7, 사용자 결정 2026-11-06으로 다시 엶): MONITOR_R7=1 일 때만. 30분에 3번(앞 시도 뒤 최소 0·5·15분),
   다 쓰면 사람(`check.py --r7-clear <커넥터>` 로 기록을 비움). 같은 회차 M1 에서 그 커넥터의 슬롯이 없음·lost·unreserved 이거나 슬롯 상태를 모르면
   재시작하지 않는다(설계와 다른 점 — snapshot.mode=no_data 라 새 슬롯으로 조용히 이어 가는 빠짐을 막음). 주기 실행이 없으면 이 스크립트가 돌 때만 효과가 있다.
 비밀값(DB 비밀번호·RustFS 키·웹훅 주소)은 파일·환경 변수로만 받고 출력하지 않는다.
 """
+import http.client
 import json
 import math
 import os
 import re
 import shutil
 import socket
+import ssl
 import stat
 import subprocess
 import sys
@@ -93,7 +98,7 @@ class ConfigError(ValueError):
 # 필수 모드(MONITOR_REQUIRE_ALL=1)에서 없거나 비면 점검하지 않는 운영 변수 — 기본값이 모두 로컬 시험대를 가리켜, 하나만 빠져도 조용히 lab 을 보고 ok 를 내지 않게
 REQUIRED = ("MONITOR_PG_NODES", "MONITOR_PG_PASSWORD_FILE", "MONITOR_CONNECT_REST", "MONITOR_KAFKA", "MONITOR_KAFKA_BIN", "MONITOR_JAVA_HOME",
             "MONITOR_BRONZE", "S3_ENDPOINT", "S3_ACCESS_KEY_FILE", "S3_SECRET_KEY_FILE", "MONITOR_SLOTS", "MONITOR_STATE", "MONITOR_S7_POWER", "MONITOR_R7",
-            "MONITOR_DISK", "MONITOR_OUTBOX", "MONITOR_PG_USER")
+            "MONITOR_DISK", "MONITOR_OUTBOX", "MONITOR_PG_USER", "MONITOR_APP_URL", "MONITOR_LAN")
 S3_SETTINGS = ("S3_ENDPOINT", "S3_ACCESS_KEY_FILE", "S3_SECRET_KEY_FILE")  # MONITOR_BRONZE=none 이면 필수가 아니다(M5 를 보지 않음)
 # P2-4b 기본값(로컬 시험대). D1 은 이 장치의 경로만 본다 — 디스크가 없는 장치(관리 장치 ④·감시 서버)는 MONITOR_DISK=none(결정 B·리뷰 C2)
 DEFAULT_DISK = "pg|/opt/postgresql,reconcile_ads|~/Library/Caches/ads-pipeline/reconcile|du"
@@ -104,7 +109,7 @@ REFUSE_REPEAT_S = 3600  # 같은 rc 2 거부는 한 시간에 한 번만 다시 
 _ITEM_NAME = re.compile(r"[A-Za-z0-9_.-]+")
 _TABLE = re.compile(r"[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*")
 _COMMIT = re.compile(r"[0-9a-f]{40}")
-Extra = namedtuple("Extra", "disk outbox min_free max_bytes gap_s commit")
+Extra = namedtuple("Extra", "disk outbox min_free max_bytes gap_s commit app_url lan")
 # R7(설계 01 R7·:512, 결정 2026-11-06 Q1 (나)·Q4 (나)): 앞 시도 뒤 최소 대기 — 첫 시도는 바로, 둘째 5분, 셋째 15분(셋째는 첫 시도 뒤 20분, 30분 예산 안).
 # 세 번을 다 쓰면 사람 차례다 — 기록은 "FAILED 아님 + 마지막 시도가 30분보다 오래됨" 또는 사람(--r7-clear)만 비운다(깜빡여도 같은 3번 안에 든다)
 R7_WAITS_S = (0, 5 * 60, 15 * 60)
@@ -181,7 +186,8 @@ def extra_settings(env):
     """P2-4b 설정. 형식이 틀리면 ConfigError.
     - MONITOR_DISK: `이름|절대 경로[|du]` 목록(`~` 는 홈) 또는 `none`(이 장치에서는 디스크를 보지 않음 → D1 unsupported 한 줄).
     - MONITOR_OUTBOX: `이름|DB|스키마.표` 목록. MONITOR_DISK_MIN_FREE_PCT(0~100, 기본 20), MONITOR_OUTBOX_MAX_BYTES(기본 5 GiB),
-      MONITOR_GAP_S(0 = 끔, 기본), MONITOR_CODE_COMMIT(있으면 소문자 40자 — 빈 값·자리 표시 `__COMMIT__` 는 bad_config)."""
+      MONITOR_GAP_S(0 = 끔, 기본), MONITOR_CODE_COMMIT(있으면 소문자 40자 — 빈 값·자리 표시 `__COMMIT__` 는 bad_config).
+    - (MON-4) MONITOR_APP_URL: http(s) 주소 하나 또는 `none`(기본). MONITOR_LAN: `이름|http(s) 주소` 목록 또는 `none`(기본)."""
     disk = None
     if env.get("MONITOR_DISK", DEFAULT_DISK).strip() != "none":
         disk = []
@@ -198,9 +204,25 @@ def extra_settings(env):
     commit = env.get("MONITOR_CODE_COMMIT")
     if commit is not None and not _COMMIT.fullmatch(commit.strip()):
         raise ConfigError("MONITOR_CODE_COMMIT 는 커밋 40자(소문자 16진)다")
+    app_url = env.get("MONITOR_APP_URL", "none").strip()
+    app_url = None if app_url == "none" else _url("MONITOR_APP_URL", app_url)
+    lan = env.get("MONITOR_LAN", "none")
+    lan = None if lan.strip() == "none" else [(name, _url(f"MONITOR_LAN 의 {name} 항목", url)) for name, url in _entries("MONITOR_LAN", lan, (2,))]
     return Extra(disk, outbox, _number(env, "MONITOR_DISK_MIN_FREE_PCT", "20", 0, 100, float),
                  _number(env, "MONITOR_OUTBOX_MAX_BYTES", str(5 * 1024 ** 3), 1, 2 ** 63 - 1, int),
-                 _number(env, "MONITOR_GAP_S", "0", 0, 10 ** 9, int), None if commit is None else commit.strip())
+                 _number(env, "MONITOR_GAP_S", "0", 0, 10 ** 9, int), None if commit is None else commit.strip(), app_url, lan)
+
+
+def _url(name, url):
+    """http(s) 주소만(공백 없음, 호스트 있음, 포트를 적었으면 1~65535). 아니면 ConfigError — 값은 넣지 않는다."""
+    try:
+        parts = urllib.parse.urlsplit(url)
+        ok = parts.scheme in ("http", "https") and parts.hostname and not any(c.isspace() for c in url) and parts.port != 0
+    except ValueError:  # 대괄호가 짝이 없음·포트가 수가 아니거나 범위 밖
+        ok = False
+    if not ok:
+        raise ConfigError(f"{name} 는 http:// 또는 https:// 주소(또는 none)여야 한다")
+    return url
 
 
 def code_pin_problem(commit, root=ROOT):
@@ -705,6 +727,119 @@ def s7_gap(state, gap_s, now):
                                           "이 장치가 잠들었거나, 주기 실행이 멈췄거나, 점검을 거부(rc 2)한 사이 감시가 없었다")]
 
 
+APP_TIMEOUT_S = 10  # 소켓 동작마다(연결·TLS·응답 머리·몸 읽기 각각). 운영 프론트는 백엔드를 30초 기다리므로 .204 쪽이 조용히 없으면 이쪽이 먼저 끊는다(리뷰 C1)
+LAN_TIMEOUT_S = 3
+APP_OK, APP_DOWN = {"status": "ok"}, {"status": "unavailable"}  # 백엔드 /health/db 의 두 답(ads_server serving_api.views.health_db)
+
+
+def _get(url, timeout):
+    """GET 한 번 → (상태, 몸 앞 4 KiB). HTTP 응답이면 4xx·5xx 도 돌려준다. 응답이 없으면 예외 —
+    연결·TLS·보내기 단계는 URLError(urllib 이 감쌈), 응답 머리·몸 단계는 감싸지 않은 OSError(TimeoutError 등)·http.client.HTTPException."""
+    request = urllib.request.Request(url, headers={"User-Agent": WEBHOOK_USER_AGENT})  # 쿠키 없음
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as resp:
+            return resp.status, resp.read(4096)
+    except urllib.error.HTTPError as error:  # URLError 의 하위 형 — 응답은 왔다
+        with error:
+            return error.code, error.read(4096)
+
+
+def _json(body):
+    try:
+        return json.loads(body)
+    except ValueError:  # UnicodeDecodeError 포함
+        return None
+
+
+def app_problem(url):
+    """M9 한 번: None(성공) 또는 (실패 앞머리, 503-DB 인지). 앞머리가 끊긴 곳을 가른다(계획 46 §2.5 표)."""
+    try:
+        status, body = _get(url, APP_TIMEOUT_S)
+    except urllib.error.URLError as error:  # 연결·TLS·보내기 단계
+        if isinstance(error.reason, ssl.SSLError):  # 인증서 확인 실패(SSLCertVerificationError) 포함
+            return f"TLS 실패({type(error.reason).__name__}) — EC2 인증서(갱신 확인)", False
+        return f"EC2 에 닿지 못함({type(error.reason).__name__}) — 인터넷·EC2·nginx", False
+    except (OSError, http.client.HTTPException) as error:  # 응답 단계 — 연결은 됐다(리뷰 C1·K2)
+        return (f"EC2 nginx 까지 닿음 — {APP_TIMEOUT_S}초 안에 응답 없음·응답 끊김({type(error).__name__}). "
+                "프론트 → wg-ad → 백엔드 연결 대기(.204 쪽 꺼짐·잠듦·WSL·터널), 또는 백엔드 → DB 멈춤"), False
+    payload = _json(body)
+    if status == 200 and payload == APP_OK:
+        return None
+    if status == 503 and payload == APP_DOWN:  # 몸까지 맞아야 백엔드의 답이다(리뷰 K3)
+        return "HTTP 503 — 백엔드까지 닿음, 백엔드 → HAProxy → DB 실패(또는 쓰기 입구가 대기 서버)", True
+    if status == 502:
+        return "HTTP 502 — EC2 nginx → 프론트, 또는 프론트 → wg-ad → 백엔드 실패", False
+    if status == 403:
+        return "HTTP 403 — EC2 nginx allow 줄과 이 감시 서버의 출발 IP 가 다름(설정)", False
+    return f"HTTP {status}{'(몸이 다름)' if status in (200, 503) else ''} — 경로·앱 응답 이상(배포 판·nginx location 확인)", False
+
+
+def lan_problem(url):
+    """M10 한 번: None(HTTP 응답이 옴 — 상태 무관) 또는 실패한 예외 이름. portproxy 는 Windows 가 TCP 를 먼저 받으므로 연결만으로는 WSL 을 보지 못한다."""
+    try:
+        _get(url, LAN_TIMEOUT_S)
+    except urllib.error.URLError as error:
+        return type(error.reason).__name__
+    except (OSError, http.client.HTTPException) as error:  # 받은 뒤 끊음(RemoteDisconnected — WSL 쪽 없음)·응답 없음
+        return type(error).__name__
+    return None
+
+
+def _level(state, streak, key, failed):
+    """연속 수를 셈하고 수준을 정한다: 2회 연속이면 alert, 1회면 watch(알리지 않음) — 다만 전달된 수준(levels — 웹훅이 실패하지 않은 회차에만 바뀜)이
+    alert 이면 실패 동안 alert 로 둔다. 해소가 웹훅 실패로 못 간 뒤의 1회 실패가 alert 를 watch 로 덮어 해소를 영영 삼키지 않게(리뷰 C2)."""
+    streak[key] = state.get("streak", {}).get(key, 0) + 1 if failed else 0
+    if not failed:
+        return "ok"
+    return "alert" if streak[key] >= 2 or state.get("levels", {}).get(key) == "alert" else "watch"
+
+
+def _failed_detail(level, count, text):
+    head = "1회 실패 — 다음 회차도 실패하면 경보" if level == "watch" else f"연속 {count}회 실패"
+    return f"{head}: {text}"
+
+
+def m9_m10(state, app_url, lan):
+    """M9 앱 → DB 끝에서 끝, M10 .204 LAN 닿음(MON-4). 연속 수는 state["streak"](이번 회차 키만 남긴다 — 상태 파일과 함께 원자적으로 저장된다)."""
+    streak, out = {}, []
+    lan_failed = {}
+    if lan is None:
+        out.append(finding("M10", "lan", "unsupported", "MONITOR_LAN=none"))
+    else:
+        lan_failed = {name: lan_problem(url) for name, url in lan}
+    app = app_problem(app_url) if app_url is not None else None
+    if app_url is None:
+        out.append(finding("M9", "app_db", "unsupported", "MONITOR_APP_URL=none"))
+    else:
+        level = _level(state, streak, "app_db", app is not None)
+        if app is None:
+            out.append(finding("M9", "app_db", level, "200 — 앱 → DB 닿음"))
+        else:
+            text, db = app
+            if lan is None:
+                text += " — B 없음"
+            elif any(lan_failed.values()):
+                text += " — B 도 실패: .204 LAN 끊김(M10: 유선·전원·Windows·WSL)"
+            elif db:
+                text += " — B 정상: DB 노드는 M1·M2 를 볼 것. 둘 다 정상이면 .204 → DB 길(HAProxy, 또는 유선은 붙은 채 .204 의 LAN 나가는 길)"
+            else:
+                text += " — B 정상: 외부 길·EC2·앱 쪽"
+            out.append(finding("M9", "app_db", level, _failed_detail(level, streak["app_db"], text)))
+    for name, url in lan or ():
+        key, problem = f"lan:{name}", lan_failed[name]
+        level = _level(state, streak, key, problem is not None)
+        if problem is None:
+            out.append(finding("M10", key, level, "HTTP 응답 — .204 LAN 닿음"))
+            continue
+        port = urllib.parse.urlsplit(url).port or (443 if url.startswith("https") else 80)
+        text = f"HTTP 응답 없음({problem}) — .204 LAN 끊김(유선·전원·잠듦·Windows·WSL) 또는 portproxy {port}·exporter(인프라)"
+        if app_url is not None and app is None:
+            text += " — A 정상: 앱 길은 살아 있음. portproxy·exporter(인프라) 쪽"
+        out.append(finding("M10", key, level, _failed_detail(level, streak[key], text)))
+    state["streak"] = streak
+    return out
+
+
 def unimplemented():
     return [finding("M6", "hop_reconcile", "unimplemented", "창 대사 결과 — P1·P2-2 뒤"),
             finding("M7", "kafka_bronze_positions", "unimplemented", "Kafka ↔ Bronze 위치 대사 — P2 뒤"),
@@ -846,7 +981,8 @@ def main(env=os.environ, clock=time.time):
                      ("M3", lambda: m3(state, None if "M1" in failed_checks else slots_seen, r7)),  # 끝까지 돈 M1 의 슬롯 상태만(아니면 모두 모름)
                      ("M3", m3_reach),  # 따로 — 모든 Connect 주소가 응답하지 않아 m3 가 실패해도 주소마다 줄이 남는다
                      ("M4", m4), ("M5", m5), ("S7", lambda: s7(polled, power)), ("S7", lambda: s7_gap(state, extra.gap_s, started)),  # 공백은 따로(전원 줄이 실패해도 봄)
-                     ("D1", lambda: d1(extra.disk, extra.min_free)), ("D2", lambda: d2(extra.outbox, extra.max_bytes, polled))):
+                     ("D1", lambda: d1(extra.disk, extra.min_free)), ("D2", lambda: d2(extra.outbox, extra.max_bytes, polled)),
+                     ("M9·M10", lambda: m9_m10(state, extra.app_url, extra.lan))):
         try:
             findings += fn()
         except Exception as error:  # noqa: BLE001 — 점검 하나가 실패해도 나머지는 본다(실패 자체를 결과로)

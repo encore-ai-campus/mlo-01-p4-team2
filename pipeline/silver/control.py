@@ -185,6 +185,9 @@ _ENV = ("SILVER_LAKE_ROOT", "SILVER_BRONZE_TABLE", "SILVER_SOURCE_DB", "SILVER_S
         "SILVER_ACKNOWLEDGED", "SILVER_QUARANTINE", "SILVER_CODE_ROOT", "SILVER_MAX_FILES_PER_TRIGGER", "SILVER_MAX_BYTES_PER_TRIGGER")
 _BYTES = re.compile(r"[1-9][0-9]*[kmg]?")  # Delta maxBytesPerTrigger 표기(k·m·g = 1024 배수) — 소문자 단위 하나만 받는다
 S3_ENV = ("S3_ENDPOINT", "S3_REGION", "S3_ACCESS_KEY_FILE", "S3_SECRET_KEY_FILE")  # Bronze s3a_session 과 같은 이름(SL-3 다시 나누기 §5)
+# (DEP3-VAC 계획 45 V1 (가), 14 Q4) 잡 세션이 새로 만드는 Delta 표의 `delta.deletedFileRetentionDuration`. Delta 4.3.1 은 VACUUM 의 RETAIN(0 아님)을
+# 무시하고 이 표 속성으로 옛 판 파일을 지우며, 같은 속성이 옛 판 읽기(versionAsOf)의 한도다 — 둘 다 30일(로그 보존 기본 30일과 같음).
+DELETED_FILE_RETENTION = "interval 30 days"
 
 
 def _domain(domain):

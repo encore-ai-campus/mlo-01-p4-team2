@@ -9,6 +9,8 @@
 4. pipeline/silver 는 상대 import 를 쓰지 않는다(D5: `from pipeline.silver import contracts`).
 5. (계획 41 코드 Step ①) Gold 의 드라이버 쪽 판단(pipeline/gold/control.py)은 표준 라이브러리와 pipeline.* 만 쓴다 — Spark 없이 시험한다.
    pipeline/gold 도 상대 import 를 쓰지 않는다.
+6. (DEP3-VAC 계획 45 §3.6) 정리 잡의 드라이버 쪽 판단(pipeline/vacuum/control.py)은 표준 라이브러리와 pipeline.* 만 쓴다. pipeline/vacuum 은 상대 import 를
+   쓰지 않고, Silver·Gold 는 pipeline.vacuum 을 import 하지 않는다(정리 코드가 silver@·gold@ 판 값과 잡에 닿지 않게).
 
 실행: 저장소 뿌리에서 `python -m unittest discover pipeline/tests`(Spark 시험 spark_*.py 는 pipeline/tests/run_spark_tests.py 로).
 """
@@ -19,7 +21,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PIPELINE = ROOT / "pipeline"
-JOB_DIRS = ("silver", "bronze", "monitor", "common", "reconcile", "gold")
+JOB_DIRS = ("silver", "bronze", "monitor", "common", "reconcile", "gold", "vacuum")
 SILVER_STDLIB = ("strict.py", "control.py", "__init__.py")
 ADS_ROOTS = frozenset({"django", "ads_server"} | {p.name for p in (ROOT / "ads_server").iterdir() if (p / "__init__.py").is_file()})
 
@@ -52,6 +54,7 @@ class LayerRules(unittest.TestCase):
         self.assertIn(PIPELINE / "bronze" / "bronze_ads_outbox.py", files)  # 빈 검사가 아님
         self.assertIn(PIPELINE / "silver" / "framework.py", files)
         self.assertIn(PIPELINE / "gold" / "framework.py", files)
+        self.assertIn(PIPELINE / "vacuum" / "vacuum_job.py", files)
         self.assertEqual(violations(files, lambda name, level: name not in ADS_ROOTS), [])
 
     def test_common_is_stdlib_only(self):
@@ -76,6 +79,23 @@ class LayerRules(unittest.TestCase):
         files = py_files("gold")
         self.assertIn(PIPELINE / "gold" / "gold_job.py", files)
         self.assertEqual(violations(files, lambda name, level: level == 0), [])
+
+    def test_vacuum_control_is_stdlib_and_pipeline_only(self):
+        files = py_files("vacuum", "control.py")
+        self.assertEqual(len(files), 1)
+        self.assertEqual(violations(files, lambda name, level: level == 0 and (name in sys.stdlib_module_names or name == "pipeline")), [])
+
+    def test_vacuum_has_no_relative_imports_and_nobody_imports_it(self):
+        files = py_files("vacuum")
+        self.assertIn(PIPELINE / "vacuum" / "vacuum_job.py", files)
+        self.assertEqual(violations(files, lambda name, level: level == 0), [])
+        found = []
+        for path in py_files("silver") + py_files("gold"):
+            for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+                if isinstance(node, (ast.Import, ast.ImportFrom)):
+                    names = [getattr(node, "module", None) or ""] + [alias.name for alias in node.names]
+                    found += [f"{path.relative_to(ROOT)}: {name}" for name in names if "vacuum" in name]
+        self.assertEqual(found, [])
 
     def test_checker_sees_every_import_form(self):
         found = imports("import os.path\nfrom events import api\nfrom . import x\nfrom ..silver import y\ndef f():\n    import pyspark\n")

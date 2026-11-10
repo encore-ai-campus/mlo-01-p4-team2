@@ -1,13 +1,15 @@
-"""C1 엔드포인트(결정·반응·health). 뷰는 얇다: 인증·요청 제한(`media_endpoint`) → 본문 검증 → `records` 호출 → 계약 모양으로 변환.
+"""C1 엔드포인트(결정·반응·health)와 앱 → DB 경로 확인(`/health/db`). 뷰는 얇다: 인증·요청 제한(`media_endpoint`) → 본문 검증 → `records` 호출 → 계약 모양으로 변환.
 
 `slot_name` 은 표시용이라 결정에 저장하지 않고 응답을 만들 때 `masters` 에서 붙인다(DRD D-3).
 """
+import logging
+
 from django.contrib.auth.decorators import login_not_required
-from django.db import transaction
+from django.db import Error as DbError, connection, transaction
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_http_methods
 
-from foundation.api import errors, parse_json
+from foundation.api import db_cause_text, errors, parse_json
 from masters import api as masters
 from records import api as records
 
@@ -16,6 +18,7 @@ from .clicks import make_click_url
 from .requests import UUID_PATTERN, parse_decision_request, parse_reaction_request, path_uuid
 
 BASE = "/api/media/v1"
+logger = logging.getLogger(__name__)
 
 
 def _utc(moment, timespec="milliseconds"):
@@ -47,6 +50,27 @@ def _decision_body(decision):
 @require_GET
 def health(request):
     """살아 있는지만 답한다(인증 없음). 저장소를 건드리지 않고 내부 정보를 싣지 않는다."""
+    return JsonResponse({"status": "ok"})
+
+
+@login_not_required
+@require_GET
+def health_db(request):
+    """앱 → DB 경로 확인(감시 M9, MON-4 — 루트 경로 `/health/db`, 공개는 EC2 nginx 가 감시 서버 출발 IP 로만 연다).
+
+    앱이 실제 요청에 쓰는 연결(HAProxy 쓰기 입구, 설정 그대로)로 쿼리 한 번. 연결이 대기 서버에 닿았으면(장애 전환·HAProxy 재시작 직후 —
+    foundation/dberrors.py 읽기 전용 줄) 쓰기를 못 하므로 실패다. 세션·사용자를 보지 않는다(미들웨어도 접근할 때만 DB 를 읽는다).
+    200 {"status": "ok"} 또는 503 {"status": "unavailable"} — 값·주소·예외 문구는 싣지 않고, 까닭은 로그 한 줄로만 남긴다."""
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("select pg_is_in_recovery()")
+            standby = cursor.fetchone()[0]
+    except DbError as error:  # 연결 실패(OperationalError)·끊긴 연결(InterfaceError) 포함
+        logger.warning("DB 경로 확인 실패 %s %s", type(error).__name__, db_cause_text(error))
+        return JsonResponse({"status": "unavailable"}, status=503)
+    if standby:
+        logger.warning("DB 경로 확인 실패: 쓰기 입구가 대기 서버")
+        return JsonResponse({"status": "unavailable"}, status=503)
     return JsonResponse({"status": "ok"})
 
 

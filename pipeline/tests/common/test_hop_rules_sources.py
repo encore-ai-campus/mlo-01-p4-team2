@@ -137,15 +137,15 @@ def mv_envelope(name="POINT_C", *, op=None, table="eventing_eventoutbox", db=MV_
 
 
 def mv_row(offset, envelope, partition=0):
-    event_uuid = (envelope.get("after") or {}).get("event_uuid", "00000000-0000-4000-8000-000000000000")
-    key = json.dumps({"schema": {"type": "struct"}, "payload": {"event_uuid": event_uuid}})
+    outbox_uuid = (envelope.get("after") or {}).get("outbox_uuid", "00000000-0000-4000-8000-000000000000")
+    key = json.dumps({"schema": {"type": "struct"}, "payload": {"outbox_uuid": outbox_uuid}})
     return key, json.dumps(envelope), partition, offset
 
 
 def silver_hash(after):
     """Silver SL-4 의 실제 경로(`adapter_result` — Debezium 문자열 그대로 받음)가 내는 내용 해시(사유가 있으면 None)."""
     version = json.loads(after["payload_json"])["raw_manifest"]["schema_version"] if isinstance(after.get("payload_json"), str) else None
-    reason, sha = metaverse_rules.adapter_result(after.get("event_uuid"), after.get("event_type"), version, after.get("topic"), after.get("message_key"),
+    reason, sha = metaverse_rules.adapter_result(after.get("outbox_uuid"), after.get("event_type"), version, after.get("topic"), after.get("message_key"),
                                                  after.get("raw_data"), after.get("payload_json"), after.get("occurred_at"), after.get("created_at"))
     return sha
 
@@ -155,18 +155,18 @@ def hop_hash(after):
 
 
 def mv_rows():
-    """중복(c·r)·충돌(8열 다름)·배달 2열만 다른 사본(충돌 아님)·not_insert·tombstone(키 event_uuid)·다른 출처·열린 창·계약 위반(센다)·대문자 UUID."""
+    """중복(c·r)·충돌(8열 다름)·배달 2열만 다른 사본(충돌 아님)·not_insert·tombstone(키 outbox_uuid)·다른 출처·열린 창·계약 위반(센다)·대문자 UUID."""
     rows = [mv_row(i, json.loads(REAL[name])) for i, name in enumerate(REAL)]  # 16(POINT_R 은 POINT_C 의 재발행 사본)
     n = len(rows)
     rows += [
         mv_row(n, mv_envelope("FILL", op="r", published_at="2026-11-02T04:16:21.000000Z", retry_count=3)),  # 배달 2열만 다름 — duplicates
         mv_row(n + 1, mv_envelope("MOVE", op="r", topic="raw.account")),  # 8열 다름 — 충돌
         mv_row(n + 2, mv_envelope("CONTENT", op="u")),  # not_insert
-        ('{"schema": {}, "payload": {"event_uuid": "AAAAAAAA-0000-4000-8000-0000000000AA"}}', None, 1, 0),  # tombstone(키의 event_uuid 를 예시에)
+        ('{"schema": {}, "payload": {"outbox_uuid": "AAAAAAAA-0000-4000-8000-0000000000AA"}}', None, 1, 0),  # tombstone(키의 outbox_uuid 를 예시에)
         mv_row(n + 4, mv_envelope("chat_sent", table="events_outbox")),  # 다른 출처(표 이름)
-        mv_row(n + 5, mv_envelope("chat_sent", event_uuid="11111111-1111-4111-8111-111111111111", created_at="2026-11-04T07:59:00Z")),  # 열린 창(시간)
-        mv_row(n + 6, mv_envelope("post_read", event_uuid="22222222-2222-4222-8222-222222222222", topic="raw.wrong")),  # 계약 위반(토픽) — 센다
-        mv_row(n + 7, mv_envelope("post_read", event_uuid="33333333-3333-4333-8333-33333333333A".upper())),  # 대문자 UUID — 정렬·ID 해시는 소문자
+        mv_row(n + 5, mv_envelope("chat_sent", outbox_uuid="11111111-1111-4111-8111-111111111111", created_at="2026-11-04T07:59:00Z")),  # 열린 창(시간)
+        mv_row(n + 6, mv_envelope("post_read", outbox_uuid="22222222-2222-4222-8222-222222222222", topic="raw.wrong")),  # 계약 위반(토픽) — 센다
+        mv_row(n + 7, mv_envelope("post_read", outbox_uuid="33333333-3333-4333-8333-33333333333A".upper())),  # 대문자 UUID — 정렬·ID 해시는 소문자
     ]
     return rows
 
@@ -179,11 +179,12 @@ def mv_outputs():
     return out
 
 
-# 메타버스 요약 고정값 — MVR-2 의 DB 쪽(같은 8열 객체)이 맞출 기준. 이 Step 의 코드로 잰 값(바꾸기 전 코드에는 메타버스 원천이 없다)
+# 메타버스 요약 고정값 — MVR-2 의 DB 쪽(같은 8열 객체)이 맞출 기준. MVR-3a(첫 열 event_uuid → outbox_uuid) 코드로 다시 잰 값 —
+# 옛 값(MVR-1)과는 이름을 맞추면 content_sha256 말고 같다(잰 방법은 Step 기록 temp/review/MVR-3a-check.md)
 MV_DIGESTS = {
-    "hour/None": "b6de7d25924ba0fbf96b3739beec2ecb0cd8ead848c29c4b7201368d2f42b8db",
-    "hour/2026-11-02T04:00:00+00:00": "143b345abc2ae2c495f1a274eb425dc9527c4b013da46218d06cdc266fb66146",
-    "day/None": "146d5219eb25f342907854bbf5992328378b39a47787858a2b09eda0416c6788",
+    "hour/None": "cccdcdb2c2cbb03cd4a3ea290891fbe61d145c525aec693655cba877121f841c",
+    "hour/2026-11-02T04:00:00+00:00": "e105bdf168530096242b75e3956b458a4c43586962ee5b7f5ebe952d55ad3ba8",
+    "day/None": "d94d75fde5550e862327fdd9b202095e8314978ba5e4f30348e67d2e89434aee",
 }
 
 
@@ -212,11 +213,11 @@ class AdsUnchangedTests(unittest.TestCase):
         self.assertEqual(extra["conflict_examples"], [{"event_id": upper.lower(), "partition": 0, "offset": 0}, {"event_id": upper.lower(), "partition": 0, "offset": 1}])
         mv_upper = "abcdef01-0000-4000-8000-0000000000ab".upper()
         base = json.loads(REAL["POINT_C"])["after"]
-        mv = [mv_row(0, mv_envelope(event_uuid=mv_upper)), mv_row(1, mv_envelope(op="r", event_uuid=mv_upper.lower()))]
+        mv = [mv_row(0, mv_envelope(outbox_uuid=mv_upper)), mv_row(1, mv_envelope(op="r", outbox_uuid=mv_upper.lower()))]
         lines, _, extra = hop_rules.summarize_changes(mv, MV_DB, MV_NOW, 120, size=hop_rules.HOUR, source=hop_rules.METAVERSE)
         self.assertEqual([(line["count"], line["duplicates"], line["conflicts"]) for line in lines], [(0, 0, 1)])
         self.assertEqual(extra["conflict_examples"], [{"event_id": mv_upper.lower(), "partition": 0, "offset": 0}, {"event_id": mv_upper.lower(), "partition": 0, "offset": 1}])
-        self.assertNotEqual(base["event_uuid"], mv_upper.lower())
+        self.assertNotEqual(base["outbox_uuid"], mv_upper.lower())
 
     def test_malformed_documents_fail_where_they_did_before(self):
         """이름·ID 는 since·열린 창 판정 뒤에만 읽는다 — 형식이 깨진 5필드 문서의 실패 시점·메시지가 바꾸기 전과 같다(Reviewer MVR-1 코드 리뷰 작은 것 2)."""
@@ -252,7 +253,7 @@ class MetaverseIdentityTests(unittest.TestCase):
             "소수 5자리": {"occurred_at": "2026-11-04T05:55:38.15003Z"},
             "JSON 공백·키 순서": {"raw_data": json.dumps(json.loads(base["raw_data"]), sort_keys=True, separators=(",", ":"))},
             "1 과 1.0·비 ASCII": {"payload_json": json.dumps(payload | {"extra": {"n": 1.0, "s": "가나 é"}}, ensure_ascii=False)},
-            "대문자 UUID": {"event_uuid": base["event_uuid"].upper()},
+            "대문자 UUID": {"outbox_uuid": base["outbox_uuid"].upper()},
         }
         for label, change in variants.items():
             with self.subTest(variant=label):
@@ -295,12 +296,12 @@ class MetaverseSummaryTests(unittest.TestCase):
         self.assertEqual(extra["not_insert_unplaced_examples"], [{"event_id": "aaaaaaaa-0000-4000-8000-0000000000aa", "partition": 1, "offset": 0}])
 
     def test_document_is_the_content_object_and_ids_are_lowercase(self):
-        upper = mv_envelope("post_read", event_uuid="33333333-3333-4333-8333-33333333333A")
+        upper = mv_envelope("post_read", outbox_uuid="33333333-3333-4333-8333-33333333333A")
         lines, _, _ = hop_rules.summarize_changes([mv_row(0, upper)], MV_DB, MV_NOW, 120, size=hop_rules.HOUR, source=hop_rules.METAVERSE)
         after = upper["after"]
-        self.assertEqual(lines[0]["ids_sha256"], hashlib.sha256(after["event_uuid"].lower().encode("utf-8")).hexdigest())
+        self.assertEqual(lines[0]["ids_sha256"], hashlib.sha256(after["outbox_uuid"].lower().encode("utf-8")).hexdigest())
         self.assertEqual(lines[0]["content_sha256"], hashlib.sha256(hop_rules.canonical_json(hop_rules._content(after, hop_rules.METAVERSE)).encode("utf-8")).hexdigest())
-        self.assertIn('"event_uuid":"33333333-3333-4333-8333-33333333333A"', hop_rules.canonical_json(hop_rules._content(after, hop_rules.METAVERSE)))  # 객체 안은 원문
+        self.assertIn('"outbox_uuid":"33333333-3333-4333-8333-33333333333A"', hop_rules.canonical_json(hop_rules._content(after, hop_rules.METAVERSE)))  # 객체 안은 원문
 
 
 class MetaverseStopTests(unittest.TestCase):
@@ -325,12 +326,12 @@ class MetaverseStopTests(unittest.TestCase):
         secrets = (base["message_key"], "2026-11-04 05:55:38.150035", "user_uuid", "__DEEP__", "NaN")
         for label, (change, kind) in cases.items():
             with self.subTest(case=label):
-                envelope = mv_envelope(**change, event_uuid=base["event_uuid"].upper())  # 메시지의 event_id 는 소문자
+                envelope = mv_envelope(**change, outbox_uuid=base["outbox_uuid"].upper())  # 메시지의 event_id 는 소문자
                 if label == "NaN":
                     self.assertIn("NaN", envelope["after"]["payload_json"])
                 error, text = self.stop(envelope)
                 self.assertIn("원천 METAVERSE", str(error))
-                self.assertIn(f"event_id {base['event_uuid']}", str(error))
+                self.assertIn(f"event_id {base['outbox_uuid']}", str(error))
                 self.assertIn("partition 2, offset 7", str(error))
                 self.assertIn(f"사유 {kind}", str(error))
                 self.assertIsNone(error.__cause__)
@@ -339,20 +340,20 @@ class MetaverseStopTests(unittest.TestCase):
                     self.assertNotIn(secret, text)
 
     def test_missing_columns_stop_and_a_missing_id_is_reported_as_none(self):
-        for column in ("topic", "raw_data", "occurred_at", "event_uuid"):
+        for column in ("topic", "raw_data", "occurred_at", "outbox_uuid"):
             with self.subTest(column=column):
                 envelope = mv_envelope()
                 del envelope["after"][column]
                 error, text = self.stop(envelope)
                 self.assertIn("사유 KeyError", str(error))
-                if column == "event_uuid":
+                if column == "outbox_uuid":
                     self.assertIn("event_id None", str(error))
                 self.assertNotIn(envelope["after"]["message_key"], text)
 
     def test_null_json_columns_are_counted_as_json_null(self):
         """E3 (가)(사용자 2026-11-05): payload_json·raw_data 의 NULL 은 JSON null(None)로 센다 — 앱이 payload_json 을 NULL 로 넣을 수 있다. Silver 는 오류 표로 보낸다."""
         rows = [mv_row(0, mv_envelope("POINT_C", payload_json=None)),
-                mv_row(1, mv_envelope("POINT_C", event_uuid="55555555-5555-4555-8555-555555555555", raw_data=None))]
+                mv_row(1, mv_envelope("POINT_C", outbox_uuid="55555555-5555-4555-8555-555555555555", raw_data=None))]
         for row in rows:
             after = json.loads(row[1])["after"]
             self.assertIsNone(silver_hash(after))

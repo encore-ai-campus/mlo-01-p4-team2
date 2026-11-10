@@ -182,7 +182,8 @@ class MainTests(unittest.TestCase):
         self.state_dir = Path(tmp.name) / "pipeline_monitor"  # 아직 없는 폴더 — 설정 오류에서는 만들지 않아야 한다
         self.env = {"MONITOR_PG_NODES": NODES, "MONITOR_S7_POWER": "0"}
         self.sent = []
-        for name, value in (("STATE", self.state_dir / "state.json"), ("SLOTS", ["s1", "s2"]), ("m3", lambda *args: []), ("m4", lambda: []), ("m5", lambda: []),
+        for name, value in (("STATE", self.state_dir / "state.json"), ("SLOTS", ["s1", "s2"]), ("m3", lambda *args: []), ("m3_reach", lambda: []), ("m4", lambda: []), ("m5", lambda: []),
+                            ("d1", lambda *args: []), ("d2", lambda *args: []),  # 디스크·outbox 는 test_check_disk 가 본다(이 장치의 경로·DB 에 닿지 않게)
                             ("notify", lambda text: self.sent.append(text) or "웹훅 없음(화면에만)")):
             patcher = mock.patch.object(check, name, value)
             patcher.start()

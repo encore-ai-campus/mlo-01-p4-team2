@@ -3,7 +3,7 @@
 - 넘김 목록(C4): 사람이 확인한 Bronze 위치. 파일은 `pipeline/silver/acknowledged/<domain>.json`(파일 자체는 SL-3c·SL-5 에서 둔다).
 - Delta 멱등 표시 appId 와 checkpoint 정체성(SL-2 ①~⑨, D4).
 - `silver_release`(코드 판).
-- (SL-3c) 시작 검사(checkpoint 식별자 ①~④), 어댑터 출처 설정, 잡 설정(환경변수 — 기본값 없음).
+- (SL-3c) 시작 검사(checkpoint 식별자 ①~④), 어댑터 출처 설정, 잡 설정(환경변수 — 기본값 없음). (SL-5) 읽기 바이트 상한, S3 연결 설정.
 WIP(temp/review/SL-3a_wip-stdlib_r1.patch 의 framework.py)에서 그대로 옮겼다.
 """
 import hashlib
@@ -141,9 +141,11 @@ def source_settings(data):
     return {key: data[key] for key in SOURCE_KEYS}
 
 
-JobSettings = namedtuple("JobSettings", "domain generation silver errors checkpoint bronze source acknowledged code_root max_files")
+JobSettings = namedtuple("JobSettings", "domain generation silver errors checkpoint bronze source acknowledged code_root max_files max_bytes")
 _ENV = ("SILVER_LAKE_ROOT", "SILVER_BRONZE_TABLE", "SILVER_SOURCE_DB", "SILVER_SOURCE_SCHEMA", "SILVER_SOURCE_TABLE",
-        "SILVER_ACKNOWLEDGED", "SILVER_CODE_ROOT", "SILVER_MAX_FILES_PER_TRIGGER")
+        "SILVER_ACKNOWLEDGED", "SILVER_CODE_ROOT", "SILVER_MAX_FILES_PER_TRIGGER", "SILVER_MAX_BYTES_PER_TRIGGER")
+_BYTES = re.compile(r"[1-9][0-9]*[kmg]?")  # Delta maxBytesPerTrigger 표기(k·m·g = 1024 배수) — 소문자 단위 하나만 받는다
+S3_ENV = ("S3_ENDPOINT", "S3_REGION", "S3_ACCESS_KEY_FILE", "S3_SECRET_KEY_FILE")  # Bronze s3a_session 과 같은 이름(SL-3 다시 나누기 §5)
 
 
 def job_settings(environ, domain, generation):
@@ -161,10 +163,27 @@ def job_settings(environ, domain, generation):
             raise ValueError(f"{name} 에 쓸 수 없는 경로다: {value[name]!r}")
     if not value["SILVER_MAX_FILES_PER_TRIGGER"].isdigit() or int(value["SILVER_MAX_FILES_PER_TRIGGER"]) < 1:
         raise ValueError(f"SILVER_MAX_FILES_PER_TRIGGER 는 1 이상의 정수다: {value['SILVER_MAX_FILES_PER_TRIGGER']!r}")
+    if not _BYTES.fullmatch(value["SILVER_MAX_BYTES_PER_TRIGGER"]):  # 파일 하나가 2행~Bronze 상한까지라 파일 수만으로는 행 수를 묶지 못한다(SL-5 D3 (다))
+        raise ValueError(f"SILVER_MAX_BYTES_PER_TRIGGER 는 1 이상의 정수 + 단위 k·m·g(없어도 됨)다: {value['SILVER_MAX_BYTES_PER_TRIGGER']!r}")
     source = source_settings({"db": value["SILVER_SOURCE_DB"], "schema": value["SILVER_SOURCE_SCHEMA"], "table": value["SILVER_SOURCE_TABLE"]})
     return JobSettings(domain, generation, f"{root}/silver/{domain}/events/g{generation}", f"{root}/silver/{domain}/errors/g{generation}",
                        f"{root}/checkpoints/silver/{domain}/events/g{generation}", value["SILVER_BRONZE_TABLE"], source,
-                       value["SILVER_ACKNOWLEDGED"], value["SILVER_CODE_ROOT"], int(value["SILVER_MAX_FILES_PER_TRIGGER"]))
+                       value["SILVER_ACKNOWLEDGED"], value["SILVER_CODE_ROOT"], int(value["SILVER_MAX_FILES_PER_TRIGGER"]),
+                       value["SILVER_MAX_BYTES_PER_TRIGGER"])
+
+
+def s3_settings(environ, settings):
+    """S3 연결 설정(SL-5 — SL-3 다시 나누기 §5): Silver 표나 Bronze 가 `s3a://` 면 S3_ENV 넷이 모두 있어야 한다(기본값 없음, 앞뒤 공백 거부 — 빠진 것을 모두 적음).
+    반환: {"endpoint", "region", "access_key_file", "secret_key_file"} 또는 None(`s3a://` 경로가 없음 — file:// 시험). 키 값은 읽지 않는다(잡 입구가 파일에서 읽어 conf 로만 넘김)."""
+    if not any(path.startswith("s3a://") for path in (settings.silver, settings.bronze)):
+        return None
+    missing = [name for name in S3_ENV if not environ.get(name, "").strip()]
+    if missing:
+        raise ValueError(f"s3a 경로를 쓰는데 S3 설정이 없다(기본값 없음): {', '.join(missing)}")
+    spaced = [name for name in S3_ENV if environ[name] != environ[name].strip()]
+    if spaced:
+        raise ValueError(f"S3 설정 값에 앞뒤 공백이 있다: {', '.join(spaced)}")
+    return dict(zip(("endpoint", "region", "access_key_file", "secret_key_file"), (environ[name] for name in S3_ENV)))
 
 
 def silver_release(root=None):

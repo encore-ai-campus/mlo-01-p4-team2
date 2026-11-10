@@ -2,7 +2,7 @@
 
 > 초안(2026-11-05). 계획 02 P8-2의 광고 쪽 운영 절차를 모으는 곳이다. 이번 판에는 두 가지만 둔다: 매일 점검, 규칙 판이 바뀌는 배포. 나머지 P8-2 항목은 P8-2 Step에서 더한다(끝 절).
 
-## 매일 점검 — P2-4b 경보를 미룬 동안
+## 매일 점검 — 운영에 주기 감시를 적용하기 전
 
 - 하루 한 번, 하루 대사(00:50 UTC) 뒤에 한다. 예: 01:00 UTC(10:00 KST).
 - ①~④의 값을 날짜와 함께 사건 기록에 한 줄씩 적는다.
@@ -11,6 +11,7 @@
   - ②·③의 크기: 추세만 적는다. 첫 주 실측 자료도 된다.
   - ④: 경보(alert·error)가 하나라도 있으면 알린다.
 - 비밀값(DB 비밀번호·RustFS 키·웹훅 주소)은 파일로만 넘긴다. 화면·기록에 옮기지 않는다.
+- 주기 감시(P2-4b, `monitor/README.md`)의 D1·D2가 ①~③과 같은 기준(여유 < 20%, outbox 크기)을 경보로 본다. 지금은 로컬 시험대에만 설치돼 있다. 운영에서는 감시 서버에 주기 감시를 적용하고, 디스크가 있는 장치마다 D1을 돌리기 전까지(결정 B — 운영 적용 Step) ①·③을 손으로 그대로 한다. ②의 outbox 크기는 ④가 `MONITOR_OUTBOX`로 함께 본다(D2).
 
 ### ① DB 노드 디스크(노트북 3대 모두)
 
@@ -74,22 +75,32 @@ du -sh "$HOP_RECONCILE_DIR"; df -h "$HOP_RECONCILE_DIR"
 
 보는 것: M1 슬롯, M3 Connect task FAILED, M4 Kafka, M5 Bronze 대기(M2·S7도 함께 나온다).
 
-- 어디서: **관리 장치**에서 돌린다. 5432·9092·8083에 닿는 곳이다(계획 16 §2.2).
-  - 광고 서버는 9092·8083의 허용 출발지가 아니라 M3~M5가 실패한다.
+- 어디서: **관리 장치**에서 돌린다. 노트북 셋의 PostgreSQL·Kafka·Connect REST에 닿는 곳이다(계획 16 §2.2).
+  - 운영 노트북은 NAT라 LAN에서 닿는 포트가 **안쪽 포트 + 5**다: PostgreSQL 5437, Kafka 9097, Connect REST 8088(Ops 확인 2026-11-08).
+  - 광고 서버는 9097·8088의 허용 출발지가 아니라 M3~M5가 실패한다.
+  - **관리 장치가 정해진 뒤** 그 장치에서 돈다. 관리 장치 주소·DHCP 예약은 사용자 몫이다. 지금 Mac(192.168.0.26)은 노드 포트에 바로 닿지 않고 SSH 점프로만 닿는다.
 - `check.py`는 `MONITOR_PG_NODES`의 노드마다 물어 primary를 스스로 찾는다. M1은 primary에서만 된다(대기 서버에서는 `pg_current_wal_lsn()`이 "recovery is in progress"로 실패). 그래서 HAProxy가 없는 관리 장치에서도 장애 전환 뒤 값을 고칠 필요가 없다.
 - **관리 장치는 로컬 시험대 Mac이라, `check.py`의 기본값이 모두 lab을 가리킨다.** 그래서 `MONITOR_REQUIRE_ALL=1`을 맨 앞에 둔다. 변수 하나라도 없거나 비면 lab을 보고 ok를 내지 않고 rc 2로 멈춘다.
 
 ```bash
 env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
   MONITOR_STATE="$HOME/.local/state/pipeline_monitor/manual.json" \
-  MONITOR_SLOTS=ads_outbox_slot,metaverse_outbox_slot MONITOR_S7_POWER=0 MONITOR_R7=1 \
-  MONITOR_PG_NODES=<LAP1_IP>:5432,<LAP2_IP>:5432,<LAP3_IP>:5432 MONITOR_PG_PASSWORD_FILE=… \
-  MONITOR_CONNECT_REST=… MONITOR_KAFKA=… MONITOR_KAFKA_BIN=… MONITOR_JAVA_HOME=… \
-  MONITOR_BRONZE=… S3_ENDPOINT=… S3_ACCESS_KEY_FILE=… S3_SECRET_KEY_FILE=… \
+  MONITOR_SLOTS=ads_outbox_slot,metaverse_outbox_slot MONITOR_S7_POWER=0 MONITOR_R7=1 MONITOR_DISK=none \
+  MONITOR_PG_NODES=<LAP1_IP>:5437,<LAP2_IP>:5437,<LAP3_IP>:5437 MONITOR_PG_USER=pipeline_monitor MONITOR_PG_PASSWORD_FILE=… \
+  MONITOR_CONNECT_REST=http://<LAP1_IP>:8088,http://<LAP2_IP>:8088,http://<LAP3_IP>:8088 \
+  MONITOR_KAFKA=<LAP1_IP>:9097,<LAP2_IP>:9097,<LAP3_IP>:9097 MONITOR_KAFKA_BIN=… MONITOR_JAVA_HOME=… \
+  MONITOR_BRONZE=none \
+  MONITOR_OUTBOX="ads|ads|public.events_outbox,metaverse|<메타버스 DB>|public.eventing_eventoutbox" \
   <python> pipeline/monitor/check.py; echo "rc=$?"
 ```
 
-- `…`·`<LAPn_IP>`는 운영 값이다(P8-2에서 정한다). 변수 뜻은 `monitor/README.md` 「설정」 절에 있다.
+- `…`·`<LAPn_IP>`·`<메타버스 DB>`는 운영 값이다(P8-2에서 정한다). 변수 뜻은 `monitor/README.md` 「설정」 절에 있다.
+- `MONITOR_PG_USER`: 읽기 전용 감시 역할 `pipeline_monitor`(pg_monitor 회원 — Ops 2026-11-08). `MONITOR_PG_PASSWORD_FILE`은 그 역할의 비밀번호 파일이다.
+- `MONITOR_CONNECT_REST`: 쉼표 목록이다. 회차마다 앞에서부터 처음 응답한 곳을 쓴다(R7 재시작 요청도 그곳). 앞 주소가 응답하지 않았으면 M3 `connect_rest` ok 줄에 그 주소만 남는다. 경보는 따로 낸다: 회차마다 목록의 모든 주소에 `GET /`(5초)를 보내, 응답하지 않는 주소마다 `connect_rest:<주소>` alert(Connect Worker 프로세스만 멈춘 것도 — 그 Task는 남은 Worker로 옮겨져 커넥터 줄은 RUNNING일 수 있다). 셋 모두 응답하지 않으면 그 셋의 alert와 `M3:run` error다.
+- `MONITOR_BRONZE=none`: 운영 Bronze(k3s·S3)가 아직 없다. M5는 `bronze` `unsupported` 한 줄이고, S3 세 변수(`S3_ENDPOINT`·`S3_ACCESS_KEY_FILE`·`S3_SECRET_KEY_FILE`)는 필요 없다. Bronze가 생기면 `MONITOR_BRONZE` 목록과 S3 세 변수를 넣는다.
+- `MONITOR_DISK=none`: 관리 장치에는 볼 디스크가 없다(D1은 `unsupported` 한 줄). 노트북 디스크는 ①로 본다.
+- `MONITOR_OUTBOX`(D2): ②의 outbox 크기를 같은 감시 계정(`MONITOR_PG_USER`)·같은 노드로 함께 본다 — 그 계정에 두 DB의 CONNECT와 `public` 스키마 USAGE(둘 다 기본은 PUBLIC에 있다)가 있어야 한다. 표 권한은 필요 없다(`pg_total_relation_size`·`pg_class`만 읽는다). USAGE가 없으면 표 이름을 풀지 못해 D2가 error(InsufficientPrivilege)다. 5 GiB를 넘으면 "P1-6 정리를 할 때" 경보다.
+- `MONITOR_GAP_S`·`MONITOR_CODE_COMMIT`은 두지 않는다(하루 한 번 손 실행 — 공백 경보가 날마다 울리지 않게, 작업 저장소에서 돎).
 - `MONITOR_KAFKA_BIN`·`MONITOR_JAVA_HOME`은 꼭 준다.
   - 기본값이 이 Mac의 경로(`/opt/kafka/current/bin`, Homebrew openjdk)다.
   - 빠지면 다른 장치에서 M4·M5가 매일 error가 된다.
@@ -121,7 +132,7 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
 - S7은 **점검을 돌리는 장치 자신**을 본다. 노트북 3대가 아니다.
   - 시계 차이: 그 장치와 찾은 primary의 차이(노드 조회 순간). primary를 모르면 `clock_skew` error다.
   - 전원(배터리·잠듦): `MONITOR_S7_POWER=0`이라 `unsupported`(끔)다. 관리 장치의 전원은 파이프라인과 관계없다.
-  - **운영 노트북 3대의 잠자기는 이 점검 밖이다.** Windows·Linux용 S7이 없다(계획 16 §3.3). P8-2 잠자기 금지와 P2-4b에서 따로 다룬다. 2026-11-05 사고(아래 끝 절)가 그 종류다.
+  - **운영 노트북 3대의 잠자기는 이 점검의 S7 밖이다.** Windows·Linux용 S7이 없다(계획 16 §3.3). 잠든 노트북은 그 회차에 M2 `synced:<노드>:<슬롯>` "노드 접속 실패"(alert)로, primary면 `M1·M2:run` error로 바로 드러난다(P2-4b 판단). 막는 것은 P8-2 잠자기 금지 설정이다. 2026-11-05 사고(아래 끝 절)가 그 종류다.
 
 #### M3 FAILED가 보이면 — 자동 3번(check.py) 뒤에는 사용자 확인 뒤에만
 
@@ -131,7 +142,7 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
   - 같은 회차 M1에서 그 커넥터의 슬롯이 없음·`lost`·`unreserved`이거나 슬롯 상태를 모르면 재시작하지 않는다(`r7:<커넥터>` error).
 - **아래 순서는 사람이 할 때다**: `r7:<커넥터>`가 "다 씀"(alert)·슬롯 문제·슬롯 모름·저장 실패(error)일 때, 또는 `MONITOR_R7=0`일 때. RB 쪽에 이 절차는 없다.
 
-1. 원인을 본다: `curl -s "$MONITOR_CONNECT_REST/connectors/<이름>/status"`의 `connector.trace`(커넥터 자체가 FAILED일 때) 또는 `tasks[].trace` 첫 줄을 사건 기록에 적는다.
+1. 원인을 본다: `curl -s "http://<응답하는 노트북>:8088/connectors/<이름>/status"`(`MONITOR_CONNECT_REST`는 목록이라 그대로 쓰지 않는다)의 `connector.trace`(커넥터 자체가 FAILED일 때) 또는 `tasks[].trace` 첫 줄을 사건 기록에 적는다.
 2. 원인이 설정·상태 문제면 재시작해도 다시 멈춘다. 재시작하지 말고 Planner·사용자에게 알린다.
    - 설정·상태 문제: 인증 실패, publication 없음, 슬롯 무효, R1 불일치.
    - 슬롯 무효는 `README.md` RB-1이다.
@@ -140,7 +151,7 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
    - 2026-11-05의 `Failed to create TypeRegistry`(잠듦 뒤)도 이쪽이고, 재시작으로 회복했다.
    - C3의 "재시도 불가"는 Connect가 스스로 다시 시도하지 않는다는 뜻이다. 재시작해도 안 된다는 뜻이 아니다.
    ```bash
-   curl -s -X POST "$MONITOR_CONNECT_REST/connectors/<이름>/restart?includeTasks=true&onlyFailed=true"
+   curl -s -X POST "http://<응답하는 노트북>:8088/connectors/<이름>/restart?includeTasks=true&onlyFailed=true"
    ```
 4. ④를 다시 돌려 그 커넥터가 RUNNING인지, 슬롯이 붙잡은 WAL이 줄어드는지 본다.
 5. **원인을 고친 뒤** R7 기록을 비운다. 그래야 다음 FAILED에서 자동 3번을 다시 쓴다(비우지 않아도, FAILED가 아닌 회차에 마지막 자동 시도가 30분보다 오래됐으면 저절로 비워진다).
@@ -148,7 +159,7 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
    MONITOR_STATE="$HOME/.local/state/pipeline_monitor/manual.json" <python> pipeline/monitor/check.py --r7-clear <커넥터>
    ```
    - JSON의 `found: true`인지 본다. `false`(rc 1)이면 그 상태 파일에 기록이 없다는 뜻이다 — `MONITOR_STATE`가 ④와 같은지 본다.
-- 주기 감시(P2-4b)를 켜면 ④는 `MONITOR_R7=0`으로 바꾼다(상태 파일이 둘이면 시도 기록도 둘이라 예산이 두 배). P2-4b가 도는 동안 비웠으면 다음 회차에 `r7:` 키가 사라졌는지 본다.
+- **감시 서버 주기 감시를 켜면 ④ 손 점검은 `MONITOR_R7=0`**으로 바꾼다(상태 파일이 둘이면 시도 기록도 둘이라 예산이 두 배). 이 Mac의 로컬 설치(P2-4b)는 운영을 보지 않으므로, 감시 서버 주기 감시를 켜기 전까지 ④는 `MONITOR_R7=1` 그대로다. 주기 감시가 도는 동안 비웠으면 다음 회차에 `r7:` 키가 사라졌는지 본다.
 
 #### 커넥터를 새로 만든 뒤의 WARN 로그(Debezium 3.7.0) — 그대로 둔다
 
@@ -161,21 +172,48 @@ env -u MONITOR_WEBHOOK_URL -u MONITOR_WEBHOOK_FILE MONITOR_REQUIRE_ALL=1 \
 - **로그 양**: 한 줄 약 192 B. 로컬 시험대 Connect는 같은 줄을 `connect.log`와 `connect.stdout.log` 두 곳에 쓴다. 유입이 없어도 둘을 합쳐 시간당 약 12 MB, 하루 약 0.3 GB다.
 - **운영 배포 때 볼 것**: Connect 로그 돌리기(rotation)가 `connect.log`뿐 아니라 stdout으로 받는 로그 파일도 덮는지 본다. 로컬 시험대의 `connect.stdout.log`는 log4j가 돌리지 않는다. Connect는 DB와 같은 노트북의 WSL에서 돌므로(계획 16), 이 로그도 매일 점검 ①의 WSL 디스크·Windows C: 여유(< 20%)에 잡힌다.
 
-## 규칙 판이 바뀌는 배포(D6 — MVR-1)
+## 규칙 판이 바뀌는 배포(D6 — MVR-1·MVR-3a)
 
 - `rule_sha256`: 공용 요약 규칙 파일(`hop_rules.py`)의 SHA-256이다.
-  - 지금 값: `4043ed001c944ed5328cc617b590eb5d937e70933e5fcad53340a03335e369c3`
-- 이 값이 바뀌는 커밋은 **manifest 잡과 광고 서버를 함께 배포한다.**
-  - manifest 잡: 이미지 안의 `pipeline/common/hop_rules.py`
+  - 지금 값: `09c7f8c4e2f7ba931f6d9d1a19b4835b8d0913a7482c788c799285e050d765c7`(MVR-3a — 메타버스 outbox 키 열 `event_uuid` → `outbox_uuid`. 앞 값 `4043ed001c944ed5328cc617b590eb5d937e70933e5fcad53340a03335e369c3`)
+- 이 값이 바뀌는 커밋은 **세 곳을 함께 배포한다.** 광고 동작이 바뀌지 않는 커밋(MVR-3a처럼 메타버스 설정만 바뀜)이어도 광고 서버를 다시 배포한다.
+  - manifest 잡: 이미지 안의 `pipeline/common/hop_rules.py`(광고·메타버스 잡 둘 다)
   - 광고 서버: `ads_server/events/hop_rules.py`
+  - 메타버스 대사(MVR-2): 실행 사본의 `pipeline/common/hop_rules.py`. `pipeline/reconcile/metaverse_hops.py`도 받은 manifest의 `rule_sha256`이 자기 판과 다르면 그 회차를 rc 2(입력 실패)로 끝낸다.
 - 판이 다르면 광고 서버는 그 manifest를 대조하지 않는다(`events/hopcheck.py`의 `_pipeline_problems` → `HopInputError`).
   - 그 회차 대사는 rc 2(입력 실패, 단계 `verify`)다. 광고 서버 시험 `case_input_failures_are_told_apart_from_mismatches`가 고정한다.
   - 창은 확정되지 않고, 판이 맞은 다음 회차가 판정한다.
 - 배포 시각
   - 시간 잡은 :05, 대사는 :07이다. 하루 잡은 00:35, 대사는 00:50 UTC다.
-  - 둘을 한 번에 배포하면서 :05~:07과 00:35~00:50 UTC를 피하면 rc 2 회차가 없다.
+  - 메타버스는 로컬 견본 기준 시간 잡 :15·대사 :17, 하루 잡 00:40·대사 00:55 UTC(09:40·09:55 KST)다.
+  - 셋을 한 번에 배포하면서 :05~:07, :15~:17, 00:35~00:55 UTC를 피하면 rc 2 회차가 없다.
   - 따로 배포하면 그 사이 매시 회차가 rc 2다.
   - 배포 뒤 첫 시간 잡이 늦거나 실패하면, :07 회차는 지난 포인터(옛 판)를 받아 rc 2가 한 번 더 난다(늦음 rc 3이 아니다).
+
+## 메타버스 앱 DB 접속(06 T3 ②)
+
+메타버스 앱 서버 두 대(서비스·이동)가 운영 PostgreSQL에 붙는 값이다. 근거는 계획 06 5판 T3 ②와 계획 25 §5.1 ④(C6 (a), 사용자 결정 2026-11-08)다. 비밀번호와 비밀번호 파일의 내용은 여기 적지 않고, 화면·기록에도 옮기지 않는다.
+
+- 접속 값(각 앱 서버의 `deploy/onprem/.env`, Ops 2026-11-08)
+  - `POSTGRES_HOST=127.0.0.1`, `POSTGRES_PORT=5000`(앱 서버의 HAProxy → 클러스터 쓰기 노드)
+  - `POSTGRES_DB=metaverse`, `POSTGRES_USER=metaverse_app`
+  - `POSTGRES_PASSWORD`는 비운다. `PGPASSFILE`에는 `playdata`의 `~/.secrets/metaverse-app.pgpass` 절대 경로를 둔다.
+  - `POSTGRES_POOL_MAX_SIZE=10`(계획 25 D-D (가)). 클러스터 `max_connections` 200이 먼저 적용돼 있어야 한다(Ops).
+  - `KAFKA_BOOTSTRAP_SERVERS`는 빈 값이다. 사건은 outbox → CDC로만 나간다.
+  - TLS: 첫 운영은 LAN 평문이다. `verify-full`로 바꿀 때 `POSTGRES_SSLMODE=verify-full`과 `POSTGRES_SSLROOTCERT`(CA 파일 경로)만 더한다(코드 변경 없음).
+- 비밀번호 파일(Ops가 만든다)
+  - 모드 0600, 주인 `playdata`다.
+  - 한 줄의 앞 네 칸이 `127.0.0.1:5000:metaverse:metaverse_app`(= 위 접속 값)이고 다섯째 칸이 비밀번호다.
+  - `deploy/onprem/run.py`는 `POSTGRES_PASSWORD`가 비어 있으면 시작 전에 세 가지를 본다: 모드 0600, 실행 사용자 소유, 앞 네 칸이 접속 값과 같은 줄. 어긋나면 파일 내용을 출력하지 않고 rc 1로 멈춘다.
+- **배포 확인 — 앱 프로세스는 `playdata`로 돈다**
+  - `run.py movement`·`run.py service`(그 아래 daphne·jobs 포함)를 `playdata`로 실행한다. 다른 계정이면 파일을 읽지 못하거나 주인이 달라 `run.py`가 멈춘다.
+  - 손으로 부르는 `manage.py`(`migrate`·`import_learning_bank`·`createsuperuser` 등)도 `playdata`로 부르고, 위와 같은 `POSTGRES_*`·`PGPASSFILE`을 환경에 둔다.
+  - 확인(값을 출력하지 않는다):
+
+```bash
+id -un                          # playdata
+stat -c '%a %U' "$PGPASSFILE"   # 600 playdata
+```
 
 ## P8-2에서 더할 것(이번 판에는 없음)
 

@@ -1,24 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- 파이프라인 점검(임시 D18)을 1분마다 — 로컬 시험대용 사용자 LaunchAgent 견본. 운영은 같은 check.py 를 systemd 타이머로.
-     설치: 아래 자리 표시 세 가지(__PYTHON__ = psycopg·boto3 가 있는 python, __REPO__ = 저장소 경로, __HOME__ = 홈 폴더)를 이 장치에 맞게 바꾼 뒤
-     ~/Library/LaunchAgents/ 에 복사하고 launchctl bootstrap gui/$(id -u) <파일>.
-     웹훅 주소는 여기에 쓰지 않는다 — MONITOR_WEBHOOK_FILE 로 저장소 밖 파일 경로만 준다. -->
+<!-- 주기 감시(P2-4b, 임시 D18)를 1분마다 — 로컬 시험대용 사용자 LaunchAgent 견본. 운영은 같은 check.py 를 systemd 타이머로(결정 B — 디스크는 그 장치에서).
+     자리 표시: __PYTHON__ = psycopg·boto3 가 있는 python, __REPO__ = 실행 전용 clone(결정 A — 작업 저장소가 아님), __HOME__ = 홈 폴더,
+     __COMMIT__ = 그 clone 이 checkout 한 리뷰된 커밋 40자(다르거나 clone 이 더러우면 check.py 가 점검하지 않고 알림 + rc 2 code_pin).
+     설치·올리기·끄기는 monitor/README.md 「주기 실행」. 로컬은 웹훅 없이 둔다(사용자 결정 2026-11-08 — 경보는 로그의 JSON 줄로만, 웹훅은 운영 감시 서버만).
+     MONITOR_WEBHOOK_FILE 을 두고 파일이 없으면 회차마다 "웹훅 실패"가 되어 경보 수준·공백·rc 2 표시가 갱신되지 않으므로 키를 두지 않는다.
+     필수 모드라 운영 변수(check.REQUIRED)가 하나라도 없거나 비면 점검하지 않는다. MONITOR_CODE_COMMIT·MONITOR_GAP_S 는 빠지면 그 확인이 조용히 꺼지므로 지우지 않는다. -->
 <plist version="1.0">
 <dict>
   <key>Label</key><string>local.pipeline.monitor</string>
   <key>ProgramArguments</key>
   <array>
+    <string>__REPO__/pipeline/monitor/run-monitor.sh</string>
     <string>__PYTHON__</string>
-    <string>__REPO__/pipeline/monitor/check.py</string>
   </array>
   <key>StartInterval</key><integer>60</integer>
   <key>RunAtLoad</key><true/>
   <key>EnvironmentVariables</key>
   <dict>
-    <key>MONITOR_WEBHOOK_FILE</key><string>__HOME__/.config/pipeline-monitor/webhook</string>
+    <key>MONITOR_REQUIRE_ALL</key><string>1</string>
+    <key>MONITOR_R7</key><string>1</string>
+    <key>MONITOR_S7_POWER</key><string>1</string>
+    <key>MONITOR_GAP_S</key><string>300</string>
+    <key>MONITOR_CODE_COMMIT</key><string>__COMMIT__</string>
+    <key>MONITOR_STATE</key><string>__HOME__/.local/state/pipeline_monitor/periodic.json</string>
+    <key>MONITOR_LOG</key><string>__HOME__/Library/Logs/pipeline-monitor.log</string>
+    <key>MONITOR_PG_NODES</key><string>127.0.0.1:5432,127.0.0.1:5433,127.0.0.1:5434</string>
+    <key>MONITOR_PG_USER</key><string>postgres</string>
+    <key>MONITOR_PG_PASSWORD_FILE</key><string>/opt/postgresql/config/postgres-password</string>
+    <key>MONITOR_SLOTS</key><string>ads_outbox_slot,ads_e2e_slot,metaverse_outbox_slot</string>
+    <key>MONITOR_CONNECT_REST</key><string>http://127.0.0.1:8083</string>
+    <key>MONITOR_KAFKA</key><string>127.0.0.1:9092,127.0.0.1:9192,127.0.0.1:9292</string>
+    <key>MONITOR_KAFKA_BIN</key><string>/opt/kafka/current/bin</string>
+    <key>MONITOR_JAVA_HOME</key><string>/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home</string>
+    <key>MONITOR_BRONZE</key><string>e2e|ads.e2e.outbox.events|s3a://ads-lake/checkpoints/bronze_e2e_ads_outbox,metaverse|metaverse.outbox.events|s3a://ads-lake/checkpoints/bronze/metaverse/outbox_events</string>
+    <key>S3_ENDPOINT</key><string>http://127.0.0.1:9000</string>
+    <key>S3_ACCESS_KEY_FILE</key><string>/opt/rustfs/config/access-key</string>
+    <key>S3_SECRET_KEY_FILE</key><string>/opt/rustfs/config/secret-key</string>
+    <key>MONITOR_DISK</key><string>pg|/opt/postgresql,reconcile_ads|__HOME__/Library/Caches/ads-pipeline/reconcile|du</string>
+    <key>MONITOR_OUTBOX</key><string>ads_lab|ads_pipeline_lab|public.events_outbox,ads_e2e|ads_pipeline_e2e|public.events_outbox,metaverse_lab|metaverse_lab|public.eventing_eventoutbox</string>
   </dict>
-  <key>StandardOutPath</key><string>__HOME__/Library/Logs/pipeline-monitor.log</string>
-  <key>StandardErrorPath</key><string>__HOME__/Library/Logs/pipeline-monitor.log</string>
 </dict>
 </plist>

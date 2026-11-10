@@ -163,7 +163,8 @@ class R7Main(unittest.TestCase):
         self.env = {"MONITOR_PG_NODES": NODES, "MONITOR_S7_POWER": "0", "MONITOR_R7": "1"}
         for target, name, value in ((check, "rest", self.connect.get), (check.urllib.request, "urlopen", self.connect.urlopen),
                                     (check, "STATE", Path(tmp.name) / "pipeline_monitor" / "state.json"), (check, "CONNECT", "http://fake"),
-                                    (check, "SLOTS", ["s1", "s2"]), (check, "pg", cluster()), (check, "m4", lambda: []), (check, "m5", lambda: []),
+                                    (check, "SLOTS", ["s1", "s2"]), (check, "pg", cluster()), (check, "m3_reach", lambda: []), (check, "m4", lambda: []), (check, "m5", lambda: []),
+                                    (check, "d1", lambda *args: []), (check, "d2", lambda *args: []),
                                     (check, "notify", lambda text: "웹훅 없음(화면에만)")):
             patcher = mock.patch.object(target, name, value)
             patcher.start()

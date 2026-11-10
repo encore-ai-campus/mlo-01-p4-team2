@@ -181,16 +181,21 @@ ADS_FIXED_PLANS = (("hour", "2026-11-02T15:02:00Z", "2026-11-02T13:00:00Z"), ("h
 
 
 def ads_fixed_digest(summarize_rows):
-    """`summarize_rows(rows, plan)` → (lines, checkpoint, scanned). 네 경우의 출력을 정렬 JSON 으로 묶은 SHA-256."""
+    """`summarize_rows(rows, plan)` → (lines, checkpoint, scanned). 네 경우의 출력을 정렬 JSON 으로 묶은 SHA-256.
+    checkpoint 의 `rule_sha256` 은 규칙 파일 판이라, 지금 판인지 본 뒤 고정값을 잰 때의 값(`ADS_FIXED_RULE`)으로 바꿔 묶는다 —
+    규칙 파일이 메타버스 설정 때문에 바뀌어도(MVR-3a) 광고 출력의 나머지 바이트는 그대로임을 고정값 하나로 본다."""
     out = {}
     for window, as_of, since in ADS_FIXED_PLANS:
         plan = job.plan(window, as_of=as_of, since=since)
         lines, checkpoint, scanned = summarize_rows(ads_fixed_rows(), plan)
-        out[f"{window}/{as_of}/{since}"] = {"lines": lines, "checkpoint": checkpoint, "scanned": scanned}
+        if checkpoint["rule_sha256"] != hop_rules.rule_sha256():
+            raise AssertionError(f"checkpoint.rule_sha256 이 지금 규칙 판이 아니다: {checkpoint['rule_sha256']}")
+        out[f"{window}/{as_of}/{since}"] = {"lines": lines, "checkpoint": checkpoint | {"rule_sha256": ADS_FIXED_RULE}, "scanned": scanned}
     return hashlib.sha256(json.dumps(out, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest(), out
 
 
 ADS_FIXED_DIGEST = "7229a3bf917176f5464923f4cc21fe6b24e1d4a1ffdd36a7278f533bc289a874"  # 39cb0b2 의 hop_manifest_job.summarize 로 잼(바꾸기 전 코드 — Reviewer C2)
+ADS_FIXED_RULE = "4043ed001c944ed5328cc617b590eb5d937e70933e5fcad53340a03335e369c3"  # 그때(39cb0b2)의 rule_sha256
 MV_CONFIG = CONFIG | {"db": "metaverse_lab", "source": job.SOURCES["METAVERSE"]}
 MV_TOPIC = "metaverse.outbox.events"
 

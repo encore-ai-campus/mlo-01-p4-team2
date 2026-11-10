@@ -119,7 +119,8 @@ class StartCheck(unittest.TestCase):  # SL-3c 결정 S2 (가) — 시작 검사 
 
 ENV = {"SILVER_LAKE_ROOT": "s3a://ads-lake/", "SILVER_BRONZE_TABLE": "s3a://ads-lake/bronze/metaverse/outbox_events", "SILVER_SOURCE_DB": "metaverse_lab",
        "SILVER_SOURCE_SCHEMA": "public", "SILVER_SOURCE_TABLE": "eventing_eventoutbox", "SILVER_ACKNOWLEDGED": "/code/pipeline/silver/acknowledged/metaverse.json",
-       "SILVER_CODE_ROOT": "/code", "SILVER_MAX_FILES_PER_TRIGGER": "200"}
+       "SILVER_CODE_ROOT": "/code", "SILVER_MAX_FILES_PER_TRIGGER": "200", "SILVER_MAX_BYTES_PER_TRIGGER": "512m"}
+S3 = {"S3_ENDPOINT": "http://127.0.0.1:9000", "S3_REGION": "ap-northeast-2", "S3_ACCESS_KEY_FILE": "/keys/access", "S3_SECRET_KEY_FILE": "/keys/secret"}
 
 
 class Settings(unittest.TestCase):  # SL-3c 결정 S1·정한 것 1
@@ -136,22 +137,46 @@ class Settings(unittest.TestCase):  # SL-3c 결정 S1·정한 것 1
                          ("s3a://ads-lake/silver/metaverse/events/g1", "s3a://ads-lake/silver/metaverse/errors/g1",
                           "s3a://ads-lake/checkpoints/silver/metaverse/events/g1"))
         self.assertEqual(settings.source, {"db": "metaverse_lab", "schema": "public", "table": "eventing_eventoutbox"})
-        self.assertEqual((settings.bronze, settings.max_files, settings.code_root), (ENV["SILVER_BRONZE_TABLE"], 200, "/code"))
+        self.assertEqual((settings.bronze, settings.max_files, settings.max_bytes, settings.code_root), (ENV["SILVER_BRONZE_TABLE"], 200, "512m", "/code"))
+        for limit in ("1", "1048576", "50k", "512m", "1g"):  # Delta 가 읽는 표기(SL-5 D3 (다))
+            with self.subTest(limit=limit):
+                self.assertEqual(control.job_settings({**ENV, "SILVER_MAX_BYTES_PER_TRIGGER": limit}, "metaverse", 1).max_bytes, limit)
 
     def test_no_defaults(self):
         with self.assertRaisesRegex(ValueError, "SILVER_LAKE_ROOT, SILVER_BRONZE_TABLE"):
             control.job_settings({k: v for k, v in ENV.items() if k not in ("SILVER_LAKE_ROOT", "SILVER_BRONZE_TABLE")}, "metaverse", 1)
-        for name in control._ENV:
-            with self.subTest(name=name), self.assertRaisesRegex(ValueError, name):
-                control.job_settings({**ENV, name: " "}, "metaverse", 1)
+        for name in control._ENV:  # 빈 값·빠진 값 모두 "기본값 없음"으로(값 검사가 같은 이름으로 실패하는 것과 구별 — SL-5 돌연변이 B3)
+            for env in ({**ENV, name: " "}, {k: v for k, v in ENV.items() if k != name}):
+                with self.subTest(name=name, present=name in env), self.assertRaisesRegex(ValueError, f"기본값 없음\\): {name}$"):
+                    control.job_settings(env, "metaverse", 1)
 
     def test_bad_values(self):
         for env, domain, generation in (({**ENV, "SILVER_MAX_FILES_PER_TRIGGER": "0"}, "metaverse", 1), ({**ENV, "SILVER_MAX_FILES_PER_TRIGGER": "-1"}, "metaverse", 1),
                                         ({**ENV, "SILVER_LAKE_ROOT": "s3a://a`b"}, "metaverse", 1), ({**ENV, "SILVER_BRONZE_TABLE": "x`"}, "metaverse", 1),
                                         ({**ENV, "SILVER_LAKE_ROOT": "///"}, "metaverse", 1), ({**ENV, "SILVER_BRONZE_TABLE": "s3a://b "}, "metaverse", 1), ({**ENV, "SILVER_SOURCE_DB": "a "}, "metaverse", 1),
+                                        *(({**ENV, "SILVER_MAX_BYTES_PER_TRIGGER": bad}, "metaverse", 1) for bad in ("0", "-1", "512M", "512mb", "1.5g", "m", "512 m", "512m ", "0512m", "1t")),
                                         (ENV, "Meta", 1), (ENV, "metaverse", 0), (ENV, "metaverse", "1")):
             with self.subTest(env=env, domain=domain, generation=generation), self.assertRaises(ValueError):
                 control.job_settings(env, domain, generation)
+
+
+    def test_s3_settings(self):  # SL-5 — s3a 경로면 넷 모두(기본값 없음), file:// 면 없음
+        settings = control.job_settings(ENV, "metaverse", 1)
+        self.assertEqual(control.s3_settings({**ENV, **S3}, settings),
+                         {"endpoint": "http://127.0.0.1:9000", "region": "ap-northeast-2", "access_key_file": "/keys/access", "secret_key_file": "/keys/secret"})
+        with self.assertRaisesRegex(ValueError, "S3_ENDPOINT, S3_SECRET_KEY_FILE$"):  # 빠진 것을 모두 적는다
+            control.s3_settings({**ENV, **S3, "S3_ENDPOINT": "", "S3_SECRET_KEY_FILE": " "}, settings)
+        for name in control.S3_ENV:
+            with self.subTest(name=name):
+                with self.assertRaisesRegex(ValueError, name):
+                    control.s3_settings({k: v for k, v in {**ENV, **S3}.items() if k != name}, settings)
+                with self.assertRaisesRegex(ValueError, f"앞뒤 공백.*{name}"):
+                    control.s3_settings({**ENV, **S3, name: S3[name] + " "}, settings)
+        local = control.job_settings({**ENV, "SILVER_LAKE_ROOT": "/tmp/lake", "SILVER_BRONZE_TABLE": "/tmp/lake/bronze"}, "metaverse", 1)
+        self.assertIsNone(control.s3_settings(ENV, local))  # file:// 시험 — S3 설정이 없어도 된다
+        for env in ({**ENV, "SILVER_LAKE_ROOT": "/tmp/lake"}, {**ENV, "SILVER_BRONZE_TABLE": "/tmp/bronze"}):  # 한쪽만 s3a 여도 필요
+            with self.subTest(env=env), self.assertRaisesRegex(ValueError, "S3_ENDPOINT"):
+                control.s3_settings(env, control.job_settings(env, "metaverse", 1))
 
 
 class SilverRelease(unittest.TestCase):

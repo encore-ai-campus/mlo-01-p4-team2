@@ -17,7 +17,7 @@ OUTBOX = "metaverse_lab.public.eventing_eventoutbox"
 EIDS = ["6f1c2b9e-3d4a-4b5c-8d6e-7f8091a2b3c4", "0a1b2c3d-4e5f-4a6b-9c7d-8e9f0a1b2c3d", "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d", "2b3c4d5e-6f70-4a8b-9cad-1e2f3a4b5c6d"]
 NESTED = (("after", "raw_data"),)
 SPEC = [  # (열, 경로, 형, NULL 허용)
-    ("event_id", "$.after.event_uuid", "string", False), ("event_type", "$.after.event_type", "string", False),
+    ("event_id", "$.after.outbox_uuid", "string", False), ("event_type", "$.after.event_type", "string", False),
     ("schema_version", "$.after.version", "string", False), ("occurred_at", "$.after.occurred_at", "timestamp", False),
     ("produced_at", "$.after.created_at", "timestamp", False), ("actor_user_uuid", "$.after.user_uuid", "string", True),
     ("payload", "$.after.raw_data", "string", False), ("src_lsn", "$.source.lsn", "bigint", True), ("src_txid", "$.source.txId", "bigint", True),
@@ -32,7 +32,7 @@ def setUpModule():
 
 def value(event_id, *, op="c", raw='{"u":"x"}', created="2026-11-04T05:55:37.628609Z", lsn=123, table="eventing_eventoutbox"):
     return json.dumps({"op": op, "source": {"db": "metaverse_lab", "schema": "public", "table": table, "lsn": lsn, "txId": 9 if lsn else None},
-                       "after": {"event_uuid": event_id, "event_type": "post_created", "version": "1.0", "occurred_at": "2026-11-04T05:55:37.622806Z",
+                       "after": {"outbox_uuid": event_id, "event_type": "post_created", "version": "1.0", "occurred_at": "2026-11-04T05:55:37.622806Z",
                                  "created_at": created, "user_uuid": EIDS[3], "raw_data": raw}}).encode("utf-8")
 
 

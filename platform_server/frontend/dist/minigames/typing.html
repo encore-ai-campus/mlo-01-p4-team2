@@ -27,11 +27,11 @@
 <div class="lesson"><span id="lesson-number">01</span><div><h2 id="problem-title"></h2><p id="problem-description"></p></div><small id="lesson-position"></small></div>
 <div class="metrics" aria-label="실시간 기록"><div>진행 시간<strong id="metric-time">00:00.00</strong></div><div>WPM<strong id="metric-wpm">0</strong></div><div>정확도<strong id="metric-accuracy">—</strong></div><div>진행률<strong id="metric-progress">0%</strong></div></div>
 <div id="progress" class="progress" role="progressbar" aria-label="문제 진행률" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
-<section id="editor-panel" class="editor" aria-label="코드 위에 타이핑"><header><span>● &nbsp; main.py <small>코드 위에 타이핑</small></span><button id="whitespace" aria-pressed="false">공백 표시 ␣</button></header><div id="typing-surface" data-testid="inline-typing-surface"><div id="reference-code" class="code-scroll" data-testid="reference-code" aria-label="문제 코드"><pre id="code"></pre></div><textarea id="input" class="native-input" aria-label="코드 입력" aria-describedby="typing-help" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea></div><footer><span id="position">Ln 1, Col 1</span><span id="char-count"></span></footer></section>
+<section id="editor-panel" class="editor" aria-label="코드 위에 타이핑"><header><span>● &nbsp; main.py <small>코드 위에 타이핑</small></span><button id="whitespace" aria-pressed="false">공백 표시 ␣</button></header><div id="typing-surface" data-testid="inline-typing-surface"><div id="reference-code" class="code-scroll" data-testid="reference-code" aria-label="문제 코드"><pre id="code"></pre></div><textarea id="input" class="native-input" lang="en" inputmode="text" aria-label="코드 입력" aria-describedby="typing-help" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea></div><footer><span id="position">Ln 1, Col 1</span><span id="char-count"></span></footer></section>
 <div class="toolbar"><p id="feedback" role="status">첫 글자를 입력하면 시작해요.</p><div><button id="restart">↻ 다시 시작</button><button id="exit">나가기 ↗</button></div></div>
 <section id="result" class="result" aria-label="연습 결과" hidden><div class="eyebrow">PRACTICE COMPLETE</div><h2 id="result-title"></h2><p id="result-description"></p><p id="result-errors"></p><div id="repeat-actions"><button id="repeat">다시 연습 ↻</button><button id="next">다음 문제 →</button></div></section>
 <section class="guide" aria-label="키보드와 손가락 가이드"><header><div><div class="eyebrow">FIND YOUR FINGER</div><h3 id="guide-title">키보드 & 손가락 가이드</h3></div><button id="toggle-guide" aria-expanded="true">가이드 숨기기 −</button></header><div id="guide-body"><p class="instruction"><kbd id="expected"></kbd><span id="finger-description"></span></p><div id="keyboard" class="keyboard" aria-label="QWERTY 키보드"></div><div id="hands"></div><p class="caption"><i></i> 입력할 키와 손가락 <i class="shift-dot"></i> 함께 누를 Shift</p><p id="mistake-rank" hidden></p></div></section>
-<aside id="typing-help"><strong id="mode-help"></strong><p><kbd>Tab</kbd> 공백 4칸 &nbsp; <kbd>Enter</kbd> 줄바꿈 &nbsp; <kbd>Backspace</kbd> 수정 &nbsp; <kbd>Esc</kbd> / <kbd>Shift Tab</kbd> 입력 영역 나가기</p><small id="pass-rule">첫 글자를 입력한 뒤 11.11초 안에 정확도 95% 이상으로 끝까지 입력하면 성공해요.</small></aside>
+<aside id="typing-help"><strong id="mode-help"></strong><p><kbd>Tab</kbd> 공백 4칸 &nbsp; <kbd>Enter</kbd> 줄바꿈 &nbsp; <kbd>Backspace</kbd> 수정 &nbsp; <kbd>Esc</kbd> / <kbd>Shift Tab</kbd> 입력 영역 나가기</p><small>영문 QWERTY 입력 · 숫자와 코드 기호를 지원합니다.</small><br><small id="pass-rule">첫 글자를 입력한 뒤 11.11초 안에 정확도 95% 이상으로 끝까지 입력하면 성공해요.</small></aside>
 <footer class="page-footer">● 제한 시간 11.11초 · 정확도 95% 이상 <span>게임 종료 시 플레이 시간과 성공 여부를 플랫폼에 저장합니다.</span></footer>
 </main><script>(()=>{
 const problems = [
@@ -282,6 +282,19 @@ const keyboardRows = [
         { id: 'ControlRight', label: 'Ctrl', finger: 10, width: 1.25 }],
 ];
 const keyboardKeys = keyboardRows.flat();
+const physicalSymbols = {Backquote:'`',Minus:'-',Equal:'=',BracketLeft:'[',BracketRight:']',Backslash:'\\',
+    Semicolon:';',Quote:"'",Comma:',',Period:'.',Slash:'/',Space:' '};
+function englishKey(event) {
+    const code = event.code || '';
+    const base = /^Key[A-Z]$/.test(code) ? code.slice(3).toLowerCase()
+        : /^Digit[0-9]$/.test(code) ? code.slice(5) : physicalSymbols[code];
+    if (base === undefined) return undefined;
+    const key = keyboardKeys.find(item => item.base === base);
+    if (!key) return undefined;
+    if (/^[a-z]$/.test(base))
+        return Boolean(event.shiftKey) !== Boolean(event.getModifierState?.('CapsLock')) ? base.toUpperCase() : base;
+    return event.shiftKey ? key.shifted ?? base : base;
+}
 const fingerNames = {
     1: '왼손 새끼손가락', 2: '왼손 약지', 3: '왼손 중지', 4: '왼손 검지', 5: '왼손 엄지',
     6: '오른손 엄지', 7: '오른손 검지', 8: '오른손 중지', 9: '오른손 약지', 10: '오른손 새끼손가락',
@@ -332,6 +345,8 @@ function pythonCharacterClasses(code) {
 function attachTypingInput(element, input, readValue, escape) {
     let composing = false;
     let compositionCommit = null;
+    let handledKey = false;
+    let composingFromKey = false;
     const restore = () => {
         if (composing)
             return;
@@ -342,54 +357,58 @@ function attachTypingInput(element, input, readValue, escape) {
             element.setSelectionRange(value.length, value.length);
         }
     };
-    const append = (text) => { input({ type: 'append', text }); restore(); };
+    const append = (text) => {
+        if (typeof text === 'string' && /^[\x20-\x7e\n]+$/.test(text))
+            input({ type: 'append', text });
+        restore();
+    };
+    const acceptKey = (event, action) => {
+        event.preventDefault();
+        handledKey = true;
+        composingFromKey ||= composing;
+        composing = false;
+        input(action);
+        restore();
+    };
     const keydown = (event) => {
-        if (composing || event.isComposing || event.keyCode === 229 || !event.cancelable)
-            return;
+        if (!event.cancelable) return;
+        handledKey = false;
         compositionCommit = null;
-        if (event.key === 'Escape') {
-            event.preventDefault();
-            restore();
-            escape();
-            return;
-        }
-        if (event.key === 'Tab') {
-            // Shift+Tab remains a standard focus escape, in addition to Escape.
-            if (event.shiftKey)
-                return;
-            event.preventDefault();
-            append('    ');
-            return;
-        }
+        const key = event.code || event.key;
         if (event.metaKey || event.ctrlKey || event.altKey) {
-            // Copy and browser shortcuts remain available; editing shortcuts do not.
-            if (['v', 'x', 'z', 'y', 'a', 'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight'].includes(event.key.toLowerCase())
-                || ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight'].includes(event.key))
+            const shortcut = /^Key[A-Z]$/.test(key) ? key.slice(3).toLowerCase() : event.key.toLowerCase();
+            if (['v','x','z','y','a','backspace','delete','arrowleft','arrowright'].includes(shortcut))
                 event.preventDefault();
             return;
         }
-        if (event.key === 'Backspace') {
-            event.preventDefault();
-            input({ type: 'backspace' });
-            restore();
+        if (key === 'Escape') {
+            event.preventDefault(); composing = false; restore(); escape(); return;
+        }
+        if (key === 'Tab') {
+            if (!event.shiftKey) acceptKey(event, {type:'append', text:'    '});
             return;
         }
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            append('\n');
-            return;
+        if (key === 'Backspace') {
+            acceptKey(event, {type:'backspace'}); return;
         }
-        if (['Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key)) {
-            event.preventDefault();
-            restore();
-            return;
+        if (key === 'Enter' || key === 'NumpadEnter') {
+            acceptKey(event, {type:'append', text:'\n'}); return;
         }
-        if (event.key.length === 1) {
+        if (['Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown'].includes(key)) {
+            event.preventDefault(); restore(); return;
+        }
+        const text = englishKey(event) ?? event.key;
+        if (text.length === 1) {
             event.preventDefault();
-            append(event.key);
+            if (/^[\x20-\x7e]$/.test(text)) acceptKey(event, {type:'append', text});
         }
     };
+    const keyup = () => { handledKey = false; };
     const beforeinput = (event) => {
+        if (handledKey) {
+            if (event.cancelable) event.preventDefault();
+            restore(); return;
+        }
         if (composing || event.isComposing)
             return;
         // Some browser/IME paths deliver a non-cancelable beforeinput. Let the DOM
@@ -399,7 +418,6 @@ function attachTypingInput(element, input, readValue, escape) {
         event.preventDefault();
         if (event.inputType === 'insertText' && event.data) {
             if (compositionCommit === event.data) {
-                compositionCommit = null;
                 restore();
                 return;
             }
@@ -415,6 +433,7 @@ function attachTypingInput(element, input, readValue, escape) {
             restore();
     };
     const nativeInput = (event) => {
+        if (handledKey) { restore(); return; }
         const edit = event;
         if (composing || edit.isComposing)
             return;
@@ -442,18 +461,20 @@ function attachTypingInput(element, input, readValue, escape) {
         else
             restore();
     };
-    const compositionstart = () => { composing = true; };
+    const compositionstart = () => { composing = true; composingFromKey = handledKey; };
     const compositionend = (event) => {
-        composing = false;
+        const alreadyTyped = handledKey || composingFromKey;
+        composing = false; composingFromKey = false;
         compositionCommit = event.data || null;
-        if (event.data)
-            input({ type: 'append', text: event.data });
-        restore();
+        if (!alreadyTyped) append(event.data);
+        else restore();
         // Only suppress the immediate browser echo, never a later repeated letter.
         queueMicrotask(() => { compositionCommit = null; });
     };
     const prevent = (event) => { event.preventDefault(); };
     element.addEventListener('keydown', keydown);
+    element.addEventListener('keyup', keyup);
+    element.addEventListener('blur', keyup);
     element.addEventListener('beforeinput', beforeinput);
     element.addEventListener('input', nativeInput);
     element.addEventListener('select', restore);
@@ -465,6 +486,8 @@ function attachTypingInput(element, input, readValue, escape) {
         element.addEventListener(type, prevent);
     return () => {
         element.removeEventListener('keydown', keydown);
+        element.removeEventListener('keyup', keyup);
+        element.removeEventListener('blur', keyup);
         element.removeEventListener('beforeinput', beforeinput);
         element.removeEventListener('input', nativeInput);
         element.removeEventListener('select', restore);

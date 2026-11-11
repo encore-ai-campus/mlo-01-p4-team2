@@ -21,6 +21,19 @@ export const keyboardRows = [
         { id: 'ControlRight', label: 'Ctrl', finger: 10, width: 1.25 }],
 ];
 export const keyboardKeys = keyboardRows.flat();
+const physicalSymbols = {Backquote:'`',Minus:'-',Equal:'=',BracketLeft:'[',BracketRight:']',Backslash:'\\',
+    Semicolon:';',Quote:"'",Comma:',',Period:'.',Slash:'/',Space:' '};
+export function englishKey(event) {
+    const code = event.code || '';
+    const base = /^Key[A-Z]$/.test(code) ? code.slice(3).toLowerCase()
+        : /^Digit[0-9]$/.test(code) ? code.slice(5) : physicalSymbols[code];
+    if (base === undefined) return undefined;
+    const key = keyboardKeys.find(item => item.base === base);
+    if (!key) return undefined;
+    if (/^[a-z]$/.test(base))
+        return Boolean(event.shiftKey) !== Boolean(event.getModifierState?.('CapsLock')) ? base.toUpperCase() : base;
+    return event.shiftKey ? key.shifted ?? base : base;
+}
 export const fingerNames = {
     1: '왼손 새끼손가락', 2: '왼손 약지', 3: '왼손 중지', 4: '왼손 검지', 5: '왼손 엄지',
     6: '오른손 엄지', 7: '오른손 검지', 8: '오른손 중지', 9: '오른손 약지', 10: '오른손 새끼손가락',

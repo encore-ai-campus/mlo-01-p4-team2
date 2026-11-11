@@ -1,7 +1,10 @@
+import { englishKey } from '../core/keyboard.js';
 /** Restricted tail input, scoped to one textarea. No global keyboard listeners. */
 export function attachTypingInput(element, input, readValue, escape) {
     let composing = false;
     let compositionCommit = null;
+    let handledKey = false;
+    let composingFromKey = false;
     const restore = () => {
         if (composing)
             return;
@@ -12,54 +15,58 @@ export function attachTypingInput(element, input, readValue, escape) {
             element.setSelectionRange(value.length, value.length);
         }
     };
-    const append = (text) => { input({ type: 'append', text }); restore(); };
+    const append = (text) => {
+        if (typeof text === 'string' && /^[\x20-\x7e\n]+$/.test(text))
+            input({ type: 'append', text });
+        restore();
+    };
+    const acceptKey = (event, action) => {
+        event.preventDefault();
+        handledKey = true;
+        composingFromKey ||= composing;
+        composing = false;
+        input(action);
+        restore();
+    };
     const keydown = (event) => {
-        if (composing || event.isComposing || event.keyCode === 229 || !event.cancelable)
-            return;
+        if (!event.cancelable) return;
+        handledKey = false;
         compositionCommit = null;
-        if (event.key === 'Escape') {
-            event.preventDefault();
-            restore();
-            escape();
-            return;
-        }
-        if (event.key === 'Tab') {
-            // Shift+Tab remains a standard focus escape, in addition to Escape.
-            if (event.shiftKey)
-                return;
-            event.preventDefault();
-            append('    ');
-            return;
-        }
+        const key = event.code || event.key;
         if (event.metaKey || event.ctrlKey || event.altKey) {
-            // Copy and browser shortcuts remain available; editing shortcuts do not.
-            if (['v', 'x', 'z', 'y', 'a', 'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight'].includes(event.key.toLowerCase())
-                || ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight'].includes(event.key))
+            const shortcut = /^Key[A-Z]$/.test(key) ? key.slice(3).toLowerCase() : event.key.toLowerCase();
+            if (['v','x','z','y','a','backspace','delete','arrowleft','arrowright'].includes(shortcut))
                 event.preventDefault();
             return;
         }
-        if (event.key === 'Backspace') {
-            event.preventDefault();
-            input({ type: 'backspace' });
-            restore();
+        if (key === 'Escape') {
+            event.preventDefault(); composing = false; restore(); escape(); return;
+        }
+        if (key === 'Tab') {
+            if (!event.shiftKey) acceptKey(event, {type:'append', text:'    '});
             return;
         }
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            append('\n');
-            return;
+        if (key === 'Backspace') {
+            acceptKey(event, {type:'backspace'}); return;
         }
-        if (['Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key)) {
-            event.preventDefault();
-            restore();
-            return;
+        if (key === 'Enter' || key === 'NumpadEnter') {
+            acceptKey(event, {type:'append', text:'\n'}); return;
         }
-        if (event.key.length === 1) {
+        if (['Delete','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown'].includes(key)) {
+            event.preventDefault(); restore(); return;
+        }
+        const text = englishKey(event) ?? event.key;
+        if (text.length === 1) {
             event.preventDefault();
-            append(event.key);
+            if (/^[\x20-\x7e]$/.test(text)) acceptKey(event, {type:'append', text});
         }
     };
+    const keyup = () => { handledKey = false; };
     const beforeinput = (event) => {
+        if (handledKey) {
+            if (event.cancelable) event.preventDefault();
+            restore(); return;
+        }
         if (composing || event.isComposing)
             return;
         // Some browser/IME paths deliver a non-cancelable beforeinput. Let the DOM
@@ -69,7 +76,6 @@ export function attachTypingInput(element, input, readValue, escape) {
         event.preventDefault();
         if (event.inputType === 'insertText' && event.data) {
             if (compositionCommit === event.data) {
-                compositionCommit = null;
                 restore();
                 return;
             }
@@ -85,6 +91,7 @@ export function attachTypingInput(element, input, readValue, escape) {
             restore();
     };
     const nativeInput = (event) => {
+        if (handledKey) { restore(); return; }
         const edit = event;
         if (composing || edit.isComposing)
             return;
@@ -112,18 +119,20 @@ export function attachTypingInput(element, input, readValue, escape) {
         else
             restore();
     };
-    const compositionstart = () => { composing = true; };
+    const compositionstart = () => { composing = true; composingFromKey = handledKey; };
     const compositionend = (event) => {
-        composing = false;
+        const alreadyTyped = handledKey || composingFromKey;
+        composing = false; composingFromKey = false;
         compositionCommit = event.data || null;
-        if (event.data)
-            input({ type: 'append', text: event.data });
-        restore();
+        if (!alreadyTyped) append(event.data);
+        else restore();
         // Only suppress the immediate browser echo, never a later repeated letter.
         queueMicrotask(() => { compositionCommit = null; });
     };
     const prevent = (event) => { event.preventDefault(); };
     element.addEventListener('keydown', keydown);
+    element.addEventListener('keyup', keyup);
+    element.addEventListener('blur', keyup);
     element.addEventListener('beforeinput', beforeinput);
     element.addEventListener('input', nativeInput);
     element.addEventListener('select', restore);
@@ -135,6 +144,8 @@ export function attachTypingInput(element, input, readValue, escape) {
         element.addEventListener(type, prevent);
     return () => {
         element.removeEventListener('keydown', keydown);
+        element.removeEventListener('keyup', keyup);
+        element.removeEventListener('blur', keyup);
         element.removeEventListener('beforeinput', beforeinput);
         element.removeEventListener('input', nativeInput);
         element.removeEventListener('select', restore);

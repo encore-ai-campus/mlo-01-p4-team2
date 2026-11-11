@@ -152,7 +152,7 @@ class GamePlayTests(TestCase):
                 self.assertEqual(row.completed_at, first_time)
                 if not existed:
                     self.assertEqual(row.completed_at.isoformat(), result["ended_at"])
-                self.assertEqual(len(result["achievements"]), 10)
+                self.assertEqual(len(result["achievements"]), 11)
         self.assertEqual(EventProgress.objects.filter(user=self.user).count(), 2)
         self.assertTrue(all(not row["achieved"] for row in achievement_snapshot(self.other)))
 
@@ -171,7 +171,7 @@ class GamePlayTests(TestCase):
         from django.db import DatabaseError
         from .models import EventProgress
         play = start_game(self.user, "typing", self.session.pk)
-        with patch("event_story.game_services.EventProgress.objects.get_or_create", side_effect=DatabaseError("save failure")):
+        with patch("event_story.achievement_services.EventProgress.objects.get_or_create", side_effect=DatabaseError("save failure")):
             with self.assertRaises(DatabaseError):
                 self.result(play, status="SUCCESS")
         row = GamePlay.objects.get(pk=play["play_uuid"])

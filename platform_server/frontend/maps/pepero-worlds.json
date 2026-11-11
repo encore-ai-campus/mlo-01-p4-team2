@@ -1731,38 +1731,6 @@
           ]
         },
         {
-          "id": "reference-campus-108",
-          "type": "pepero-art",
-          "x": 2271.5,
-          "y": 81,
-          "w": 46,
-          "h": 46,
-          "solid": true,
-          "renderHeight": 147.5,
-          "seasonalArt": "pedestal",
-          "artWidth": 118,
-          "artHeight": 147.5,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              2237.469,
-              102.038
-            ],
-            [
-              2245.339,
-              54.839
-            ],
-            [
-              2296.182,
-              48.944
-            ],
-            [
-              2298.144,
-              105.975
-            ]
-          ]
-        },
-        {
           "id": "reference-campus-110",
           "type": "pepero-art",
           "x": 2271.5,

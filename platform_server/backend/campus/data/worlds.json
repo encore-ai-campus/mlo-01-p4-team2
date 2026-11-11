@@ -807,17 +807,6 @@
           }
         },
         {
-          "id": "reference-campus-108",
-          "type": "pepero-art",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 2271.5,
-            "y": 81,
-            "w": 46,
-            "h": 46
-          }
-        },
-        {
           "id": "reference-campus-110",
           "type": "pepero-art",
           "confirmTransfer": false,
@@ -1183,12 +1172,12 @@
           "gameCode": "timer",
           "confirmTransfer": false,
           "interactionPoint": [
-            2293.5,
-            217
+            2308.5,
+            104
           ],
           "footprint": {
-            "x": 2211.5,
-            "y": 180,
+            "x": 2226.5,
+            "y": 67,
             "w": 54,
             "h": 74
           }
@@ -1201,12 +1190,30 @@
           "gameCode": "typing",
           "confirmTransfer": false,
           "interactionPoint": [
-            2293.5,
-            377
+            2308.5,
+            239
           ],
           "footprint": {
-            "x": 2211.5,
-            "y": 340,
+            "x": 2226.5,
+            "y": 202,
+            "w": 54,
+            "h": 74
+          }
+        },
+        {
+          "id": "minigame-term-match",
+          "type": "game-pc-station",
+          "name": "페어링 정원",
+          "action": "minigame",
+          "gameCode": "term_match",
+          "confirmTransfer": false,
+          "interactionPoint": [
+            2308.5,
+            374
+          ],
+          "footprint": {
+            "x": 2226.5,
+            "y": 337,
             "w": 54,
             "h": 74
           }
@@ -2308,32 +2315,6 @@
         },
         {
           "x": 2237.469,
-          "y": 48.944,
-          "w": 60.67499999999973,
-          "h": 57.03099999999999,
-          "points": [
-            [
-              2237.469,
-              102.038
-            ],
-            [
-              2245.339,
-              54.839
-            ],
-            [
-              2296.182,
-              48.944
-            ],
-            [
-              2298.144,
-              105.975
-            ]
-          ],
-          "pad": 0,
-          "objectId": "reference-campus-108"
-        },
-        {
-          "x": 2237.469,
           "y": 533.444,
           "w": 60.67499999999973,
           "h": 57.03100000000006,
@@ -2631,20 +2612,28 @@
           "objectId": "python-exterior-bench-1"
         },
         {
-          "x": 2211.5,
-          "y": 180,
+          "x": 2226.5,
+          "y": 67,
           "w": 54,
           "h": 74,
           "pad": 0,
           "objectId": "minigame-timer"
         },
         {
-          "x": 2211.5,
-          "y": 340,
+          "x": 2226.5,
+          "y": 202,
           "w": 54,
           "h": 74,
           "pad": 0,
           "objectId": "minigame-typing"
+        },
+        {
+          "x": 2226.5,
+          "y": 337,
+          "w": 54,
+          "h": 74,
+          "pad": 0,
+          "objectId": "minigame-term-match"
         }
       ]
     },

@@ -5,8 +5,8 @@ from django.utils import timezone
 from learning.services import LearningError, learning_write_transaction
 from . import main
 from .access import verify
-from .achievement_services import RECIPE_ID, achievement_snapshot
-from .models import EventProgress, StoryProgress
+from .achievement_services import RECIPE_ID, achievement_snapshot, complete_achievement
+from .models import StoryProgress
 from .services import log
 
 EVENT_KEY = 'pepero-2026-secret-recipe'
@@ -81,11 +81,8 @@ def action(user, data, session_uuid=None):
         payload, session_uuid)
     result = {'state': status(user, progress)}
     if action == 'finish':
-        award, _ = EventProgress.objects.get_or_create(user=user, event_id=RECIPE_ID)
         newly_completed = []
-        if award.status != EventProgress.Status.COMPLETED:
-            award.status, award.completed_at = EventProgress.Status.COMPLETED, progress.completed_at
-            award.save(update_fields=['status', 'completed_at'])
+        if complete_achievement(user, RECIPE_ID, progress.completed_at):
             newly_completed.append(str(RECIPE_ID))
         result.update(achievements=achievement_snapshot(user), newly_completed=newly_completed)
     return result

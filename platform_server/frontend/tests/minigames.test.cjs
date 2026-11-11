@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.resolve(__dirname,'..'),source=fs.readFileSync(root+'/dist/minigames.js','utf8');
 const plain=x=>JSON.parse(JSON.stringify(x));
-function fixture(){
+function fixture(game='timer'){
  const elements=new Map(),listeners=new Map(),requests=[],starts=[],events=[];let blocked=false,opens=0,closes=0;
  function el(){return {hidden:true,open:false,textContent:'',children:[],dataset:{},handlers:{},contentWindow:{postMessage:(...args)=>sent.push(args)},
   addEventListener(k,fn){this.handlers[k]=fn;},focus(){},showModal(){this.open=true;},close(){this.open=false;},replaceChildren(...items){this.children=items;}};}
@@ -9,9 +9,9 @@ function fixture(){
  const window={addEventListener:(name,fn)=>listeners.set(name,fn),dispatchEvent:event=>events.push(event)},document={cookie:'campus_csrftoken=csrf',getElementById:get,createElement:el};
  vm.runInNewContext(source,{window,document,AbortSignal,CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}}, location:{origin:'http://campus.test'},setTimeout:()=>1,clearTimeout(){},
   fetch:(url,options)=>new Promise((resolve,reject)=>requests.push({url,options,resolve,reject}))});
- const api=window.CampusMinigames.create({start:async id=>{starts.push(id);return {play_uuid:starts.length===1?'play':'play-'+starts.length,game_code:'timer',game_name:'타이머',config:{targetMs:11110}};},isBlocked:()=>blocked,onOpen(){opens++;},onClose(){closes++;}});
+ const api=window.CampusMinigames.create({start:async id=>{starts.push(id);return {play_uuid:starts.length===1?'play':'play-'+starts.length,game_code:game,game_name:'타이머',config:{targetMs:11110}};},isBlocked:()=>blocked,onOpen(){opens++;},onClose(){closes++;}});
  return {api,get,starts,requests,sent,events,freeze(){listeners.get('campus:freeze')({detail:{blocking:true}});},set blocked(v){blocked=v;},get opens(){return opens;},get closes(){return closes;},
-  frame:()=>get('minigameFrame').children[0],message(data,options={}){listeners.get('message')({origin:'http://campus.test',source:this.frame()?.contentWindow,data:{version:1,gameId:'timer',playId:this.frame()?.dataset.sessionId||'play',...data},...options});},
+  frame:()=>get('minigameFrame').children[0],message(data,options={}){listeners.get('message')({origin:'http://campus.test',source:this.frame()?.contentWindow,data:{version:1,gameId:game,playId:this.frame()?.dataset.sessionId||'play',...data},...options});},
   async respond(data,index=requests.length-1,ok=true){requests[index].resolve({ok,json:async()=>data});await new Promise(r=>setImmediate(r));}};
 }
 test('game launch and message bridge bind only the active origin, frame, game and play',async()=>{
@@ -113,17 +113,23 @@ test('typing draws only beginner problems and each problem remains completable',
  assert.doesNotMatch(html,/id="(?:difficulty|problem)"/);
 });
 
-test('stations face the long office wall with reachable east-facing interaction points',()=>{
+test('stations leave room at the office wall with reachable east-facing interaction points',()=>{
  const world=require('../tools/build-event-map.cjs').build().campus;
  const games=require('../maps/minigames.json');
- assert.equal(games[1].y-games[0].y-games[0].h,86);
+ assert.equal(games[1].y-games[0].y-games[0].h,61);
  assert.ok(!world.objects.some(o=>o.id==='reference-campus-109'));
+ assert.ok(!world.objects.some(o=>o.id==='reference-campus-108'));
+ assert.ok(world.objects.some(o=>o.id==='reference-campus-110'));
  for(const game of games){
   assert.equal(game.interactionPoint[0]-(game.x+game.w),28);
   assert.equal(game.interactionPoint[1],game.y+game.h/2);
   assert.equal(game.facing,'east');
   assert.ok(game.renderHeight>=170);
  }
+ const pairing=games.find(game=>game.gameCode==='term_match');
+ assert.equal(pairing.name,'페어링 정원');assert.equal(pairing.seasonalArt,'pairing-garden-east');
+ assert.notEqual(pairing.seasonalArt,games.find(game=>game.gameCode==='typing').seasonalArt);
+ assert.ok(fs.existsSync(root+'/dist/assets/minigames/pairing-garden-east-v1.png'));
 });
 
 test('a confirmed freeze closes the standalone frame without retrying a forbidden result',async()=>{
@@ -151,5 +157,17 @@ test('replay never skips a failed result save',async()=>{
  f.message({type:'minigame:result',result:{status:'FAILED',duration_ms:10}});f.message({type:'minigame:restart'});
  await f.respond({error:'저장 실패'},0,false);assert.equal(f.starts.length,1);
  f.get('minigameRetry').onclick();await f.respond({status:'FAILED'});
+ assert.equal(f.starts.length,2);
+});
+
+
+test('term pairing forwards only the active play and its bounded card proof',async()=>{
+ const f=fixture('term_match');await f.api.open({id:'minigame-term-match'});f.message({type:'minigame:ready'});
+ assert.equal(f.get('minigameTitle').textContent,'페어링 정원');
+ assert.match(f.frame().src,/term_match.html/);
+ f.message({type:'minigame:result',result:{status:'SUCCESS',duration_ms:8000}});assert.equal(f.requests.length,0);
+ const result={status:'SUCCESS',duration_ms:8000,picks:[[0,8,8000]]};
+ f.message({type:'minigame:result',result});assert.deepEqual(JSON.parse(f.requests[0].options.body),result);
+ await f.respond({status:'SUCCESS'});f.message({type:'minigame:restart'});await new Promise(r=>setImmediate(r));
  assert.equal(f.starts.length,2);
 });

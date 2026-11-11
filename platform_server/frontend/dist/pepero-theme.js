@@ -5,10 +5,10 @@
   if(window.CAMPUS_SEASON!=='pepero')return;
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const art = {};
-  for (const key of ['monument','cart','gifts','stall','workbench','flowerbox','hero','gate','pedestal','cafe','refill-chest','recipe-note','timer-station-east','typing-station-east']) {
+  for (const key of ['monument','cart','gifts','stall','workbench','flowerbox','hero','gate','pedestal','cafe','refill-chest','recipe-note','timer-station-east','typing-station-east','pairing-garden-east']) {
     const image = new Image(); image.decoding = 'async';
     image.onload = () => window.dispatchEvent(new CustomEvent('campus-seasonal-assets-ready',{detail:{key}}));
-    image.src = ['timer-station-east','typing-station-east'].includes(key)?`assets/minigames/${key}-v1.webp`:`assets/seasonal/pepero/${['monument','cart','gifts','refill-chest','recipe-note'].includes(key)?'':'reference/'}${key}.png`; art[key] = image;
+    image.src = key==='pairing-garden-east'?'assets/minigames/pairing-garden-east-v1.png':['timer-station-east','typing-station-east'].includes(key)?`assets/minigames/${key}-v1.webp`:`assets/seasonal/pepero/${['monument','cart','gifts','refill-chest','recipe-note'].includes(key)?'':'reference/'}${key}.png`; art[key] = image;
   }
   function drawAsset(g,image,q,w,h) {
     if (!image.complete || !image.naturalWidth) return;
@@ -25,7 +25,7 @@
     g.save();g.fillStyle='#51333ff2';g.strokeStyle='#dfbc83';g.lineWidth=1;
     g.beginPath();g.roundRect(q.x-54,top,108,20,6);g.fill();g.stroke();
     g.textAlign='center';g.textBaseline='middle';g.fillStyle='#fff0cf';g.font='600 10px sans-serif';
-    g.fillText(o.gameCode==='timer'?'11.11초 타이머':'코드 타이핑',q.x,top+10);g.restore();
+    g.fillText(({timer:'11.11초 타이머',typing:'코드 타이핑',term_match:'페어링 정원'})[o.gameCode],q.x,top+10);g.restore();
   }
   function heart(g,x,y,s,color) {
     g.save();g.translate(x,y);g.scale(s,s);g.beginPath();g.moveTo(0,.75);
@@ -35,7 +35,7 @@
   function paint(o,{g,p,box,line,ellipse,poly,verticalPanel},base=0) {
     if(window.CAMPUS_SEASON!=='pepero')return false;
     if(o.seasonalArt){
-      const image=art[o.seasonalArt];if(!image?.complete||!image.naturalWidth)return true;
+      const image=art[o.seasonalArt];if(!image?.complete||!image.naturalWidth)return o.action!=='minigame';
       const q=p(o.x+o.w/2+(o.artGroundOffsetX||0),o.y+o.h/2,base),s=Math.min(o.artWidth/image.naturalWidth,o.artHeight/image.naturalHeight),w=image.naturalWidth*s,h=image.naturalHeight*s;
       if(o.action==='minigame'&&Number.isFinite(o.wallContactX)){
         // A small contact shadow joins the furniture back to the inner wall face.

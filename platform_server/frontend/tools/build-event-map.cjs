@@ -7,7 +7,7 @@ function build(){
   const ids=new Set();
   for(const game of games){
     const world=source.worlds[game.floor];
-    if(!world||ids.has(game.id)||!['timer','typing'].includes(game.gameCode)||!game.interactionPoint||
+    if(!world||ids.has(game.id)||!['timer','typing','term_match'].includes(game.gameCode)||!game.interactionPoint||
        ![game.x,game.y,game.w,game.h,...game.interactionPoint].every(Number.isFinite))throw new Error('Invalid minigame: '+game.id);
     ids.add(game.id);
     world.objects.push({...game,type:'game-pc-station',action:'minigame',solid:true,tags:['E키로 게임 시작']});

@@ -147,3 +147,11 @@ test('the advertising badge is optional during rollout and joins the existing no
  assert.equal(f.get('achievementNoticeName').textContent,'시선 강탈 사건');
  assert.match(f.get('achievementNoticeImage').src,/ad-impression.png$/);
 });
+
+test('term pairing renders the supplied badge and announces its first completion',async()=>{
+ const f=fixture();await f.respond();
+ const card={event_uuid:'memory',name:'기억력 도둑',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/term-match.png'};
+ f.update([...rows(),card]);assert.equal(f.get('achievementsList').children.length,10);
+ f.update([...rows(),{...card,achieved:true,completed_at:'2026-11-04T00:00:00Z',completion_order:1}]);f.runTimer(0);
+ assert.equal(f.get('achievementNoticeName').textContent,'기억력 도둑');assert.match(f.get('achievementNoticeImage').src,/term-match.png$/);
+});

@@ -1,7 +1,7 @@
 /* Achievement state comes only from the authenticated API and personal socket. */
 (() => {
   'use strict';
-  const names=['수상한 친화력','참을성 테스트','뱀을 길들이는 자','데이터의 비밀문','찰나의 기적','손가락에 불났다','삼각지대 탈출','컴퓨터의 속마음'];
+  const names=['수상한 친화력','참을성 테스트','뱀을 길들이는 자','데이터의 비밀문','찰나의 기적','손가락에 불났다','삼각지대 탈출','컴퓨터의 속마음','꾸왕이의 비밀 레시피'];
   function create({isBlocked=()=>false,onOpen=()=>{},onClose=()=>{}}={}){
     const $=id=>document.getElementById(id),button=$('achievementsOpen'),dialog=$('achievementsDialog');
     const list=$('achievementsList'),status=$('achievementsStatus'),retry=$('achievementsRetry');
@@ -37,7 +37,8 @@
     window.addEventListener('campus:achievement-earned',event=>enqueueNotices(event.detail?.newly_completed));
     function accept(rows){
       if(!Array.isArray(rows))throw new Error('Invalid achievements');
-      const next=names.map(name=>{
+      const expected=rows.some(row=>row?.name==='시선 강탈 사건')?[...names,'시선 강탈 사건']:names;
+      const next=expected.map(name=>{
         const item=rows.find(row=>row?.name===name);
         if(!item||typeof item.event_uuid!=='string'||!item.event_uuid||typeof item.achieved!=='boolean'||
           !(item.completed_at===null||typeof item.completed_at==='string')||typeof item.image_url!=='string')throw new Error('Invalid achievement');

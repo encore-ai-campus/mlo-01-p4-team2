@@ -5,7 +5,7 @@
   const detector=new ContinuousExposure();
   let roof=null,nextRoof=0,roofLoading=false,portalVersion=0,portalAds=[];
   const reporting=new Map();
-  const csrf=()=>document.querySelector('[name=csrfmiddlewaretoken]')?.value||decodeURIComponent(document.cookie.match(/(?:^|; )csrftoken=([^;]*)/)?.[1]||'');
+  const csrf=()=>document.querySelector('[name=csrfmiddlewaretoken]')?.value||decodeURIComponent(document.cookie.match(/(?:^|; )(?:campus_csrftoken|csrftoken)=([^;]*)/)?.[1]||'');
   async function post(path,body={},timeout=5000){
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);
     try{
@@ -25,7 +25,10 @@
     if(reporting.has(decision))return;
     reporting.set(decision,true);
     // 접수 응답 유실 시 같은 결정을 한 번 재전송한다. 백엔드가 최초 반응 ID를 재사용한다.
-    const send=()=>post('decisions/'+decision+'/impression/');
+    const send=()=>post('decisions/'+decision+'/impression/').then(result=>{
+      if(Array.isArray(result.achievements))window.dispatchEvent(new CustomEvent('campus:achievements',{detail:result.achievements}));
+      if(result.newly_completed?.length)window.dispatchEvent(new CustomEvent('campus:achievement-earned',{detail:result}));
+    });
     send().catch(()=>setTimeout(()=>send().catch(()=>{}),1000));
   }
   async function refreshRoof(view){

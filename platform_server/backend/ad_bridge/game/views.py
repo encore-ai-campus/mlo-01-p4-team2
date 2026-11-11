@@ -144,6 +144,9 @@ def report_impression(request, decision_id):
         "occurred_at": record.occurred_at, "delivery_state": record.delivery_state,
         "request_id": record.request_id, "duplicate": not outcome.created,
     }
+    update = getattr(record, 'achievement_update', None)
+    if update is not None:
+        payload.update(update)
     if outcome.error:
         payload["error"] = outcome.error
     if outcome.upstream_status is not None:

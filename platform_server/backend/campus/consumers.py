@@ -817,6 +817,10 @@ class CampusConsumer(AsyncWebsocketConsumer):
         if result["newly_completed"]:
             await self.send_packet({"type": "achievement_update", **result})
 
+    async def achievement_update(self, event):
+        if await self.current_identity() is not None:
+            await self.send_packet({'type': 'achievement_update', **event['result']})
+
     async def refill_pepero(self, arguments):
         obj_id = arguments.get("objectId")
         obj = self.controller.world.objects.get(obj_id) if isinstance(obj_id, str) else None

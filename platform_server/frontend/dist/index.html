@@ -370,9 +370,13 @@
   <!-- learning-assets -->
   <script src="campus-guide.js"></script>
   <script src="campus-space-guide.js"></script>
-  <!-- 광고는 멈췄다(운영 10/16): 광고 모듈 대신 옥상 사진 순환이 같은 호출 지점(CampusAds)을 받는다 -->
+  {% if ads_enabled %}
+  <script src="ad-visibility.js"></script>
+  <script src="campus-ads.js"></script>
+  {% else %}
   <script src="roof-slideshow-config.js"></script>
   <script src="roof-slideshow.js"></script>
+  {% endif %}
   <script src="messages.js"></script>
   <script src="campus-world-actions.js"></script>
   <script src="mission-room-map.js?v=20261104-coating-fast-v1"></script>

@@ -20,6 +20,8 @@ CS_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd107")
 SQL_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd111")
 TIMER_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd108")
 TYPING_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd109")
+RECIPE_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd103")
+AD_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd104")
 ACHIEVEMENT_IMAGES = {
     GREETING_ID: "/static/campus/assets/achievements/manager-greeting.png",
     POKING_ID: "/static/campus/assets/achievements/manager-poking.png",
@@ -29,6 +31,8 @@ ACHIEVEMENT_IMAGES = {
     TYPING_ID: "/static/campus/assets/achievements/code-typing.png",
     ALL_SUBJECTS_ID: "/static/campus/assets/achievements/all-subjects.png",
     CS_ID: "/static/campus/assets/achievements/cs-intermediate.png",
+    RECIPE_ID: "/static/campus/assets/achievements/secret-recipe.png",
+    AD_ID: "/static/campus/assets/achievements/ad-impression.png",
 }
 
 
@@ -57,6 +61,37 @@ def achievement_snapshot(user):
          "image_url": image_url}
         for event_id, image_url in ACHIEVEMENT_IMAGES.items()
     ]
+
+
+def record_ad_impression(impression):
+    """A validated 200/201 impression receipt grants one account-owned badge."""
+    if (impression.owner_id is None or impression.delivery_state != 'ACKNOWLEDGED'
+            or impression.status not in ('RECEIVED', 'ACCEPTED', 'REJECTED')):
+        return None
+    from accounts.models import ActiveLogin
+    from asgiref.sync import async_to_sync
+    from channels.layers import get_channel_layer
+    from campus.session_registry import session_group
+
+    with transaction.atomic():
+        user = get_user_model().objects.select_for_update().filter(pk=impression.owner_id, is_active=True).first()
+        if user is None:
+            return None
+        progress, _ = EventProgress.objects.get_or_create(user=user, event_id=AD_ID)
+        newly_completed = []
+        if progress.status != EventProgress.Status.COMPLETED:
+            progress.status, progress.completed_at = EventProgress.Status.COMPLETED, timezone.now()
+            progress.save(update_fields=['status', 'completed_at'])
+            newly_completed.append(str(AD_ID))
+        result = {'achievements': achievement_snapshot(user), 'newly_completed': newly_completed}
+        key = ActiveLogin.objects.filter(user=user).values_list('session_key', flat=True).first()
+        if newly_completed and key:
+            def notify():
+                layer = get_channel_layer()
+                if layer is not None:
+                    async_to_sync(layer.group_send)(session_group(key), {'type': 'achievement_update', 'result': result})
+            transaction.on_commit(notify, robust=True)
+        return result
 
 
 def record_manager_action(user, manager_id, action):

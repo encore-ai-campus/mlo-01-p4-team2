@@ -6,6 +6,7 @@ from urllib.error import HTTPError
 from urllib.request import HTTPCookieProcessor, ProxyHandler, Request, build_opener
 
 from channels.testing import ChannelsLiveServerTestCase
+from tests.recipe_server import RecipeServerProcess
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import Client, override_settings
@@ -21,8 +22,10 @@ from tests.test_postgres_platform import seed_catalog
 from tests.test_recipe_story import act
 
 
+
 @override_settings(DEBUG=True, EVENT_STORY_PREVIEW=True)
 class RecipeLiveTests(ChannelsLiveServerTestCase):
+    ProtocolServerProcess = RecipeServerProcess
     serve_static = False
     host = '127.0.0.1'
 
@@ -90,7 +93,7 @@ class RecipeLiveTests(ChannelsLiveServerTestCase):
         self.assertEqual(self.post(http, 'acquire', proof), response)
 
     def test_real_guide_proof_csrf_both_endings_and_persistent_single_reward(self):
-        for topping in ('thanks', 'promise'):
+        for index, topping in enumerate(('thanks', 'promise')):
             with self.subTest(topping=topping):
                 user, http = self.account('live-recipe-' + topping, 1250, 185)
                 act(user, 'acquire')
@@ -102,7 +105,9 @@ class RecipeLiveTests(ChannelsLiveServerTestCase):
                 response = self.post(http, 'topping', proof, topping=topping)
                 self.assertFalse(response['state']['secretCompleted'])
                 response = self.post(http, 'finish', proof)
-                self.assertEqual(response['newly_completed'], [str(RECIPE_ID)])
+                self.assertEqual(response['newly_completed'], [str(RECIPE_ID)] if index == 0 else [])
                 self.assertTrue(response['state']['secretCompleted'])
+                from event_story.models import EventProgress
+                self.assertEqual(EventProgress.objects.filter(event_id=RECIPE_ID,status='COMPLETED').count(),1)
                 self.assertEqual(self.post(http, 'finish', proof)['newly_completed'], [])
                 self.assertEqual(self.request(http, '/api/event-story/recipe/status/')[1], response['state'])

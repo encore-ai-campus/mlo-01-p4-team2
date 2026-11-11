@@ -1,0 +1,7 @@
+{
+  "python": "Python 3.12.11",
+  "node": "v26.7.0",
+  "platform": "macOS-14.6.1-arm64-arm-64bit-Mach-O",
+  "backend_requirements_sha256": "e03764f9141d2f0ef0e23ec17575167d909e968f75b4a086d39c9fa20cce0071",
+  "frontend_requirements_sha256": "6d5f19bf02d24f61a1872e52735377bbd420ccf1eedd52039603ce6d3caefea3"
+}

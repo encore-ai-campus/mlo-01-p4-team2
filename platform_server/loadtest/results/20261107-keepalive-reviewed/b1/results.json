@@ -1,0 +1,806 @@
+{
+  "outcome": "passed",
+  "checks": [
+    {
+      "name": "owned_fresh_fixture",
+      "passed": true
+    },
+    {
+      "name": "empty_final_ranking",
+      "passed": true
+    },
+    {
+      "name": "active_sessions",
+      "passed": true
+    },
+    {
+      "name": "warmup_status",
+      "passed": true
+    },
+    {
+      "name": "start_same_request.full_expected_responses",
+      "passed": true
+    },
+    {
+      "name": "original_receipt_for_every_duplicate",
+      "passed": true
+    },
+    {
+      "name": "duplicate_start_creates_100_plays",
+      "passed": true
+    },
+    {
+      "name": "start_fresh.full_expected_responses",
+      "passed": true
+    },
+    {
+      "name": "start_old_receipt.full_expected_responses",
+      "passed": true
+    },
+    {
+      "name": "old_receipt_is_interrupted_and_unchanged",
+      "passed": true
+    },
+    {
+      "name": "old_replay_does_not_interrupt_current_play",
+      "passed": true
+    },
+    {
+      "name": "finish.full_expected_responses",
+      "passed": true
+    },
+    {
+      "name": "finish_retry.full_expected_responses",
+      "passed": true
+    },
+    {
+      "name": "result_receipt_replay_unchanged",
+      "passed": true
+    },
+    {
+      "name": "result_db_replay_unchanged",
+      "passed": true
+    },
+    {
+      "name": "finished_result_evidence_and_server_timing",
+      "passed": true
+    },
+    {
+      "name": "conflicting_result_rejected",
+      "passed": true
+    },
+    {
+      "name": "deliver.full_expected_responses",
+      "passed": true
+    },
+    {
+      "name": "rank_1_to_100_unique",
+      "passed": true
+    },
+    {
+      "name": "completion_time_and_session",
+      "passed": true
+    },
+    {
+      "name": "deliver_retry.full_expected_responses",
+      "passed": true
+    },
+    {
+      "name": "completion_rank_return_and_db_unchanged",
+      "passed": true
+    },
+    {
+      "name": "start_sql_memory.full_expected_responses",
+      "passed": true
+    },
+    {
+      "name": "retry_sql_memory.full_expected_responses",
+      "passed": true
+    },
+    {
+      "name": "sql_memory_original_challenge_and_token",
+      "passed": true
+    },
+    {
+      "name": "start_card_match.full_expected_responses",
+      "passed": true
+    },
+    {
+      "name": "retry_card_match.full_expected_responses",
+      "passed": true
+    },
+    {
+      "name": "card_match_original_challenge_and_token",
+      "passed": true
+    },
+    {
+      "name": "start_coating.full_expected_responses",
+      "passed": true
+    },
+    {
+      "name": "retry_coating.full_expected_responses",
+      "passed": true
+    },
+    {
+      "name": "coating_original_challenge_and_token",
+      "passed": true
+    },
+    {
+      "name": "start_topping.full_expected_responses",
+      "passed": true
+    },
+    {
+      "name": "retry_topping.full_expected_responses",
+      "passed": true
+    },
+    {
+      "name": "topping_original_challenge_and_token",
+      "passed": true
+    },
+    {
+      "name": "start_wrapping.full_expected_responses",
+      "passed": true
+    },
+    {
+      "name": "retry_wrapping.full_expected_responses",
+      "passed": true
+    },
+    {
+      "name": "wrapping_original_challenge_and_token",
+      "passed": true
+    },
+    {
+      "name": "cross_process_start.full_expected_responses",
+      "passed": true
+    },
+    {
+      "name": "cross_process_same_account_one_receipt",
+      "passed": true
+    },
+    {
+      "name": "unread_body_success_headers",
+      "passed": true
+    },
+    {
+      "name": "unread_body_retry_recovers_saved_receipt",
+      "passed": true
+    },
+    {
+      "name": "write_receipt_survives_status_fail",
+      "passed": true
+    },
+    {
+      "name": "write_receipt_survives_status_delay",
+      "passed": true
+    },
+    {
+      "name": "status_2sec_delay_does_not_delay_writes",
+      "passed": true
+    },
+    {
+      "name": "status_after_cleanup",
+      "passed": true
+    },
+    {
+      "name": "previous_progress_timestamps_and_sessions_unchanged",
+      "passed": true
+    },
+    {
+      "name": "final_progress_unchanged",
+      "passed": true
+    },
+    {
+      "name": "final_integrity",
+      "passed": true
+    },
+    {
+      "name": "all_responses_valid_and_received",
+      "passed": true
+    },
+    {
+      "name": "all_submitted_requests_drained",
+      "passed": true
+    }
+  ],
+  "metrics": [
+    {
+      "request": "cross_process_start",
+      "submitted": 2,
+      "requests": 2,
+      "success": 2,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 2,
+      "peak_inflight": 2,
+      "p50_ms": 24.94,
+      "p95_ms": 33.65,
+      "observed_response_p95_ms": 33.65,
+      "max_ms": 33.65,
+      "http_statuses": {
+        "200": 2
+      }
+    },
+    {
+      "request": "deliver",
+      "submitted": 100,
+      "requests": 100,
+      "success": 100,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 100,
+      "peak_inflight": 100,
+      "p50_ms": 717.95,
+      "p95_ms": 1149.86,
+      "observed_response_p95_ms": 1149.86,
+      "max_ms": 1197.85,
+      "http_statuses": {
+        "200": 100
+      }
+    },
+    {
+      "request": "deliver_retry",
+      "submitted": 100,
+      "requests": 100,
+      "success": 100,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 100,
+      "peak_inflight": 100,
+      "p50_ms": 471.51,
+      "p95_ms": 675.72,
+      "observed_response_p95_ms": 675.72,
+      "max_ms": 693.82,
+      "http_statuses": {
+        "200": 100
+      }
+    },
+    {
+      "request": "finish",
+      "submitted": 100,
+      "requests": 100,
+      "success": 100,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 100,
+      "peak_inflight": 100,
+      "p50_ms": 480.53,
+      "p95_ms": 617.87,
+      "observed_response_p95_ms": 617.87,
+      "max_ms": 629.97,
+      "http_statuses": {
+        "200": 100
+      }
+    },
+    {
+      "request": "finish_conflict",
+      "submitted": 1,
+      "requests": 1,
+      "success": 0,
+      "expected_rejection": 1,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 1,
+      "peak_inflight": 1,
+      "p50_ms": 17.99,
+      "p95_ms": 17.99,
+      "observed_response_p95_ms": 17.99,
+      "max_ms": 17.99,
+      "http_statuses": {
+        "409": 1
+      }
+    },
+    {
+      "request": "finish_retry",
+      "submitted": 100,
+      "requests": 100,
+      "success": 100,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 100,
+      "peak_inflight": 100,
+      "p50_ms": 468.62,
+      "p95_ms": 565.54,
+      "observed_response_p95_ms": 565.54,
+      "max_ms": 572.88,
+      "http_statuses": {
+        "200": 100
+      }
+    },
+    {
+      "request": "investigate_status_delay",
+      "submitted": 1,
+      "requests": 1,
+      "success": 1,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 1,
+      "peak_inflight": 1,
+      "p50_ms": 30.08,
+      "p95_ms": 30.08,
+      "observed_response_p95_ms": 30.08,
+      "max_ms": 30.08,
+      "http_statuses": {
+        "200": 1
+      }
+    },
+    {
+      "request": "investigate_status_fail",
+      "submitted": 1,
+      "requests": 1,
+      "success": 1,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 1,
+      "peak_inflight": 1,
+      "p50_ms": 28.46,
+      "p95_ms": 28.46,
+      "observed_response_p95_ms": 28.46,
+      "max_ms": 28.46,
+      "http_statuses": {
+        "200": 1
+      }
+    },
+    {
+      "request": "retry_after_unread_body",
+      "submitted": 1,
+      "requests": 1,
+      "success": 1,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 1,
+      "peak_inflight": 1,
+      "p50_ms": 23.07,
+      "p95_ms": 23.07,
+      "observed_response_p95_ms": 23.07,
+      "max_ms": 23.07,
+      "http_statuses": {
+        "200": 1
+      }
+    },
+    {
+      "request": "retry_card_match",
+      "submitted": 2,
+      "requests": 2,
+      "success": 2,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 2,
+      "peak_inflight": 2,
+      "p50_ms": 26.03,
+      "p95_ms": 26.2,
+      "observed_response_p95_ms": 26.2,
+      "max_ms": 26.2,
+      "http_statuses": {
+        "200": 2
+      }
+    },
+    {
+      "request": "retry_coating",
+      "submitted": 2,
+      "requests": 2,
+      "success": 2,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 2,
+      "peak_inflight": 2,
+      "p50_ms": 28.6,
+      "p95_ms": 28.92,
+      "observed_response_p95_ms": 28.92,
+      "max_ms": 28.92,
+      "http_statuses": {
+        "200": 2
+      }
+    },
+    {
+      "request": "retry_sql_memory",
+      "submitted": 2,
+      "requests": 2,
+      "success": 2,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 2,
+      "peak_inflight": 2,
+      "p50_ms": 25.38,
+      "p95_ms": 26.67,
+      "observed_response_p95_ms": 26.67,
+      "max_ms": 26.67,
+      "http_statuses": {
+        "200": 2
+      }
+    },
+    {
+      "request": "retry_topping",
+      "submitted": 2,
+      "requests": 2,
+      "success": 2,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 2,
+      "peak_inflight": 2,
+      "p50_ms": 27.9,
+      "p95_ms": 29.0,
+      "observed_response_p95_ms": 29.0,
+      "max_ms": 29.0,
+      "http_statuses": {
+        "200": 2
+      }
+    },
+    {
+      "request": "retry_wrapping",
+      "submitted": 2,
+      "requests": 2,
+      "success": 2,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 2,
+      "peak_inflight": 2,
+      "p50_ms": 27.02,
+      "p95_ms": 27.5,
+      "observed_response_p95_ms": 27.5,
+      "max_ms": 27.5,
+      "http_statuses": {
+        "200": 2
+      }
+    },
+    {
+      "request": "start_card_match",
+      "submitted": 2,
+      "requests": 2,
+      "success": 2,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 2,
+      "peak_inflight": 2,
+      "p50_ms": 29.99,
+      "p95_ms": 30.59,
+      "observed_response_p95_ms": 30.59,
+      "max_ms": 30.59,
+      "http_statuses": {
+        "200": 2
+      }
+    },
+    {
+      "request": "start_coating",
+      "submitted": 2,
+      "requests": 2,
+      "success": 2,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 2,
+      "peak_inflight": 2,
+      "p50_ms": 32.39,
+      "p95_ms": 32.81,
+      "observed_response_p95_ms": 32.81,
+      "max_ms": 32.81,
+      "http_statuses": {
+        "200": 2
+      }
+    },
+    {
+      "request": "start_fresh",
+      "submitted": 100,
+      "requests": 100,
+      "success": 100,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 100,
+      "peak_inflight": 100,
+      "p50_ms": 471.48,
+      "p95_ms": 618.24,
+      "observed_response_p95_ms": 618.24,
+      "max_ms": 626.56,
+      "http_statuses": {
+        "200": 100
+      }
+    },
+    {
+      "request": "start_old_receipt",
+      "submitted": 100,
+      "requests": 100,
+      "success": 100,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 100,
+      "peak_inflight": 100,
+      "p50_ms": 402.87,
+      "p95_ms": 496.25,
+      "observed_response_p95_ms": 496.25,
+      "max_ms": 505.4,
+      "http_statuses": {
+        "200": 100
+      }
+    },
+    {
+      "request": "start_same_request",
+      "submitted": 200,
+      "requests": 200,
+      "success": 200,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 200,
+      "peak_inflight": 100,
+      "p50_ms": 402.04,
+      "p95_ms": 723.32,
+      "observed_response_p95_ms": 723.32,
+      "max_ms": 858.0,
+      "http_statuses": {
+        "200": 200
+      }
+    },
+    {
+      "request": "start_sql_memory",
+      "submitted": 2,
+      "requests": 2,
+      "success": 2,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 2,
+      "peak_inflight": 2,
+      "p50_ms": 31.02,
+      "p95_ms": 32.91,
+      "observed_response_p95_ms": 32.91,
+      "max_ms": 32.91,
+      "http_statuses": {
+        "200": 2
+      }
+    },
+    {
+      "request": "start_status_delay",
+      "submitted": 1,
+      "requests": 1,
+      "success": 1,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 1,
+      "peak_inflight": 1,
+      "p50_ms": 40.03,
+      "p95_ms": 40.03,
+      "observed_response_p95_ms": 40.03,
+      "max_ms": 40.03,
+      "http_statuses": {
+        "200": 1
+      }
+    },
+    {
+      "request": "start_status_fail",
+      "submitted": 1,
+      "requests": 1,
+      "success": 1,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 1,
+      "peak_inflight": 1,
+      "p50_ms": 29.53,
+      "p95_ms": 29.53,
+      "observed_response_p95_ms": 29.53,
+      "max_ms": 29.53,
+      "http_statuses": {
+        "200": 1
+      }
+    },
+    {
+      "request": "start_topping",
+      "submitted": 2,
+      "requests": 2,
+      "success": 2,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 2,
+      "peak_inflight": 2,
+      "p50_ms": 36.57,
+      "p95_ms": 37.77,
+      "observed_response_p95_ms": 37.77,
+      "max_ms": 37.77,
+      "http_statuses": {
+        "200": 2
+      }
+    },
+    {
+      "request": "start_wrapping",
+      "submitted": 2,
+      "requests": 2,
+      "success": 2,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 2,
+      "peak_inflight": 2,
+      "p50_ms": 32.26,
+      "p95_ms": 33.43,
+      "observed_response_p95_ms": 33.43,
+      "max_ms": 33.43,
+      "http_statuses": {
+        "200": 2
+      }
+    },
+    {
+      "request": "status_baseline",
+      "submitted": 1,
+      "requests": 1,
+      "success": 1,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 1,
+      "peak_inflight": 1,
+      "p50_ms": 25.29,
+      "p95_ms": 25.29,
+      "observed_response_p95_ms": 25.29,
+      "max_ms": 25.29,
+      "http_statuses": {
+        "200": 1
+      }
+    },
+    {
+      "request": "status_delay",
+      "submitted": 1,
+      "requests": 1,
+      "success": 1,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 1,
+      "peak_inflight": 1,
+      "p50_ms": 2040.41,
+      "p95_ms": 2040.41,
+      "observed_response_p95_ms": 2040.41,
+      "max_ms": 2040.41,
+      "http_statuses": {
+        "200": 1
+      }
+    },
+    {
+      "request": "status_fail",
+      "submitted": 1,
+      "requests": 1,
+      "success": 0,
+      "expected_rejection": 0,
+      "expected_fault": 1,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 1,
+      "peak_inflight": 1,
+      "p50_ms": 26.07,
+      "p95_ms": 26.07,
+      "observed_response_p95_ms": 26.07,
+      "max_ms": 26.07,
+      "http_statuses": {
+        "500": 1
+      }
+    },
+    {
+      "request": "status_restored",
+      "submitted": 1,
+      "requests": 1,
+      "success": 1,
+      "expected_rejection": 0,
+      "expected_fault": 0,
+      "errors": 0,
+      "no_response": 0,
+      "not_started": 0,
+      "complete_responses": 1,
+      "peak_inflight": 1,
+      "p50_ms": 29.74,
+      "p95_ms": 29.74,
+      "observed_response_p95_ms": 29.74,
+      "max_ms": 29.74,
+      "http_statuses": {
+        "200": 1
+      }
+    }
+  ],
+  "audit": {
+    "plays": {
+      "checked_at": "final_integrity",
+      "rows": 214,
+      "requests": 214,
+      "duplicateGroups": 0,
+      "statuses": {
+        "FINISHED": 100,
+        "INTERRUPTED": 110,
+        "RUNNING": 4
+      }
+    },
+    "ranks": {
+      "count": 100,
+      "unique": 100,
+      "minimum": 1,
+      "maximum": 100
+    },
+    "intentionalUnreadBodyRequests": 1,
+    "delayMs": {
+      "start": 40.03387503325939,
+      "investigate": 30.076166847720742,
+      "status": 2040.4131249524653
+    }
+  },
+  "failure": null,
+  "condition": {
+    "accounts": 100,
+    "httpConcurrencyLimit": 100,
+    "movement": 4,
+    "service": 4,
+    "frontends": 2,
+    "jobs": 1,
+    "windowOverride": true,
+    "latency": "full HTTP body and JSON parse; thread-pool queue excluded; nearest-rank percentiles",
+    "duplicateBatch": "100 accounts x 2 requests; 50 accounts with paired requests per initial wave; fresh-start batch has 100 accounts concurrently",
+    "movementChatLoad": false,
+    "timingComparison": "current source only, no before/after claim"
+  }
+}

@@ -44,6 +44,7 @@ OPERATOR = [  # 백엔드 console/operator/urls.py — 관리 사이트 경로 +
     ("segments/<str:segment_id>/name", "segment_name"),
     ("segments/<str:segment_id>/active", "segment_active"),
     ("slots/<str:slot_id>/active", "slot_active"),
+    ("slots/<str:slot_id>/display", "slot_display"),
     ("slots/<str:slot_id>/policy", "slot_policy"),
     ("policies/", "policy_bulk"),
     ("keys/<str:key_id>/revoke", "key_revoke"),

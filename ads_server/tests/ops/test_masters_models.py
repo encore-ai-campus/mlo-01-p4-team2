@@ -99,6 +99,20 @@ class SlotModelTests(Cases, TestCase):
         with self.assertRaises(IntegrityError), transaction.atomic():
             Slot.objects.create(media=media_a, name="상단", audience="individual")
 
+    def case_slot_display_check_constraints_in_db(self):
+        """구성 표시 정보(설계 §10 "구성 표시 정보")는 서비스를 우회해 직접 저장해도 DB 가 막는다: 방식 값, 비율 둘 다·1~10000·방식 필수, 늘림·자름은 비율 필수.
+        한쪽만 NULL 인 비율은 비교가 NULL(통과)이 되지 않게 IS NOT NULL 을 따로 본다."""
+        slot = make_slot()
+        good = [(None, None, None), (260, 175, "stretch"), (3, 2, "cover"), (1, 10000, "contain"), (None, None, "contain")]
+        bad = [(None, None, "stretch"), (None, None, "cover"), (16, 9, None), (16, None, "contain"), (None, 9, "contain"), (0, 9, "contain"),
+               (16, 10001, "contain"), (16, 9, "fill"), (None, None, "")]
+        for width, height, fit in good:
+            Slot.objects.filter(pk=slot.pk).update(display_width=width, display_height=height, display_fit=fit)
+        for width, height, fit in bad:
+            with self.assertRaises(IntegrityError, msg=(width, height, fit)), transaction.atomic():
+                Slot.objects.filter(pk=slot.pk).update(display_width=width, display_height=height, display_fit=fit)
+        self.assertEqual(Slot.objects.filter(pk=slot.pk).values_list("display_width", "display_height", "display_fit").get(), (None, None, "contain"))
+
     def case_media_name_unique(self):
         Media.objects.create(name="같은 이름")
         with self.assertRaises(IntegrityError), transaction.atomic():

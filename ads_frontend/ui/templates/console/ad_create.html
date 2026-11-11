@@ -38,7 +38,8 @@
           <p class="media">{{ media.grouper }}</p>
           {% for s in media.list %}
           <label class="slot"><input type="checkbox" name="slot_ids" value="{{ s.slot_id }}"{% if s.slot_id|stringformat:"s" in form.slot_ids.value %} checked{% endif %}>
-            <span class="name">{{ s.name }} · {{ s.audience|audience_label }}</span><span class="muted">하한 {{ s.policy.floor|p }} / 상한 {{ s.policy.cap|p }} / 기준가 {{ s.policy.base|p }} · {{ s.policy|shares }}</span></label>
+            <span class="name">{{ s.name }} · {{ s.audience|audience_label }}</span><span class="muted">하한 {{ s.policy.floor|p }} / 상한 {{ s.policy.cap|p }} / 기준가 {{ s.policy.base|p }} · {{ s.policy|shares }}</span>
+            <span class="muted display">{{ s.display|display_label }}</span></label>
           {% endfor %}
           {% empty %}
           <p class="muted">고를 수 있는 구성이 없습니다.</p>
@@ -108,6 +109,7 @@
           <p class="muted">이미지를 고르면 여기 보입니다.</p>
         </div>
       </section>
+      {% include "console/_frames.html" with frame_slots=slots source="" input="" pick="slot_ids" empty="구성과 소재를 고르면 구성마다 실제로 보일 모습을 그려 보입니다." %}
       <section class="card effects" aria-labelledby="effects-title">
         <h2 id="effects-title">구성별 적용금액</h2>
         {% for slot, e, charges in effects %}
@@ -138,4 +140,4 @@
 </form>
 {% endif %}
 {% endblock %}
-{% block scripts %}<script src="{% static 'console/confirm.js' %}" defer></script><script src="{% static 'console/ad_create.js' %}" defer></script>{% endblock %}
+{% block scripts %}<script src="{% static 'console/confirm.js' %}" defer></script><script src="{% static 'console/frames.js' %}" defer></script><script src="{% static 'console/ad_create.js' %}" defer></script>{% endblock %}

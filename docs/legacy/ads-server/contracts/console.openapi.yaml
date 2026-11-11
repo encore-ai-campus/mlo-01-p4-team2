@@ -1299,7 +1299,7 @@ components:
 
     Slot:
       type: object
-      required: [slot_id, media, name, audience, active, policy]
+      required: [slot_id, media, name, audience, active, policy, display]
       additionalProperties: false
       properties:
         slot_id:
@@ -1325,6 +1325,37 @@ components:
           oneOf:
             - $ref: "#/components/schemas/SlotPolicy"
             - type: "null"
+        display:
+          description: 매체가 소재 이미지를 그리는 모양(설계 §10 "구성 표시 정보"). 관리자가 정하지 않았으면 `null`. **화면 정보**다 — 판정·과금과 무관하다.
+          oneOf:
+            - $ref: "#/components/schemas/SlotDisplay"
+            - type: "null"
+
+    SlotDisplay:
+      type: object
+      required: [width, height, fit]
+      additionalProperties: false
+      description: |
+        가로:세로 비율(`width`·`height`, 둘 다 있거나 둘 다 `null`)과 그리는 방식(`fit`).
+        `stretch`·`cover`는 비율이 늘 있다. `contain`은 비율이 없을 수 있다(정해진 판 없이 원본 비율 그대로).
+      properties:
+        width:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 10000
+        height:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 10000
+        fit:
+          $ref: "#/components/schemas/DisplayFit"
+
+    DisplayFit:
+      type: string
+      enum: [stretch, cover, contain]
+      description: |
+        `stretch` = 판에 맞춰 늘린다(비율이 다르면 찌그러진다), `cover` = 판을 채우고 넘치는 곳은 잘린다,
+        `contain` = 이미지 전체를 보인다(비율이 다르면 빈 곳이 생긴다).
 
     Audience:
       type: string

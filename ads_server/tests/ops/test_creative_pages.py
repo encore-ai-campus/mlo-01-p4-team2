@@ -27,6 +27,25 @@ class CreativePageTests(Cases, TestCase):
         self.assertNotIn(reverse("creative_archive", args=[self.w.creative.creative_id]), html)  # 끝나지 않은 캠페인의 광고에 쓰인다
         self.assertIn("사용 중", html)
 
+    def case_upload_and_detail_draw_frames_for_every_selectable_slot(self):
+        """구성 표시 정보(설계 §10 "구성 표시 정보"): 소재 목록의 올리기와 소재 상세는 고를 수 있는 구성 전부의 틀을 그린다(frames.js) — 목록은 고른 파일로,
+        상세는 지금 이미지로 시작해 바꾸려고 고른 파일로."""
+        from masters import api as masters
+
+        masters.set_slot_display(self.w.admin, self.w.slot.slot_id, 16, 9, "contain")
+        figure = f'<figure class="frame" data-slot="{self.w.slot.slot_id}" data-fit="contain" data-width="16" data-height="9">'
+        html = self.client.get(LIST).content.decode()
+        self.assertIn('data-source="" data-input="id_new-image" data-pick=""', html)
+        self.assertIn('id="id_new-image"', html)
+        self.assertIn(figure, html)
+        self.assertIn("console/frames.js", html)
+        crid = self.w.creative.creative_id
+        html = self.client.get(reverse("creative_detail", args=[crid])).content.decode()
+        self.assertIn(f'data-source="{reverse("creative_image_file", args=[crid])}" data-input="image_{crid}-image" data-pick=""', html)
+        self.assertIn(f'id="image_{crid}-image"', html)
+        self.assertIn(figure, html)
+        self.assertIn("console/frames.js", html)
+
     def case_deleting_hides_a_creative_and_a_used_one_is_refused_with_a_reason(self):
         r = self.client.post(reverse("creative_archive", args=[self.spare.creative_id]), follow=True)
         self.assertRedirects(r, LIST)

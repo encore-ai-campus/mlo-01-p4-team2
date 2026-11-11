@@ -17,9 +17,10 @@ from events import api as events
 from foundation.api import MAX_AMOUNT, clean_request_key, clean_text, errors, is_int, parse_uuid, parse_uuids, record_audit, require_admin, violated_constraint
 
 from .models import (
-    MAX_SHARE, MIN_FLOOR, MIN_SHARE, SEGMENT_CODE_PATTERN, SHARE_FIELDS, Audience, BidPolicy, Media, MediaDeactivation, MediaKey, Segment, SegmentVersion, Slot,
+    DISPLAY_SIZE_MAX, MAX_SHARE, MIN_FLOOR, MIN_SHARE, SEGMENT_CODE_PATTERN, SHARE_FIELDS, Audience, BidPolicy, DisplayFit, Media, MediaDeactivation, MediaKey, Segment,
+    SegmentVersion, Slot,
 )
-from .types import IssuedKey, MediaIdentity, MediaKeyView, MediaView, PolicyView, RequestSegment, SegmentVersionView, SegmentView, SlotView
+from .types import IssuedKey, MediaIdentity, MediaKeyView, MediaView, PolicyView, RequestSegment, SegmentVersionView, SegmentView, SlotDisplay, SlotView
 
 
 def _validated_shares(floor, base, cap, impression_share, click_share, conversion_share):
@@ -71,8 +72,14 @@ def policy_stream(to_documents):
 def _slot_view(slot, policy):
     return SlotView(
         slot_id=slot.slot_id, media_id=slot.media_id, media_name=slot.media.name, media_is_active=slot.media.is_active, name=slot.name,
-        audience=slot.audience, is_active=slot.is_active, policy=_policy_view(policy),
+        audience=slot.audience, is_active=slot.is_active, policy=_policy_view(policy), display=_display_of(slot),
     )
+
+
+def _display_of(slot):
+    if slot.display_fit is None:
+        return None
+    return SlotDisplay(width=slot.display_width, height=slot.display_height, fit=slot.display_fit)
 
 
 def _media_view(media):
@@ -280,6 +287,37 @@ def set_slot_active(actor, slot_id, active):
         if not Slot.objects.filter(pk=slot_id).update(is_active=bool(active)):
             raise errors.NotFound("게재 위치를 찾을 수 없습니다.")
         _audit(actor, "masters.slot_active_changed", ("masters.slot", slot_id), {"active": bool(active)})
+
+
+def set_slot_display(actor, slot_id, width, height, fit):
+    """구성 표시 정보(설계 §10 "구성 표시 정보"): 판의 가로:세로 비율(`width`·`height`)과 그리는 방식(`fit`). 셋 다 None 이면 지운다.
+    규칙은 모델의 CHECK 와 같다 — 비율은 둘 다 있거나 둘 다 없고 각각 1~상한, 비율이 있으면 방식 필수, 늘림·자름은 비율 필수. 바로 바뀌고(판 없음)
+    감사에 바꾼 값과 이전 값을 남긴다. 화면 정보라 결정·이벤트는 쓰지 않는다."""
+    require_admin(actor)
+    fit = fit or None  # 화면의 "없음"(빈 값)
+    problems = []
+    for pointer, value in (("/width", width), ("/height", height)):
+        if value is not None and (not is_int(value) or not 1 <= value <= DISPLAY_SIZE_MAX):
+            problems.append({"pointer": pointer, "message": f"1 이상 {DISPLAY_SIZE_MAX} 이하의 정수여야 합니다."})
+    if fit is not None and fit not in DisplayFit.values:
+        problems.append({"pointer": "/fit", "message": f"{', '.join(DisplayFit.values)} 중 하나여야 합니다."})
+    if problems:
+        raise errors.InvalidRequest(errors=problems)
+    if (width is None) != (height is None):
+        raise errors.InvalidRequest(errors=[{"pointer": "/width", "message": "가로·세로 비율은 둘 다 적거나 둘 다 비웁니다."}])
+    if width is not None and fit is None:
+        raise errors.InvalidRequest(errors=[{"pointer": "/fit", "message": "비율을 적으면 그리는 방식도 고릅니다."}])
+    if fit in (DisplayFit.STRETCH, DisplayFit.COVER) and width is None:
+        raise errors.InvalidRequest(errors=[{"pointer": "/width", "message": "늘림·자름은 판의 가로·세로 비율이 있어야 합니다."}])
+    slot_id = parse_uuid(slot_id, "게재 위치")
+    with transaction.atomic():
+        slot = Slot.objects.select_for_update().filter(pk=slot_id).first()  # 이전 값을 감사에 정확히 남기려고 잠근다
+        if slot is None:
+            raise errors.NotFound("게재 위치를 찾을 수 없습니다.")
+        previous = {"width": slot.display_width, "height": slot.display_height, "fit": slot.display_fit}
+        slot.display_width, slot.display_height, slot.display_fit = width, height, fit
+        slot.save(update_fields=["display_width", "display_height", "display_fit"])
+        _audit(actor, "masters.slot_display_changed", ("masters.slot", slot.slot_id), {"width": width, "height": height, "fit": fit, "previous": previous})
 
 
 def get_slot(slot_id, segment_code=None):

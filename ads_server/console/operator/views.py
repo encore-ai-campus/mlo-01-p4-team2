@@ -21,7 +21,7 @@ from masters import api as masters
 from ..errors import HANDLED, fetch, message_of, run_action, submit
 from ..paging import page_of
 from .forms import (
-    AdjustForm, BulkPolicyForm, KeyIssueForm, KeyRotateForm, MediaForm, PolicyForm, ReleaseForm, SegmentActiveForm, SegmentForm, SegmentRenameForm, SlotForm,
+    AdjustForm, BulkPolicyForm, KeyIssueForm, KeyRotateForm, MediaForm, PolicyForm, ReleaseForm, SegmentActiveForm, SegmentForm, SegmentRenameForm, SlotDisplayForm, SlotForm,
 )
 
 
@@ -55,6 +55,7 @@ def media_detail(request, media_id, status=200, slot_form=None, segment_form=Non
         rotate_form=KeyRotateForm(initial={"request_key": secrets.token_urlsafe(16)}, auto_id="rotate_%s"),  # 한 화면의 두 폼 — 칸 id 가 겹치지 않게
         segments=masters.list_segments(request.user, media.media_id),
         segment_form=segment_form or SegmentForm(auto_id="segment_%s"),  # 구성 만들기 폼과 같은 칸 이름(name)이 있다 — id 가 겹치지 않게
+        display_fits=masters.DisplayFit.choices,  # 구성 표의 표시 정보 칸(줄마다 작은 폼 — 템플릿이 그린다)
     )
 
 
@@ -78,6 +79,20 @@ def slot_create(request, media_id):
 def slot_active(request, slot_id):
     slot = fetch(masters.get_slot, slot_id)
     run_action(request, masters.set_slot_active, request.user, slot.slot_id, request.POST.get("active") == "1")
+    return redirect("operator:media_detail", media_id=slot.media_id)
+
+
+@require_POST
+def slot_display(request, slot_id):
+    """구성 표시 정보 바꾸기(매체 상세의 구성 표, 줄마다 작은 폼). 바로 바뀌고 매체 상세로 돌아간다 — 서비스가 거절하면 그 문구가 메시지로 남는다."""
+    slot = fetch(masters.get_slot, slot_id)
+    form = SlotDisplayForm(request.POST)
+    if form.is_valid():
+        d = form.cleaned_data
+        run_action(request, masters.set_slot_display, request.user, slot.slot_id, d["width"], d["height"], d["fit"],
+                   success=f"‘{slot.name}’의 이미지 표시 정보를 바꿨습니다.")
+    else:
+        messages.error(request, "가로·세로는 정수로 적습니다.")
     return redirect("operator:media_detail", media_id=slot.media_id)
 
 

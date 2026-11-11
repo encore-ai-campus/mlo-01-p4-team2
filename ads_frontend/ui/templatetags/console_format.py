@@ -2,7 +2,7 @@ from urllib.parse import urlsplit
 
 from django import template
 
-from ..labels import AUDIENCES as _AUDIENCES, CAMPAIGN_STATUSES as _STATUSES, ENTRY_TYPES as _ENTRIES, REVIEW_STATUSES as _REVIEWS
+from ..labels import AUDIENCES as _AUDIENCES, CAMPAIGN_STATUSES as _STATUSES, DISPLAY_FITS as _FITS, ENTRY_TYPES as _ENTRIES, REVIEW_STATUSES as _REVIEWS
 
 register = template.Library()
 
@@ -11,6 +11,17 @@ register = template.Library()
 def audience_label(value):
     """슬롯 성격 코드 → 화면 이름(개인·일괄)."""
     return _AUDIENCES.get(value, value)
+
+
+@register.filter
+def display_label(display):
+    """구성 표시 정보(설계 §10 "구성 표시 정보") → "권장 비율 260:175(예: 1200×808) · 판에 맞춰 늘림". 비율이 없으면 "비율 자유 · 이미지 전체", 정보가 없으면 그렇다고."""
+    if not display:
+        return "이미지 표시 정보 없음"
+    fit = _FITS.get(display.fit, display.fit)
+    if not display.width:
+        return f"비율 자유 · {fit}"
+    return f"권장 비율 {display.width}:{display.height}(예: 1200×{round(1200 * display.height / display.width)}) · {fit}"
 
 
 @register.filter

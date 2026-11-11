@@ -19,6 +19,18 @@
     form.querySelectorAll(".creative-preview [data-creative]").forEach((el) => { el.hidden = el.dataset.creative !== (existing ? existing.value : ""); });
   };
 
+  // 2-1) 구성별로 보이는 모습(frames.js, 설계 §10 "구성 표시 정보")에 지금 고른 소재의 이미지를 넘긴다 — 등록된 소재는 그 그림, 새로 올리기는 고른 파일
+  const preview = document.getElementById("image-preview");
+  const frameSource = () => {
+    const source = (form.querySelector('input[name="creative_source"]:checked') || {}).value;
+    if (source === "existing") {
+      const img = existing && existing.value ? form.querySelector(`.creative-preview [data-creative="${CSS.escape(existing.value)}"] img`) : null;
+      return img ? img.getAttribute("src") : "";
+    }
+    return preview && !preview.hidden ? preview.src : "";
+  };
+  const showFrames = () => { if (window.ConsoleFrames) window.ConsoleFrames.draw(frameSource()); };
+
   // 3) 아래 띠·확인 창의 요약(캠페인·구성·입찰·소재)
   const summary = document.getElementById("ad-summary");
   const line = document.getElementById("ad-summary-line");
@@ -45,6 +57,7 @@
     }));
     line.textContent = `선택 구성 ${slots.length}개 · 입찰 ${bid > 0 ? `${bid.toLocaleString()} P` : "없음"} · ${source === "existing" ? "등록된 소재" : "새 소재"}`;
     showExisting();
+    showFrames();
   };
   form.addEventListener("input", refresh);
   form.addEventListener("change", refresh);
@@ -61,11 +74,11 @@
     const chosen = file.files[0];
     note.textContent = "";
     image.hidden = true;
-    if (!chosen) return;
+    if (!chosen) { showFrames(); return; }
     if (chosen.size > Number(file.dataset.maxBytes)) note.textContent = "용량이 상한을 넘습니다. 그대로 보내면 거절됩니다.";
     const reader = new FileReader();
-    image.onerror = () => { image.hidden = true; };  // 그림이 아닌 파일은 깨진 그림 대신 숨긴다(서버가 거절 사유를 알린다)
-    reader.onload = () => { image.src = reader.result; image.hidden = false; };
+    image.onerror = () => { image.hidden = true; showFrames(); };  // 그림이 아닌 파일은 깨진 그림 대신 숨긴다(서버가 거절 사유를 알린다)
+    reader.onload = () => { image.src = reader.result; image.hidden = false; showFrames(); };
     reader.readAsDataURL(chosen);
   });
 })();

@@ -1,5 +1,5 @@
 {% extends "console/base.html" %}
-{% load kst console_format console_icons %}
+{% load static kst console_format console_icons %}
 {% block title %}{{ group.name }}{% endblock %}
 {% block crumb %} / <a href="{% url 'campaign_detail' group.campaign_id %}">{{ page.campaign_name }}</a> / {{ group.name }}{% endblock %}
 {% block page_head %}
@@ -79,7 +79,8 @@
           <legend>노출할 구성</legend>
           {% for s in page.choices %}
           <label class="slot"><input type="checkbox" name="slot_ids" value="{{ s.slot_id }}"{% if s.slot_id|stringformat:"s" in slots_form.slot_ids.value %} checked{% endif %}>
-            <span class="name">{{ s.media_name }} · {{ s.name }} · {{ s.audience|audience_label }}</span><span class="muted">하한 {{ s.policy.floor|p }} / 상한 {{ s.policy.cap|p }} / 기준가 {{ s.policy.base|p }} · {{ s.policy|shares }}</span></label>
+            <span class="name">{{ s.media_name }} · {{ s.name }} · {{ s.audience|audience_label }}</span><span class="muted">하한 {{ s.policy.floor|p }} / 상한 {{ s.policy.cap|p }} / 기준가 {{ s.policy.base|p }} · {{ s.policy|shares }}</span>
+            <span class="muted display">{{ s.display|display_label }}</span></label>
           {% empty %}
           <p class="muted">고를 수 있는 구성이 없습니다.</p>
           {% endfor %}
@@ -146,6 +147,9 @@
       </details>
     </section>
 
+    {% if group.creative_id %}{% url 'creative_image_file' group.creative_id as current_image %}{% endif %}
+    {% include "console/_frames.html" with frame_slots=page.linked.values source=current_image input="id_new-image" pick="" empty="이 광고의 구성에서 소재가 보일 모습입니다. 아래 ‘이미지 올리기’에서 이미지를 고르면 그 이미지로 그립니다." %}
+
     <div class="notice info">새 이미지 업로드 ≠ 소재 변경<span class="detail">이미지를 올린 뒤, 노출할 소재를 ‘다른 소재 선택’에서 따로 골라야 합니다.</span></div>
 
     <section class="upload" aria-label="이미지 업로드">
@@ -164,3 +168,4 @@
   </div>
 </div>
 {% endblock %}
+{% block scripts %}<script src="{% static 'console/frames.js' %}" defer></script>{% endblock %}

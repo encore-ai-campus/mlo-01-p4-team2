@@ -49,6 +49,16 @@ class DetailTests(Cases, AdGroupPageBase):
         campaigns.add_bid(self.w.adv, self.gid, 350, 1)
         self.assertRegex(self.html(), r'(?s)입찰 변경 이력</caption>.*?<td>v2 <span class="status active">현재</span></td><td>350 P</td>.*?<td>v1</td><td>300 P</td>')  # 최신부터
 
+    def case_slots_show_their_display_and_frames_use_the_current_creative(self):
+        """구성 표시 정보(설계 §10 "구성 표시 정보"): 고를 수 있는 구성마다 권장 비율, 이 광고의 구성마다 틀 — 처음은 지금 소재, 올리려고 고른 이미지로 바뀐다(frames.js)."""
+        masters.set_slot_display(self.w.admin, self.w.slot.slot_id, 3, 2, "cover")
+        html = self.html()
+        self.assertIn('<span class="muted display">권장 비율 3:2(예: 1200×800) · 판을 채우고 넘치는 곳은 잘림</span>', html)
+        self.assertIn(f'data-source="{reverse("creative_image_file", args=[self.crid])}" data-input="id_new-image" data-pick=""', html)
+        self.assertIn(f'<figure class="frame" data-slot="{self.w.slot.slot_id}" data-fit="cover" data-width="3" data-height="2">', html)
+        self.assertIn('id="id_new-image"', html)  # 틀이 듣는 파일 칸
+        self.assertIn("console/frames.js", html)
+
     def case_the_page_reads_slot_policies_once(self):
         """계획 3-4g B1: 위치 정보와 위치별 결과가 같은 읽기를 본다(전에는 슬롯 정책을 두 번 읽었다). 헤더 알림 표시(6-21d)가 따로 한 번 더 읽는다."""
         with mock.patch.object(masters, "get_slots_with_policy", wraps=masters.get_slots_with_policy) as read:

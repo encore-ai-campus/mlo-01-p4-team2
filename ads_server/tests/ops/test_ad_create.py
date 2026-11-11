@@ -74,6 +74,22 @@ class AdCreatePageTests(Cases, AdCreateBase, TestCase):
         self.assertRegex(html, r'<button[^>]*value="create"[^>]*data-confirm=')  # 집행 버튼만 확인 창
         self.assertNotRegex(html, r"\sstyle=")
 
+    def case_slots_show_their_display_and_frames_are_drawn_for_the_chosen_slots(self):
+        """구성 표시 정보(설계 §10 "구성 표시 정보"): 구성마다 권장 비율과 그리는 방식, 오른쪽에 구성마다 틀(그림은 frames.js — 고른 구성만, 고른 소재로)."""
+        masters.set_slot_display(self.w.admin, self.w.slot.slot_id, 260, 175, "stretch")
+        masters.set_slot_display(self.w.admin, self.click_slot.slot_id, None, None, "contain")
+        html = self.client.get(URL).content.decode()
+        self.assertRegex(html, rf'value="{self.w.slot.slot_id}">\s*<span class="name">[^<]*</span><span class="muted">[^<]*</span>\s*'
+                               r'<span class="muted display">권장 비율 260:175\(예: 1200×808\) · 판에 맞춰 늘림</span>')
+        self.assertRegex(html, rf'value="{self.click_slot.slot_id}">[^@]*?<span class="muted display">비율 자유 · 이미지 전체</span>')
+        frames = html.split('aria-labelledby="frames-title"')[1].split("</section>")[0]
+        self.assertIn('data-pick="slot_ids"', frames)
+        self.assertIn(f'<figure class="frame" data-slot="{self.w.slot.slot_id}" data-fit="stretch" data-width="260" data-height="175">', frames)
+        self.assertIn(f'<figure class="frame" data-slot="{self.click_slot.slot_id}" data-fit="contain">', frames)
+        self.assertLess(html.index("console/frames.js"), html.index("console/ad_create.js"))  # ad_create.js 가 frames.js 의 그리기를 부른다
+        masters.set_slot_display(self.w.admin, self.w.slot.slot_id, None, None, None)
+        self.assertIn('<span class="muted display">이미지 표시 정보 없음</span>', self.client.get(URL).content.decode())
+
     def case_shared_slots_are_not_offered_and_cannot_be_posted(self):
         """일괄 구성은 화면에서 고를 수 없다(TG-S4). 보내도 폼이 400 이고 광고그룹은 생기지 않는다."""
         shared = masters.create_slot(self.w.admin, self.w.slot.media_id, "옥상 전광판", 100, 200, 500, "초기", audience="shared", impression_share=98, click_share=1, conversion_share=1)

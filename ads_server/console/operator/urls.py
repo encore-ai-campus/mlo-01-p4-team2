@@ -15,6 +15,7 @@ urlpatterns = [
     path("segments/<str:segment_id>/name", views.segment_name, name="segment_name"),
     path("segments/<str:segment_id>/active", views.segment_active, name="segment_active"),
     path("slots/<str:slot_id>/active", views.slot_active, name="slot_active"),
+    path("slots/<str:slot_id>/display", views.slot_display, name="slot_display"),
     path("slots/<str:slot_id>/policy", views.slot_policy, name="slot_policy"),
     path("policies/", views.policy_bulk, name="policy_bulk"),
     path("keys/<str:key_id>/revoke", views.key_revoke, name="key_revoke"),

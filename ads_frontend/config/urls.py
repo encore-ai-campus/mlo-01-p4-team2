@@ -10,7 +10,7 @@ def _named(table):
 
 urlpatterns = [
     path("health/", views.health),
-    re_path(r"^api/media/", views.not_public),
+    re_path(r"^api/", views.not_public),  # 서버 간 API(C1 매체·C8 내부) 전체
     path(settings.ADMIN_URL_PATH + "operator/", include((_named(routes.OPERATOR), "operator"))),
     path(settings.ADMIN_URL_PATH, include((_named(routes.ADMIN), "admin"))),
     *_named(routes.CONSOLE),

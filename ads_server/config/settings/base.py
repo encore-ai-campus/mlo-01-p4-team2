@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "events.apps.EventsConfig",
     "records.apps.RecordsConfig",
     "serving_api.apps.ServingApiConfig",
+    "internal_api.apps.InternalApiConfig",
     "console.apps.ConsoleConfig",
     "config.apps.AssemblyConfig",  # 조립 층: 여러 모듈의 설정을 함께 보는 시스템 검사(config/checks.py)
 ]
@@ -138,7 +139,7 @@ SECURE_CSP = {
 }
 
 # 키 인증을 쓰는 서버 간 API 만 CSRF 에서 뺀다. 이 목록이 **유일한** 예외다.
-CSRF_EXEMPT_PREFIXES = ["/api/media/"]
+CSRF_EXEMPT_PREFIXES = ["/api/media/", "/api/internal/"]  # C1 매체 API·C8 내부 API
 CSRF_FAILURE_VIEW = "foundation.http.csrf_failure"
 
 # 요청 크기: 업로드 파일 제외 본문 1MiB, 폼 필드 100개. 이미지 용량은 0-5(assets), JSON API 본문은 parse_json(16 KiB).

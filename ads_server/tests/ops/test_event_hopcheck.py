@@ -508,10 +508,10 @@ class VerifyHopsCommandTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.export()
         ok, text = self.verify("--out", str(self.dir / "report"))
         self.assertTrue(ok, text)
-        self.assertIn("'match': 24", text)  # 세 쌍 × 8줄(결정·접수·판정·과금·정책·입찰·캠페인 변경·광고그룹 변경)
-        self.assertEqual([l["unsent"] for l in self.lines("hop_outbox")], [0] * 8)  # 중계 뒤에는 미전송이 없다(일치 판정은 unsent 를 보지 않는다)
+        self.assertIn("'match': 27", text)  # 세 쌍 × 9줄(결정·접수·판정·과금·정책·입찰·캠페인 변경·광고그룹 변경·광고 카테고리)
+        self.assertEqual([l["unsent"] for l in self.lines("hop_outbox")], [0] * 9)  # 중계 뒤에는 미전송이 없다(일치 판정은 unsent 를 보지 않는다)
         manifest = ndjson.read_manifest(ndjson.manifest_path(self.dir / "report", "hop_report"))
-        self.assertEqual((ndjson.verify(ndjson.manifest_path(self.dir / "report", "hop_report")), manifest["checkpoint"]["counts"], manifest["checkpoint"]["errors"]), ([], {"match": 24}, []))
+        self.assertEqual((ndjson.verify(ndjson.manifest_path(self.dir / "report", "hop_report")), manifest["checkpoint"]["counts"], manifest["checkpoint"]["errors"]), ([], {"match": 27}, []))
 
     def case_before_the_relay_it_is_a_lag_candidate_and_the_command_still_succeeds(self):
         self.export()
@@ -600,7 +600,7 @@ class VerifyHopsCommandTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         mongo_lines = self.lines("hop_mongo")
         ok, text = self.verify("--pipeline", self.pipeline(mongo_lines))
         self.assertTrue(ok, text)
-        self.assertIn("'match': 40", text)  # 다섯 쌍 × 8줄
+        self.assertIn("'match': 45", text)  # 다섯 쌍 × 9줄
         bad = [dict(l, content_sha256="0" * 64) if l["event_name"] == "ad.charge" else l for l in mongo_lines]
         ok, text = self.verify("--pipeline", self.pipeline(bad))
         self.assertFalse(ok)

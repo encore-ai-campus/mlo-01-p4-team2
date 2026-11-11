@@ -8,7 +8,7 @@ from django.test import TestCase, tag
 
 from billing.models import LedgerEntry
 from campaigns.changes import record_change
-from campaigns.models import AdGroupCreative, Bid, ChangeLog, CreativeImage
+from campaigns.models import AdGroupCreative, AdGroupProfileVersion, Bid, ChangeLog, CreativeImage
 from foundation.models import AppendOnlyError, AuditLog
 from masters import api as masters
 from masters.models import BidPolicy, MediaDeactivation, SegmentVersion
@@ -17,7 +17,8 @@ from tests.support.factories import DAY, NOW, SUBJECT, World
 from tests.support.cases import Cases
 
 OVERWRITE = {"AuditLog": "action", "BidPolicy": "reason", "Bid": "amount", "LedgerEntry": "note", "Decision": "selection_policy", "AdGroupCreative": "linked_at",
-             "CreativeImage": "image_bytes", "MediaDeactivation": "deactivated_at", "ChangeLog": "new_value", "SegmentVersion": "name"}
+             "CreativeImage": "image_bytes", "MediaDeactivation": "deactivated_at", "ChangeLog": "new_value", "SegmentVersion": "name",
+             "AdGroupProfileVersion": "category"}
 
 
 def clone_with_same_pk(row, field, value):
@@ -47,6 +48,7 @@ class AllAppendOnlyModelsTests(Cases, TestCase):
             "MediaDeactivation": (MediaDeactivation.objects.first(), NOW + DAY),  # 매체를 끈 시각 — 그 전 결정의 반응 판정 근거
             "ChangeLog": (ChangeLog.objects.first(), {"daily_budget": 1}),  # 변경 로그 — 변경 이벤트의 정합성 원천
             "SegmentVersion": (SegmentVersion.objects.first(), "overwritten"),  # 대상 그룹 판 — 그룹 이름·보관 이력과 `ad.segment_changed` 의 원천
+            "AdGroupProfileVersion": (AdGroupProfileVersion.objects.first(), 7),  # 광고 카테고리 판(O13, ACW-3) — `ad.ad_group_profile_changed` 의 원천
         }
 
     def case_positional_and_keyword_upserts_and_new_instance_saves_cannot_overwrite(self):

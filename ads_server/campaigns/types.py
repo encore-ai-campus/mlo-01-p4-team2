@@ -49,6 +49,52 @@ class BidView:
 
 
 @dataclass(frozen=True)
+class AdGroupProfileView:
+    """광고 카테고리·과정 가중치의 지금 판(DRD O12) — `ad.ad_group_profile_changed` 의 원천."""
+    ad_group_id: uuid.UUID
+    version: int
+    category: int | None
+    weight_mlo: int
+    weight_aio: int
+    weight_skn: int
+    changed_at: datetime
+
+
+@dataclass(frozen=True)
+class ProfileWriteResult:
+    """C8 묶음 쓰기의 항목 하나: `result` 는 `created`·`changed`·`unchanged`, `profile` 은 반영 뒤 지금 판."""
+    ad_group_id: uuid.UUID
+    result: str
+    profile: AdGroupProfileView
+
+
+@dataclass(frozen=True)
+class ProfileCreativeView:
+    """C8 읽기가 주는 소재 하나(광고주 입력 — 신뢰할 수 없는 값). 이미지 주소는 입구가 `assets` 로 만든다."""
+    creative_id: uuid.UUID
+    title: str
+    redirect_url: str
+    image_name: str
+    updated_at: datetime
+
+
+@dataclass(frozen=True)
+class ProfileSourceView:
+    """C8 읽기의 광고 하나: 이름·내보내는 소재(1개 이상)·지금 판(줄이 없으면 None)."""
+    ad_group_id: uuid.UUID
+    name: str
+    updated_at: datetime
+    creatives: tuple
+    profile: AdGroupProfileView | None
+
+
+@dataclass(frozen=True)
+class ProfileSourcePage:
+    items: tuple
+    next_after: uuid.UUID | None
+
+
+@dataclass(frozen=True)
 class AdGroupView:
     ad_group_id: uuid.UUID
     campaign_id: uuid.UUID

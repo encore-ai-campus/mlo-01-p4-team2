@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from .errors import InvalidRequest, NotFound
 
 USERNAME_RE = re.compile(r"[a-z0-9_]{4,20}")
+UUID_TEXT = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")  # 계약 `Uuid`(하이픈 36자만, C1·C8 같은 패턴). `fullmatch` 로 쓴다
 MAX_AMOUNT = 2**53 - 1  # 포인트 금액의 최대값. JSON(JavaScript) 정수로 정확히 표현되는 한계(계약 `Money`와 같다)
 
 

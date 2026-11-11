@@ -351,7 +351,7 @@ class EventGapTests(Cases, MongoDatabaseMixin, TestCase):
     def case_events_that_were_never_written_for_old_rows_are_found(self):
         """Step 4 이전에 쌓인 행(이벤트 없이 만들어진 것)이 백필 대상으로 나온다."""
         EventOutbox.objects.all().delete()
-        self.assertEqual(len(self.gaps()), 9)  # 결정·접수·판정·과금 + 구성의 첫 정책 버전·광고그룹의 첫 입찰·캠페인 생성·광고그룹 생성과 소재 선택
+        self.assertEqual(len(self.gaps()), 10)  # 결정·접수·판정·과금 + 구성의 첫 정책 버전·광고그룹의 첫 입찰·캠페인 생성·광고그룹 생성과 소재 선택·광고 카테고리 판 1
 
     def case_sent_but_not_in_mongodb_is_reported(self):
         relay_batch()
@@ -407,7 +407,7 @@ class ExportCommandTests(Cases, TempDirMixin, MongoDatabaseMixin, TransactionTes
         self.export(out)
         checkpoint = ndjson.read_manifest(ndjson.manifest_path(out, "event_gaps"))["checkpoint"]
         self.assertEqual(checkpoint["scope"], "postgresql-repeatable-read-snapshot")
-        self.assertEqual(checkpoint["scanned"], {"decision": 1, "reaction": 1, "ledger_charge": 1, "bid_policy": 1, "bid": 1, "campaign_change": 1, "ad_group_change": 2, "segment_version": 0})  # 실제로 훑은 행 수
+        self.assertEqual(checkpoint["scanned"], {"decision": 1, "reaction": 1, "ledger_charge": 1, "bid_policy": 1, "bid": 1, "campaign_change": 1, "ad_group_change": 2, "segment_version": 0, "ad_group_profile": 1})  # 실제로 훑은 행 수
         self.assertEqual(checkpoint, ndjson.read_manifest(ndjson.manifest_path(out, "ledger_check"))["checkpoint"])  # 세 점검이 같은 범위를 본다
 
     def case_rows_created_after_the_snapshot_began_are_not_in_the_result(self):

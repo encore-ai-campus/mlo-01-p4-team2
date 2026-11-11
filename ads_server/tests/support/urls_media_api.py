@@ -4,7 +4,7 @@
 """
 from django.contrib.auth.decorators import login_not_required
 from django.http import JsonResponse
-from django.urls import path
+from django.urls import include, path
 
 from config.urls import handler400, handler403, handler404, handler500  # noqa: F401
 from foundation.api import parse_json
@@ -44,4 +44,5 @@ urlpatterns = [
     path("api/media/v1/decisions", create_decision),
     path("api/media/v1/decisions/<uuid:decision_id>", get_decision),
     path("api/media/v1/decisions/<uuid:decision_id>/reactions/<uuid:reaction_id>", reaction),
+    path("api/internal/v1/", include("internal_api.urls")),  # C8(ACW-3)은 실제 뷰 그대로 — 같은 인증 시험 클래스가 함께 본다
 ]

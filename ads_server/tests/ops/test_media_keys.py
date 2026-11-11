@@ -1,16 +1,18 @@
 import hmac
+import io
 import re
 import uuid
 from datetime import timedelta
 from unittest import mock
 
+from django.core.management import CommandError, call_command
 from django.db import connection
 from django.test import TestCase, TransactionTestCase, tag
 
 from foundation.errors import Conflict, Forbidden, InvalidRequest, NotFound
 from foundation.models import AuditLog
 from masters import api
-from masters.models import MediaKey
+from masters.models import InternalKey, MediaKey
 from tests.support.concurrency import overlap
 from tests.support.factories import DAY, NOW, make_admin, make_advertiser
 from tests.support.cases import Cases
@@ -159,6 +161,81 @@ class MediaKeyTests(Cases, TestCase):
             api.rotate_media_key(self.admin, "nope", 10)
         with self.assertRaises(NotFound):
             api.revoke_media_key(self.admin, uuid.uuid4())
+
+    # ---------------------------------------------------------------- 내부 키(C8, ACW-3 — DRD M9)
+
+    def case_internal_keys_are_issued_and_revoked_by_admins_and_audited_without_the_key(self):
+        """관리자만 발급·폐기하고, 키의 주인 = 발급한 운영자(C8 쓰기의 감사 행위자). 평문은 한 번만 보이고 해시만 저장된다. 감사에는 키 ID·이름만 —
+        키·해시는 남지 않는다. 두 번 폐기해도 감사는 한 번이다. 이름은 필수다."""
+        for actor in (make_advertiser(), None):
+            for call in (lambda a=actor: api.issue_internal_key(a, "모듈"), lambda a=actor: api.revoke_internal_key(a, uuid.uuid4())):
+                with self.assertRaises(Forbidden):
+                    call()
+        with self.assertRaises(InvalidRequest):
+            api.issue_internal_key(self.admin, "   ")
+        self.assertEqual(InternalKey.objects.count(), 0)
+        issued = api.issue_internal_key(self.admin, "분류 모듈", now=NOW)
+        self.assertRegex(issued.key, KEY_SHAPE)
+        self.assertTrue(issued.key.startswith(issued.key_id.hex + "."))
+        row = InternalKey.objects.get()
+        self.assertEqual((row.key_id, row.owner_id, row.label, row.created_at, row.revoked_at, len(row.secret_hash)), (issued.key_id, self.admin.pk, "분류 모듈", NOW, None, 64))
+        secret = issued.key.split(".", 1)[1]
+        with connection.cursor() as cur:
+            cur.execute("SELECT * FROM masters_internal_key")
+            stored = " ".join(str(v) for r in cur.fetchall() for v in r)
+        self.assertNotIn(secret, stored)
+        api.revoke_internal_key(self.admin, issued.key_id, now=NOW)
+        api.revoke_internal_key(self.admin, str(issued.key_id), now=NOW + DAY)  # 이미 폐기 — 변화 없음
+        self.assertEqual(InternalKey.objects.get().revoked_at, NOW)
+        with self.assertRaises(NotFound):
+            api.revoke_internal_key(self.admin, uuid.uuid4())
+        logs = AuditLog.objects.filter(action__startswith="masters.internal_key").order_by("created_at", "pk")
+        self.assertEqual([(a.action, a.actor_id, a.target_type, a.target_id, a.detail) for a in logs], [
+            ("masters.internal_key_issued", self.admin.pk, "masters.internal_key", str(issued.key_id), {"label": "분류 모듈"}),
+            ("masters.internal_key_revoked", self.admin.pk, "masters.internal_key", str(issued.key_id), {"label": "분류 모듈"}),
+        ])
+        self.assertNotIn(secret, str(list(AuditLog.objects.values())))
+        self.assertNotIn(row.secret_hash, str(list(AuditLog.objects.values())))
+
+    def case_internal_and_media_keys_never_stand_in_for_each_other(self):
+        """표가 달라 C1 키로 C8 을, C8 키로 C1 을 인증할 수 없다(형식은 같다)."""
+        media_key = api.issue_media_key(self.admin, self.media.media_id, now=NOW).key
+        internal = api.issue_internal_key(self.admin, "모듈", now=NOW).key
+        self.assertIsNone(api.authenticate_internal_key(media_key))
+        self.assertIsNone(api.authenticate_media_key(internal, now=NOW))
+        identity = api.authenticate_internal_key(internal)
+        self.assertEqual((identity.key_id.hex, identity.label, identity.owner.pk), (internal.split(".")[0], "모듈", self.admin.pk))
+        self.assertIsNotNone(api.authenticate_media_key(media_key, now=NOW))
+
+    def case_internal_key_rejects_malformed_values_without_a_query_and_revoked_keys(self):
+        """형식이 틀린 값은 DB 를 보지 않는다. 없는 키·틀린 비밀·폐기 키는 None. 주인까지 질의 한 번에 읽는다."""
+        issued = api.issue_internal_key(self.admin, "모듈", now=NOW)
+        key_hex, secret = issued.key.split(".")
+        for bad in ("", "garbage", issued.key + "x", key_hex, key_hex.upper() + "." + secret, None, 123):
+            with self.subTest(bad), self.assertNumQueries(0):
+                self.assertIsNone(api.authenticate_internal_key(bad))
+        with self.assertNumQueries(1):
+            self.assertIsNone(api.authenticate_internal_key(uuid.uuid4().hex + "." + secret))
+        self.assertIsNone(api.authenticate_internal_key(key_hex + "." + ("A" if secret[0] != "A" else "B") + secret[1:]))
+        with self.assertNumQueries(1):
+            self.assertEqual(api.authenticate_internal_key(issued.key).owner.username, self.admin.username)
+        api.revoke_internal_key(self.admin, issued.key_id, now=NOW)
+        self.assertIsNone(api.authenticate_internal_key(issued.key))
+
+    def case_internal_key_command_prints_the_key_once_and_revokes(self):
+        """서버 명령 `internal_key`: `issue` 는 평문을 한 번 출력하고 `--admin` 이 키의 주인이다. `revoke` 는 키 ID 로 폐기한다. 이름·키 ID 가 없으면 실패."""
+        out = io.StringIO()
+        call_command("internal_key", "issue", "--admin", self.admin.username, "--label", "분류 모듈", stdout=out)
+        key = re.search(r"^key: (\S+)$", out.getvalue(), re.M).group(1)
+        self.assertIn("다시 볼 수 없다", out.getvalue())
+        identity = api.authenticate_internal_key(key)
+        self.assertEqual((identity.owner.pk, identity.label), (self.admin.pk, "분류 모듈"))
+        call_command("internal_key", "revoke", str(identity.key_id), "--admin", self.admin.username, stdout=io.StringIO())
+        self.assertIsNone(api.authenticate_internal_key(key))
+        for args in (("revoke",), ("issue",)):
+            with self.subTest(args), self.assertRaises(CommandError):
+                call_command("internal_key", *args, "--admin", self.admin.username, stdout=io.StringIO())
+        self.assertEqual(InternalKey.objects.count(), 1)
 
     def test_media_key(self):
         self.run_cases()

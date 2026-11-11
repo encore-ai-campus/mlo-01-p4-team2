@@ -9,9 +9,11 @@ from django.urls import reverse
 
 from assets.api import validate_image
 from campaigns import api
-from campaigns.models import AdGroup, Campaign, Creative, CreativeImage, ReviewRequest
+from campaigns.models import AdGroup, AdGroupProfile, AdGroupProfileVersion, Campaign, Creative, CreativeImage, ReviewRequest
 from foundation.api import errors
+from events.models import EventOutbox
 from foundation.models import AuditLog
+from masters import api as masters
 from tests.support.concurrency import overlap
 from tests.support.factories import DAY, NOW, World, make_admin, png_file
 from tests.support.cases import Cases
@@ -146,6 +148,30 @@ class AdGroupWriteRaceTests(Cases, TransactionTestCase):
                          lambda: api.end_campaign(self.w.adv, self.cid), verb="INSERT")
         self.assertEqual((a.errors, b.errors), ([], []))
         self.assertEqual(self.order(), ["bid.added", "campaign.ended_early"])
+
+    def case_c8_category_and_weight_writes_at_once_keep_both(self):
+        """C8(ACW-3): 줄이 없는 광고에 ②(카테고리)와 ④(가중치)가 동시에 오면, 둘째는 광고그룹 행 잠금에서 기다렸다가 첫째가 만든 판 1 을 읽고 판 2 를 쓴다 —
+        유일 제약 위반이 없고(O13 둘·이벤트 둘), 끝 상태에 ②의 카테고리와 ④의 가중치가 모두 남는다(서로 덮지 않는다)."""
+        client = masters.authenticate_internal_key(masters.issue_internal_key(self.w.admin, "모듈").key)
+        bare = AdGroup.objects.create(campaign_id=self.cid, name="옛 광고", created_at=NOW, updated_at=NOW)
+        a, b = self.race(lambda: api.write_categories(client, [{"ad_group_id": str(bare.pk), "category": 6}]), "campaigns_ad_group_profile",
+                         lambda: api.write_weights(client, [{"ad_group_id": str(bare.pk), "weight_mlo": 20, "weight_aio": 30, "weight_skn": 40}]), verb="INSERT")
+        self.assertEqual((a.errors, b.errors), ([], []))
+        self.assertEqual(([r.result for r in a.result], [r.result for r in b.result]), (["created"], ["changed"]))
+        p = AdGroupProfile.objects.get(ad_group=bare)
+        self.assertEqual((p.version, p.category, p.weight_mlo, p.weight_aio, p.weight_skn), (2, 6, 20, 30, 40))
+        self.assertEqual(sorted(AdGroupProfileVersion.objects.filter(ad_group=bare).values_list("version", "category", "weight_mlo")), [(1, 6, 0), (2, 6, 20)])
+        self.assertEqual(EventOutbox.objects.filter(event_name="ad.ad_group_profile_changed", aggregate_id=bare.pk).count(), 2)
+
+    def case_c8_batches_locking_the_same_ads_in_opposite_orders_both_finish(self):
+        """같은 광고 둘을 서로 반대 순서로 담은 두 묶음: 잠금이 광고 ID 순이라 둘째는 기다렸다가 끝난다(교착 없음). 늦은 묶음의 값이 남는다."""
+        client = masters.authenticate_internal_key(masters.issue_internal_key(self.w.admin, "모듈").key)
+        g1 = str(self.w.group.ad_group_id)
+        g2 = str(api.create_ad_group(self.w.adv, self.cid, "둘째", [self.w.slot.slot_id], now=NOW).ad_group_id)
+        a, b = self.race(lambda: api.write_categories(client, [{"ad_group_id": g1, "category": 1}, {"ad_group_id": g2, "category": 1}]), "campaigns_ad_group_profile",
+                         lambda: api.write_categories(client, [{"ad_group_id": g2, "category": 2}, {"ad_group_id": g1, "category": 2}]))
+        self.assertEqual((a.errors, b.errors), ([], []))
+        self.assertEqual(sorted(AdGroupProfile.objects.values_list("category", "version")), [(2, 3), (2, 3)])
 
     def test_ad_group_write_race(self):
         self.run_cases()

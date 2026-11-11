@@ -23,6 +23,7 @@ def map_view(request):
     profile = getattr(request.user, "campus_profile", None)
     return presentation_response(request, "index.html", {
         "nickname": get_nickname(request.user),
+        "ads_enabled": settings.ADS_ENABLED,
         "view_config": {"canZoom": request.user.is_staff,
             "privateMessages": message_configuration(request.user),
             "guidePending": bool(profile and not profile.guide_completed),

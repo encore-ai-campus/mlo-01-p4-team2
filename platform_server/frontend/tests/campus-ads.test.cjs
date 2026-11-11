@@ -1,14 +1,15 @@
 const test=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
 const visibility=require('../dist/ad-visibility.js');
 function setup(){
-  let now=0,respond,autoLoad=true,timerId=0;const calls=[],frames=[],listeners={},images=[],opened=[],timers=new Map();
+  let now=0,respond,autoLoad=true,timerId=0;const calls=[],frames=[],listeners={},images=[],opened=[],events=[],timers=new Map();
   const slot={hidden:true,children:[],append(child){this.children.push(child);},replaceChildren(){this.children=[];}};
   const dialog={open:true};
   const context={URL,Date,Promise,AbortController,Error,Map,Set,innerWidth:1000,innerHeight:800,
     performance:{now:()=>now},location:{href:'https://game.test/'},CampusAdVisibility:visibility,
     setTimeout(fn,delay){const id=++timerId;timers.set(id,{fn,at:now+delay});return id;},
     clearTimeout:id=>timers.delete(id),requestAnimationFrame:fn=>frames.push(fn),open:(...args)=>opened.push(args),
-    addEventListener:(name,fn)=>listeners[name]=fn,
+    addEventListener:(name,fn)=>listeners[name]=fn,dispatchEvent:event=>events.push(event),
+    CustomEvent:class{constructor(type,{detail}){this.type=type;this.detail=detail;}},
     document:{hidden:false,hasFocus:()=>true,cookie:'csrftoken=test',querySelector:()=>null,addEventListener(){},
       getElementById:id=>id==='floorTransitionAdSlot'?slot:dialog,
       createElement:()=>({append(img){this.img=img;}})},
@@ -17,7 +18,7 @@ function setup(){
   };
   context.window=context;
   vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../dist/campus-ads.js'),'utf8'),context);
-  return {context,slot,dialog,calls,listeners,images,opened,setResponse(fn){respond=fn;},setTime(time){now=time;},
+  return {context,slot,dialog,calls,listeners,images,opened,events,setResponse(fn){respond=fn;},setTime(time){now=time;},
     holdImages(){autoLoad=false;},loadImage(index){images[index].onload?.();},failImage(index){images[index].onerror?.();},
     async flush(){for(let i=0;i<20;i++)await Promise.resolve();},
     async advance(time){now=time;for(const [id,timer] of [...timers])if(timer.at<=now){timers.delete(id);timer.fn();}await this.flush();},
@@ -186,4 +187,14 @@ test('옥상 회차가 포털 표시 중 끝나도 포털의 연속 노출 시�
   await h.context.CampusAds.startPortal('approved');await h.frame(0);
   await h.frame(600);tick(600,'campus');await h.frame(1000);
   assert.equal(h.calls.filter(c=>c.url.includes('/portal/impression/')).length,1);
+});
+
+test('a confirmed impression uses the campus CSRF cookie and publishes the server achievement',async()=>{
+ const h=setupRoof();h.context.document.cookie='campus_csrftoken=campus-token';
+ const badge={event_uuid:'ad',name:'시선 강탈 사건',achieved:true};
+ h.setResponse(url=>url.includes('placements/rooftop/')?roofBatch('ad'):{achievements:[badge],newly_completed:['ad']});
+ h.tick(0);await h.flush();h.tick(10);h.tick(1010);await h.flush();
+ assert.equal(impressions(h,'ad')[0].options.headers['X-CSRFToken'],'campus-token');
+ assert.deepEqual(h.events.map(e=>e.type),['campus:achievements','campus:achievement-earned']);
+ h.tick(2010);await h.flush();assert.equal(impressions(h,'ad').length,1);
 });

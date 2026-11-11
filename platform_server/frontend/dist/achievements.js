@@ -37,7 +37,8 @@
     window.addEventListener('campus:achievement-earned',event=>enqueueNotices(event.detail?.newly_completed));
     function accept(rows){
       if(!Array.isArray(rows))throw new Error('Invalid achievements');
-      const next=names.map(name=>{
+      const expected=rows.some(row=>row?.name==='시선 강탈 사건')?[...names,'시선 강탈 사건']:names;
+      const next=expected.map(name=>{
         const item=rows.find(row=>row?.name===name);
         if(!item||typeof item.event_uuid!=='string'||!item.event_uuid||typeof item.achieved!=='boolean'||
           !(item.completed_at===null||typeof item.completed_at==='string')||typeof item.image_url!=='string')throw new Error('Invalid achievement');

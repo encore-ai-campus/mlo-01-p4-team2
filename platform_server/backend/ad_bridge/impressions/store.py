@@ -5,7 +5,7 @@ Django 모델은 함수 호출 시에만
 가져오므로 저장소를 대체하는 단위 테스트와 표준 라이브러리 클라이언트가 분리된다.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 import math
 import re
@@ -29,6 +29,7 @@ class StoredImpression:
     last_http_status: int | None = None
     lease_token: str | None = None
     lease_expires_at: datetime | None = None
+    achievement_update: dict | None = None
 
 
 class DecisionNotFound(Exception):
@@ -226,6 +227,7 @@ def finish_impression(
     last_error: str | None = None,
     last_http_status: int | None = None,
 ) -> StoredImpression:
+    from django.apps import apps
     from django.db.models import Case, DateTimeField, F, Value, When
 
     from ..models import Impression
@@ -248,36 +250,45 @@ def finish_impression(
         next_at = datetime.now(timezone.utc)
     if delivery_state != "UNCONFIRMED":
         next_at = None
-    reaction_uuid = _uuid(reaction_id)
-    token = None if lease_token is None else _uuid(lease_token)
-    records = Impression.objects.filter(reaction_id=reaction_uuid)
-    schedule = next_at
-    if delivery_state == "UNCONFIRMED":
-        # 오래된 전송의 Retry-After도 유효하다. 상태·임대를 바꾸지 않고 최소 대기만 늘린다.
-        # SQL에서 최댓값을 정해야 다른 전송의 더 긴 대기를 경쟁 갱신으로 덮어쓰지 않는다.
-        schedule = Case(
-            When(next_attempt_at__isnull=True, then=Value(next_at)),
-            When(next_attempt_at__lt=next_at, then=Value(next_at)),
-            default=F("next_attempt_at"),
-            output_field=DateTimeField(),
+    from django.db import transaction
+
+    with transaction.atomic():
+        reaction_uuid = _uuid(reaction_id)
+        token = None if lease_token is None else _uuid(lease_token)
+        records = Impression.objects.filter(reaction_id=reaction_uuid)
+        schedule = next_at
+        if delivery_state == "UNCONFIRMED":
+            # 오래된 전송의 Retry-After도 유효하다. 상태·임대를 바꾸지 않고 최소 대기만 늘린다.
+            # SQL에서 최댓값을 정해야 다른 전송의 더 긴 대기를 경쟁 갱신으로 덮어쓰지 않는다.
+            schedule = Case(
+                When(next_attempt_at__isnull=True, then=Value(next_at)),
+                When(next_attempt_at__lt=next_at, then=Value(next_at)),
+                default=F("next_attempt_at"),
+                output_field=DateTimeField(),
+            )
+            records.filter(delivery_state__in=("SENDING", "UNCONFIRMED")).update(
+                next_attempt_at=schedule,
+            )
+        if delivery_state == "ACKNOWLEDGED":
+            # 오래된 임대의 2xx라도 같은 불변 요청의 접수 확인이므로 뒤늦은 실패보다 우선한다.
+            records = records.exclude(delivery_state="ACKNOWLEDGED")
+        else:
+            records = records.filter(delivery_state="SENDING", lease_token=token)
+        records.update(
+            delivery_state=delivery_state,
+            status=status,
+            reason_code=reason_code,
+            request_id=request_id,
+            next_attempt_at=schedule, last_error=last_error, last_http_status=last_http_status,
+            lease_token=None, lease_expires_at=None,
         )
-        records.filter(delivery_state__in=("SENDING", "UNCONFIRMED")).update(
-            next_attempt_at=schedule,
-        )
-    if delivery_state == "ACKNOWLEDGED":
-        # 오래된 임대의 2xx라도 같은 불변 요청의 접수 확인이므로 뒤늦은 실패보다 우선한다.
-        records = records.exclude(delivery_state="ACKNOWLEDGED")
-    else:
-        records = records.filter(delivery_state="SENDING", lease_token=token)
-    records.update(
-        delivery_state=delivery_state,
-        status=status,
-        reason_code=reason_code,
-        request_id=request_id,
-        next_attempt_at=schedule, last_error=last_error, last_http_status=last_http_status,
-        lease_token=None, lease_expires_at=None,
-    )
-    return _snapshot(Impression.objects.get(reaction_id=reaction_uuid))
+        record = Impression.objects.get(reaction_id=reaction_uuid)
+        update = None
+        # The validated reaction-body path follows an upstream impression PUT returning 200/201.
+        if delivery_state == 'ACKNOWLEDGED' and status is not None and apps.is_installed('event_story'):
+            from event_story.achievement_services import record_ad_impression
+            update = record_ad_impression(record)
+        return replace(_snapshot(record), achievement_update=update)
 
 
 class ImpressionNotReady(Exception):

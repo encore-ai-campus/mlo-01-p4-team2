@@ -65,6 +65,16 @@ class MapRenderingTests(SimpleTestCase):
             self.assertIn('id="boothEmbeddedSection"', after)
             self.assertIn('"canZoom": true', after)
 
+    def test_ad_modules_load_only_when_the_backend_enables_ads(self):
+        for enabled in (False, True):
+            context = {'user': {'is_authenticated': True, 'is_staff': False}, 'nickname': 'viewer',
+                       'view_config': {}, 'presence_config': {}, 'session_policy_config': {},
+                       'csrf_token': 'token', 'ads_enabled': enabled}
+            html, _ = render_document({'template': 'index.html', 'context': context}, project_settings.BASE_DIR)
+            self.assertEqual('src="campus-ads.js?' in html, enabled)
+            self.assertEqual('src="ad-visibility.js?' in html, enabled)
+            self.assertEqual('src="roof-slideshow.js?' in html, not enabled)
+
     def test_backend_cannot_choose_an_arbitrary_template(self):
         with self.assertRaises(ValueError):
             render_document({'template': '../secrets', 'context': {}}, project_settings.BASE_DIR)

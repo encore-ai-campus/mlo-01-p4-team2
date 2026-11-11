@@ -138,3 +138,12 @@ test('CS and three-subject achievements queue both earned notices once',async()=
  f.runTimer(6000);f.earned(['all','cs']);assert.equal(f.timers.size,0);
  assert.ok(f.get('achievementsList').children.slice(6,8).every(r=>r.dataset.achieved==='true'));
 });
+
+test('the advertising badge is optional during rollout and joins the existing notice flow',async()=>{
+ const f=fixture();await f.respond();assert.equal(f.get('achievementsList').children.length,9);
+ const ad={event_uuid:'ad',name:'시선 강탈 사건',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/ad-impression.png'};
+ f.update([...rows(),ad]);assert.equal(f.get('achievementsList').children.length,10);
+ f.update([...rows(),{...ad,achieved:true,completed_at:'2026-11-04T00:00:00Z'}]);f.runTimer(0);
+ assert.equal(f.get('achievementNoticeName').textContent,'시선 강탈 사건');
+ assert.match(f.get('achievementNoticeImage').src,/ad-impression.png$/);
+});

@@ -17,7 +17,7 @@ async function scenario(browser, subject, kind) {
   page.on('pageerror', error => errors.push(error.message));
   await context.addCookies([{name: 'campus_csrftoken', value: 'test-csrf', url: 'http://campus.test'}]);
   const requests = [];
-  const answer = subject === 'sql' ? 'SELECT' : 'append';
+  const answer = {sql:'SELECT',python:'append',cs:'CPU'}[subject];
   await page.route('http://campus.test/**', async route => {
     const request = route.request();
     const endpoint = new URL(request.url()).pathname;
@@ -66,6 +66,7 @@ async function scenario(browser, subject, kind) {
     await page.evaluate(({subject, kind}) => window.CampusLearning.open(kind, subject), {subject, kind});
     await page.waitForFunction(() => document.getElementById('learning-app').getAttribute('aria-busy') === 'false');
     assert.equal(requests.filter(item => item.endpoint.endsWith('/content-open/')).length, 1);
+    if(subject==='cs')assert.equal(await page.locator('#difficulty-title').textContent(),kind==='fill_blank'?'CS 개념 빈칸 채우기':'CS 객관식');
     assert.match(await page.locator('#learning-wallet').textContent(), /10P/);
     await page.locator('[data-difficulty="beginner"]').click();
     await page.waitForFunction(() => document.getElementById('question-title').textContent === '검증 문제');
@@ -95,7 +96,7 @@ async function scenario(browser, subject, kind) {
 (async () => {
   const browser = await chromium.launch({channel: 'chrome', headless: true});
   try {
-    for (const subject of ['python', 'sql']) {
+    for (const subject of ['python', 'sql', 'cs']) {
       for (const kind of ['multiple_choice', 'fill_blank']) await scenario(browser, subject, kind);
     }
   } finally {

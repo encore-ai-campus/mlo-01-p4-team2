@@ -13,7 +13,7 @@ const CLASSROOM_PASSABLE = new Set(['laptop', 'monitor', 'door-threshold']);
 // 앉는 가구(의자·소파·스툴·옥상 벤치)는 어디서나 지나간다(18F·옥상·교실, 사용자 결정 10/19)
 const PASSABLE = new Set(['chair', 'sofa', 'stool', 'terrace-bench']);
 // 학습교실 입장 구역: 교실 윗벽의 틈
-const GATES = [['python', 'class1'], ['sql', 'class2']];
+const GATES = [['python', 'class1'], ['sql', 'class2'], ['cs', 'class-cs']];
 
 function build(root = FRONTEND) {
   const context = vm.createContext({Image: class { set src(value) {} }, window: {}});

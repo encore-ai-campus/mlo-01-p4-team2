@@ -4,7 +4,7 @@ import re
 from .models import Subject, Difficulty, QuestionType
 
 def validate_bank(rows, require_full=True):
-    errors=[]; warnings=['의미상 중복, 난이도 적합성, Python/SQL 예제의 정확성은 별도 검토가 필요합니다.']
+    errors=[]; warnings=['의미상 중복, 난이도 적합성, 문항과 해설의 정확성은 별도 검토가 필요합니다.']
     groups=Counter();codes=set();texts=set()
     if not isinstance(rows,list):return {'errors':['JSON 배열이 필요합니다.'],'warnings':warnings,'groups':{}}
     for index,row in enumerate(rows,1):
@@ -29,9 +29,12 @@ def validate_bank(rows, require_full=True):
                 errors.append(f'{index}: 서로 다른 보기 4개가 필요합니다.')
             elif sum(c.strip()==str(row.get('correct_answer','')).strip() for c in choices)!=1:errors.append(f'{index}: 정답과 보기 불일치')
         elif choices:errors.append(f'{index}: 빈칸 문제에 보기가 있습니다.')
-    for subject in Subject.values:
+    subjects={row.get('subject') for row in rows if isinstance(row,dict)} & set(Subject.values)
+    if not rows:errors.append('문제가 한 개 이상 필요합니다.')
+    for subject in sorted(subjects):
         for level in Difficulty.values:
             for kind in QuestionType.values:
                 count=groups[(subject,level,kind)]
                 if require_full and count!=200:errors.append(f'{subject}/{level}/{kind}: {count}/200')
-    return {'errors':errors,'warnings':warnings,'groups':{'/'.join(k):v for k,v in sorted(groups.items())},'total':len(rows),'target':2400,'shortfall':max(0,2400-len(rows))}
+    target=len(subjects)*len(Difficulty.values)*len(QuestionType.values)*200
+    return {'errors':errors,'warnings':warnings,'groups':{'/'.join(k):v for k,v in sorted(groups.items())},'total':len(rows),'target':target,'shortfall':max(0,target-len(rows))}

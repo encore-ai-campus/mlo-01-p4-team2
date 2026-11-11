@@ -33,13 +33,15 @@
   drawActor:window.CampusClassroomAssets?.drawActor,paintFurniture:window.CampusClassroomAssets?.paint,objects,residents,spawn:[320,455],exit:{id:'classroom-exit',name:'메타버스로 나가기',interactionPoint:[320,480]},portals:[]};
  function forSubject(subject){
   if(subject==='python')return {data};
-  const sqlData={...data,id:'sql-classroom',subject:'sql',name:'SQL 학습교실',rooms:data.rooms.map(r=>({...r,name:'SQL 학습교실'})),objects:objects.map(o=>({...o,interactionPoint:o.interactionPoint?.slice()})),residents:residents.map(a=>({...a}))};
-  for(const o of sqlData.objects){
-   if(o.type==='board')o.text='11.11 SQL CLASS';
-   if(o.action==='learning'){o.id=o.id.startsWith('python_')?o.id.replace('python_','sql_'):'sql_'+o.id;o.name=o.contentType==='multiple_choice'?'SQL 객관식':'SQL 코드 빈칸 채우기';}
+  const name={sql:'SQL',cs:'CS'}[subject];
+  if(!name)throw new Error('Unknown classroom subject: '+subject);
+  const subjectData={...data,id:subject+'-classroom',subject,name:name+' 학습교실',rooms:data.rooms.map(r=>({...r,id:subject+'-room',name:name+' 학습교실'})),objects:objects.map(o=>({...o,interactionPoint:o.interactionPoint?.slice()})),residents:residents.map(a=>({...a}))};
+  for(const o of subjectData.objects){
+   if(o.type==='board'){o.id=subject+'-board';o.text='11.11 '+name+' CLASS';}
+   if(o.action==='learning'){o.id=o.id.startsWith('python_')?o.id.replace('python_',subject+'_'):subject+'_'+o.id;o.name=o.contentType==='multiple_choice'?name+' 객관식':subject==='cs'?'CS 개념 빈칸 채우기':name+' 코드 빈칸 채우기';}
   }
-  sqlData.paintFloor=api=>window.CampusClassroomAssets.paintFloor({...api,subject:'sql'});
-  return {data:sqlData};
+  subjectData.paintFloor=api=>window.CampusClassroomAssets.paintFloor({...api,subject});
+  return {data:subjectData};
  }
  window.CampusClassroomMap={data,forSubject};
 })();

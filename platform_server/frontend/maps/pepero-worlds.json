@@ -77,13 +77,13 @@
         {
           "id": "class2",
           "name": "SQL 학습교실",
-          "x": 792,
+          "x": 792.0,
           "y": 553.5,
-          "w": 469.5,
+          "w": 305.5,
           "h": 393,
           "floor": "class",
           "target": [
-            852,
+            944.75,
             589.5
           ],
           "front": "bottom",
@@ -93,15 +93,33 @@
           "photo": false
         },
         {
-          "id": "class1",
-          "name": "Python 학습교실",
-          "x": 1261.5,
+          "id": "class-cs",
+          "name": "CS 학습교실",
+          "x": 1097.5,
           "y": 553.5,
-          "w": 447,
+          "w": 305.5,
           "h": 393,
           "floor": "class",
           "target": [
-            1648.5,
+            1250.25,
+            589.5
+          ],
+          "front": "bottom",
+          "description": "빼빼로 데이 CS 학습교실",
+          "label": false,
+          "info": false,
+          "photo": false
+        },
+        {
+          "id": "class1",
+          "name": "Python 학습교실",
+          "x": 1403.0,
+          "y": 553.5,
+          "w": 305.5,
+          "h": 393,
+          "floor": "class",
+          "target": [
+            1555.75,
             589.5
           ],
           "front": "bottom",
@@ -360,30 +378,6 @@
           "y2": 946.5
         },
         {
-          "x1": 1261.5,
-          "y1": 553.5,
-          "x2": 1261.5,
-          "y2": 946.5
-        },
-        {
-          "x1": 792,
-          "y1": 553.5,
-          "x2": 820.5,
-          "y2": 553.5
-        },
-        {
-          "x1": 885,
-          "y1": 553.5,
-          "x2": 1617,
-          "y2": 553.5
-        },
-        {
-          "x1": 1681.5,
-          "y1": 553.5,
-          "x2": 1708.5,
-          "y2": 553.5
-        },
-        {
           "x1": 1708.5,
           "y1": 36,
           "x2": 1708.5,
@@ -505,81 +499,57 @@
           "y1": 1077,
           "x2": 2208,
           "y2": 1077
+        },
+        {
+          "x1": 1097.5,
+          "y1": 553.5,
+          "x2": 1097.5,
+          "y2": 946.5
+        },
+        {
+          "x1": 1403,
+          "y1": 553.5,
+          "x2": 1403,
+          "y2": 946.5
+        },
+        {
+          "x1": 792.0,
+          "y1": 553.5,
+          "x2": 912.5,
+          "y2": 553.5
+        },
+        {
+          "x1": 977.0,
+          "y1": 553.5,
+          "x2": 1097.5,
+          "y2": 553.5
+        },
+        {
+          "x1": 1097.5,
+          "y1": 553.5,
+          "x2": 1218.0,
+          "y2": 553.5
+        },
+        {
+          "x1": 1282.5,
+          "y1": 553.5,
+          "x2": 1403.0,
+          "y2": 553.5
+        },
+        {
+          "x1": 1403.0,
+          "y1": 553.5,
+          "x2": 1523.5,
+          "y2": 553.5
+        },
+        {
+          "x1": 1588.0,
+          "y1": 553.5,
+          "x2": 1708.5,
+          "y2": 553.5
         }
       ],
       "objects": [
-        {
-          "id": "object-229",
-          "type": "rug",
-          "x": 812,
-          "y": 892.5,
-          "w": 45,
-          "h": 35,
-          "roomId": "class2",
-          "solid": false,
-          "action": "learning",
-          "subject": "sql",
-          "contentType": "sql_multiple_choice",
-          "name": "SQL 객관식",
-          "description": "학습교실 출입구로 입장해 객관식·코드 빈칸 채우기를 시작할 수 있습니다.",
-          "tags": [
-            "초급 · 중급 · 고급",
-            "학습교실"
-          ],
-          "artWidth": 45,
-          "artHeight": 30,
-          "artAnchor": 0.92,
-          "renderHeight": 110,
-          "color": "#d592aa"
-        },
-        {
-          "id": "object-238",
-          "type": "rug",
-          "x": 1211.5,
-          "y": 892.5,
-          "w": 45,
-          "h": 35,
-          "roomId": "class2",
-          "solid": false,
-          "action": "learning",
-          "subject": "sql",
-          "contentType": "sql_fill_blank",
-          "name": "SQL 코드 빈칸 채우기",
-          "description": "학습교실 출입구로 입장해 객관식·코드 빈칸 채우기를 시작할 수 있습니다.",
-          "tags": [
-            "초급 · 중급 · 고급",
-            "학습교실"
-          ],
-          "artWidth": 45,
-          "artHeight": 30,
-          "artAnchor": 0.92,
-          "renderHeight": 110,
-          "color": "#d592aa"
-        },
-        {
-          "id": "object-269",
-          "type": "rug",
-          "x": 1281.5,
-          "y": 892.5,
-          "w": 45,
-          "h": 35,
-          "roomId": "class1",
-          "solid": false,
-          "action": "learning",
-          "subject": "python",
-          "contentType": "python_multiple_choice",
-          "name": "Python 객관식",
-          "description": "학습교실 출입구로 입장해 객관식·코드 빈칸 채우기를 시작할 수 있습니다.",
-          "tags": [
-            "초급 · 중급 · 고급",
-            "학습교실"
-          ],
-          "artWidth": 45,
-          "artHeight": 30,
-          "artAnchor": 0.92,
-          "renderHeight": 110,
-          "color": "#d592aa"
-        },
         {
           "id": "pepero-lounge2-refill",
           "type": "pepero-art",
@@ -1219,392 +1189,6 @@
           "x": 45,
           "y": 1114.5,
           "w": 420,
-          "h": 4,
-          "solid": false,
-          "renderHeight": 95,
-          "axis": "x",
-          "height": 62
-        },
-        {
-          "id": "reference-campus-45",
-          "type": "rug",
-          "x": 1276.5,
-          "y": 573.5,
-          "w": 417,
-          "h": 353,
-          "solid": false,
-          "renderHeight": 160,
-          "color": "#b9667b"
-        },
-        {
-          "id": "reference-campus-47",
-          "type": "pepero-art",
-          "x": 1435,
-          "y": 653.5,
-          "w": 170,
-          "h": 66,
-          "solid": true,
-          "renderHeight": 235,
-          "seasonalArt": "workbench",
-          "artWidth": 212.5,
-          "artHeight": 265.625,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              1364.277,
-              660.001
-            ],
-            [
-              1370.636,
-              597.24
-            ],
-            [
-              1557.416,
-              579.666
-            ],
-            [
-              1563.237,
-              660.617
-            ],
-            [
-              1420.182,
-              703.885
-            ]
-          ]
-        },
-        {
-          "id": "reference-campus-48",
-          "type": "pepero-art",
-          "x": 1435,
-          "y": 821.5,
-          "w": 170,
-          "h": 66,
-          "solid": true,
-          "renderHeight": 235,
-          "seasonalArt": "workbench",
-          "artWidth": 212.5,
-          "artHeight": 265.625,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              1364.277,
-              828.001
-            ],
-            [
-              1370.636,
-              765.24
-            ],
-            [
-              1557.416,
-              747.666
-            ],
-            [
-              1563.237,
-              828.617
-            ],
-            [
-              1420.182,
-              871.885
-            ]
-          ]
-        },
-        {
-          "id": "reference-campus-53",
-          "type": "pepero-art",
-          "x": 1279.5,
-          "y": 581.5,
-          "w": 72,
-          "h": 24,
-          "solid": true,
-          "renderHeight": 100.80000000000001,
-          "seasonalArt": "flowerbox",
-          "artWidth": 80.64000000000001,
-          "artHeight": 100.80000000000001,
-          "artAnchor": 0.92,
-          "flip": false,
-          "collisionPolygon": [
-            [
-              1273.37,
-              601.548
-            ],
-            [
-              1277.309,
-              579.258
-            ],
-            [
-              1333.209,
-              558.75
-            ],
-            [
-              1330.096,
-              584.147
-            ]
-          ]
-        },
-        {
-          "id": "reference-campus-54",
-          "type": "pepero-art",
-          "x": 1608.5,
-          "y": 581.5,
-          "w": 72,
-          "h": 24,
-          "solid": true,
-          "renderHeight": 100.80000000000001,
-          "seasonalArt": "flowerbox",
-          "artWidth": 80.64000000000001,
-          "artHeight": 100.80000000000001,
-          "artAnchor": 0.92,
-          "flip": false,
-          "collisionPolygon": [
-            [
-              1602.37,
-              601.548
-            ],
-            [
-              1606.309,
-              579.258
-            ],
-            [
-              1662.209,
-              558.75
-            ],
-            [
-              1659.096,
-              584.147
-            ]
-          ]
-        },
-        {
-          "id": "reference-campus-55",
-          "type": "pepero-ribbon-lamp",
-          "x": 1276.5,
-          "y": 730,
-          "w": 12,
-          "h": 12,
-          "solid": true,
-          "renderHeight": 145,
-          "collision": {
-            "x": 1,
-            "y": 1,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-campus-56",
-          "type": "pepero-ribbon-lamp",
-          "x": 1681.5,
-          "y": 643.5,
-          "w": 12,
-          "h": 12,
-          "solid": true,
-          "renderHeight": 145,
-          "collision": {
-            "x": 1,
-            "y": 1,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-campus-57",
-          "type": "pepero-light-rail",
-          "x": 1276.5,
-          "y": 931.5,
-          "w": 417,
-          "h": 4,
-          "solid": false,
-          "renderHeight": 95,
-          "axis": "x",
-          "height": 62
-        },
-        {
-          "id": "reference-campus-60",
-          "type": "rug",
-          "x": 807,
-          "y": 573.5,
-          "w": 439.5,
-          "h": 353,
-          "solid": false,
-          "renderHeight": 160,
-          "color": "#b9667b"
-        },
-        {
-          "id": "reference-campus-62",
-          "type": "pepero-art",
-          "x": 961.75,
-          "y": 653.5,
-          "w": 170,
-          "h": 66,
-          "solid": true,
-          "renderHeight": 235,
-          "seasonalArt": "workbench",
-          "artWidth": 212.5,
-          "artHeight": 265.625,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              891.027,
-              660.001
-            ],
-            [
-              897.386,
-              597.24
-            ],
-            [
-              1084.166,
-              579.666
-            ],
-            [
-              1089.987,
-              660.617
-            ],
-            [
-              946.932,
-              703.885
-            ]
-          ]
-        },
-        {
-          "id": "reference-campus-63",
-          "type": "pepero-art",
-          "x": 961.75,
-          "y": 821.5,
-          "w": 170,
-          "h": 66,
-          "solid": true,
-          "renderHeight": 235,
-          "seasonalArt": "workbench",
-          "artWidth": 212.5,
-          "artHeight": 265.625,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              891.027,
-              828.001
-            ],
-            [
-              897.386,
-              765.24
-            ],
-            [
-              1084.166,
-              747.666
-            ],
-            [
-              1089.987,
-              828.617
-            ],
-            [
-              946.932,
-              871.885
-            ]
-          ]
-        },
-        {
-          "id": "reference-campus-68",
-          "type": "pepero-art",
-          "x": 810,
-          "y": 581.5,
-          "w": 72,
-          "h": 24,
-          "solid": true,
-          "renderHeight": 100.80000000000001,
-          "seasonalArt": "flowerbox",
-          "artWidth": 80.64000000000001,
-          "artHeight": 100.80000000000001,
-          "artAnchor": 0.92,
-          "flip": false,
-          "collisionPolygon": [
-            [
-              803.87,
-              601.548
-            ],
-            [
-              807.809,
-              579.258
-            ],
-            [
-              863.709,
-              558.75
-            ],
-            [
-              860.596,
-              584.147
-            ]
-          ]
-        },
-        {
-          "id": "reference-campus-69",
-          "type": "pepero-art",
-          "x": 1161.5,
-          "y": 581.5,
-          "w": 72,
-          "h": 24,
-          "solid": true,
-          "renderHeight": 100.80000000000001,
-          "seasonalArt": "flowerbox",
-          "artWidth": 80.64000000000001,
-          "artHeight": 100.80000000000001,
-          "artAnchor": 0.92,
-          "flip": false,
-          "collisionPolygon": [
-            [
-              1155.37,
-              601.548
-            ],
-            [
-              1159.309,
-              579.258
-            ],
-            [
-              1215.209,
-              558.75
-            ],
-            [
-              1212.096,
-              584.147
-            ]
-          ]
-        },
-        {
-          "id": "reference-campus-70",
-          "type": "pepero-ribbon-lamp",
-          "x": 807,
-          "y": 730,
-          "w": 12,
-          "h": 12,
-          "solid": true,
-          "renderHeight": 145,
-          "collision": {
-            "x": 1,
-            "y": 1,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-campus-71",
-          "type": "pepero-ribbon-lamp",
-          "x": 1234.5,
-          "y": 643.5,
-          "w": 12,
-          "h": 12,
-          "solid": true,
-          "renderHeight": 145,
-          "collision": {
-            "x": 1,
-            "y": 1,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-campus-72",
-          "type": "pepero-light-rail",
-          "x": 807,
-          "y": 931.5,
-          "w": 439.5,
           "h": 4,
           "solid": false,
           "renderHeight": 95,
@@ -2361,6 +1945,435 @@
           "description": "가까이서 상호작용하면 메인 미션을 시작하거나 현재 단계의 대화와 선물 전달을 진행합니다.",
           "roomId": "class3-4",
           "interactionRadius": 70
+        },
+        {
+          "id": "sql-exterior-rug",
+          "type": "rug",
+          "x": 807.0,
+          "y": 573.5,
+          "w": 275.5,
+          "h": 353,
+          "roomId": "class2",
+          "solid": false,
+          "renderHeight": 160,
+          "color": "#b9667b"
+        },
+        {
+          "id": "sql-exterior-sign",
+          "type": "wall-sign",
+          "x": 827.0,
+          "y": 558.5,
+          "w": 235.5,
+          "h": 3,
+          "roomId": "class2",
+          "solid": false,
+          "text": "SQL 학습교실",
+          "renderHeight": 120
+        },
+        {
+          "id": "sql-exterior-bench-0",
+          "type": "pepero-art",
+          "x": 892.75,
+          "y": 668.5,
+          "w": 103.7,
+          "h": 40.26,
+          "solid": true,
+          "renderHeight": 143.35,
+          "seasonalArt": "workbench",
+          "artWidth": 129.625,
+          "artHeight": 162.03125,
+          "artAnchor": 0.92,
+          "collisionPolygon": [
+            [
+              849.609,
+              672.466
+            ],
+            [
+              853.488,
+              634.181
+            ],
+            [
+              967.424,
+              623.461
+            ],
+            [
+              970.975,
+              672.841
+            ],
+            [
+              883.711,
+              699.235
+            ]
+          ],
+          "roomId": "class2"
+        },
+        {
+          "id": "sql-exterior-bench-1",
+          "type": "pepero-art",
+          "x": 892.75,
+          "y": 828.5,
+          "w": 103.7,
+          "h": 40.26,
+          "solid": true,
+          "renderHeight": 143.35,
+          "seasonalArt": "workbench",
+          "artWidth": 129.625,
+          "artHeight": 162.03125,
+          "artAnchor": 0.92,
+          "collisionPolygon": [
+            [
+              849.609,
+              832.466
+            ],
+            [
+              853.488,
+              794.181
+            ],
+            [
+              967.424,
+              783.461
+            ],
+            [
+              970.975,
+              832.841
+            ],
+            [
+              883.711,
+              859.235
+            ]
+          ],
+          "roomId": "class2"
+        },
+        {
+          "id": "sql-exterior-learning-0",
+          "type": "rug",
+          "x": 817.0,
+          "y": 892.5,
+          "w": 45,
+          "h": 35,
+          "roomId": "class2",
+          "solid": false,
+          "action": "learning",
+          "subject": "sql",
+          "contentType": "sql_multiple_choice",
+          "name": "SQL 객관식",
+          "description": "출입구로 들어가 학습 영역에서 E키를 누르세요.",
+          "color": "#d592aa"
+        },
+        {
+          "id": "sql-exterior-learning-1",
+          "type": "rug",
+          "x": 1027.5,
+          "y": 892.5,
+          "w": 45,
+          "h": 35,
+          "roomId": "class2",
+          "solid": false,
+          "action": "learning",
+          "subject": "sql",
+          "contentType": "sql_fill_blank",
+          "name": "SQL 코드 빈칸 채우기",
+          "description": "출입구로 들어가 학습 영역에서 E키를 누르세요.",
+          "color": "#d592aa"
+        },
+        {
+          "id": "sql-exterior-rail",
+          "type": "pepero-light-rail",
+          "x": 807.0,
+          "y": 931.5,
+          "w": 275.5,
+          "h": 4,
+          "roomId": "class2",
+          "solid": false,
+          "renderHeight": 95,
+          "axis": "x",
+          "height": 62
+        },
+        {
+          "id": "cs-exterior-rug",
+          "type": "rug",
+          "x": 1112.5,
+          "y": 573.5,
+          "w": 275.5,
+          "h": 353,
+          "roomId": "class-cs",
+          "solid": false,
+          "renderHeight": 160,
+          "color": "#b9667b"
+        },
+        {
+          "id": "cs-exterior-sign",
+          "type": "wall-sign",
+          "x": 1132.5,
+          "y": 558.5,
+          "w": 235.5,
+          "h": 3,
+          "roomId": "class-cs",
+          "solid": false,
+          "text": "CS 학습교실",
+          "renderHeight": 120
+        },
+        {
+          "id": "cs-exterior-bench-0",
+          "type": "pepero-art",
+          "x": 1198.25,
+          "y": 668.5,
+          "w": 103.7,
+          "h": 40.26,
+          "solid": true,
+          "renderHeight": 143.35,
+          "seasonalArt": "workbench",
+          "artWidth": 129.625,
+          "artHeight": 162.03125,
+          "artAnchor": 0.92,
+          "collisionPolygon": [
+            [
+              1155.109,
+              672.466
+            ],
+            [
+              1158.988,
+              634.181
+            ],
+            [
+              1272.924,
+              623.461
+            ],
+            [
+              1276.475,
+              672.841
+            ],
+            [
+              1189.211,
+              699.235
+            ]
+          ],
+          "roomId": "class-cs"
+        },
+        {
+          "id": "cs-exterior-bench-1",
+          "type": "pepero-art",
+          "x": 1198.25,
+          "y": 828.5,
+          "w": 103.7,
+          "h": 40.26,
+          "solid": true,
+          "renderHeight": 143.35,
+          "seasonalArt": "workbench",
+          "artWidth": 129.625,
+          "artHeight": 162.03125,
+          "artAnchor": 0.92,
+          "collisionPolygon": [
+            [
+              1155.109,
+              832.466
+            ],
+            [
+              1158.988,
+              794.181
+            ],
+            [
+              1272.924,
+              783.461
+            ],
+            [
+              1276.475,
+              832.841
+            ],
+            [
+              1189.211,
+              859.235
+            ]
+          ],
+          "roomId": "class-cs"
+        },
+        {
+          "id": "cs-exterior-learning-0",
+          "type": "rug",
+          "x": 1122.5,
+          "y": 892.5,
+          "w": 45,
+          "h": 35,
+          "roomId": "class-cs",
+          "solid": false,
+          "action": "learning",
+          "subject": "cs",
+          "contentType": "cs_multiple_choice",
+          "name": "CS 객관식",
+          "description": "출입구로 들어가 학습 영역에서 E키를 누르세요.",
+          "color": "#d592aa"
+        },
+        {
+          "id": "cs-exterior-learning-1",
+          "type": "rug",
+          "x": 1333.0,
+          "y": 892.5,
+          "w": 45,
+          "h": 35,
+          "roomId": "class-cs",
+          "solid": false,
+          "action": "learning",
+          "subject": "cs",
+          "contentType": "cs_fill_blank",
+          "name": "CS 개념 빈칸 채우기",
+          "description": "출입구로 들어가 학습 영역에서 E키를 누르세요.",
+          "color": "#d592aa"
+        },
+        {
+          "id": "cs-exterior-rail",
+          "type": "pepero-light-rail",
+          "x": 1112.5,
+          "y": 931.5,
+          "w": 275.5,
+          "h": 4,
+          "roomId": "class-cs",
+          "solid": false,
+          "renderHeight": 95,
+          "axis": "x",
+          "height": 62
+        },
+        {
+          "id": "python-exterior-rug",
+          "type": "rug",
+          "x": 1418.0,
+          "y": 573.5,
+          "w": 275.5,
+          "h": 353,
+          "roomId": "class1",
+          "solid": false,
+          "renderHeight": 160,
+          "color": "#b9667b"
+        },
+        {
+          "id": "python-exterior-sign",
+          "type": "wall-sign",
+          "x": 1438.0,
+          "y": 558.5,
+          "w": 235.5,
+          "h": 3,
+          "roomId": "class1",
+          "solid": false,
+          "text": "Python 학습교실",
+          "renderHeight": 120
+        },
+        {
+          "id": "python-exterior-bench-0",
+          "type": "pepero-art",
+          "x": 1503.75,
+          "y": 668.5,
+          "w": 103.7,
+          "h": 40.26,
+          "solid": true,
+          "renderHeight": 143.35,
+          "seasonalArt": "workbench",
+          "artWidth": 129.625,
+          "artHeight": 162.03125,
+          "artAnchor": 0.92,
+          "collisionPolygon": [
+            [
+              1460.609,
+              672.466
+            ],
+            [
+              1464.488,
+              634.181
+            ],
+            [
+              1578.424,
+              623.461
+            ],
+            [
+              1581.975,
+              672.841
+            ],
+            [
+              1494.711,
+              699.235
+            ]
+          ],
+          "roomId": "class1"
+        },
+        {
+          "id": "python-exterior-bench-1",
+          "type": "pepero-art",
+          "x": 1503.75,
+          "y": 828.5,
+          "w": 103.7,
+          "h": 40.26,
+          "solid": true,
+          "renderHeight": 143.35,
+          "seasonalArt": "workbench",
+          "artWidth": 129.625,
+          "artHeight": 162.03125,
+          "artAnchor": 0.92,
+          "collisionPolygon": [
+            [
+              1460.609,
+              832.466
+            ],
+            [
+              1464.488,
+              794.181
+            ],
+            [
+              1578.424,
+              783.461
+            ],
+            [
+              1581.975,
+              832.841
+            ],
+            [
+              1494.711,
+              859.235
+            ]
+          ],
+          "roomId": "class1"
+        },
+        {
+          "id": "python-exterior-learning-0",
+          "type": "rug",
+          "x": 1428.0,
+          "y": 892.5,
+          "w": 45,
+          "h": 35,
+          "roomId": "class1",
+          "solid": false,
+          "action": "learning",
+          "subject": "python",
+          "contentType": "python_multiple_choice",
+          "name": "Python 객관식",
+          "description": "출입구로 들어가 학습 영역에서 E키를 누르세요.",
+          "color": "#d592aa"
+        },
+        {
+          "id": "python-exterior-learning-1",
+          "type": "rug",
+          "x": 1638.5,
+          "y": 892.5,
+          "w": 45,
+          "h": 35,
+          "roomId": "class1",
+          "solid": false,
+          "action": "learning",
+          "subject": "python",
+          "contentType": "python_fill_blank",
+          "name": "Python 코드 빈칸 채우기",
+          "description": "출입구로 들어가 학습 영역에서 E키를 누르세요.",
+          "color": "#d592aa"
+        },
+        {
+          "id": "python-exterior-rail",
+          "type": "pepero-light-rail",
+          "x": 1418.0,
+          "y": 931.5,
+          "w": 275.5,
+          "h": 4,
+          "roomId": "class1",
+          "solid": false,
+          "renderHeight": 95,
+          "axis": "x",
+          "height": 62
         }
       ],
       "entrance": {

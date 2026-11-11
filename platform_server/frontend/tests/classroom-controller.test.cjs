@@ -20,7 +20,7 @@ test('classroom opens from accepted state; keyboard collection cannot invent mov
  f.key('keyup','d');f.controller.applyState(null);assert.equal(f.controller.blocking,false);assert.equal(f.exited,1);
 });
 test('E opens the type and subject returned by the server and shows rejected interactions',async()=>{
- for(const subject of ['python','sql']){const f=fixture(subject);f.controller.applyState(f.state);f.key('keydown','e');await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(f.opens,[{type:'fill_blank',subject}]);
+ for(const subject of ['python','sql','cs']){const f=fixture(subject);f.controller.applyState(f.state);f.key('keydown','e');await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(f.opens,[{type:'fill_blank',subject}]);
  f.setResponse(new Error('가까이에서 이용'));f.key('keydown','e');await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(f.errors,['가까이에서 이용']);}
 });
 test('typing and learning dialogs block movement and repeated E requests',()=>{

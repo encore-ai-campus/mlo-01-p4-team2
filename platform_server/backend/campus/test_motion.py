@@ -13,7 +13,7 @@ class ServerMotionTests(SimpleTestCase):
         return MotionController({'floor': floor, 'x': spawn[0], 'y': spawn[1], 'dir': 'up', **position})
 
     def test_worlds_and_classrooms_have_reachable_spawns(self):
-        for name in ('campus', 'rooftop', 'python', 'sql'):
+        for name in ('campus', 'rooftop', 'python', 'sql', 'cs'):
             with self.subTest(name=name):
                 self.assertTrue(world(name).walkable(*world(name).data['spawn']))
 
@@ -48,7 +48,7 @@ class ServerMotionTests(SimpleTestCase):
         self.assertEqual(controller.keys, {'w'})
 
     def test_classroom_wall_and_desk_collision_prevent_tunnelling(self):
-        for subject in ('python', 'sql'):
+        for subject in ('python', 'sql', 'cs'):
             room = world(subject)
             self.assertFalse(room.walkable(15, 250))
             self.assertFalse(room.walkable(115, 180))
@@ -58,7 +58,7 @@ class ServerMotionTests(SimpleTestCase):
             self.assertTrue(room.walkable(actor['x'], actor['y']))
 
     def test_all_learning_desk_approaches_are_reachable_in_both_classrooms(self):
-        for subject in ('python', 'sql'):
+        for subject in ('python', 'sql', 'cs'):
             room = world(subject)
             start = dict(zip(('x', 'y'), room.data['spawn']))
             for obj in room.data['objects']:

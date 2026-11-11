@@ -108,7 +108,7 @@ def learning_started(session):
     from . import main
     main.learning_started(session)
     """Only eligible sessions started after the two clues can advance the story."""
-    if window()['phase'] != 'open' or session.difficulty != 'beginner':
+    if session.subject == 'cs' or window()['phase'] != 'open' or session.difficulty != 'beginner':
         return
     p = StoryProgress.objects.select_for_update().filter(user=session.user, event_key=key()).first()
     if p and p.started_at and p.flags.get('wrapper') and p.flags.get('count'):
@@ -119,7 +119,7 @@ def learning_completed(session):
     from . import main
     main.learning_completed(session)
     """Observe the existing server-graded pass/fail result; do not change grading."""
-    if window()['phase'] != 'open' or session.difficulty != 'beginner' or session.total_questions != 10 or not session.completed_at:
+    if session.subject == 'cs' or window()['phase'] != 'open' or session.difficulty != 'beginner' or session.total_questions != 10 or not session.completed_at:
         return
     p = StoryProgress.objects.select_for_update().filter(user=session.user, event_key=key()).first()
     if not p or not p.records.filter(key=f'learning-start:{session.pk}').exists():

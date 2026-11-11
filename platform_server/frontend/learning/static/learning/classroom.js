@@ -25,7 +25,7 @@
         delete actor._campusJump;delete actor._campusPoke;delete actor._campusPokeReaction;delete actor._campusPokeLoop;delete actor._campusPokeFacing;
         for(const resident of map.data.residents){delete resident._campusPoke;delete resident._campusPokeReaction;}
         const title=document.getElementById('classroom-title');if(title)title.textContent=map.data.name;
-        canvas.setAttribute?.('aria-label',`${subject==='sql'?'SQL':'Python'} 학습교실. 설정한 이동키로 이동하고 달리기 키를 함께 누르면 달립니다. 학습 영역 안에서 상호작용 키, 가까운 캐릭터 앞에서 찌르기 키, 점프 키를 사용할 수 있어요.`);
+        canvas.setAttribute?.('aria-label',`${{python:'Python',sql:'SQL',cs:'CS'}[subject]} 학습교실. 설정한 이동키로 이동하고 달리기 키를 함께 누르면 달립니다. 학습 영역 안에서 상호작용 키, 가까운 캐릭터 앞에서 찌르기 키, 점프 키를 사용할 수 있어요.`);
         onOpen();keys.clear();if(!dialog.open)dialog.showModal();focus();
       }
       actor.targetX=state.actor.x;actor.targetY=state.actor.y;actor.receivedAt=performance.now();

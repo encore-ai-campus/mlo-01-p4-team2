@@ -5,7 +5,7 @@ function setup(files=[]){
   const context=new Proxy({measureText:text=>({width:text.length*11}),fillText:text=>names.push(text),
     createLinearGradient:()=>({addColorStop(){}}),createRadialGradient:()=>({addColorStop(){}})},
     {get:(target,key)=>target[key]??(()=>{})});
-  const sandbox=vm.createContext({window:{matchMedia:()=>({matches:false}),CampusAvatars:{size:40,draw:(_ctx,actor)=>{draws.push(actor.id);return true;}}},
+  const sandbox=vm.createContext({window:{addEventListener(){},matchMedia:()=>({matches:false}),CampusAvatars:{size:40,draw:(_ctx,actor)=>{draws.push(actor.id);return true;}}},
     document:{createElement:()=>({getContext:()=>context})},performance:{now:()=>0},
     Path2D:class{constructor(){return new Proxy({},{get:()=>()=>{}});}}});
   for(const name of [...files,'isometric.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../dist',name),'utf8'),sandbox,{filename:name});
@@ -61,4 +61,16 @@ test('custom classroom actor drawing remains available and respects viewport cul
     actor('seated',220,250,{seated:true}),actor('distant-instructor',5000,5000,{role:'instructor'})]);
   assert.deepEqual(custom,['instructor']);assert.deepEqual([...e.draws].sort(),['seated','self']);
   assert.equal(e.names.length,3);
+});
+
+test('manager avatars and names stay visible with nicknames hidden and reuse poke reaction actors',()=>{
+ const e=setup(),data=emptyWorld(),manager=actor('manager-suhyun',200,300,{managerNpc:true,nickname:'수현 매니저'}),reactions=[];
+ data.npcs=[manager];data.objects=[{id:manager.id,type:'manager',name:manager.nickname,x:192,y:292,w:16,h:16,solid:false}];
+ e.window.CampusPoke={react:(_ctx,a)=>reactions.push(a),draw(){},pose:a=>a,guard(){},contact(){}};
+ const renderer=e.api.create({data});
+ frame(e,renderer,[actor('self',100,100)],{showNicknames:false});
+ assert.deepEqual(e.draws,['self',manager.id]);assert.ok(e.names.includes(manager.nickname));assert.ok(reactions.includes(manager));
+ const q=renderer.projectActor(manager);
+ assert.equal(renderer.hitTest(q.x,q.y-25).id,manager.id,'clicking an avatar opens its manager interaction');
+ assert.equal(renderer.hitTest(q.x+40,q.y-25),null);
 });

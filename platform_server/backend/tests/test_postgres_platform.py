@@ -35,6 +35,10 @@ def seed_catalog():
             'code': code, 'category_id': stable_uuid('category', category), 'title': title,
             'content_kind': kind, 'external_url': url, 'zone_id': stable_uuid('zone', zone)})
 
+    from django.apps import apps
+    from importlib import import_module
+    import_module('eventing.migrations.0013_cs_learning_catalog').add_cs(apps, None)
+
 
 class PostgreSQLPlatformTests(TransactionTestCase):
     def setUp(self):

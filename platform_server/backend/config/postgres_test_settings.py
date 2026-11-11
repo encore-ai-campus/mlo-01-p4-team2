@@ -15,6 +15,13 @@ def _restore_catalog(sender, **kwargs):
     if sender.name == 'eventing':
         from tests.test_postgres_platform import seed_catalog
         seed_catalog()
+    elif sender.name == 'event_story':
+        from importlib import import_module
+        from django.apps import apps
+        from django.db import connection
+        from types import SimpleNamespace
+        for name in ('0004_seed_easter_eggs',):
+            import_module('event_story.migrations.' + name).seed(apps, SimpleNamespace(connection=connection))
 
 from django.db.models.signals import post_migrate
 post_migrate.connect(_restore_catalog, dispatch_uid='postgres_test_catalog', weak=False)

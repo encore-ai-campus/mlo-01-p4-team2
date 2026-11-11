@@ -196,8 +196,8 @@
         label.append(input, number, text); $('choice-list').append(label);
       }
     }
-    $('answer-hint').textContent=state.subject==='sql'?'SQL 키워드의 대소문자와 불필요한 공백은 허용합니다. 문자열 리터럴은 그대로 입력하세요.':'코드의 대소문자를 확인해주세요.';
-    $('code-area').querySelector('.code-header span').textContent=state.subject==='sql'?'SQL':'Python';
+    $('answer-hint').textContent=state.subject==='cs'?'문제에서 요구한 용어를 입력하세요. 영문 대소문자와 앞뒤 공백은 허용합니다.':state.subject==='sql'?'SQL 키워드의 대소문자와 불필요한 공백은 허용합니다. 문자열 리터럴은 그대로 입력하세요.':'코드의 대소문자를 확인해주세요.';
+    $('code-area').querySelector('.code-header span').textContent=({python:'Python',sql:'SQL',cs:'CS'}[state.subject]);
     if(state.pendingSubmission){$('blank-answer').value=state.pendingSubmission.answer;state.selectedAnswer=state.pendingSubmission.answer;state.selectedChoiceUuid=state.pendingSubmission.choiceUuid ?? null;for(const input of $('choice-list').querySelectorAll('input'))input.checked=input.value===state.pendingSubmission.answer;}
     $('answer-form').hidden = false;
     $('feedback').hidden = true;
@@ -309,8 +309,8 @@
     if (state.busy || state.questionFinalized) return;
     clearError(); state.feedback = null; state.selectedAnswer = null;state.selectedChoiceUuid=null;state.pendingSubmission=null;
     $('feedback').hidden = true; $('retry-answer-button').hidden = true;
-    $('answer-hint').textContent=state.subject==='sql'?'SQL 키워드의 대소문자와 불필요한 공백은 허용합니다. 문자열 리터럴은 그대로 입력하세요.':'코드의 대소문자를 확인해주세요.';
-    $('code-area').querySelector('.code-header span').textContent=state.subject==='sql'?'SQL':'Python';
+    $('answer-hint').textContent=state.subject==='cs'?'문제에서 요구한 용어를 입력하세요. 영문 대소문자와 앞뒤 공백은 허용합니다.':state.subject==='sql'?'SQL 키워드의 대소문자와 불필요한 공백은 허용합니다. 문자열 리터럴은 그대로 입력하세요.':'코드의 대소문자를 확인해주세요.';
+    $('code-area').querySelector('.code-header span').textContent=({python:'Python',sql:'SQL',cs:'CS'}[state.subject]);
     $('answer-form').hidden = false; $('blank-answer').value = '';
     $('choice-list').querySelectorAll('input').forEach(input => { input.checked = false; });
     $('challenge-count').textContent = `도전 ${Math.min(state.maxAttempts, state.attemptCount + 1)} / ${state.maxAttempts}`;
@@ -407,12 +407,12 @@
   window.CampusLearning = {
     get blocking() { return panel.open; },
     open(type, subject='python') {
-      if (!Object.hasOwn(labels, type) || !['python','sql'].includes(subject) || state.busy || panel.open) return;
+      if (!Object.hasOwn(labels, type) || !['python','sql','cs'].includes(subject) || state.busy || panel.open) return;
       state.subject=subject;
-      const display=subject==='sql'?'SQL':'Python';
-      labels.multiple_choice=`${display} 객관식`;labels.fill_blank=subject==='sql'?'SQL 코드 빈칸 채우기':'코드 빈칸 채우기';
+      const display={python:'Python',sql:'SQL',cs:'CS'}[subject];
+      labels.multiple_choice=`${display} 객관식`;labels.fill_blank=subject==='cs'?'CS 개념 빈칸 채우기':subject==='sql'?'SQL 코드 빈칸 채우기':'코드 빈칸 채우기';
       const descriptions=$('difficulty-screen').querySelectorAll('.difficulty-option small');
-      const texts=subject==='sql'?['SQL 기본 문법','조회와 집계','심화 SQL']:['Python 기본 문법','자료구조와 함수','심화 Python'];
+      const texts={python:['Python 기본 문법','자료구조와 함수','심화 Python'],sql:['SQL 기본 문법','조회와 집계','심화 SQL'],cs:['컴퓨터 기초 개념','시스템 동작 원리','설계와 성능 분석']}[subject];
       descriptions.forEach((node,index)=>{node.textContent=texts[index];});
       if(!window.CampusClassroomMap)document.title=`${display} Learning Room`;
       panel.setAttribute('aria-label',`${display} 학습 패널`);

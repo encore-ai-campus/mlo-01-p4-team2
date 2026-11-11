@@ -2,7 +2,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 function setup(reduced){
  const strokes=[];
  const g=new Proxy({measureText:t=>({width:t.length*7}),createLinearGradient:()=>({addColorStop(){}}),createRadialGradient:()=>({addColorStop(){}}),bezierCurveTo:(...args)=>strokes.push(['jet',...args]),ellipse:(...args)=>strokes.push(['water',...args])},{get:(o,k)=>o[k]??(()=>{}),set:(o,k,v)=>(o[k]=v,true)});
- const c=vm.createContext({window:{matchMedia:()=>({matches:reduced})},document:{createElement:()=>({getContext:()=>g})}});
+ const c=vm.createContext({window:{addEventListener(){},matchMedia:()=>({matches:reduced})},document:{createElement:()=>({getContext:()=>g})}});
  for(const f of ['stair-motion.js','map-data.js','rooftop-data.js','isometric.js'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../dist',f),'utf8'),c);
  const roof=c.window.CampusWorlds.rooftop,data={...roof,objects:roof.objects.filter(o=>o.type==='fountain'),walls:[],portals:[]};
  const renderer=c.window.CampusIsometric.create({data}),before=JSON.stringify(data);

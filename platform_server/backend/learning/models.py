@@ -10,6 +10,7 @@ from django.dispatch import receiver
 class Subject(models.TextChoices):
     PYTHON = 'python', 'Python'
     SQL = 'sql', 'SQL'
+    CS = 'cs', 'CS'
 
 
 class QuestionType(models.TextChoices):

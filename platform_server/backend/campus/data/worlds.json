@@ -82,11 +82,11 @@
           "name": "SQL 학습교실",
           "x": 792,
           "y": 553.5,
-          "w": 469.5,
+          "w": 305.5,
           "h": 393,
           "floor": "class",
           "target": [
-            852,
+            944.75,
             589.5
           ],
           "front": "bottom",
@@ -96,15 +96,33 @@
           "photo": false
         },
         {
-          "id": "class1",
-          "name": "Python 학습교실",
-          "x": 1261.5,
+          "id": "class-cs",
+          "name": "CS 학습교실",
+          "x": 1097.5,
           "y": 553.5,
-          "w": 447,
+          "w": 305.5,
           "h": 393,
           "floor": "class",
           "target": [
-            1648.5,
+            1250.25,
+            589.5
+          ],
+          "front": "bottom",
+          "description": "빼빼로 데이 CS 학습교실",
+          "label": false,
+          "info": false,
+          "photo": false
+        },
+        {
+          "id": "class1",
+          "name": "Python 학습교실",
+          "x": 1403,
+          "y": 553.5,
+          "w": 305.5,
+          "h": 393,
+          "floor": "class",
+          "target": [
+            1555.75,
             589.5
           ],
           "front": "bottom",
@@ -282,48 +300,6 @@
         }
       ],
       "objects": [
-        {
-          "id": "object-229",
-          "type": "rug",
-          "name": "SQL 객관식",
-          "action": "learning",
-          "contentType": "sql_multiple_choice",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 812,
-            "y": 892.5,
-            "w": 45,
-            "h": 35
-          }
-        },
-        {
-          "id": "object-238",
-          "type": "rug",
-          "name": "SQL 코드 빈칸 채우기",
-          "action": "learning",
-          "contentType": "sql_fill_blank",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1211.5,
-            "y": 892.5,
-            "w": 45,
-            "h": 35
-          }
-        },
-        {
-          "id": "object-269",
-          "type": "rug",
-          "name": "Python 객관식",
-          "action": "learning",
-          "contentType": "python_multiple_choice",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1281.5,
-            "y": 892.5,
-            "w": 45,
-            "h": 35
-          }
-        },
         {
           "id": "pepero-lounge2-refill",
           "type": "pepero-art",
@@ -611,182 +587,6 @@
             "x": 45,
             "y": 1114.5,
             "w": 420,
-            "h": 4
-          }
-        },
-        {
-          "id": "reference-campus-45",
-          "type": "rug",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1276.5,
-            "y": 573.5,
-            "w": 417,
-            "h": 353
-          }
-        },
-        {
-          "id": "reference-campus-47",
-          "type": "pepero-art",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1435,
-            "y": 653.5,
-            "w": 170,
-            "h": 66
-          }
-        },
-        {
-          "id": "reference-campus-48",
-          "type": "pepero-art",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1435,
-            "y": 821.5,
-            "w": 170,
-            "h": 66
-          }
-        },
-        {
-          "id": "reference-campus-53",
-          "type": "pepero-art",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1279.5,
-            "y": 581.5,
-            "w": 72,
-            "h": 24
-          }
-        },
-        {
-          "id": "reference-campus-54",
-          "type": "pepero-art",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1608.5,
-            "y": 581.5,
-            "w": 72,
-            "h": 24
-          }
-        },
-        {
-          "id": "reference-campus-55",
-          "type": "pepero-ribbon-lamp",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1277.5,
-            "y": 731,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-campus-56",
-          "type": "pepero-ribbon-lamp",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1682.5,
-            "y": 644.5,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-campus-57",
-          "type": "pepero-light-rail",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1276.5,
-            "y": 931.5,
-            "w": 417,
-            "h": 4
-          }
-        },
-        {
-          "id": "reference-campus-60",
-          "type": "rug",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 807,
-            "y": 573.5,
-            "w": 439.5,
-            "h": 353
-          }
-        },
-        {
-          "id": "reference-campus-62",
-          "type": "pepero-art",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 961.75,
-            "y": 653.5,
-            "w": 170,
-            "h": 66
-          }
-        },
-        {
-          "id": "reference-campus-63",
-          "type": "pepero-art",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 961.75,
-            "y": 821.5,
-            "w": 170,
-            "h": 66
-          }
-        },
-        {
-          "id": "reference-campus-68",
-          "type": "pepero-art",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 810,
-            "y": 581.5,
-            "w": 72,
-            "h": 24
-          }
-        },
-        {
-          "id": "reference-campus-69",
-          "type": "pepero-art",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1161.5,
-            "y": 581.5,
-            "w": 72,
-            "h": 24
-          }
-        },
-        {
-          "id": "reference-campus-70",
-          "type": "pepero-ribbon-lamp",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 808,
-            "y": 731,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-campus-71",
-          "type": "pepero-ribbon-lamp",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 1235.5,
-            "y": 644.5,
-            "w": 10,
-            "h": 10
-          }
-        },
-        {
-          "id": "reference-campus-72",
-          "type": "pepero-light-rail",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 807,
-            "y": 931.5,
-            "w": 439.5,
             "h": 4
           }
         },
@@ -1109,6 +909,255 @@
           }
         },
         {
+          "id": "sql-exterior-rug",
+          "type": "rug",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 807,
+            "y": 573.5,
+            "w": 275.5,
+            "h": 353
+          }
+        },
+        {
+          "id": "sql-exterior-sign",
+          "type": "wall-sign",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 827,
+            "y": 558.5,
+            "w": 235.5,
+            "h": 3
+          }
+        },
+        {
+          "id": "sql-exterior-bench-0",
+          "type": "pepero-art",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 892.75,
+            "y": 668.5,
+            "w": 103.7,
+            "h": 40.26
+          }
+        },
+        {
+          "id": "sql-exterior-bench-1",
+          "type": "pepero-art",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 892.75,
+            "y": 828.5,
+            "w": 103.7,
+            "h": 40.26
+          }
+        },
+        {
+          "id": "sql-exterior-learning-0",
+          "type": "rug",
+          "name": "SQL 객관식",
+          "action": "learning",
+          "contentType": "sql_multiple_choice",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 817,
+            "y": 892.5,
+            "w": 45,
+            "h": 35
+          }
+        },
+        {
+          "id": "sql-exterior-learning-1",
+          "type": "rug",
+          "name": "SQL 코드 빈칸 채우기",
+          "action": "learning",
+          "contentType": "sql_fill_blank",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 1027.5,
+            "y": 892.5,
+            "w": 45,
+            "h": 35
+          }
+        },
+        {
+          "id": "sql-exterior-rail",
+          "type": "pepero-light-rail",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 807,
+            "y": 931.5,
+            "w": 275.5,
+            "h": 4
+          }
+        },
+        {
+          "id": "cs-exterior-rug",
+          "type": "rug",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 1112.5,
+            "y": 573.5,
+            "w": 275.5,
+            "h": 353
+          }
+        },
+        {
+          "id": "cs-exterior-sign",
+          "type": "wall-sign",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 1132.5,
+            "y": 558.5,
+            "w": 235.5,
+            "h": 3
+          }
+        },
+        {
+          "id": "cs-exterior-bench-0",
+          "type": "pepero-art",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 1198.25,
+            "y": 668.5,
+            "w": 103.7,
+            "h": 40.26
+          }
+        },
+        {
+          "id": "cs-exterior-bench-1",
+          "type": "pepero-art",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 1198.25,
+            "y": 828.5,
+            "w": 103.7,
+            "h": 40.26
+          }
+        },
+        {
+          "id": "cs-exterior-learning-0",
+          "type": "rug",
+          "name": "CS 객관식",
+          "action": "learning",
+          "contentType": "cs_multiple_choice",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 1122.5,
+            "y": 892.5,
+            "w": 45,
+            "h": 35
+          }
+        },
+        {
+          "id": "cs-exterior-learning-1",
+          "type": "rug",
+          "name": "CS 개념 빈칸 채우기",
+          "action": "learning",
+          "contentType": "cs_fill_blank",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 1333,
+            "y": 892.5,
+            "w": 45,
+            "h": 35
+          }
+        },
+        {
+          "id": "cs-exterior-rail",
+          "type": "pepero-light-rail",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 1112.5,
+            "y": 931.5,
+            "w": 275.5,
+            "h": 4
+          }
+        },
+        {
+          "id": "python-exterior-rug",
+          "type": "rug",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 1418,
+            "y": 573.5,
+            "w": 275.5,
+            "h": 353
+          }
+        },
+        {
+          "id": "python-exterior-sign",
+          "type": "wall-sign",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 1438,
+            "y": 558.5,
+            "w": 235.5,
+            "h": 3
+          }
+        },
+        {
+          "id": "python-exterior-bench-0",
+          "type": "pepero-art",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 1503.75,
+            "y": 668.5,
+            "w": 103.7,
+            "h": 40.26
+          }
+        },
+        {
+          "id": "python-exterior-bench-1",
+          "type": "pepero-art",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 1503.75,
+            "y": 828.5,
+            "w": 103.7,
+            "h": 40.26
+          }
+        },
+        {
+          "id": "python-exterior-learning-0",
+          "type": "rug",
+          "name": "Python 객관식",
+          "action": "learning",
+          "contentType": "python_multiple_choice",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 1428,
+            "y": 892.5,
+            "w": 45,
+            "h": 35
+          }
+        },
+        {
+          "id": "python-exterior-learning-1",
+          "type": "rug",
+          "name": "Python 코드 빈칸 채우기",
+          "action": "learning",
+          "contentType": "python_fill_blank",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 1638.5,
+            "y": 892.5,
+            "w": 45,
+            "h": 35
+          }
+        },
+        {
+          "id": "python-exterior-rail",
+          "type": "pepero-light-rail",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 1418,
+            "y": 931.5,
+            "w": 275.5,
+            "h": 4
+          }
+        },
+        {
           "id": "minigame-timer",
           "type": "game-pc-station",
           "name": "타이머 게임",
@@ -1266,34 +1315,6 @@
           "pad": 5
         },
         {
-          "x": 1261.5,
-          "y": 553.5,
-          "w": 0,
-          "h": 393,
-          "pad": 5
-        },
-        {
-          "x": 792,
-          "y": 553.5,
-          "w": 28.5,
-          "h": 0,
-          "pad": 5
-        },
-        {
-          "x": 885,
-          "y": 553.5,
-          "w": 732,
-          "h": 0,
-          "pad": 5
-        },
-        {
-          "x": 1681.5,
-          "y": 553.5,
-          "w": 27,
-          "h": 0,
-          "pad": 5
-        },
-        {
           "x": 1708.5,
           "y": 36,
           "w": 0,
@@ -1430,6 +1451,62 @@
           "x": 2053.5,
           "y": 1077,
           "w": 154.5,
+          "h": 0,
+          "pad": 5
+        },
+        {
+          "x": 1097.5,
+          "y": 553.5,
+          "w": 0,
+          "h": 393,
+          "pad": 5
+        },
+        {
+          "x": 1403,
+          "y": 553.5,
+          "w": 0,
+          "h": 393,
+          "pad": 5
+        },
+        {
+          "x": 792,
+          "y": 553.5,
+          "w": 120.5,
+          "h": 0,
+          "pad": 5
+        },
+        {
+          "x": 977,
+          "y": 553.5,
+          "w": 120.5,
+          "h": 0,
+          "pad": 5
+        },
+        {
+          "x": 1097.5,
+          "y": 553.5,
+          "w": 120.5,
+          "h": 0,
+          "pad": 5
+        },
+        {
+          "x": 1282.5,
+          "y": 553.5,
+          "w": 120.5,
+          "h": 0,
+          "pad": 5
+        },
+        {
+          "x": 1403,
+          "y": 553.5,
+          "w": 120.5,
+          "h": 0,
+          "pad": 5
+        },
+        {
+          "x": 1588,
+          "y": 553.5,
+          "w": 120.5,
           "h": 0,
           "pad": 5
         },
@@ -1830,262 +1907,6 @@
           ],
           "pad": 0,
           "objectId": "reference-campus-37"
-        },
-        {
-          "x": 1364.277,
-          "y": 579.666,
-          "w": 198.96000000000004,
-          "h": 124.21899999999994,
-          "points": [
-            [
-              1364.277,
-              660.001
-            ],
-            [
-              1370.636,
-              597.24
-            ],
-            [
-              1557.416,
-              579.666
-            ],
-            [
-              1563.237,
-              660.617
-            ],
-            [
-              1420.182,
-              703.885
-            ]
-          ],
-          "pad": 0,
-          "objectId": "reference-campus-47"
-        },
-        {
-          "x": 1364.277,
-          "y": 747.666,
-          "w": 198.96000000000004,
-          "h": 124.21899999999994,
-          "points": [
-            [
-              1364.277,
-              828.001
-            ],
-            [
-              1370.636,
-              765.24
-            ],
-            [
-              1557.416,
-              747.666
-            ],
-            [
-              1563.237,
-              828.617
-            ],
-            [
-              1420.182,
-              871.885
-            ]
-          ],
-          "pad": 0,
-          "objectId": "reference-campus-48"
-        },
-        {
-          "x": 1273.37,
-          "y": 558.75,
-          "w": 59.83900000000017,
-          "h": 42.798,
-          "points": [
-            [
-              1273.37,
-              601.548
-            ],
-            [
-              1277.309,
-              579.258
-            ],
-            [
-              1333.209,
-              558.75
-            ],
-            [
-              1330.096,
-              584.147
-            ]
-          ],
-          "pad": 0,
-          "objectId": "reference-campus-53"
-        },
-        {
-          "x": 1602.37,
-          "y": 558.75,
-          "w": 59.83900000000017,
-          "h": 42.798,
-          "points": [
-            [
-              1602.37,
-              601.548
-            ],
-            [
-              1606.309,
-              579.258
-            ],
-            [
-              1662.209,
-              558.75
-            ],
-            [
-              1659.096,
-              584.147
-            ]
-          ],
-          "pad": 0,
-          "objectId": "reference-campus-54"
-        },
-        {
-          "x": 1277.5,
-          "y": 731,
-          "w": 10,
-          "h": 10,
-          "pad": 0,
-          "objectId": "reference-campus-55"
-        },
-        {
-          "x": 1682.5,
-          "y": 644.5,
-          "w": 10,
-          "h": 10,
-          "pad": 0,
-          "objectId": "reference-campus-56"
-        },
-        {
-          "x": 891.027,
-          "y": 579.666,
-          "w": 198.96000000000004,
-          "h": 124.21899999999994,
-          "points": [
-            [
-              891.027,
-              660.001
-            ],
-            [
-              897.386,
-              597.24
-            ],
-            [
-              1084.166,
-              579.666
-            ],
-            [
-              1089.987,
-              660.617
-            ],
-            [
-              946.932,
-              703.885
-            ]
-          ],
-          "pad": 0,
-          "objectId": "reference-campus-62"
-        },
-        {
-          "x": 891.027,
-          "y": 747.666,
-          "w": 198.96000000000004,
-          "h": 124.21899999999994,
-          "points": [
-            [
-              891.027,
-              828.001
-            ],
-            [
-              897.386,
-              765.24
-            ],
-            [
-              1084.166,
-              747.666
-            ],
-            [
-              1089.987,
-              828.617
-            ],
-            [
-              946.932,
-              871.885
-            ]
-          ],
-          "pad": 0,
-          "objectId": "reference-campus-63"
-        },
-        {
-          "x": 803.87,
-          "y": 558.75,
-          "w": 59.83899999999994,
-          "h": 42.798,
-          "points": [
-            [
-              803.87,
-              601.548
-            ],
-            [
-              807.809,
-              579.258
-            ],
-            [
-              863.709,
-              558.75
-            ],
-            [
-              860.596,
-              584.147
-            ]
-          ],
-          "pad": 0,
-          "objectId": "reference-campus-68"
-        },
-        {
-          "x": 1155.37,
-          "y": 558.75,
-          "w": 59.83900000000017,
-          "h": 42.798,
-          "points": [
-            [
-              1155.37,
-              601.548
-            ],
-            [
-              1159.309,
-              579.258
-            ],
-            [
-              1215.209,
-              558.75
-            ],
-            [
-              1212.096,
-              584.147
-            ]
-          ],
-          "pad": 0,
-          "objectId": "reference-campus-69"
-        },
-        {
-          "x": 808,
-          "y": 731,
-          "w": 10,
-          "h": 10,
-          "pad": 0,
-          "objectId": "reference-campus-70"
-        },
-        {
-          "x": 1235.5,
-          "y": 644.5,
-          "w": 10,
-          "h": 10,
-          "pad": 0,
-          "objectId": "reference-campus-71"
         },
         {
           "x": 817.969,
@@ -2610,6 +2431,186 @@
           "h": 40,
           "pad": 0,
           "objectId": "campus-guide-kkuwang"
+        },
+        {
+          "x": 849.609,
+          "y": 623.461,
+          "w": 121.36599999999999,
+          "h": 75.774,
+          "points": [
+            [
+              849.609,
+              672.466
+            ],
+            [
+              853.488,
+              634.181
+            ],
+            [
+              967.424,
+              623.461
+            ],
+            [
+              970.975,
+              672.841
+            ],
+            [
+              883.711,
+              699.235
+            ]
+          ],
+          "pad": 0,
+          "objectId": "sql-exterior-bench-0"
+        },
+        {
+          "x": 849.609,
+          "y": 783.461,
+          "w": 121.36599999999999,
+          "h": 75.774,
+          "points": [
+            [
+              849.609,
+              832.466
+            ],
+            [
+              853.488,
+              794.181
+            ],
+            [
+              967.424,
+              783.461
+            ],
+            [
+              970.975,
+              832.841
+            ],
+            [
+              883.711,
+              859.235
+            ]
+          ],
+          "pad": 0,
+          "objectId": "sql-exterior-bench-1"
+        },
+        {
+          "x": 1155.109,
+          "y": 623.461,
+          "w": 121.36599999999999,
+          "h": 75.774,
+          "points": [
+            [
+              1155.109,
+              672.466
+            ],
+            [
+              1158.988,
+              634.181
+            ],
+            [
+              1272.924,
+              623.461
+            ],
+            [
+              1276.475,
+              672.841
+            ],
+            [
+              1189.211,
+              699.235
+            ]
+          ],
+          "pad": 0,
+          "objectId": "cs-exterior-bench-0"
+        },
+        {
+          "x": 1155.109,
+          "y": 783.461,
+          "w": 121.36599999999999,
+          "h": 75.774,
+          "points": [
+            [
+              1155.109,
+              832.466
+            ],
+            [
+              1158.988,
+              794.181
+            ],
+            [
+              1272.924,
+              783.461
+            ],
+            [
+              1276.475,
+              832.841
+            ],
+            [
+              1189.211,
+              859.235
+            ]
+          ],
+          "pad": 0,
+          "objectId": "cs-exterior-bench-1"
+        },
+        {
+          "x": 1460.609,
+          "y": 623.461,
+          "w": 121.36599999999999,
+          "h": 75.774,
+          "points": [
+            [
+              1460.609,
+              672.466
+            ],
+            [
+              1464.488,
+              634.181
+            ],
+            [
+              1578.424,
+              623.461
+            ],
+            [
+              1581.975,
+              672.841
+            ],
+            [
+              1494.711,
+              699.235
+            ]
+          ],
+          "pad": 0,
+          "objectId": "python-exterior-bench-0"
+        },
+        {
+          "x": 1460.609,
+          "y": 783.461,
+          "w": 121.36599999999999,
+          "h": 75.774,
+          "points": [
+            [
+              1460.609,
+              832.466
+            ],
+            [
+              1464.488,
+              794.181
+            ],
+            [
+              1578.424,
+              783.461
+            ],
+            [
+              1581.975,
+              832.841
+            ],
+            [
+              1494.711,
+              859.235
+            ]
+          ],
+          "pad": 0,
+          "objectId": "python-exterior-bench-1"
         },
         {
           "x": 2280,
@@ -7430,7 +7431,7 @@
       "radius": 7,
       "rooms": [
         {
-          "id": "python-room",
+          "id": "sql-room",
           "x": 15,
           "y": 15,
           "w": 610,
@@ -7447,7 +7448,7 @@
       "portals": [],
       "objects": [
         {
-          "id": "python-board",
+          "id": "sql-board",
           "type": "board",
           "confirmTransfer": false,
           "footprint": {
@@ -7906,7 +7907,642 @@
           "w": 220,
           "h": 12,
           "pad": 0,
-          "objectId": "python-board"
+          "objectId": "sql-board"
+        },
+        {
+          "x": 270,
+          "y": 83,
+          "w": 100,
+          "h": 42,
+          "pad": 0,
+          "objectId": "teacher-desk"
+        },
+        {
+          "x": 80,
+          "y": 170,
+          "w": 70,
+          "h": 36,
+          "pad": 0,
+          "objectId": "student-0-0"
+        },
+        {
+          "x": 180,
+          "y": 170,
+          "w": 70,
+          "h": 36,
+          "pad": 0,
+          "objectId": "student-0-0-second"
+        },
+        {
+          "x": 80,
+          "y": 300,
+          "w": 70,
+          "h": 36,
+          "pad": 0,
+          "objectId": "student-0-1"
+        },
+        {
+          "x": 180,
+          "y": 300,
+          "w": 70,
+          "h": 36,
+          "pad": 0,
+          "objectId": "student-0-1-second"
+        },
+        {
+          "x": 400,
+          "y": 170,
+          "w": 70,
+          "h": 36,
+          "pad": 0,
+          "objectId": "student-1-0"
+        },
+        {
+          "x": 500,
+          "y": 170,
+          "w": 70,
+          "h": 36,
+          "pad": 0,
+          "objectId": "student-1-0-second"
+        },
+        {
+          "x": 400,
+          "y": 300,
+          "w": 70,
+          "h": 36,
+          "pad": 0,
+          "objectId": "student-1-1"
+        },
+        {
+          "x": 500,
+          "y": 300,
+          "w": 70,
+          "h": 36,
+          "pad": 0,
+          "objectId": "student-1-1-second"
+        },
+        {
+          "x": 274,
+          "y": 493,
+          "w": 6,
+          "h": 12,
+          "pad": 0,
+          "objectId": "entry-left-post"
+        },
+        {
+          "x": 360,
+          "y": 493,
+          "w": 6,
+          "h": 12,
+          "pad": 0,
+          "objectId": "entry-right-post"
+        },
+        {
+          "x": 30,
+          "y": 30,
+          "w": 95,
+          "h": 22,
+          "pad": 0,
+          "objectId": "books-left"
+        },
+        {
+          "x": 515,
+          "y": 30,
+          "w": 95,
+          "h": 22,
+          "pad": 0,
+          "objectId": "books-right"
+        },
+        {
+          "x": 30,
+          "y": 78,
+          "w": 28,
+          "h": 28,
+          "pad": 0,
+          "objectId": "plant-0"
+        },
+        {
+          "x": 580,
+          "y": 78,
+          "w": 28,
+          "h": 28,
+          "pad": 0,
+          "objectId": "plant-1"
+        },
+        {
+          "x": 30,
+          "y": 450,
+          "w": 28,
+          "h": 28,
+          "pad": 0,
+          "objectId": "plant-2"
+        },
+        {
+          "x": 580,
+          "y": 450,
+          "w": 28,
+          "h": 28,
+          "pad": 0,
+          "objectId": "plant-3"
+        }
+      ],
+      "exit": {
+        "id": "classroom-exit",
+        "name": "메타버스로 나가기",
+        "interactionPoint": [
+          320,
+          480
+        ]
+      }
+    },
+    "cs": {
+      "id": "cs-classroom",
+      "name": "CS 학습교실",
+      "width": 640,
+      "height": 520,
+      "angle": 0,
+      "tilt": 0.9,
+      "privateRoom": true,
+      "radius": 7,
+      "rooms": [
+        {
+          "id": "cs-room",
+          "x": 15,
+          "y": 15,
+          "w": 610,
+          "h": 490,
+          "floor": "wood",
+          "name": "CS 학습교실",
+          "label": false
+        }
+      ],
+      "spawn": [
+        320,
+        455
+      ],
+      "portals": [],
+      "objects": [
+        {
+          "id": "cs-board",
+          "type": "board",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 210,
+            "y": 28,
+            "w": 220,
+            "h": 12
+          }
+        },
+        {
+          "id": "teacher-desk",
+          "type": "desk",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 270,
+            "y": 83,
+            "w": 100,
+            "h": 42
+          }
+        },
+        {
+          "id": "teacher-laptop",
+          "type": "laptop",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 305,
+            "y": 94,
+            "w": 30,
+            "h": 20
+          }
+        },
+        {
+          "id": "student-0-0",
+          "type": "desk",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 80,
+            "y": 170,
+            "w": 70,
+            "h": 36
+          }
+        },
+        {
+          "id": "cs_multiple_choice",
+          "type": "monitor",
+          "name": "CS 객관식",
+          "action": "learning",
+          "contentType": "multiple_choice",
+          "confirmTransfer": false,
+          "interactionPoint": [
+            115,
+            218
+          ],
+          "footprint": {
+            "x": 100,
+            "y": 176,
+            "w": 27,
+            "h": 16
+          }
+        },
+        {
+          "id": "student-0-0-chair",
+          "type": "chair",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 102,
+            "y": 228,
+            "w": 23,
+            "h": 22
+          }
+        },
+        {
+          "id": "student-0-0-second",
+          "type": "desk",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 180,
+            "y": 170,
+            "w": 70,
+            "h": 36
+          }
+        },
+        {
+          "id": "cs_student-0-0-second-monitor",
+          "type": "monitor",
+          "name": "CS 객관식",
+          "action": "learning",
+          "contentType": "multiple_choice",
+          "confirmTransfer": false,
+          "interactionPoint": [
+            215,
+            218
+          ],
+          "footprint": {
+            "x": 200,
+            "y": 176,
+            "w": 27,
+            "h": 16
+          }
+        },
+        {
+          "id": "student-0-0-second-chair",
+          "type": "chair",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 202,
+            "y": 228,
+            "w": 23,
+            "h": 22
+          }
+        },
+        {
+          "id": "student-0-1",
+          "type": "desk",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 80,
+            "y": 300,
+            "w": 70,
+            "h": 36
+          }
+        },
+        {
+          "id": "cs_student-0-1-monitor",
+          "type": "monitor",
+          "name": "CS 객관식",
+          "action": "learning",
+          "contentType": "multiple_choice",
+          "confirmTransfer": false,
+          "interactionPoint": [
+            115,
+            348
+          ],
+          "footprint": {
+            "x": 100,
+            "y": 306,
+            "w": 27,
+            "h": 16
+          }
+        },
+        {
+          "id": "student-0-1-chair",
+          "type": "chair",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 102,
+            "y": 358,
+            "w": 23,
+            "h": 22
+          }
+        },
+        {
+          "id": "student-0-1-second",
+          "type": "desk",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 180,
+            "y": 300,
+            "w": 70,
+            "h": 36
+          }
+        },
+        {
+          "id": "cs_student-0-1-second-monitor",
+          "type": "monitor",
+          "name": "CS 객관식",
+          "action": "learning",
+          "contentType": "multiple_choice",
+          "confirmTransfer": false,
+          "interactionPoint": [
+            215,
+            348
+          ],
+          "footprint": {
+            "x": 200,
+            "y": 306,
+            "w": 27,
+            "h": 16
+          }
+        },
+        {
+          "id": "student-0-1-second-chair",
+          "type": "chair",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 202,
+            "y": 358,
+            "w": 23,
+            "h": 22
+          }
+        },
+        {
+          "id": "student-1-0",
+          "type": "desk",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 400,
+            "y": 170,
+            "w": 70,
+            "h": 36
+          }
+        },
+        {
+          "id": "cs_fill_blank",
+          "type": "monitor",
+          "name": "CS 개념 빈칸 채우기",
+          "action": "learning",
+          "contentType": "fill_blank",
+          "confirmTransfer": false,
+          "interactionPoint": [
+            435,
+            218
+          ],
+          "footprint": {
+            "x": 420,
+            "y": 176,
+            "w": 27,
+            "h": 16
+          }
+        },
+        {
+          "id": "student-1-0-chair",
+          "type": "chair",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 422,
+            "y": 228,
+            "w": 23,
+            "h": 22
+          }
+        },
+        {
+          "id": "student-1-0-second",
+          "type": "desk",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 500,
+            "y": 170,
+            "w": 70,
+            "h": 36
+          }
+        },
+        {
+          "id": "cs_student-1-0-second-monitor",
+          "type": "monitor",
+          "name": "CS 개념 빈칸 채우기",
+          "action": "learning",
+          "contentType": "fill_blank",
+          "confirmTransfer": false,
+          "interactionPoint": [
+            535,
+            218
+          ],
+          "footprint": {
+            "x": 520,
+            "y": 176,
+            "w": 27,
+            "h": 16
+          }
+        },
+        {
+          "id": "student-1-0-second-chair",
+          "type": "chair",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 522,
+            "y": 228,
+            "w": 23,
+            "h": 22
+          }
+        },
+        {
+          "id": "student-1-1",
+          "type": "desk",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 400,
+            "y": 300,
+            "w": 70,
+            "h": 36
+          }
+        },
+        {
+          "id": "cs_student-1-1-monitor",
+          "type": "monitor",
+          "name": "CS 개념 빈칸 채우기",
+          "action": "learning",
+          "contentType": "fill_blank",
+          "confirmTransfer": false,
+          "interactionPoint": [
+            435,
+            348
+          ],
+          "footprint": {
+            "x": 420,
+            "y": 306,
+            "w": 27,
+            "h": 16
+          }
+        },
+        {
+          "id": "student-1-1-chair",
+          "type": "chair",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 422,
+            "y": 358,
+            "w": 23,
+            "h": 22
+          }
+        },
+        {
+          "id": "student-1-1-second",
+          "type": "desk",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 500,
+            "y": 300,
+            "w": 70,
+            "h": 36
+          }
+        },
+        {
+          "id": "cs_student-1-1-second-monitor",
+          "type": "monitor",
+          "name": "CS 개념 빈칸 채우기",
+          "action": "learning",
+          "contentType": "fill_blank",
+          "confirmTransfer": false,
+          "interactionPoint": [
+            535,
+            348
+          ],
+          "footprint": {
+            "x": 520,
+            "y": 306,
+            "w": 27,
+            "h": 16
+          }
+        },
+        {
+          "id": "student-1-1-second-chair",
+          "type": "chair",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 522,
+            "y": 358,
+            "w": 23,
+            "h": 22
+          }
+        },
+        {
+          "id": "entry-threshold",
+          "type": "door-threshold",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 280,
+            "y": 493,
+            "w": 80,
+            "h": 12
+          }
+        },
+        {
+          "id": "entry-left-post",
+          "type": "door-post",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 274,
+            "y": 493,
+            "w": 6,
+            "h": 12
+          }
+        },
+        {
+          "id": "entry-right-post",
+          "type": "door-post",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 360,
+            "y": 493,
+            "w": 6,
+            "h": 12
+          }
+        },
+        {
+          "id": "books-left",
+          "type": "bookshelf",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 30,
+            "y": 30,
+            "w": 95,
+            "h": 22
+          }
+        },
+        {
+          "id": "books-right",
+          "type": "bookshelf",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 515,
+            "y": 30,
+            "w": 95,
+            "h": 22
+          }
+        },
+        {
+          "id": "plant-0",
+          "type": "plant",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 30,
+            "y": 78,
+            "w": 28,
+            "h": 28
+          }
+        },
+        {
+          "id": "plant-1",
+          "type": "plant",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 580,
+            "y": 78,
+            "w": 28,
+            "h": 28
+          }
+        },
+        {
+          "id": "plant-2",
+          "type": "plant",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 30,
+            "y": 450,
+            "w": 28,
+            "h": 28
+          }
+        },
+        {
+          "id": "plant-3",
+          "type": "plant",
+          "confirmTransfer": false,
+          "footprint": {
+            "x": 580,
+            "y": 450,
+            "w": 28,
+            "h": 28
+          }
+        }
+      ],
+      "colliders": [
+        {
+          "x": 210,
+          "y": 28,
+          "w": 220,
+          "h": 12,
+          "pad": 0,
+          "objectId": "cs-board"
         },
         {
           "x": 270,
@@ -8061,13 +8697,13 @@
       "room": {
         "id": "class1",
         "name": "Python 학습교실",
-        "x": 1261.5,
+        "x": 1403,
         "y": 553.5,
-        "w": 447,
+        "w": 305.5,
         "h": 393,
         "floor": "class",
         "target": [
-          1648.5,
+          1555.75,
           589.5
         ],
         "front": "bottom",
@@ -8076,8 +8712,8 @@
         "info": false,
         "photo": false
       },
-      "left": 1617,
-      "right": 1681.5,
+      "left": 1523.5,
+      "right": 1588,
       "y": 553.5
     },
     {
@@ -8087,11 +8723,11 @@
         "name": "SQL 학습교실",
         "x": 792,
         "y": 553.5,
-        "w": 469.5,
+        "w": 305.5,
         "h": 393,
         "floor": "class",
         "target": [
-          852,
+          944.75,
           589.5
         ],
         "front": "bottom",
@@ -8100,8 +8736,32 @@
         "info": false,
         "photo": false
       },
-      "left": 820.5,
-      "right": 885,
+      "left": 912.5,
+      "right": 977,
+      "y": 553.5
+    },
+    {
+      "subject": "cs",
+      "room": {
+        "id": "class-cs",
+        "name": "CS 학습교실",
+        "x": 1097.5,
+        "y": 553.5,
+        "w": 305.5,
+        "h": 393,
+        "floor": "class",
+        "target": [
+          1250.25,
+          589.5
+        ],
+        "front": "bottom",
+        "description": "빼빼로 데이 CS 학습교실",
+        "label": false,
+        "info": false,
+        "photo": false
+      },
+      "left": 1218,
+      "right": 1282.5,
       "y": 553.5
     }
   ],

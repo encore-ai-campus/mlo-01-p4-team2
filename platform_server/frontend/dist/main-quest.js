@@ -136,7 +136,7 @@ const P=missionRenderer.projection;g.font='600 11px "Malgun Gothic",sans-serif';
 if(!blocked&&objective){const q=P.project(...objective.interactionPoint);drawMissionMarker(g,q.x,q.y,t);}g.restore();
 $('mainQuestRoomHint').textContent=nearStation?`${window.CampusKeyboard?.label('interact')||'E'} · ${nearStation.name}`:room===1?(!state?.room1Briefed?'먼저 영석 매니저님과 대화하세요':state?.games.sql_memory?'영석 매니저님에게 수량표를 제출하세요':'왼쪽 서브쿼리 메모리 분석기에 도전하세요'):'재료 준비 → 초콜릿 코팅 → 토핑 데코 → 선물 포장';$('mainQuestInteract').disabled=!nearStation;}
 requestAnimationFrame(roomDraw);
-function goal(){if(!state||state.completed)return null;return [{...mainGuide,name:'꾸왕이 · 사건 조사 시작'},{floor:'campus',x:1648,y:555,name:'Python 초급 학습교실'},{...portals[0]},{...mainGuide,name:'꾸왕이 · 사건의 진실'},{...portals[1]},{...mainGuide,name:'꾸왕이 · 선물 전달'}][state.stage-1];}
+function goal(){if(!state||state.completed)return null;const classroom=window.CampusWorlds.campus.rooms.find(r=>r.id==='class1');return [{...mainGuide,name:'꾸왕이 · 사건 조사 시작'},{floor:'campus',x:classroom.target[0],y:classroom.y+1.5,name:'Python 초급 학습교실'},{...portals[0]},{...mainGuide,name:'꾸왕이 · 사건의 진실'},{...portals[1]},{...mainGuide,name:'꾸왕이 · 선물 전달'}][state.stage-1];}
 function questArrowPlacement(point,width,height){
 const inside=point.x>=0&&point.x<=width&&point.y>=0&&point.y<=height;
 if(inside)return {mode:'target',x:Math.max(80,Math.min(width-80,point.x)),y:Math.max(115,Math.min(height-65,point.y-32)),angle:0};

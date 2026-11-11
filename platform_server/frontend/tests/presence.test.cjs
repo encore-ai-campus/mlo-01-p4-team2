@@ -38,7 +38,7 @@ function app({authenticated = true, secure = false, floors, restore = false, ses
   const protocol = secure ? 'https:' : 'http:';
   const context = vm.createContext({URL, Event, CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}}, WebSocket: Socket, performance: {now: () => clock},
     window: {location: {protocol, href: protocol + '//127.0.0.1:8000/', assign(url) {redirected = url;}},
-      addEventListener(name, callback) {listeners.set('window:' + name, callback);}, dispatchEvent(event) {events.push(event.type);}, CampusSession: session, CampusFreeze: freeze},
+      addEventListener(name, callback) {listeners.set('window:' + name, callback);}, dispatchEvent(event) {events.push(event.type);listeners.get('window:'+event.type)?.(event);}, CampusSession: session, CampusFreeze: freeze},
     document: {getElementById: element, createElement: () => domElement(),
       addEventListener(name, callback) {listeners.set('document:' + name, callback);}},
     setTimeout(callback, delay) {const id = ++nextTimer; timers.set(id, {callback, delay}); return id;},
@@ -70,6 +70,14 @@ function app({authenticated = true, secure = false, floors, restore = false, ses
 const test = require('node:test');
 const floors={campus:{width:2448,height:1230,objects:[]},rooftop:{width:2448,height:1800}};
 const plain=value=>JSON.parse(JSON.stringify(value));
+test('personal achievement packets preserve server state and dispatch no unready or malformed updates',()=>{
+ const f=app({floors}),updates=[];f.listeners.set('window:campus:achievements',event=>updates.push(event.detail));
+ const achievements=[{event_uuid:'greeting',name:'수상한 친화력',achieved:true,completed_at:'2026-11-03T00:00:00Z',image_url:'/static/campus/assets/achievements/manager-greeting.png'}];
+ f.movement().receive({type:'achievement_update',achievements});assert.equal(updates.length,0);
+ f.welcome();f.movement().receive({type:'achievement_update',achievements});
+ assert.deepEqual(plain(updates),[achievements]);
+ f.movement().receive({type:'achievement_update',achievements:{}});assert.equal(updates.length,1);f.presence.close();
+});
 test('standalone creates no socket; authenticated connections negotiate server control and WSS',()=>{
  const offline=app({authenticated:false});offline.tick(200);assert.equal(offline.sockets.length,0);
  for(const secure of [false,true]){const f=app({secure});assert.equal(f.sockets[0].url,`${secure?'wss':'ws'}://127.0.0.1:8000/ws/movement/?control=server&moves=compact&view=nearby`);assert.equal(f.sockets.length,1);f.welcome();assert.equal(f.chat().url,`${secure?'wss':'ws'}://127.0.0.1:8000/ws/chat/`);f.presence.close();}

@@ -11,6 +11,8 @@ def normalize_sql(value):
     # Unknown identifiers and quoted literals retain spelling and case.
     return tuple(token.upper() if token.upper() in SQL_KEYWORDS and re.fullmatch(r'[A-Za-z_]+', token) else token for token in tokens)
 def answers_match(subject, question_type, submitted, correct):
+    if subject == 'cs' and question_type == 'fill_blank':
+        return submitted.strip().casefold() == correct.strip().casefold()
     if subject == 'sql' and question_type == 'fill_blank':
         return normalize_sql(submitted) == normalize_sql(correct)
     return normalize_python(submitted) == normalize_python(correct)

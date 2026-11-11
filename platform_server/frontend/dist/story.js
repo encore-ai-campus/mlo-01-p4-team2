@@ -149,7 +149,7 @@
     if(!state?.started||state.completed||state.pending||state.window.phase!=='open')return null;
     const app=window.CampusApp,player=app?.player;if(!player)return null;
     let options=state.stage===1?[['campus',1250,185,'18층 게시판']]:state.stage===2?[
-      ...(!state.flags.wrapper?[['campus',590,445,'빈 포장지 조사']]:[]),...(!state.flags.count?[['campus',700,445,'수량 확인표 읽기']]:[])]:state.stage===3?[['campus',1648.5,555,'Python 초급 학습'],['campus',852,555,'SQL 초급 학습']]:state.stage===4?[['campus',700,445,'행사 기록 · 수량표 추리']]:[['rooftop',692,897,'심리테스트 부스']];
+      ...(!state.flags.wrapper?[['campus',590,445,'빈 포장지 조사']]:[]),...(!state.flags.count?[['campus',700,445,'수량 확인표 읽기']]:[])]:state.stage===3?[['campus',window.CampusWorlds.campus.rooms.find(r=>r.id==='class1').target[0],555,'Python 초급 학습'],['campus',window.CampusWorlds.campus.rooms.find(r=>r.id==='class2').target[0],555,'SQL 초급 학습']]:state.stage===4?[['campus',700,445,'행사 기록 · 수량표 추리']]:[['rooftop',692,897,'심리테스트 부스']];
     let goal=options.filter(o=>o[0]===app.floor).sort((a,b)=>Math.hypot(a[1]-player.x,a[2]-player.y)-Math.hypot(b[1]-player.x,b[2]-player.y))[0]||options[0];
     if(goal[0]!==app.floor){
       const paths=app.data.objects.filter(o=>o.toFloor===goal[0]);

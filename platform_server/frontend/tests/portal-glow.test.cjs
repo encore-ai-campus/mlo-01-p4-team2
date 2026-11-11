@@ -13,7 +13,7 @@ test('per-frame map drawing sets no shadow blur while the portals keep animating
     get: (object, key) => object[key] ?? (() => {}),
     set(object, key, value) { if (key === 'shadowBlur' && value > 0) blurs++; object[key] = value; return true; },
   });
-  const sandbox = vm.createContext({window: {CampusAvatars: {size: 40, draw: () => true}}, performance: {now: () => 0}, Path2D: class { constructor() { return new Proxy({}, {get: () => () => {}}); } },
+  const sandbox = vm.createContext({window: {addEventListener(){},CampusAvatars: {size: 40, draw: () => true}}, performance: {now: () => 0}, Path2D: class { constructor() { return new Proxy({}, {get: () => () => {}}); } },
     document: {createElement: () => ({getContext: () => context})}});
   for (const file of ['dist/map-data.js', 'dist/rooftop-data.js', 'dist/stair-motion.js', 'dist/isometric.js'])
     vm.runInContext(fs.readFileSync(path.join(__dirname, '..', file), 'utf8'), sandbox, {filename: file});

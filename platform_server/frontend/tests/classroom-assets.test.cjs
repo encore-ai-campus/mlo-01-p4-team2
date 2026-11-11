@@ -3,7 +3,7 @@ const root=path.join(__dirname,'..');
 test('procedural classroom assets integrate with real sprite cache, depth rendering and attached PC monitors',()=>{
  const calls=[];
  const context=new Proxy({measureText:text=>({width:text.length*7}),createLinearGradient:()=>({addColorStop(){}})},{get(target,name){return target[name]??(()=>{});},set(target,name,value){target[name]=value;return true;}});
- const c=vm.createContext({window:{CampusAvatars:{size:40,draw:()=>true}},document:{createElement:()=>({getContext:()=>context})}});
+ const c=vm.createContext({window:{addEventListener(){},CampusAvatars:{size:40,draw:()=>true}},document:{createElement:()=>({getContext:()=>context})}});
  for(const file of ['dist/stair-motion.js','dist/isometric.js','learning/static/learning/classroom-assets.js','learning/static/learning/classroom-map.js'])vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),c);
  const data=c.window.CampusClassroomMap.data,paint=data.paintFurniture;
  data.paintFurniture=(object,api,z)=>{calls.push(object.id);return paint(object,api,z);};

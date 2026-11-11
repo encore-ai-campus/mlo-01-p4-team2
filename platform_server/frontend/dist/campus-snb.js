@@ -24,7 +24,7 @@
   const services=document.createElement('nav');services.className='snb-services';services.setAttribute('aria-label','게시판과 구내식당');
   const icon=paths=>`<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
   if(mailbox){const mailIcon=document.createElement('span');mailIcon.className='snb-mail-icon';mailIcon.innerHTML=icon('<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/>');mailbox.prepend(mailIcon);}
-  for(const [key,label] of [['board','PLAYDATA 게시판'],['menu','구내식당 · 식단톡']]){
+  for(const [key,label] of [['board','PLAYDATA 게시판'],['menu','구내식당 메뉴 보기']]){
     const button=document.createElement('button');button.type='button';
     const mark=document.createElement('span');mark.className='snb-service-mark';mark.setAttribute('aria-hidden','true');
     mark.innerHTML=key==='board'?icon('<rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/>'):icon('<circle cx="13" cy="12" r="7"/><path d="M2 4v5m3-5v5M2 8c0 3 3 3 3 0M3.5 11v9M22 4v16"/>');
@@ -47,7 +47,7 @@
   if(logoutForm){logoutForm.classList.add('snb-logout');accountActions.append(logoutForm);}
   if(accountActions.childElementCount)content.append(accountActions);
   const playerTools=footer?.querySelector('.map-player-tools');if(playerTools&&!playerTools.childElementCount)playerTools.remove();
-  const toggle=document.createElement('div');toggle.tabIndex=-1;toggle.setAttribute('aria-keyshortcuts','Tab');toggle.className='campus-snb-toggle';toggle.id='campusSnbToggle';toggle.setAttribute('aria-controls',panel.id);
+  const toggle=document.createElement('button');toggle.type='button';toggle.setAttribute('aria-keyshortcuts','Tab');toggle.className='campus-snb-toggle';toggle.id='campusSnbToggle';toggle.setAttribute('aria-controls',panel.id);
   toggle.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="m14 6-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const tabHint=document.createElement('kbd');tabHint.textContent='Tab';toggle.append(tabHint);shell.prepend(panel,toggle);
   let open=true;
@@ -57,6 +57,8 @@
     panel.inert=!open;panel.setAttribute('aria-hidden',String(!open));if(!open)window.CampusApp?.quickTravelMenu?.close();
     try{localStorage.setItem('campus.snb.open',String(open));}catch(_){}
   }
+  toggle.addEventListener('click',()=>{setOpen(!open);document.getElementById('mapCanvas')?.focus({preventScroll:true});});
+  toggle.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' ')event.stopPropagation();});
   document.addEventListener('keydown',event=>{
     if(event.key!=='Tab'||event.shiftKey||event.ctrlKey||event.altKey||event.metaKey||event.defaultPrevented)return;
     const target=event.target;

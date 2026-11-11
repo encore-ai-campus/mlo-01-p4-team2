@@ -13,6 +13,7 @@ def prepare_event_context(user):
     # learning catalogue in these disposable test databases, never at runtime.
     MapFloor.objects.get_or_create(code='campus', defaults={'floor_uuid': floor_uuid('campus'), 'name': '18층 캠퍼스'})
     import_module('eventing.migrations.0007_learning_catalog').add_learning(apps, None)
+    import_module('eventing.migrations.0013_cs_learning_catalog').add_cs(apps, None)
     if not PlatformSession.objects.filter(user=user, ended_at__isnull=True).exists():
         now = timezone.now()
         PlatformSession.objects.create(user=user, started_at=now, last_seen_at=now)

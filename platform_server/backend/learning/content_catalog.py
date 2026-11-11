@@ -1,8 +1,8 @@
-"""The four learning panels are catalogued separately from their random questions."""
+"""The subject-specific learning panels are catalogued separately from their random questions."""
 from eventing.models import ContentItem
 
 CONTENT_CODES = {(subject, kind): f'{subject}-{kind.replace("_", "-")}'
-                 for subject in ('python', 'sql') for kind in ('multiple_choice', 'fill_blank')}
+                 for subject in ('python', 'sql', 'cs') for kind in ('multiple_choice', 'fill_blank')}
 
 
 def get_learning_content(subject, question_type):

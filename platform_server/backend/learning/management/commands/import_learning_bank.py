@@ -15,7 +15,10 @@ from learning.models import Question, QuestionChoice
 
 FIELDS=('subject','difficulty','question_type','question_code','category','question_text','code_snippet','correct_answer','explanation')
 GROUP=('subject','difficulty','question_type')
-TARGET={ (s,d,t):200 for s in ('python','sql') for d in ('beginner','intermediate','advanced') for t in ('multiple_choice','fill_blank') }
+def targets(rows):
+    return {(s,d,t):200 for s in {r['subject'] for r in rows}
+            for d in ('beginner','intermediate','advanced') for t in ('multiple_choice','fill_blank')}
+
 
 def snapshot_existing():
     questions=list(Question.objects.order_by('pk').values())
@@ -28,9 +31,11 @@ def digest_snapshot(snapshot):
 def plan(rows):
     report=validate_bank(rows,require_full=False)
     if report['errors']:raise CommandError('; '.join(report['errors']))
-    existing={(q.subject,q.question_code):q for q in Question.objects.prefetch_related('choices') if q.question_code}
+    target=targets(rows)
+    subjects={s for s,_,_ in target}
+    existing={(q.subject,q.question_code):q for q in Question.objects.filter(subject__in=subjects).prefetch_related('choices') if q.question_code}
     counts=Counter()
-    for q in Question.objects.filter(is_active=True).values(*GROUP):counts[tuple(q[k] for k in GROUP)]+=1
+    for q in Question.objects.filter(is_active=True,subject__in=subjects).values(*GROUP):counts[tuple(q[k] for k in GROUP)]+=1
     pending=[]
     for row in rows:
         q=existing.get((row['subject'],row['question_code']))
@@ -42,7 +47,7 @@ def plan(rows):
                 raise CommandError('기존 문항 코드의 내용 또는 활성 상태가 다릅니다: '+row['subject']+'/'+row['question_code'])
         else:
             pending.append(row);counts[tuple(row[k] for k in GROUP)]+=1
-    if counts!=Counter(TARGET):
+    if counts!=Counter(target):
         raise CommandError('반영 후 활성 문제 수가 분류별 200개가 아닙니다: '+str(dict(counts)))
     return pending
 
@@ -98,7 +103,7 @@ class Command(BaseCommand):
                     acquired = cur.fetchone()[0]
                     if not acquired: raise CommandError('다른 문제은행 반영 작업이 진행 중입니다.')
             pending=plan(rows)
-            result={'mode':'dry-run','new_questions':len(pending),'skipped':len(rows)-len(pending),'target_active':2400}
+            result={'mode':'dry-run','new_questions':len(pending),'skipped':len(rows)-len(pending),'target_active':sum(targets(rows).values())}
             if options['apply']:
                 if not options['backup_dir']:raise CommandError('--apply에는 --backup-dir이 필요합니다.')
                 folder=backup(options['backup_dir'])

@@ -101,8 +101,8 @@
   g.fillStyle='#f2d1c2';g.fillRect(299,148,42,350);
   g.strokeStyle='#a96775';g.lineWidth=2;g.strokeRect(27,25,586,469);
   g.strokeStyle='#fdf0d5';g.lineWidth=2;g.strokeRect(34,32,572,455);
-  for(const zone of [{x:70,color:'#c16e8455',edge:'#9d536b',text:subject==='sql'?'SQL 객관식':'Python 객관식'},
-                     {x:390,color:'#b9796955',edge:'#815154',text:'코드 빈칸 채우기'}]){
+  for(const zone of [{x:70,color:'#c16e8455',edge:'#9d536b',text:({python:'Python',sql:'SQL',cs:'CS'}[subject]+' 객관식')},
+                     {x:390,color:'#b9796955',edge:'#815154',text:subject==='cs'?'CS 개념 빈칸 채우기':'코드 빈칸 채우기'}]){
    g.fillStyle=zone.color;g.fillRect(zone.x,145,200,268);
    g.strokeStyle='#ffe3bd';g.lineWidth=6;g.strokeRect(zone.x,145,200,268);
    g.strokeStyle=zone.edge;g.lineWidth=2;g.strokeRect(zone.x,145,200,268);

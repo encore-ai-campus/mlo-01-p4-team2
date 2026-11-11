@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const read = name => fs.readFileSync(path.join(__dirname, '..', name), 'utf8');
 function surface() {
   const handlers = new Map();
-  return {hidden:false, open:true, disabled:false,
+  return {hidden:false, open:true, disabled:false, style:{},append(){},
     addEventListener(type, fn) {if (!handlers.has(type)) handlers.set(type, []);handlers.get(type).push(fn);},
     emit(type, event) {for (const fn of handlers.get(type) || []) {fn(event);if (event.stopped) break;}},
     getContext() {return {};}, setAttribute() {}, focus() {},

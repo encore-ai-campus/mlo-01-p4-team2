@@ -16,6 +16,7 @@
  window.minigameChannel=Object.freeze({
   start(fn){callback=fn;send({type:'minigame:ready'});},
   complete(result){if(!started||finished)return;finished=true;send({type:'minigame:result',result});},
+  restart(){if(started&&finished)send({type:'minigame:restart'});},
   exit(){send({type:'minigame:exit'});}
  });
 })();

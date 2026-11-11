@@ -2769,38 +2769,6 @@
           ]
         },
         {
-          "id": "reference-rooftop-149",
-          "type": "pepero-art",
-          "x": 720,
-          "y": 545,
-          "w": 46,
-          "h": 46,
-          "solid": true,
-          "renderHeight": 147.5,
-          "seasonalArt": "pedestal",
-          "artWidth": 118,
-          "artHeight": 147.5,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              685.969,
-              566.038
-            ],
-            [
-              693.839,
-              518.839
-            ],
-            [
-              744.682,
-              512.944
-            ],
-            [
-              746.644,
-              569.975
-            ]
-          ]
-        },
-        {
           "id": "reference-rooftop-150",
           "type": "pepero-ribbon-lamp",
           "x": 760,
@@ -2884,70 +2852,6 @@
           ]
         },
         {
-          "id": "reference-rooftop-153",
-          "type": "pepero-art",
-          "x": 720,
-          "y": 805,
-          "w": 46,
-          "h": 46,
-          "solid": true,
-          "renderHeight": 147.5,
-          "seasonalArt": "pedestal",
-          "artWidth": 118,
-          "artHeight": 147.5,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              685.969,
-              826.038
-            ],
-            [
-              693.839,
-              778.839
-            ],
-            [
-              744.682,
-              772.944
-            ],
-            [
-              746.644,
-              829.975
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-154",
-          "type": "pepero-art",
-          "x": 720,
-          "y": 1005,
-          "w": 46,
-          "h": 46,
-          "solid": true,
-          "renderHeight": 147.5,
-          "seasonalArt": "pedestal",
-          "artWidth": 118,
-          "artHeight": 147.5,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              685.969,
-              1026.038
-            ],
-            [
-              693.839,
-              978.839
-            ],
-            [
-              744.682,
-              972.944
-            ],
-            [
-              746.644,
-              1029.975
-            ]
-          ]
-        },
-        {
           "id": "reference-rooftop-155",
           "type": "pepero-ribbon-lamp",
           "x": 760,
@@ -3027,38 +2931,6 @@
             [
               391.216,
               1337.436
-            ]
-          ]
-        },
-        {
-          "id": "reference-rooftop-158",
-          "type": "pepero-art",
-          "x": 720,
-          "y": 1265,
-          "w": 46,
-          "h": 46,
-          "solid": true,
-          "renderHeight": 147.5,
-          "seasonalArt": "pedestal",
-          "artWidth": 118,
-          "artHeight": 147.5,
-          "artAnchor": 0.92,
-          "collisionPolygon": [
-            [
-              685.969,
-              1286.038
-            ],
-            [
-              693.839,
-              1238.839
-            ],
-            [
-              744.682,
-              1232.944
-            ],
-            [
-              746.644,
-              1289.975
             ]
           ]
         },

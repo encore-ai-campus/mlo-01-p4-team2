@@ -16,12 +16,19 @@
     g.save();g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
     g.drawImage(image,q.x-sw/2,q.y-sh*.88,sw,sh);g.restore();
   }
+  // Align both cabinet ground axes to the map axes while preserving upright verticals.
+  function artProjection(o,p,base=0){
+    if(!o.artPlaneSlopes)return {scaleX:1,shearY:0};
+    const [negative,positive]=o.artPlaneSlopes,a=p(0,0,base),b=p(0,1,base);
+    const slope=Math.abs((b.y-a.y)/(b.x-a.x)),tilt=Number.isFinite(slope)&&slope>0?slope:.58;
+    return {scaleX:(positive-negative)/(2*tilt),shearY:-(positive+negative)/2};
+  }
   // Draw names after the world geometry so walls cannot cover the game labels.
   function paintGameLabel(o,{g,p},base=0){
     if(o.action!=='minigame'||!o.seasonalArt)return;
     const image=art[o.seasonalArt];if(!image?.complete||!image.naturalWidth)return;
-    const scale=Math.min(o.artWidth/image.naturalWidth,o.artHeight/image.naturalHeight),h=image.naturalHeight*scale;
-    const q=p(o.x+o.w/2+(o.artGroundOffsetX||0),o.y+o.h/2,base),top=q.y-h*(o.artAnchor??.92)-28;
+    const scale=Math.min(o.artWidth/image.naturalWidth,o.artHeight/image.naturalHeight),h=image.naturalHeight*scale,projection=artProjection(o,p,base),extra=Math.abs(projection.shearY)*image.naturalWidth*scale/2;
+    const q=p(o.x+o.w/2+(o.artGroundOffsetX||0),o.y+o.h/2,base),top=q.y-h*(o.artAnchor??.92)-extra-28;
     g.save();g.fillStyle='#51333ff2';g.strokeStyle='#dfbc83';g.lineWidth=1;
     g.beginPath();g.roundRect(q.x-54,top,108,20,6);g.fill();g.stroke();
     g.textAlign='center';g.textBaseline='middle';g.fillStyle='#fff0cf';g.font='600 10px sans-serif';
@@ -37,13 +44,15 @@
     if(o.seasonalArt){
       const image=art[o.seasonalArt];if(!image?.complete||!image.naturalWidth)return o.action!=='minigame';
       const q=p(o.x+o.w/2+(o.artGroundOffsetX||0),o.y+o.h/2,base),s=Math.min(o.artWidth/image.naturalWidth,o.artHeight/image.naturalHeight),w=image.naturalWidth*s,h=image.naturalHeight*s;
+      q.y+=o.artScreenOffsetY||0;
       if(o.action==='minigame'&&Number.isFinite(o.wallContactX)){
         // A small contact shadow joins the furniture back to the inner wall face.
         const x=o.wallContactX,y=o.y+7,end=o.y+o.h-7;
         const corners=[p(x,y,base+2),p(x,end,base+2),p(x,end,base+30),p(x,y,base+30)];
-        g.save();g.fillStyle='#412a3623';g.beginPath();corners.forEach((v,i)=>i?g.lineTo(v.x,v.y):g.moveTo(v.x,v.y));g.closePath();g.fill();g.restore();
+        g.save();g.translate(0,o.artScreenOffsetY||0);g.fillStyle='#412a3623';g.beginPath();corners.forEach((v,i)=>i?g.lineTo(v.x,v.y):g.moveTo(v.x,v.y));g.closePath();g.fill();g.restore();
       }
       g.save();g.translate(q.x,q.y);if(o.flip)g.scale(-1,1);g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
+      const projection=artProjection(o,p,base);if(projection.scaleX!==1||projection.shearY!==0)g.transform(projection.scaleX,projection.shearY,0,1,0,0);
       g.drawImage(image,-w/2,-h*(o.artAnchor??.92),w,h);
       if(o.refillBox){
         const top=-h*(o.artAnchor??.92)-24;
@@ -276,5 +285,5 @@
     }
     ctx.restore();
   }
-  window.CampusSeasonal={paint,paintGameLabel,paintFloor,drawAtmosphere,art};
+  window.CampusSeasonal={paint,paintGameLabel,paintFloor,drawAtmosphere,artProjection,art};
 })();

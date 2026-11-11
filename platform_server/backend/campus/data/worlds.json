@@ -1154,12 +1154,12 @@
           "gameCode": "timer",
           "confirmTransfer": false,
           "interactionPoint": [
-            2308.5,
-            104
+            2293.5,
+            217
           ],
           "footprint": {
-            "x": 2226.5,
-            "y": 67,
+            "x": 2211.5,
+            "y": 180,
             "w": 54,
             "h": 74
           }
@@ -1172,12 +1172,12 @@
           "gameCode": "typing",
           "confirmTransfer": false,
           "interactionPoint": [
-            2308.5,
-            239
+            2293.5,
+            377
           ],
           "footprint": {
-            "x": 2226.5,
-            "y": 202,
+            "x": 2211.5,
+            "y": 340,
             "w": 54,
             "h": 74
           }
@@ -1190,12 +1190,12 @@
           "gameCode": "term_match",
           "confirmTransfer": false,
           "interactionPoint": [
-            2308.5,
-            374
+            2293.5,
+            97
           ],
           "footprint": {
-            "x": 2226.5,
-            "y": 337,
+            "x": 2211.5,
+            "y": 60,
             "w": 54,
             "h": 74
           }
@@ -2594,24 +2594,24 @@
           "objectId": "python-exterior-bench-1"
         },
         {
-          "x": 2226.5,
-          "y": 67,
+          "x": 2211.5,
+          "y": 180,
           "w": 54,
           "h": 74,
           "pad": 0,
           "objectId": "minigame-timer"
         },
         {
-          "x": 2226.5,
-          "y": 202,
+          "x": 2211.5,
+          "y": 340,
           "w": 54,
           "h": 74,
           "pad": 0,
           "objectId": "minigame-typing"
         },
         {
-          "x": 2226.5,
-          "y": 337,
+          "x": 2211.5,
+          "y": 60,
           "w": 54,
           "h": 74,
           "pad": 0,
@@ -2918,17 +2918,6 @@
           }
         },
         {
-          "id": "reference-rooftop-149",
-          "type": "pepero-art",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 720,
-            "y": 545,
-            "w": 46,
-            "h": 46
-          }
-        },
-        {
           "id": "reference-rooftop-150",
           "type": "pepero-ribbon-lamp",
           "confirmTransfer": false,
@@ -2962,28 +2951,6 @@
           }
         },
         {
-          "id": "reference-rooftop-153",
-          "type": "pepero-art",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 720,
-            "y": 805,
-            "w": 46,
-            "h": 46
-          }
-        },
-        {
-          "id": "reference-rooftop-154",
-          "type": "pepero-art",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 720,
-            "y": 1005,
-            "w": 46,
-            "h": 46
-          }
-        },
-        {
           "id": "reference-rooftop-155",
           "type": "pepero-ribbon-lamp",
           "confirmTransfer": false,
@@ -3014,17 +2981,6 @@
             "y": 1225,
             "w": 24,
             "h": 160
-          }
-        },
-        {
-          "id": "reference-rooftop-158",
-          "type": "pepero-art",
-          "confirmTransfer": false,
-          "footprint": {
-            "x": 720,
-            "y": 1265,
-            "w": 46,
-            "h": 46
           }
         },
         {
@@ -4391,32 +4347,6 @@
           "objectId": "reference-rooftop-148"
         },
         {
-          "x": 685.969,
-          "y": 512.944,
-          "w": 60.674999999999955,
-          "h": 57.03100000000006,
-          "points": [
-            [
-              685.969,
-              566.038
-            ],
-            [
-              693.839,
-              518.839
-            ],
-            [
-              744.682,
-              512.944
-            ],
-            [
-              746.644,
-              569.975
-            ]
-          ],
-          "pad": 0,
-          "objectId": "reference-rooftop-149"
-        },
-        {
           "x": 761,
           "y": 446,
           "w": 10,
@@ -4477,58 +4407,6 @@
           "objectId": "reference-rooftop-152"
         },
         {
-          "x": 685.969,
-          "y": 772.944,
-          "w": 60.674999999999955,
-          "h": 57.03100000000006,
-          "points": [
-            [
-              685.969,
-              826.038
-            ],
-            [
-              693.839,
-              778.839
-            ],
-            [
-              744.682,
-              772.944
-            ],
-            [
-              746.644,
-              829.975
-            ]
-          ],
-          "pad": 0,
-          "objectId": "reference-rooftop-153"
-        },
-        {
-          "x": 685.969,
-          "y": 972.944,
-          "w": 60.674999999999955,
-          "h": 57.03099999999995,
-          "points": [
-            [
-              685.969,
-              1026.038
-            ],
-            [
-              693.839,
-              978.839
-            ],
-            [
-              744.682,
-              972.944
-            ],
-            [
-              746.644,
-              1029.975
-            ]
-          ],
-          "pad": 0,
-          "objectId": "reference-rooftop-154"
-        },
-        {
           "x": 761,
           "y": 906,
           "w": 10,
@@ -4587,32 +4465,6 @@
           ],
           "pad": 0,
           "objectId": "reference-rooftop-157"
-        },
-        {
-          "x": 685.969,
-          "y": 1232.944,
-          "w": 60.674999999999955,
-          "h": 57.03099999999995,
-          "points": [
-            [
-              685.969,
-              1286.038
-            ],
-            [
-              693.839,
-              1238.839
-            ],
-            [
-              744.682,
-              1232.944
-            ],
-            [
-              746.644,
-              1289.975
-            ]
-          ],
-          "pad": 0,
-          "objectId": "reference-rooftop-158"
         },
         {
           "x": 685.969,

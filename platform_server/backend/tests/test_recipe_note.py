@@ -45,7 +45,7 @@ class RecipeNoteTests(TestCase):
         self.assert_no_note()
 
     def test_only_final_delivery_counts_and_client_flags_cannot_bypass_it(self):
-        for code in ('1', '2', '3', '4', '5'):
+        for code in ('1', '3', '4', '5'):
             main.complete(self.user, code)
         with self.assertRaisesMessage(LearningError, recipe.PREREQUISITE_MESSAGE):
             self.acquire(mainCompleted=True, hasNote=True)

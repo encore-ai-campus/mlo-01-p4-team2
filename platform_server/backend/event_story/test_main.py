@@ -29,12 +29,12 @@ class MainFlowTests(TestCase):
         self.assertEqual(EventProgress.objects.filter(user=self.user).count(),1)
     def test_order_and_pending_policies_cannot_be_bypassed(self):
         with self.assertRaises(LearningError):self.send('game_start',game='sql_memory',ticket=self.ticket('room1'))
-        for code in ('1','2','3'):main.complete(self.user,code)
+        for code in ('1','3'):main.complete(self.user,code)
         self.assertTrue(self.send('confession',ticket=self.ticket('roof-guide'))['correct'])
         self.assertFalse(main.done(self.user,'4'))
         with self.assertRaises(LearningError):self.send('game_start',game='typing',ticket=self.ticket('room2'))
     def test_sql_replay_and_idempotent_result(self):
-        for code in ('1','2'):main.complete(self.user,code)
+        for code in ('1',):main.complete(self.user,code)
         self.send('room1_briefing',ticket=self.ticket('room1'))
         started=self.send('game_start',game='sql_memory',ticket=self.ticket('room1'))
         import json
@@ -50,14 +50,14 @@ class MainFlowTests(TestCase):
         self.assertTrue(self.send('sql_answer',ticket=self.ticket('room1'),answer='C')['correct'])
         self.assertTrue(main.done(self.user,'3'))
     def test_client_success_alone_does_not_complete(self):
-        for code in ('1','2'):main.complete(self.user,code)
+        for code in ('1',):main.complete(self.user,code)
         self.send('room1_briefing',ticket=self.ticket('room1'))
         started=self.send('game_start',game='sql_memory',ticket=self.ticket('room1'))
         self.assertFalse(self.send('game_finish',play=started['play'],token=started['token'],proof={'success':True})['success'])
         self.assertFalse(main.done(self.user,'sql_memory'))
 
     def test_challenge_records_score_completes_stage_and_unlocks_room2(self):
-        for code in ('1','2','3'):main.complete(self.user,code)
+        for code in ('1','3'):main.complete(self.user,code)
         started=self.send('game_start',game='kkuwang_touch',ticket=self.ticket('roof-guide'))
         GamePlay.objects.filter(pk=started['play']).update(started_at=timezone.now()-timedelta(seconds=11))
         result=self.send('game_finish',play=started['play'],token=started['token'],proof={'taps':[100,300,500]})
@@ -65,7 +65,7 @@ class MainFlowTests(TestCase):
         self.assertEqual(result['score'],3)
         self.assertEqual(GamePlay.objects.get(pk=started['play']).status,'FINISHED')
         self.assertTrue(main.done(self.user,'4'))
-        self.assertEqual(result['state']['stage'],5)
+        self.assertEqual(result['state']['stage'],4)
         self.send('game_finish',play=started['play'],token=started['token'],proof={'taps':[100,300,500]})
         self.assertEqual(EventProgress.objects.filter(user=self.user,event_id=main.uid('4')).count(),1)
         self.send('game_start',game='card_match',ticket=self.ticket('room2'))
@@ -80,13 +80,13 @@ class MainFlowTests(TestCase):
         self.assertFalse(EventProgress.objects.filter(user=self.user).exists())
 
     def test_freeze_interrupts_running_game_without_resetting_progress(self):
-        for code in ('1','2'):main.complete(self.user,code)
+        for code in ('1',):main.complete(self.user,code)
         self.send('room1_briefing',ticket=self.ticket('room1'))
         started=self.send('game_start',game='sql_memory',ticket=self.ticket('room1'))
         from campus_control.service import change, read_state
         change(self.user,True,'강의 중',read_state(force=True)['revision'])
         self.assertEqual(GamePlay.objects.get(pk=started['play']).status,'INTERRUPTED')
-        self.assertTrue(main.done(self.user,'2'))
+        self.assertTrue(main.done(self.user,'1'))
 
     def test_topping_and_coating_replay(self):
         challenge={'seed':1234}
@@ -99,7 +99,7 @@ class MainFlowTests(TestCase):
         self.assertFalse(main.judge('coating',challenge,{'success':True,'taps':[1]*10},26000))
 
     def test_workshop_new_order_and_wrapping_completion(self):
-        for code in ('1','2','3','4','card_match'):main.complete(self.user,code)
+        for code in ('1','3','4','card_match'):main.complete(self.user,code)
         with self.assertRaises(LearningError):self.send('game_start',game='topping',ticket=self.ticket('room2'))
         started=self.send('game_start',game='coating',ticket=self.ticket('room2'))
         c=started['challenge'];trials=[{'startMs':i*4000,'stopMs':int(i*4000+c['leadInMs']+v['fillMs']*v['targetPct']/100)+5} for i,v in enumerate(c['rounds'])]
@@ -142,7 +142,7 @@ class MainFlowTests(TestCase):
 
 
     def test_room1_requires_manager_before_game_and_persists_dialogue(self):
-        for code in ('1','2'):main.complete(self.user,code)
+        for code in ('1',):main.complete(self.user,code)
         with self.assertRaises(LearningError):self.send('game_start',game='sql_memory',ticket=self.ticket('room1'))
         with self.assertRaises(LearningError):self.send('room1_briefing',ticket=self.ticket('room2'))
         self.assertTrue(self.send('room1_briefing',ticket=self.ticket('room1'))['first'])
@@ -167,7 +167,7 @@ class MainFlowTests(TestCase):
         self.assertEqual(c.hints()['nearbyId'],'campus-guide-kkuwang')
         for target in ('investigate','roof-guide','final-guide'):
             self.assertIn('ticket',issue(str(self.user.pk),c,{'target':target}))
-        for code in ('1','2','3'):main.complete(self.user,code)
+        for code in ('1','3'):main.complete(self.user,code)
         token=issue(str(self.user.pk),c,{'target':'roof-guide'})['ticket']
         self.send('game_start',game='kkuwang_touch',ticket=token)
         old=MotionController({'floor':'rooftop','x':692,'y':897,'dir':'up'})
@@ -180,20 +180,20 @@ class MainFlowTests(TestCase):
         self.assertTrue(world('campus').walkable(650,400))
 
     def test_challenge_interrupt_and_early_finish_do_not_unlock(self):
-        for code in ('1','2','3'):main.complete(self.user,code)
+        for code in ('1','3'):main.complete(self.user,code)
         p=self.send('game_start',game='kkuwang_touch',ticket=self.ticket('roof-guide'))
         with self.assertRaises(LearningError):self.send('game_finish',play=p['play'],token=p['token'],proof={'taps':[100]})
         self.send('game_interrupt',play=p['play'],token=p['token'],proof={})
         self.assertFalse(main.done(self.user,'4'))
 
     def test_old_finished_round_recovers_progress_but_practice_does_not(self):
-        for code in ('1','2','3'):main.complete(self.user,code)
+        for code in ('1','3'):main.complete(self.user,code)
         from .models import GameDefinition
         game=GameDefinition.objects.get(game_code='kkuwang_touch');ended=timezone.now()-timedelta(hours=1)
         GamePlay.objects.create(user=self.user,session=self.session,game=game,status='FINISHED',duration_ms=11000,ended_at=ended,evidence={'score':3})
-        self.assertEqual(main.status(self.user)['stage'],4)
+        self.assertEqual(main.status(self.user)['stage'],3)
         GamePlay.objects.create(user=self.user,session=self.session,game=game,event_id=main.uid('4'),status='FINISHED',duration_ms=11000,ended_at=ended,evidence={'score':3})
-        self.assertEqual(main.status(self.user)['stage'],5)
+        self.assertEqual(main.status(self.user)['stage'],4)
         self.assertEqual(EventProgress.objects.get(user=self.user,event_id=main.uid('4')).completed_at,ended)
 
     def test_complete_round_has_no_minimum_score_and_practice_never_unlocks(self):
@@ -202,7 +202,7 @@ class MainFlowTests(TestCase):
         GamePlay.objects.filter(pk=p['play']).update(started_at=timezone.now()-timedelta(seconds=11))
         self.send('game_finish',play=p['play'],token=p['token'],proof={'taps':[]})
         self.assertFalse(main.done(self.user,'4'))
-        for code in ('1','2','3'):main.complete(self.user,code)
+        for code in ('1','3'):main.complete(self.user,code)
         p=self.send('game_start',game='kkuwang_touch',ticket=self.ticket('roof-guide'))
         GamePlay.objects.filter(pk=p['play']).update(started_at=timezone.now()-timedelta(seconds=11))
         result=self.send('game_finish',play=p['play'],token=p['token'],proof={'taps':[]})
@@ -211,7 +211,7 @@ class MainFlowTests(TestCase):
     def test_coating_v3_average_boundary_and_server_calculation(self):
         c=main.coating_challenge(1234)
         self.assertEqual(c['maxAverageMs'],200)
-        self.assertTrue(all(v['targetPct']==75 and v['zoneLeftPct']==74 and v['zoneRightPct']==76 for v in c['rounds']))
+        self.assertTrue(all(v['targetPct']==75 and v['zoneLeftPct']==70 and v['zoneRightPct']==80 for v in c['rounds']))
         # Existing signed games with no explicit bounds keep their average-only policy.
         for v in c['rounds']:v.pop('zoneLeftPct');v.pop('zoneRightPct')
         def proof(errors):return {'success':False,'averageMs':0,'trials':[{'startMs':i*4000,'stopMs':int(i*4000+c['leadInMs']+v['fillMs']*v['targetPct']/100)+e} for i,(v,e) in enumerate(zip(c['rounds'],errors))]}
@@ -231,7 +231,7 @@ class MainFlowTests(TestCase):
         self.assertFalse(main.judge('coating',c,{'success':True,'trials':missed},15000))
 
     def test_coating_timing_is_saved_and_retry_is_idempotent(self):
-        for code in ('1','2','3','4','card_match'):main.complete(self.user,code)
+        for code in ('1','3','4','card_match'):main.complete(self.user,code)
         p=self.send('game_start',game='coating',ticket=self.ticket('room2'));c=p['challenge']
         proof={'success':True,'trials':[{'startMs':i*4000,'stopMs':int(i*4000+c['leadInMs']+v['fillMs']*v['targetPct']/100)+5} for i,v in enumerate(c['rounds'])]}
         GamePlay.objects.filter(pk=p['play']).update(started_at=timezone.now()-timedelta(seconds=20))
@@ -270,8 +270,8 @@ class MainFlowTests(TestCase):
     def test_coating_drawn_success_zone_is_enforced(self):
         c=main.coating_challenge(22)
         def proof(fill):return {'success':True,'trials':[{'startMs':i*3000,'stopMs':int(i*3000+c['leadInMs']+v['fillMs']*fill/100)} for i,v in enumerate(c['rounds'])]}
-        for fill in (74,75,76):self.assertTrue(main.judge('coating',c,proof(fill),12000))
-        for fill in (73,77):
+        for fill in (70,75,80):self.assertTrue(main.judge('coating',c,proof(fill),12000))
+        for fill in (69,81):
             timing=main.coating_timing(c,proof(fill),12000)
             self.assertLess(timing['averageMs'],200)
             self.assertFalse(timing['success'])
@@ -303,3 +303,53 @@ class MainFlowTests(TestCase):
         self.assertIsNone(main.topping_order.replay(c,{'positions':[400]*101},6000))
         r=main.topping_order.replay(c,{'positions':[400]*201},11000)
         self.assertTrue(r['success']);self.assertEqual(r['counts'],{'strawberry':10,'almond':10})
+
+    def test_investigation_unlocks_room1_without_any_learning_record(self):
+        result = self.send('investigate', ticket=self.ticket('investigate'))
+        self.assertEqual(len(result['state']['steps']), 5)
+        self.assertEqual(result['state']['stage'], 2)
+        self.assertEqual(result['state']['steps'][1]['name'], 'ROOM01 증거분석실')
+        self.assertFalse(main.done(self.user, '2'))
+        self.send('room1_briefing', ticket=self.ticket('room1'))
+        self.send('game_start', game='sql_memory', ticket=self.ticket('room1'))
+
+    def test_learning_hooks_do_not_create_or_advance_main_progress(self):
+        from types import SimpleNamespace
+        main.complete(self.user, '1')
+        session = SimpleNamespace(user=self.user, subject='python', difficulty='beginner', question_type='multiple_choice', total_questions=10, correct_count=10, completed_at=timezone.now())
+        main.learning_started(session)
+        main.learning_completed(session)
+        self.assertFalse(main.done(self.user, '2'))
+        self.assertEqual(main.status(self.user)['stage'], 2)
+
+    def test_old_learning_progress_is_preserved_and_excluded_from_steps(self):
+        from .models import EventDefinition
+        main.complete(self.user, '1')
+        EventDefinition.objects.get_or_create(event_uuid=main.uid('2'), defaults={'event_name':'Python 학습교실', 'event_type':'MAIN'})
+        old = main.complete(self.user, '2')
+        completed_at = old.completed_at
+        result = main.status(self.user)
+        self.assertEqual(result['stage'], 2)
+        self.assertEqual(len(result['steps']), 5)
+        old.refresh_from_db()
+        self.assertEqual(old.completed_at, completed_at)
+        retired = EventDefinition.objects.get(pk=main.uid('2'))
+        self.assertEqual(retired.event_type, 'ARCHIVED')
+        self.assertIsNone(retired.parent_event_id)
+        self.assertIsNone(retired.step_order)
+        self.assertEqual(list(EventDefinition.objects.filter(parent_event_id=main.uid('campaign'),event_type='MAIN').order_by('step_order').values_list('event_uuid', flat=True)), [main.uid(code) for code, _ in main.STAGES])
+
+    def test_resuming_after_room1_and_final_completion_keeps_history(self):
+        for code in ('1', '3'):
+            main.complete(self.user, code)
+        self.assertEqual(main.status(self.user)['stage'], 3)
+        for code in ('4', '5', '6'):
+            main.complete(self.user, code)
+        final = EventProgress.objects.get(user=self.user, event_id=main.uid('6'))
+        final.completion_order = 17
+        final.save(update_fields=['completion_order'])
+        result = main.status(self.user)
+        self.assertTrue(result['completed'])
+        self.assertEqual(result['stage'], 6)
+        self.assertTrue(all(step['complete'] for step in result['steps']))
+        self.assertEqual(result['ranking']['myRank'], 17)

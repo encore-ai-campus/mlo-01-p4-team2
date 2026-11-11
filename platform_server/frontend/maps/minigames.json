@@ -4,13 +4,13 @@
     "gameCode": "timer",
     "name": "타이머 게임",
     "floor": "campus",
-    "x": 2226.5,
-    "y": 67,
+    "x": 2211.5,
+    "y": 180,
     "w": 54,
     "h": 74,
     "interactionPoint": [
-      2308.5,
-      104
+      2293.5,
+      217.0
     ],
     "renderHeight": 170,
     "seasonalArt": "timer-station-east",
@@ -18,20 +18,26 @@
     "artHeight": 136,
     "artAnchor": 0.99,
     "facing": "east",
-    "artGroundOffsetX": 0
+    "artGroundOffsetX": -4,
+    "wallContactX": 2209.5,
+    "artPlaneSlopes": [
+      -0.2,
+      0.84
+    ],
+    "artScreenOffsetY": 6
   },
   {
     "id": "minigame-typing",
     "gameCode": "typing",
     "name": "코드 타이핑 게임",
     "floor": "campus",
-    "x": 2226.5,
-    "y": 202,
+    "x": 2211.5,
+    "y": 340,
     "w": 54,
     "h": 74,
     "interactionPoint": [
-      2308.5,
-      239
+      2293.5,
+      377.0
     ],
     "renderHeight": 170,
     "seasonalArt": "typing-station-east",
@@ -39,20 +45,26 @@
     "artHeight": 136,
     "artAnchor": 0.99,
     "facing": "east",
-    "artGroundOffsetX": 0
+    "artGroundOffsetX": -4,
+    "wallContactX": 2209.5,
+    "artPlaneSlopes": [
+      -0.21,
+      0.79
+    ],
+    "artScreenOffsetY": 6
   },
   {
     "id": "minigame-term-match",
     "gameCode": "term_match",
     "name": "페어링 정원",
     "floor": "campus",
-    "x": 2226.5,
-    "y": 337,
+    "x": 2211.5,
+    "y": 60,
     "w": 54,
     "h": 74,
     "interactionPoint": [
-      2308.5,
-      374
+      2293.5,
+      97
     ],
     "renderHeight": 170,
     "seasonalArt": "pairing-garden-east",

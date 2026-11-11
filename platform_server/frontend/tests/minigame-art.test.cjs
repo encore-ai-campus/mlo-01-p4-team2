@@ -16,7 +16,7 @@ test('pairing garden loads its own image and paints that image when ready',()=>{
  assert.equal(img.src,'assets/minigames/pairing-garden-east-v1.png');
  Object.assign(img,{complete:true,naturalWidth:606,naturalHeight:640});
  let painted;
- const g={save(){},restore(){},translate(){},drawImage(image){painted=image;}};
+ const g={save(){},restore(){},translate(){},transform(){},drawImage(image){painted=image;}};
  assert.equal(art.paint({seasonalArt:'pairing-garden-east',action:'minigame',x:0,y:0,w:54,h:74,artWidth:112,artHeight:146},{g,p:()=>({x:0,y:0})}),true);
  assert.equal(painted,img);
 });

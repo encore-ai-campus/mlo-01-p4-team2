@@ -1,4 +1,5 @@
 from django.utils import timezone
+from eventing.events import record_play_ended
 from .models import GamePlay
 
 def interrupt_running():
@@ -8,3 +9,4 @@ def interrupt_running():
         play.status='INTERRUPTED';play.ended_at=now
         play.duration_ms=max(0,int((now-play.started_at).total_seconds()*1000))
         play.save(update_fields=['status','ended_at','duration_ms'])
+        record_play_ended(play)

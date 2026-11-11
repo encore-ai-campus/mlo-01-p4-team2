@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.http import Http404
 from django.utils import timezone
+from eventing.events import record_play_ended, record_play_started
 from eventing.models import PlatformSession
 from .models import GameDefinition, GamePlay
 from .achievement_services import TIMER_ID, TYPING_ID, MEMORY_ID, achievement_snapshot, complete_achievement
@@ -59,8 +60,14 @@ def start_game(user, code, session_id):
     if game is None:
         raise GameError("지금은 이 게임을 실행할 수 없어요.", 409)
     session = active_session(user, session_id)
-    GamePlay.objects.filter(user=user, status="RUNNING").update(status="INTERRUPTED", ended_at=timezone.now())
+    now = timezone.now()
+    # Row by row so each interrupted play gets its own end event (duration stays unset, as before).
+    for old in GamePlay.objects.select_for_update().filter(user=user, status="RUNNING"):
+        old.status, old.ended_at = "INTERRUPTED", now
+        old.save(update_fields=["status", "ended_at"])
+        record_play_ended(old)
     play = GamePlay.objects.create(user=user, session=session, game=game)
+    record_play_started(play)
     config = dict(CONFIGS[code])
     if code == 'term_match':
         deck = random.SystemRandom().sample(range(48), 8) * 2
@@ -152,6 +159,7 @@ def _finish_game(user,play_id,session_id,data):
     if play.game.game_code == 'term_match' and status != 'INTERRUPTED':
         play.evidence = {**play.evidence, 'picks': data['picks']}
     play.save(update_fields=["status", "duration_ms", "ended_at", "evidence"])
+    record_play_ended(play)
     newly_completed = []
     if play.status == GamePlay.Status.SUCCESS:
         event_id = {"timer": TIMER_ID, "typing": TYPING_ID, "term_match": MEMORY_ID}[play.game.game_code]

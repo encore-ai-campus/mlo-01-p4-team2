@@ -277,6 +277,13 @@ def _complete_session(user,session_id,platform_session_uuid):
         session.correct_count = stats['correct_count']
         session.completed_at = timezone.now()
         session.save(update_fields=['correct_count', 'completed_at'])
+        # The HTTP view always passes the middleware's platform session; a call without one records no event.
+        if platform_session_uuid is not None:
+            enqueue_event('learning_session_completed', user, platform_session_uuid, {
+                'learning_session_id': session.pk, 'subject': session.subject.upper(),
+                'question_type': session.question_type.upper(), 'difficulty': session.difficulty.upper(),
+                'total_questions': session.total_questions, 'correct_count': session.correct_count,
+            }, occurred_at=session.completed_at)
     session.achievement_update = record_learning_completion(user, session, platform_session_uuid)
     from event_story.services import learning_completed
     learning_completed(session)

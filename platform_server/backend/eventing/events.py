@@ -7,6 +7,7 @@ row to `eventing_eventoutbox`; PostgreSQL CDC reads those INSERTs. The row ident
 import json
 import logging
 import math
+import re
 import uuid
 from datetime import timedelta
 from datetime import timezone as datetime_timezone
@@ -37,6 +38,13 @@ TOPIC_BY_TYPE = {
     "point_granted": "raw.points",
     "movement_observed": "raw.movement",
     "floor_transferred": "raw.movement",
+    "event_progress_completed": "raw.event",
+    "game_play_started": "raw.event",
+    "game_play_ended": "raw.event",
+    "manager_greeted": "raw.event",
+    "manager_poked": "raw.event",
+    "story_action_recorded": "raw.event",
+    "learning_session_completed": "raw.event",
 }
 EXTRA_FIELDS = {
     "session_started": {"session_uuid"},
@@ -54,6 +62,16 @@ EXTRA_FIELDS = {
     "point_granted": {"ledger_uuid", "attempt_uuid", "delta", "balance_after"},
     "movement_observed": {"floor_uuid", "zone_uuid", "x", "y", "input_kind"},
     "floor_transferred": {"from_floor_uuid", "to_floor_uuid", "zone_uuid"},
+    # event_definition is referenced as event_definition_uuid: the app already uses event_uuid (its PK) and
+    # event_id (FKs, story records) — neither name appears in any event.
+    "event_progress_completed": {"progress_uuid", "event_definition_uuid", "event_kind", "completion_order"},
+    "game_play_started": {"play_uuid", "game_uuid", "event_definition_uuid"},
+    "game_play_ended": {"play_uuid", "game_uuid", "event_definition_uuid", "status", "duration_ms"},
+    "manager_greeted": {"interaction_uuid", "event_definition_uuid", "manager_code"},
+    "manager_poked": {"interaction_uuid", "event_definition_uuid", "manager_code", "poke_count"},
+    "story_action_recorded": {"story_record_uuid", "story_key", "action_key", "action_kind"},
+    "learning_session_completed": {"learning_session_id", "subject", "question_type", "difficulty",
+                                   "total_questions", "correct_count"},
 }
 _BASE_FIELDS = {"user_uuid", "session_uuid", "class_group_uuid"}
 SCHEMA_VERSION_BY_TYPE = {"quiz_answered": "1.1"}
@@ -61,6 +79,7 @@ SCHEMA_VERSION_BY_TYPE = {"quiz_answered": "1.1"}
 # identities minted per business row stay UUIDv4.
 CATALOG_UUID_FIELDS = frozenset({
     "content_uuid", "category_uuid", "zone_uuid", "floor_uuid", "from_floor_uuid", "to_floor_uuid", "class_group_uuid",
+    "event_definition_uuid", "game_uuid",
 })
 _CHOICES = {
     "end_reason": {"LOGOUT", "SESSION_EXPIRED"},
@@ -70,7 +89,26 @@ _CHOICES = {
     "action": {"OPEN_REQUESTED"},
     "input_kind": {"KEYBOARD"},
     "question_type": {"MULTIPLE_CHOICE", "FILL_BLANK"},
+    "event_kind": {"MAIN", "EASTER_EGG"},
+    "status": {"SUCCESS", "FAILED", "INTERRUPTED", "FINISHED"},
+    "subject": {"PYTHON", "SQL", "CS"},
+    "difficulty": {"BEGINNER", "INTERMEDIATE", "ADVANCED"},
 }
+# Counters: the smallest allowed value (all below 2**63).
+_COUNTS = {"completion_order": 1, "duration_ms": 0, "poke_count": 1, "learning_session_id": 1,
+           "total_questions": 1, "correct_count": 0}
+# App-defined codes, not free text: format and column length only, so new codes need no new schema version.
+_CODES = {
+    "manager_code": re.compile(r"manager-[a-z0-9_.:-]{1,56}"),
+    "story_key": re.compile(r"[a-z0-9_.:-]{1,40}"),
+    "action_key": re.compile(r"[a-z0-9_.:-]{1,100}"),
+    "action_kind": re.compile(r"[a-z0-9_.:-]{1,40}"),
+}
+# Story records the app reports: recipe steps and the mission-gating manager dialogue (not screen notices).
+STORY_ACTION_KINDS = frozenset({
+    "recipe_note_acquired", "recipe_recognize", "recipe_defer", "recipe_start", "recipe_topping", "recipe_finish",
+    "npc_dialogue",
+})
 
 
 def get_profile(user):
@@ -82,7 +120,7 @@ def raw_identity(user, session_uuid):
     profile = get_profile(user)
     return {
         "user_uuid": str(user.pk),
-        "session_uuid": str(session_uuid),
+        "session_uuid": str(session_uuid) if session_uuid is not None else None,
         "class_group_uuid": str(profile.cohort_id),
     }
 
@@ -111,16 +149,25 @@ def validate_raw_data(event_type, raw_data):
         nullable.add("floor_uuid")
     if event_type == "quiz_answered" and isinstance(raw_data, dict) and raw_data.get("question_type") == "FILL_BLANK":
         nullable.add("choice_uuid")
+    if event_type == "event_progress_completed":
+        # An asynchronous completion (an ad impression) has no known session.
+        nullable |= {"completion_order", "session_uuid"}
+    if event_type in {"game_play_started", "game_play_ended"}:
+        nullable |= {"event_definition_uuid", "duration_ms"}
     if valid:
         for key, value in raw_data.items():
+            if value is None and key in nullable:
+                continue
             if key.endswith("_uuid"):
-                if value is None and key in nullable:
-                    continue
                 valid = _uuid_ok(key, value)
             elif key == "revision":
                 valid = type(value) is int and value >= 1
             elif key in {"delta", "balance_after"}:
                 valid = type(value) is int and (0 < value < 2**63 if key == "delta" else 0 <= value < 2**63)
+            elif key in _COUNTS:
+                valid = type(value) is int and _COUNTS[key] <= value < 2**63
+            elif key in _CODES:
+                valid = isinstance(value, str) and _CODES[key].fullmatch(value) is not None
             elif key == "is_correct":
                 valid = type(value) is bool
             elif key in {"x", "y"}:
@@ -136,6 +183,8 @@ def validate_raw_data(event_type, raw_data):
                 break
     if valid and event_type == "quiz_answered" and raw_data["question_type"] == "FILL_BLANK":
         valid = raw_data["choice_uuid"] is None
+    if valid and event_type == "learning_session_completed":
+        valid = raw_data["correct_count"] <= raw_data["total_questions"]
     if not valid:
         logger.error("Raw event rejected: fields or value types do not match the allowed contract")
         raise ValueError("Raw event fields or value types do not match the allowed contract")
@@ -247,7 +296,11 @@ def end_platform_session(user, session_data, end_reason, *, now=None):
             occurred_at=now,
         )
         from event_story.models import GamePlay
-        GamePlay.objects.filter(session=record, status="RUNNING").update(status="INTERRUPTED", ended_at=now)
+        # Row by row (locked, still RUNNING after the wait) so each interrupted play gets its own end event.
+        for play in GamePlay.objects.select_for_update().filter(session=record, status="RUNNING"):
+            play.status, play.ended_at = "INTERRUPTED", now
+            play.save(update_fields=["status", "ended_at"])
+            record_play_ended(play)
     return True
 
 
@@ -325,6 +378,48 @@ def record_comment_event(event_type, user, session_uuid, comment):
          "parent_comment_uuid": str(comment.parent_id) if comment.parent_id else None,
          "revision": comment.revision},
     )
+
+
+def record_progress_completed(progress):
+    """One event when a progress row becomes COMPLETED, written after its final values are saved."""
+    enqueue_event(
+        "event_progress_completed", progress.user, progress.session_id,
+        {"progress_uuid": str(progress.pk), "event_definition_uuid": str(progress.event_id),
+         "event_kind": progress.event.event_type, "completion_order": progress.completion_order},
+        occurred_at=progress.completed_at,
+    )
+
+
+def _play_fields(play):
+    return {"play_uuid": str(play.pk), "game_uuid": str(play.game_id),
+            "event_definition_uuid": str(play.event_id) if play.event_id else None}
+
+
+def record_play_started(play):
+    # The play owner, not the requester, is the event's user (an operator stop ends other users' plays).
+    enqueue_event("game_play_started", play.user, play.session_id, _play_fields(play), occurred_at=play.started_at)
+
+
+def record_play_ended(play):
+    enqueue_event(
+        "game_play_ended", play.user, play.session_id,
+        {**_play_fields(play), "status": play.status, "duration_ms": play.duration_ms},
+        occurred_at=play.ended_at,
+    )
+
+
+def record_story_action(record, session_uuid):
+    """A newly created story record of a reported kind; callers pass only rows they just created.
+
+    The story record keeps its session as free text, so only a well-formed platform session UUID is reported.
+    """
+    if record.kind in STORY_ACTION_KINDS and _uuid_ok("session_uuid", str(session_uuid)):
+        enqueue_event(
+            "story_action_recorded", record.progress.user, session_uuid,
+            {"story_record_uuid": str(record.event_id), "story_key": record.progress.event_key,
+             "action_key": record.key, "action_kind": record.kind},
+            occurred_at=record.created_at,
+        )
 
 
 def record_content_open(user, session_uuid, content):

@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.utils import timezone
 from learning import services as learning
 
@@ -38,8 +39,14 @@ def locked_progress(user):
 
 
 def log(progress, record_key, kind, payload=None, session_uuid=None):
-    return StoryRecord.objects.get_or_create(progress=progress, key=record_key, defaults={
-        'kind': kind, 'payload': payload or {}, 'session_uuid': str(session_uuid or '')})[0]
+    """Returns (record, created); only a new record of a reported kind becomes an event."""
+    from eventing.events import record_story_action
+    with transaction.atomic():
+        record, created = StoryRecord.objects.get_or_create(progress=progress, key=record_key, defaults={
+            'kind': kind, 'payload': payload or {}, 'session_uuid': str(session_uuid or '')})
+        if created:
+            record_story_action(record, session_uuid)
+    return record, created
 
 
 def require(progress, *flags):

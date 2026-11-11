@@ -74,7 +74,7 @@ class ContractTests(TestCase):
             with self.subTest(event_type=event_type):
                 self.assertFalse({"event_uuid", "event_id", "outbox_uuid"} & fields)
         self.assertEqual(set(events.TOPIC_BY_TYPE), set(events.EXTRA_FIELDS))
-        self.assertEqual(len(events.EXTRA_FIELDS), 15)
+        self.assertEqual(len(events.EXTRA_FIELDS), 22)  # 23 contract lines: quiz_answered has 1.0 and 1.1
 
     def test_identity_uses_the_profile_class_group_itself(self):
         user = make_user("aio-user", "aio-4")

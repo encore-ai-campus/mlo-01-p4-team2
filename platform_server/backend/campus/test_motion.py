@@ -110,15 +110,21 @@ class ServerMotionTests(SimpleTestCase):
         self.assertIsNone(controller.interior)
         self.assertLess(controller.pose['y'], gate['y'])
 
-    def test_booth_open_requires_its_central_interaction_point(self):
+    def test_booth_open_requires_its_interaction_area(self):
         controller = self.controller('rooftop')
-        for obj in controller.world.data['objects']:
-            if obj.get('action') != 'booth':
-                continue
-            with self.assertRaises(ControlError):
-                controller.command('open_booth', {'objectId': obj['id']})
-            controller.pose.update(zip(('x', 'y'), obj['interactionPoint']))
-            self.assertEqual(controller.command('open_booth', {'objectId': obj['id']})['objectId'], obj['id'])
+        booths = [obj for obj in controller.world.data['objects'] if obj.get('action') == 'booth']
+        self.assertTrue(booths)
+        for obj in booths:
+            with self.subTest(booth=obj['id']):
+                area = obj['footprint']
+                right = area['x'] + area['w']
+                controller.pose.update(x=right + 1, y=area['y'] + area['h']/2)
+                with self.assertRaises(ControlError):
+                    controller.command('open_booth', {'objectId': obj['id']})
+                for x in (area['x'] + area['w']/2, right - 1):
+                    controller.pose['x'] = x
+                    self.assertEqual(controller.command('open_booth', {'objectId': obj['id']}),
+                                     {'type': 'booth_open', 'objectId': obj['id']})
 
     def test_floor_transfer_must_be_offered_near_a_portal_before_commit(self):
         controller = self.controller()
@@ -126,7 +132,7 @@ class ServerMotionTests(SimpleTestCase):
             controller.command('transfer', {'floor': 'rooftop'})
         with self.assertRaises(ControlError):
             controller.command('prepare_transfer', {'objectId': 'campus-roof-stairs'})
-        controller.pose.update(x=2280, y=912)
+        controller.pose.update(zip(('x', 'y'), controller.world.objects['campus-roof-stairs']['interactionPoint']))
         offer = controller.command('prepare_transfer', {'objectId': 'campus-roof-stairs'})
         self.assertEqual(offer['floor'], 'rooftop')
         before = controller.pose.copy()
@@ -141,7 +147,7 @@ class ServerMotionTests(SimpleTestCase):
         controller = self.controller()
         with self.assertRaises(ControlError):
             controller.command('begin_transfer', {'floor': 'rooftop'})
-        controller.pose.update(x=2280, y=912)
+        controller.pose.update(zip(('x', 'y'), controller.world.objects['campus-roof-stairs']['interactionPoint']))
         controller.command('prepare_transfer', {'objectId': 'campus-roof-stairs'})
         first = controller.command('begin_transfer', {'floor': 'rooftop'})
         self.assertEqual(first, controller.command('begin_transfer', {'floor': 'rooftop'}))

@@ -188,19 +188,28 @@ class AuthoritativeSocketTests(TransactionTestCase):
 
     async def test_transfer_approval_returns_a_user_bound_ad_token_before_moving(self):
         from ad_bridge.placements import transfer_identity
+        from .motion import world
 
+        x, y = world('campus').objects['campus-roof-stairs']['interactionPoint']
         await database_sync_to_async(Profile.objects.filter(user_id=self.user.pk).update)(
-            last_position={"floor": "campus", "x": 2280, "y": 912, "dir": "down"})
+            last_position={"floor": "campus", "x": x, "y": y, "dir": "down"})
         socket = self.socket()
         try:
             self.assertTrue((await socket.connect(timeout=5))[0])
             await self.packet(socket, "welcome")
             await socket.send_json_to({"type": "control", "requestId": "offer", "action": "prepare_transfer",
                                        "data": {"objectId": "campus-roof-stairs"}})
-            await self.packet(socket, "control_result")
+            offer = await self.packet(socket, "control_result")
+            self.assertEqual(offer['requestId'], 'offer')
+            self.assertNotIn('error', offer)
+            self.assertEqual(offer['result']['type'], 'transfer_offer')
             await socket.send_json_to({"type": "control", "requestId": "approve", "action": "begin_transfer",
                                        "data": {"floor": "rooftop"}})
-            result = (await self.packet(socket, "control_result"))["result"]
+            approval = await self.packet(socket, "control_result")
+            self.assertEqual(approval['requestId'], 'approve')
+            self.assertNotIn('error', approval)
+            result = approval['result']
+            self.assertEqual(result['type'], 'transfer_ready')
             self.assertEqual(transfer_identity(result["ads_token"], self.user.pk), result["transfer_id"])
             self.assertEqual(next(iter(self.room.players.values()))["floor"], "campus")
         finally:

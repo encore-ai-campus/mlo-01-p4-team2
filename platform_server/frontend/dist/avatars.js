@@ -36,11 +36,12 @@
     ctx.restore();
     return true;
   }
+  const load=(im,url)=>window.CampusEntry?window.CampusEntry.image(im,url):(im.src=url);
   for (const id of Object.keys(definitions)) {
     const image = new Image(); images.set(id, image);
-    image.src = `assets/characters/${id}-walk-v5.png`;
-    const idle=new Image();idleImages.set(id,idle);idle.src=`assets/characters/${id}-idle-v1.png`;
-    const guard=new Image();guardImages.set(id,guard);guard.src=`assets/characters/${id}-guard-v1.webp`;
+    load(image,`assets/characters/${id}-walk-v5.png`);
+    const idle=new Image();idleImages.set(id,idle);load(idle,`assets/characters/${id}-idle-v1.png`);
+    const guard=new Image();guardImages.set(id,guard);load(guard,`assets/characters/${id}-guard-v1.webp`);
   }
   window.CampusAvatars = {definitions, ids: Object.keys(definitions), size, resolve, frameFor, draw, images, guardImages, idleImages};
 })();

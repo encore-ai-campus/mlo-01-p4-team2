@@ -1160,13 +1160,17 @@
     const scene=makeCanvas(P.width*resolution,P.height*resolution),sg=scene.getContext('2d');
     function repaintScene(){sg.setTransform(1,0,0,1,0,0);sg.clearRect(0,0,scene.width,scene.height);sg.setTransform(resolution,0,0,resolution,0,0);city?.draw(sg);sg.drawImage(floorCanvas,0,0,P.width,P.height);for(const s of sprites){drawSprite(sg,s);if(s.o.type==='fountain'){g=sg;fountainWater(s.o,0);}if(s.o.type==='floor-portal'){g=sg;if(s.o.portalStyle==='compact')compactPortalEnergy(s.o);else portalEnergy(s.o,groundHeight(s.o.x+s.o.w/2,s.o.y+s.o.h/2));}else if(s.o.type==='stair-portal'||(s.o.type==='fire-extinguisher'&&s.o.portalGlow)){g=sg;compactPortalEnergy(s.o);}}for(const sprite of sprites.filter(sprite=>sprite.o.type==='wall-sign'||(sprite.o.type==='wall-poster'&&sprite.o.inFrontOfWalls)))drawSprite(sg,sprite);drawLabels(sg);}
     window.addEventListener('campus-mission-assets-ready',()=>{
-      for(const sprite of sprites.filter(s=>s.o.type?.startsWith('mission-'))){const depth=sprite.depth;Object.assign(sprite,cacheSprite(sprite.o,()=>furniture(sprite.o,groundHeight(sprite.o.x+sprite.o.w/2,sprite.o.y+sprite.o.h/2))));sprite.depth=depth;}
+      const missionSprites=sprites.filter(s=>s.o.type?.startsWith('mission-'));
+      if(!missionSprites.length)return;
+      for(const sprite of missionSprites){const depth=sprite.depth;Object.assign(sprite,cacheSprite(sprite.o,()=>furniture(sprite.o,groundHeight(sprite.o.x+sprite.o.w/2,sprite.o.y+sprite.o.h/2))));sprite.depth=depth;}
       repaintScene();
     });
     let seasonRepaintPending=false;
     window.addEventListener?.('campus-seasonal-assets-ready',event=>{
       if(!peperoSeason)return;
-      for(const sprite of sprites.filter(s=>(s.o.seasonalArt||s.o.type==='pepero-monument'||s.o.type==='pepero-cart'||s.o.type==='pepero-gift-art')&&(!event.detail?.key||s.o.seasonalArt===event.detail.key||!s.o.seasonalArt))){
+      const affected=sprites.filter(s=>(s.o.seasonalArt||s.o.type==='pepero-monument'||s.o.type==='pepero-cart'||s.o.type==='pepero-gift-art')&&(!event.detail?.key||s.o.seasonalArt===event.detail.key||!s.o.seasonalArt));
+      if(!affected.length)return;
+      for(const sprite of affected){
         const depth=sprite.depth;Object.assign(sprite,cacheSprite(sprite.o,()=>furniture(sprite.o,groundHeight(sprite.o.x+sprite.o.w/2,sprite.o.y+sprite.o.h/2))));sprite.depth=depth;
       }
       repaintScene();

@@ -1,5 +1,6 @@
-(() => {
+(async () => {
   'use strict';
+  try{await window.CampusEntry?.prepare();}catch{return;}
   const worlds=window.CampusWorlds, $=id=>document.getElementById(id);
   const DEFAULT_ZOOM=1.5;
   const accountConfig=JSON.parse($('campusPresenceConfig')?.textContent||'{}');
@@ -24,7 +25,7 @@
   let menuRequest=null,menuVersion=0;
   let directMessages=null;
   let achievements=null,minigames=null,managerGreetingPending=false;
-  const isDialogOpen=(includeClassroom=true,includeTyping=true)=>window.CampusFreeze?.blocking||window.CampusNotices?.blocking||window.CampusStory?.blocking||window.CampusRecipeDiscovery?.blocking||logoutPending||managerGreetingPending||minigames?.blocking||achievements?.blocking||directMessages?.blocking||(includeClassroom&&classroom.blocking)||window.CampusLearning?.blocking||window.CampusGuide?.blocking||window.CampusSession?.ending||floorTransition.blocking||$('lunchDialog').open||dialog.open||boardDialog.open||exitDialog.open||transferDialog.open||$('settingsDialog').open||(includeTyping&&social.isTyping)||boothUI.blocking;
+  const isDialogOpen=(includeClassroom=true,includeTyping=true)=>window.CampusEntry?.blocking||window.CampusFreeze?.blocking||window.CampusNotices?.blocking||window.CampusStory?.blocking||window.CampusRecipeDiscovery?.blocking||logoutPending||managerGreetingPending||minigames?.blocking||achievements?.blocking||directMessages?.blocking||(includeClassroom&&classroom.blocking)||window.CampusLearning?.blocking||window.CampusGuide?.blocking||window.CampusSession?.ending||floorTransition.blocking||$('lunchDialog').open||dialog.open||boardDialog.open||exitDialog.open||transferDialog.open||$('settingsDialog').open||(includeTyping&&social.isTyping)||boothUI.blocking;
   const renderers=new Map();
   const displayRefresh=new Map();
   let renderer=window.CampusIsometric.create({data:D}), P=renderer.projection, scene=renderer.scene;
@@ -174,6 +175,7 @@
     try{
       const approval=await presence.command('begin_transfer',{floor:id});
       const transition=floorTransition.run(async()=>{
+        await window.CampusEntry?.ensureFloor(id);
         await presence.command('transfer',{floor:id});
         render(performance.now());toast(id==='rooftop'?'옥상 광장에 도착했어요.':'18층 캠퍼스로 내려왔어요.');return true;
       },{from:D.id,to:id,avatar:player.avatar,kind:window.CampusFloorTransition.kindFor(objectId)});
@@ -193,6 +195,7 @@
         return;
       }
       const transition=floorTransition.run(async()=>{
+        await window.CampusEntry?.ensureFloor(destination.floor);
         await presence.command('quick_travel',{destination:destination.id});
         render(performance.now());toast(destination.label+'에 도착했어요.');return true;
       },{from:D.id,to:destination.floor,avatar:player.avatar,kind:'portal'});
@@ -416,6 +419,7 @@
   window.CampusApp={showDetail,greetManager,openRegularBoard(){showBoard();communityUI.open();},get scene(){return scene;},player,camera,screenToWorld,worldToScreen,canZoom:isAdmin,canFreeCamera:isAdmin,boothUI,floorTransition,social,presence,classroom,poke,get nearby(){return nearby;},get renderer(){return renderer;},get floor(){return D.id;},get data(){return D;},visibleActors,switchFloor,quickTravelMenu:spaceGuide,render,toast,zoomBy};
   window.addEventListener('campus:guide-open',()=>{social.leaveEditor({focusMap:false});keys.clear();suppressedKeys.clear();player.moving=false;presence.setInput([]);poke.setHeld(false);});
   requestAnimationFrame(update);
+  if(window.CampusEntry){try{await window.CampusEntry.completeWhenConnected();}catch{return;}}
   window.dispatchEvent(new Event('campus:ready'));
   setInterval(()=>{if(D.id==='rooftop'&&!document.hidden)loadPlazaDisplays(D,renderer);},60000);
 })();

@@ -799,7 +799,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
 
     def manager_action_now(self, manager_id, action):
         user = self.session_user()
-        return record_manager_action(user, manager_id, action) if user is not None else None
+        return record_manager_action(user, manager_id, action, self.platform_session_uuid) if user is not None else None
 
     async def record_manager_poke(self, manager_id):
         if manager_id is None:

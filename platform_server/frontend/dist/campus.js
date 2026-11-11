@@ -287,7 +287,10 @@
       if(Array.isArray(result.achievements))window.dispatchEvent(new CustomEvent('campus:achievements',{detail:result.achievements}));
       if(Array.isArray(result.newly_completed)&&result.newly_completed.length)window.dispatchEvent(new CustomEvent('campus:achievement-earned',{detail:result}));
       if(silent)return result;
-      if(item.type==='mission-manager'){window.CampusStory.open({...item,action:'mission-manager',copy:result.dialogue+'\n\n'+(item.copy||'')});}
+      if(item.type==='mission-manager'){
+        const copy=item.copy||'';
+        window.CampusStory.open({...item,action:'mission-manager',copy:['manager-yebin','manager-suhyeon'].includes(item.id)||copy.includes(result.dialogue)?copy:[result.dialogue,copy].filter(Boolean).join('\n\n')});
+      }
       else showDetail({...item,action:undefined,name:result.managerName,description:result.dialogue});
     }catch(error){if(silent)throw error;toast(error.message);}finally{managerGreetingPending=false;}
   }

@@ -9,6 +9,7 @@ from django.db.models import Max
 from django.utils import timezone
 
 from campus.motion import geometry, mission_geometry
+from learning.services import active_platform_session
 from .models import EventDefinition, EventProgress, ManagerInteraction
 
 
@@ -68,7 +69,7 @@ def achievement_snapshot(user):
 
 
 @transaction.atomic
-def complete_achievement(user, event_id, completed_at, *, started_at=None):
+def complete_achievement(user, event_id, completed_at, *, started_at=None, session_uuid=None):
     # Lock the shared definition before INSERT takes a foreign-key lock on it.
     EventDefinition.objects.select_for_update().get(pk=event_id)
     progress, _ = EventProgress.objects.get_or_create(
@@ -80,7 +81,8 @@ def complete_achievement(user, event_id, completed_at, *, started_at=None):
     progress.completion_order = (EventProgress.objects.filter(event_id=event_id).aggregate(
         last=Max("completion_order"))["last"] or 0) + 1
     progress.status, progress.completed_at = EventProgress.Status.COMPLETED, completed_at
-    progress.save(update_fields=["status", "completed_at", "completion_order"])
+    progress.session = active_platform_session(user, session_uuid) if session_uuid is not None else None
+    progress.save(update_fields=["status", "completed_at", "completion_order", "session"])
     return True
 
 
@@ -112,7 +114,7 @@ def record_ad_impression(impression):
         return result
 
 
-def record_manager_action(user, manager_id, action):
+def record_manager_action(user, manager_id, action, session_uuid=None):
     required = manager_ids()
     if not isinstance(manager_id, str) or manager_id not in required:
         raise ValueError("매니저 NPC를 확인해 주세요.")
@@ -141,14 +143,14 @@ def record_manager_action(user, manager_id, action):
                  else interactions.filter(poke_count__gte=11).count() == len(required))
         newly_completed = []
         if ready:
-            if complete_achievement(user, event_id, now, started_at=now):
+            if complete_achievement(user, event_id, now, started_at=now, session_uuid=session_uuid):
                 newly_completed.append(str(event_id))
         else:
             EventProgress.objects.get_or_create(user=user, event_id=event_id, defaults={"started_at": now})
         return {"achievements": achievement_snapshot(user), "newly_completed": newly_completed}
 
 
-def record_learning_completion(user, lesson):
+def record_learning_completion(user, lesson, session_uuid=None):
     if (lesson.user_id != user.pk or lesson.completed_at is None or lesson.total_questions != 10
             or lesson.correct_count < 7 or lesson.subject not in ("python", "sql", "cs")):
         return None
@@ -166,6 +168,6 @@ def record_learning_completion(user, lesson):
             event_ids.append(ALL_SUBJECTS_ID)
         newly_completed = []
         for event_id in event_ids:
-            if complete_achievement(user, event_id, timezone.now(), started_at=lesson.started_at):
+            if complete_achievement(user, event_id, timezone.now(), started_at=lesson.started_at, session_uuid=session_uuid):
                 newly_completed.append(str(event_id))
         return {"achievements": achievement_snapshot(user), "newly_completed": newly_completed}

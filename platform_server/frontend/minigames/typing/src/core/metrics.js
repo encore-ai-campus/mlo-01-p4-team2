@@ -19,7 +19,7 @@ export function calculateMetrics(state, targetChars, elapsedMs) {
     };
 }
 export function formatDuration(ms) {
-    const centiseconds = Math.round(Math.max(0, Number.isFinite(ms) ? ms : 0) / 10);
+    const centiseconds = Math.ceil(Math.max(0, Number.isFinite(ms) ? ms : 0) / 10);
     const minutes = Math.floor(centiseconds / 6000);
     const seconds = (centiseconds % 6000) / 100;
     return `${String(minutes).padStart(2, '0')}:${seconds.toFixed(2).padStart(5, '0')}`;

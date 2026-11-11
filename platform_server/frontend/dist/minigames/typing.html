@@ -22,7 +22,7 @@
 })();
 </script></head>
 <body><main class="practice">
-<header class="intro"><div><div class="eyebrow">● YOUR DAILY CODE PRACTICE</div><h1>코드를 손에 익히는 시간<span>.</span></h1><p>입문 Python 문제를 무작위로 제공해요. 한 글자씩, 내 속도로 입력해 보세요.</p></div><span class="tag">⌘ &nbsp; 작은 연습, 단단한 기본기</span></header>
+<header class="intro"><div><div class="eyebrow">● YOUR DAILY CODE PRACTICE</div><h1>코드를 손에 익히는 시간<span>.</span></h1><p>입문 Python 문제를 무작위로 제공해요. 첫 글자 입력부터 11.11초 안에 완성해 보세요.</p></div><span class="tag">⌘ &nbsp; 작은 연습, 단단한 기본기</span></header>
 <section class="selectors" aria-label="연습 설정"><label>교정 방식<select id="mode"><option value="natural">Natural · 자유 교정</option><option value="forced">Forced Correction · 필수 교정</option></select></label><label>목표 정확도 (%)<input id="minimum-accuracy" type="number" min="0" max="100" step="0.1" value="95" required></label></section>
 <div class="lesson"><span id="lesson-number">01</span><div><h2 id="problem-title"></h2><p id="problem-description"></p></div><small id="lesson-position"></small></div>
 <div class="metrics" aria-label="실시간 기록"><div>진행 시간<strong id="metric-time">00:00.00</strong></div><div>WPM<strong id="metric-wpm">0</strong></div><div>정확도<strong id="metric-accuracy">—</strong></div><div>진행률<strong id="metric-progress">0%</strong></div></div>
@@ -31,8 +31,8 @@
 <div class="toolbar"><p id="feedback" role="status">첫 글자를 입력하면 시작해요.</p><div><button id="restart">↻ 다시 시작</button><button id="exit">나가기 ↗</button></div></div>
 <section id="result" class="result" aria-label="연습 결과" hidden><div class="eyebrow">PRACTICE COMPLETE</div><h2 id="result-title"></h2><p id="result-description"></p><p id="result-errors"></p><div id="repeat-actions"><button id="repeat">다시 연습 ↻</button><button id="next">다음 문제 →</button></div></section>
 <section class="guide" aria-label="키보드와 손가락 가이드"><header><div><div class="eyebrow">FIND YOUR FINGER</div><h3 id="guide-title">키보드 & 손가락 가이드</h3></div><button id="toggle-guide" aria-expanded="true">가이드 숨기기 −</button></header><div id="guide-body"><p class="instruction"><kbd id="expected"></kbd><span id="finger-description"></span></p><div id="keyboard" class="keyboard" aria-label="QWERTY 키보드"></div><div id="hands"></div><p class="caption"><i></i> 입력할 키와 손가락 <i class="shift-dot"></i> 함께 누를 Shift</p><p id="mistake-rank" hidden></p></div></section>
-<aside id="typing-help"><strong id="mode-help"></strong><p><kbd>Tab</kbd> 공백 4칸 &nbsp; <kbd>Enter</kbd> 줄바꿈 &nbsp; <kbd>Backspace</kbd> 수정 &nbsp; <kbd>Esc</kbd> / <kbd>Shift Tab</kbd> 입력 영역 나가기</p><small id="pass-rule">정확도 95% 이상으로 끝까지 입력하면 성공해요. 코드는 실행하지 않습니다.</small></aside>
-<footer class="page-footer">● 내 브라우저에서, 나만의 속도로 <span>게임 종료 시 플레이 시간과 성공 여부를 플랫폼에 저장합니다.</span></footer>
+<aside id="typing-help"><strong id="mode-help"></strong><p><kbd>Tab</kbd> 공백 4칸 &nbsp; <kbd>Enter</kbd> 줄바꿈 &nbsp; <kbd>Backspace</kbd> 수정 &nbsp; <kbd>Esc</kbd> / <kbd>Shift Tab</kbd> 입력 영역 나가기</p><small id="pass-rule">첫 글자를 입력한 뒤 11.11초 안에 정확도 95% 이상으로 끝까지 입력하면 성공해요.</small></aside>
+<footer class="page-footer">● 제한 시간 11.11초 · 정확도 95% 이상 <span>게임 종료 시 플레이 시간과 성공 여부를 플랫폼에 저장합니다.</span></footer>
 </main><script>(()=>{
 const problems = [
   {"id":"py-beginner-01","version":1,"language":"python","difficulty":"beginner","title":"Hello, Python","description":"변수를 만들고, 첫 인사를 출력해 보세요.","code":"name = \"Ada\"\nprint(f\"Hello, {name}!\")"},
@@ -160,7 +160,7 @@ function calculateMetrics(state, targetChars, elapsedMs) {
     };
 }
 function formatDuration(ms) {
-    const centiseconds = Math.round(Math.max(0, Number.isFinite(ms) ? ms : 0) / 10);
+    const centiseconds = Math.ceil(Math.max(0, Number.isFinite(ms) ? ms : 0) / 10);
     const minutes = Math.floor(centiseconds / 6000);
     const seconds = (centiseconds % 6000) / 100;
     return `${String(minutes).padStart(2, '0')}:${seconds.toFixed(2).padStart(5, '0')}`;
@@ -186,6 +186,8 @@ class AttemptController {
     endedAt = null;
     terminalSent = false;
     startedSent = false;
+    expired = false;
+    timeLimitMs;
     sink;
     context;
     sessionId;
@@ -195,6 +197,7 @@ class AttemptController {
         this.state = createTypingState(mode);
         this.sink = sink;
         this.context = { ...context };
+        this.timeLimitMs = context.timeLimitMs ?? Infinity;
         this.sessionId = context.sessionId ?? sessionId;
         this.clock = clock;
     }
@@ -206,8 +209,15 @@ class AttemptController {
     notify() { for (const listener of this.listeners)
         listener(); }
     metrics = () => calculateMetrics(this.state, this.problem.code.length, this.startedAt === null ? 0 : (this.endedAt ?? this.clock.monotonic()) - this.startedAt);
+    expire = () => {
+        if (this.state.status === 'running' && this.metrics().elapsed_ms > this.timeLimitMs) {
+            this.expired = true;
+            this.abandon('timeout');
+        }
+        return this.expired;
+    };
     input = (action) => {
-        if (this.state.status === 'completed' || this.state.status === 'abandoned')
+        if (this.state.status === 'completed' || this.state.status === 'abandoned' || this.expire())
             return;
         if (action.type === 'append' && action.text && !this.startedSent) {
             this.startedAt = this.clock.monotonic();
@@ -470,7 +480,7 @@ function attachTypingInput(element, input, readValue, escape) {
 const $=id=>document.getElementById(id);
 const all=validateProblems(problems);
 const channel=window.minigameChannel;
-let controller, detach, clock, whitespace=false, minimumAccuracy=95, sessionId=newId(), locked=false;
+let controller, detach, clock, whitespace=false, minimumAccuracy=95, timeLimitMs=11110, sessionId=newId(), locked=false;
 let spans=[], keys=new Map(), fingers=new Map(), previousCursor=-1;
 const visible=c=>c==='\n'?'Enter ↵':c===' '?'Space ␣':c;
 function createKeyboard() {
@@ -539,8 +549,8 @@ function paint() {
   $('position').textContent=`Ln ${line}, Col ${column}`;
   $('feedback').textContent=state.activeErrorIndex!==null?'Backspace로 오류 위치까지 돌아가 주세요.':state.status==='idle'?'첫 글자를 입력하면 시작해요.':`다음 문자 ${visible(controller.problem.code[state.cursor]??'')} · 실수 ${state.mistakeCount}회`;
   metrics();updateGuide(state);
-  if(state.status==='running'&&!clock) clock=setInterval(metrics,100);
-  if(state.status==='completed') {clearInterval(clock);clock=null;showResult(state);}
+  if(state.status==='running'&&!clock) clock=setInterval(()=>{controller.expire();metrics();},100);
+  if(state.status==='completed'||controller.expired) {clearInterval(clock);clock=null;showResult(state);}
   if(previousCursor!==state.cursor) {
     previousCursor=state.cursor;
     const caret=spans[state.cursor],box=$('reference-code');
@@ -554,9 +564,9 @@ function paint() {
   }
 }
 function showResult(state) {
-  const m=controller.metrics(),success=m.accuracy_pct!==null&&m.accuracy_pct>=minimumAccuracy;
-  $('editor-panel').hidden=true;$('result').hidden=false;
-  $('result-title').textContent=success?'멋진 연습이었어요!':'한 번 더, 더 정확하게.';
+  const m=controller.metrics(),timedOut=m.elapsed_ms>timeLimitMs,success=state.status==='completed'&&!timedOut&&m.accuracy_pct!==null&&m.accuracy_pct>=minimumAccuracy;
+  $('input').disabled=true;$('editor-panel').hidden=true;$('result').hidden=false;
+  $('result-title').textContent=timedOut?'11.11초가 지났어요. 다시 도전해 보세요.':success?'11.11초 안에 완료했어요!':'한 번 더, 더 정확하게.';
   $('result-description').textContent=`${formatDuration(m.elapsed_ms)} · ${m.wpm} WPM · 정확도 ${m.accuracy_pct?.toFixed(1)}% · ${success?'성공':'실패'}`;
   $('result-errors').textContent=`미수정 오류 ${remainingErrors(state)}개 · 총 실수 ${state.mistakeCount}회`;
   $('feedback').textContent=channel?'최종 결과를 캠퍼스에 전달했어요.':'완료했어요. 다른 문제도 연습해 보세요.';
@@ -570,13 +580,13 @@ function showResult(state) {
   }
   $('mistake-rank').hidden=false;
   $('mistake-rank').textContent=[...mistakes.values()].sort((a,b)=>b.count-a.count).slice(0,5).map(e=>`${e.key.label} ${e.count}회`).join(' · ')||'모든 키를 정확하게 입력했어요!';
-  if(channel){locked=true;channel.complete({duration_ms:Math.round(m.elapsed_ms),status:success?'SUCCESS':'FAILED'});for(const id of ['mode','minimum-accuracy','restart'])$(id).disabled=true;}
+  if(channel){locked=true;channel.complete({duration_ms:Math.ceil(m.elapsed_ms),status:success?'SUCCESS':'FAILED'});for(const id of ['mode','minimum-accuracy','restart'])$(id).disabled=true;}
 }
 function start(problem) {
   if(locked)return;
   controller?.abandon('restart');detach?.();clearInterval(clock);clock=null;
-  controller=new AttemptController(problem,$('mode').value,{emit(){}},{},sessionId);
-  $('input').value='';$('editor-panel').hidden=false;$('result').hidden=true;
+  controller=new AttemptController(problem,$('mode').value,{emit(){}},{timeLimitMs},sessionId);
+  $('input').disabled=false;$('input').value='';$('editor-panel').hidden=false;$('result').hidden=true;
   $('guide-title').textContent='키보드 & 손가락 가이드';$('hands').hidden=false;$('guide-body').querySelector('.instruction').hidden=false;$('mistake-rank').hidden=true;
   for(const el of keys.values()){delete el.dataset.heat;el.querySelector('b')?.remove();el.removeAttribute('tabindex');}
   $('problem-title').textContent=problem.title;$('problem-description').textContent=problem.description;
@@ -595,7 +605,7 @@ $('mode').addEventListener('change',()=>start(controller.problem));
 $('minimum-accuracy').addEventListener('change',()=>{
   if(!$('minimum-accuracy').checkValidity()){$('minimum-accuracy').value=minimumAccuracy;return;}
   minimumAccuracy=Number($('minimum-accuracy').value);
-  $('pass-rule').textContent=`정확도 ${minimumAccuracy}% 이상으로 끝까지 입력하면 성공해요. 코드는 실행하지 않습니다.`;
+  $('pass-rule').textContent=`첫 글자를 입력한 뒤 ${(timeLimitMs/1000).toFixed(2)}초 안에 정확도 ${minimumAccuracy}% 이상으로 끝까지 입력하면 성공해요.`;
   start(controller.problem);
 });
 for(const id of ['restart','repeat'])$(id).addEventListener('click',()=>{start(controller.problem);$('input').focus();});
@@ -609,8 +619,9 @@ if(channel){
   $('input').disabled=true;$('repeat-actions').hidden=true;
   channel.start((config,id)=>{
     if(!Number.isFinite(config.minimumAccuracy)||config.minimumAccuracy<0||config.minimumAccuracy>100)throw new Error('정확도 설정 오류');
-    minimumAccuracy=config.minimumAccuracy;$('minimum-accuracy').value=minimumAccuracy;sessionId=id;
-    $('pass-rule').textContent=`정확도 ${minimumAccuracy}% 이상으로 끝까지 입력하면 성공해요. 코드는 실행하지 않습니다.`;
+    if(!Number.isSafeInteger(config.timeLimitMs)||config.timeLimitMs<=0)throw new Error('제한 시간 설정 오류');
+    timeLimitMs=config.timeLimitMs;minimumAccuracy=config.minimumAccuracy;$('minimum-accuracy').value=minimumAccuracy;sessionId=id;
+    $('pass-rule').textContent=`첫 글자를 입력한 뒤 ${(timeLimitMs/1000).toFixed(2)}초 안에 정확도 ${minimumAccuracy}% 이상으로 끝까지 입력하면 성공해요.`;
     $('input').disabled=false;start(pickBeginnerProblem(all));
   });
 }else start(pickBeginnerProblem(all));

@@ -9,7 +9,7 @@ import { attachTypingInput } from './adapters/nativeTypingInput.js';
 const $=id=>document.getElementById(id);
 const all=validateProblems(problems);
 const channel=window.minigameChannel;
-let controller, detach, clock, whitespace=false, minimumAccuracy=95, sessionId=newId(), locked=false;
+let controller, detach, clock, whitespace=false, minimumAccuracy=95, timeLimitMs=11110, sessionId=newId(), locked=false;
 let spans=[], keys=new Map(), fingers=new Map(), previousCursor=-1;
 const visible=c=>c==='\n'?'Enter ↵':c===' '?'Space ␣':c;
 function createKeyboard() {
@@ -78,8 +78,8 @@ function paint() {
   $('position').textContent=`Ln ${line}, Col ${column}`;
   $('feedback').textContent=state.activeErrorIndex!==null?'Backspace로 오류 위치까지 돌아가 주세요.':state.status==='idle'?'첫 글자를 입력하면 시작해요.':`다음 문자 ${visible(controller.problem.code[state.cursor]??'')} · 실수 ${state.mistakeCount}회`;
   metrics();updateGuide(state);
-  if(state.status==='running'&&!clock) clock=setInterval(metrics,100);
-  if(state.status==='completed') {clearInterval(clock);clock=null;showResult(state);}
+  if(state.status==='running'&&!clock) clock=setInterval(()=>{controller.expire();metrics();},100);
+  if(state.status==='completed'||controller.expired) {clearInterval(clock);clock=null;showResult(state);}
   if(previousCursor!==state.cursor) {
     previousCursor=state.cursor;
     const caret=spans[state.cursor],box=$('reference-code');
@@ -93,9 +93,9 @@ function paint() {
   }
 }
 function showResult(state) {
-  const m=controller.metrics(),success=m.accuracy_pct!==null&&m.accuracy_pct>=minimumAccuracy;
-  $('editor-panel').hidden=true;$('result').hidden=false;
-  $('result-title').textContent=success?'멋진 연습이었어요!':'한 번 더, 더 정확하게.';
+  const m=controller.metrics(),timedOut=m.elapsed_ms>timeLimitMs,success=state.status==='completed'&&!timedOut&&m.accuracy_pct!==null&&m.accuracy_pct>=minimumAccuracy;
+  $('input').disabled=true;$('editor-panel').hidden=true;$('result').hidden=false;
+  $('result-title').textContent=timedOut?'11.11초가 지났어요. 다시 도전해 보세요.':success?'11.11초 안에 완료했어요!':'한 번 더, 더 정확하게.';
   $('result-description').textContent=`${formatDuration(m.elapsed_ms)} · ${m.wpm} WPM · 정확도 ${m.accuracy_pct?.toFixed(1)}% · ${success?'성공':'실패'}`;
   $('result-errors').textContent=`미수정 오류 ${remainingErrors(state)}개 · 총 실수 ${state.mistakeCount}회`;
   $('feedback').textContent=channel?'최종 결과를 캠퍼스에 전달했어요.':'완료했어요. 다른 문제도 연습해 보세요.';
@@ -109,13 +109,13 @@ function showResult(state) {
   }
   $('mistake-rank').hidden=false;
   $('mistake-rank').textContent=[...mistakes.values()].sort((a,b)=>b.count-a.count).slice(0,5).map(e=>`${e.key.label} ${e.count}회`).join(' · ')||'모든 키를 정확하게 입력했어요!';
-  if(channel){locked=true;channel.complete({duration_ms:Math.round(m.elapsed_ms),status:success?'SUCCESS':'FAILED'});for(const id of ['mode','minimum-accuracy','restart'])$(id).disabled=true;}
+  if(channel){locked=true;channel.complete({duration_ms:Math.ceil(m.elapsed_ms),status:success?'SUCCESS':'FAILED'});for(const id of ['mode','minimum-accuracy','restart'])$(id).disabled=true;}
 }
 function start(problem) {
   if(locked)return;
   controller?.abandon('restart');detach?.();clearInterval(clock);clock=null;
-  controller=new AttemptController(problem,$('mode').value,{emit(){}},{},sessionId);
-  $('input').value='';$('editor-panel').hidden=false;$('result').hidden=true;
+  controller=new AttemptController(problem,$('mode').value,{emit(){}},{timeLimitMs},sessionId);
+  $('input').disabled=false;$('input').value='';$('editor-panel').hidden=false;$('result').hidden=true;
   $('guide-title').textContent='키보드 & 손가락 가이드';$('hands').hidden=false;$('guide-body').querySelector('.instruction').hidden=false;$('mistake-rank').hidden=true;
   for(const el of keys.values()){delete el.dataset.heat;el.querySelector('b')?.remove();el.removeAttribute('tabindex');}
   $('problem-title').textContent=problem.title;$('problem-description').textContent=problem.description;
@@ -134,7 +134,7 @@ $('mode').addEventListener('change',()=>start(controller.problem));
 $('minimum-accuracy').addEventListener('change',()=>{
   if(!$('minimum-accuracy').checkValidity()){$('minimum-accuracy').value=minimumAccuracy;return;}
   minimumAccuracy=Number($('minimum-accuracy').value);
-  $('pass-rule').textContent=`정확도 ${minimumAccuracy}% 이상으로 끝까지 입력하면 성공해요. 코드는 실행하지 않습니다.`;
+  $('pass-rule').textContent=`첫 글자를 입력한 뒤 ${(timeLimitMs/1000).toFixed(2)}초 안에 정확도 ${minimumAccuracy}% 이상으로 끝까지 입력하면 성공해요.`;
   start(controller.problem);
 });
 for(const id of ['restart','repeat'])$(id).addEventListener('click',()=>{start(controller.problem);$('input').focus();});
@@ -148,8 +148,9 @@ if(channel){
   $('input').disabled=true;$('repeat-actions').hidden=true;
   channel.start((config,id)=>{
     if(!Number.isFinite(config.minimumAccuracy)||config.minimumAccuracy<0||config.minimumAccuracy>100)throw new Error('정확도 설정 오류');
-    minimumAccuracy=config.minimumAccuracy;$('minimum-accuracy').value=minimumAccuracy;sessionId=id;
-    $('pass-rule').textContent=`정확도 ${minimumAccuracy}% 이상으로 끝까지 입력하면 성공해요. 코드는 실행하지 않습니다.`;
+    if(!Number.isSafeInteger(config.timeLimitMs)||config.timeLimitMs<=0)throw new Error('제한 시간 설정 오류');
+    timeLimitMs=config.timeLimitMs;minimumAccuracy=config.minimumAccuracy;$('minimum-accuracy').value=minimumAccuracy;sessionId=id;
+    $('pass-rule').textContent=`첫 글자를 입력한 뒤 ${(timeLimitMs/1000).toFixed(2)}초 안에 정확도 ${minimumAccuracy}% 이상으로 끝까지 입력하면 성공해요.`;
     $('input').disabled=false;start(pickBeginnerProblem(all));
   });
 }else start(pickBeginnerProblem(all));

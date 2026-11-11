@@ -10,13 +10,18 @@ from campus.motion import ControlError, MotionController, world
 from event_story import access, main, recipe
 from event_story.achievement_services import RECIPE_ID, achievement_snapshot
 from event_story.models import EventProgress, StoryProgress, StoryRecord
+from eventing.models import PlatformSession
+from django.utils import timezone
 from event_story.test_achievements import seed_definitions
 from learning.services import LearningError
 from tests.test_recipe_note import ticket
 
 
 def act(user, action, **extra):
-    return recipe.action(user, {'action': action, 'ticket': ticket(user, 'recipe-note' if action == 'acquire' else 'recipe-guide'), **extra}, 'recipe-story-session')
+    session = PlatformSession.objects.filter(user=user, ended_at__isnull=True).first()
+    if session is None:
+        session = PlatformSession.objects.create(user=user, started_at=timezone.now(), last_seen_at=timezone.now())
+    return recipe.action(user, {'action': action, 'ticket': ticket(user, 'recipe-note' if action == 'acquire' else 'recipe-guide'), **extra}, session.pk)
 
 
 def ready(user, topping=None):

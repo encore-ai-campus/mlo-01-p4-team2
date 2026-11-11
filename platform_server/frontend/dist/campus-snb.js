@@ -53,18 +53,17 @@
   let open=true;
   try{const saved=localStorage.getItem('campus.snb.open');if(saved!==null)open=saved==='true';else open=innerWidth>700;}catch(_){open=innerWidth>700;}
   function setOpen(next){
-    open=next;shell.dataset.snbOpen=String(open);toggle.setAttribute('aria-expanded',String(open));toggle.setAttribute('aria-label',open?'사이드 메뉴 왼쪽으로 접기':'사이드 메뉴 오른쪽으로 펼치기');toggle.title=open?'메뉴 접기 (Tab)':'메뉴 펼치기 (Tab)';
-    panel.inert=!open;panel.setAttribute('aria-hidden',String(!open));
+    open=next;shell.dataset.snbOpen=String(open);toggle.setAttribute('aria-expanded',String(open));toggle.setAttribute('aria-label',open?'사이드 메뉴 왼쪽으로 접기':'사이드 메뉴 오른쪽으로 펼치기');toggle.title=open?'사이드 메뉴 접기':'사이드 메뉴 펼치기';
+    panel.inert=!open;panel.setAttribute('aria-hidden',String(!open));if(!open)window.CampusApp?.quickTravelMenu?.close();
     try{localStorage.setItem('campus.snb.open',String(open));}catch(_){}
   }
   toggle.addEventListener('click',()=>setOpen(!open));
-  toggle.setAttribute('aria-keyshortcuts','Tab');
   document.addEventListener('keydown',event=>{
     if(event.key!=='Tab'||event.shiftKey||event.ctrlKey||event.altKey||event.metaKey||event.defaultPrevented)return;
     const target=event.target;
     if(target instanceof Element&&(target.closest('input,textarea,select,[contenteditable="true"],[role="textbox"]')||document.querySelector('dialog[open]')))return;
     event.preventDefault();
-    if(!event.repeat)setOpen(!open);
+    if(!event.repeat){setOpen(!open);toggle.focus({preventScroll:true});}
   });
   toggle.addEventListener('keydown',event=>{
     if(['ArrowLeft','ArrowRight','Enter',' '].includes(event.key))event.stopPropagation();

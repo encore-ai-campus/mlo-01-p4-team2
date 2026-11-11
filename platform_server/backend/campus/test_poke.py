@@ -162,7 +162,14 @@ class PokeSocketTests(TransactionTestCase):
     def setUp(self):
         consumers.room = consumers.CampusRoom()
         self.clients = []
-        for index, (x, y) in enumerate([(130, 100), (130 + 32 / math.sqrt(2), 100 - 32 / math.sqrt(2))]):
+        from .motion import world
+        active_world = world("campus")
+        delta = 32 / math.sqrt(2)
+        first, second = next(((x, y), (x + delta, y - delta))
+                             for x in range(80, 800, 20) for y in range(80, 600, 20)
+                             if active_world.walkable(x, y) and active_world.walkable(x + delta, y - delta)
+                             and active_world.clear({"x": x, "y": y}, {"x": x + delta, "y": y - delta}))
+        for index, (x, y) in enumerate([first, second]):
             user = get_user_model().objects.create_user(username=f"poke-{index}")
             Profile.objects.create(user=user, nickname=f"찌르기 {index}", cohort="mlo-1", setup_complete=True,
                                    last_position={"floor": "campus", "x": x, "y": y, "dir": "right"})

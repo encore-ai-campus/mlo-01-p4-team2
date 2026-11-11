@@ -1,0 +1,278 @@
+{
+  "tool": "built-in imagegen",
+  "prompt": "Four by four transparent atlas. Rows: mint hoodie boy, purple varsity boy with glasses, brown hair purple hoodie girl, black ponytail green cardigan girl, matching original walk-v5 sprite references. Columns: down, left, right, up. All standing still, both feet closely side by side and on the same baseline, arms at sides, preserve identity and outfit. Normalize each sprite to the corresponding original sprite height and foot baseline.",
+  "frames": [
+    {
+      "id": "male-1",
+      "dir": 0,
+      "source": {
+        "left": 81,
+        "top": 26,
+        "width": 152,
+        "height": 279,
+        "bottom": 304
+      },
+      "target": {
+        "left": 34,
+        "top": 11,
+        "width": 61,
+        "height": 112
+      }
+    },
+    {
+      "id": "male-1",
+      "dir": 1,
+      "source": {
+        "left": 396,
+        "top": 25,
+        "width": 157,
+        "height": 280,
+        "bottom": 304
+      },
+      "target": {
+        "left": 32,
+        "top": 11,
+        "width": 63,
+        "height": 113
+      }
+    },
+    {
+      "id": "male-1",
+      "dir": 2,
+      "source": {
+        "left": 702,
+        "top": 24,
+        "width": 158,
+        "height": 280,
+        "bottom": 303
+      },
+      "target": {
+        "left": 32,
+        "top": 11,
+        "width": 63,
+        "height": 112
+      }
+    },
+    {
+      "id": "male-1",
+      "dir": 3,
+      "source": {
+        "left": 1021,
+        "top": 24,
+        "width": 153,
+        "height": 280,
+        "bottom": 303
+      },
+      "target": {
+        "left": 32,
+        "top": 5,
+        "width": 64,
+        "height": 118
+      }
+    },
+    {
+      "id": "male-2",
+      "dir": 0,
+      "source": {
+        "left": 75,
+        "top": 329,
+        "width": 163,
+        "height": 286,
+        "bottom": 614
+      },
+      "target": {
+        "left": 31,
+        "top": 6,
+        "width": 67,
+        "height": 117
+      }
+    },
+    {
+      "id": "male-2",
+      "dir": 1,
+      "source": {
+        "left": 388,
+        "top": 329,
+        "width": 165,
+        "height": 285,
+        "bottom": 613
+      },
+      "target": {
+        "left": 29,
+        "top": 6,
+        "width": 68,
+        "height": 117
+      }
+    },
+    {
+      "id": "male-2",
+      "dir": 2,
+      "source": {
+        "left": 702,
+        "top": 329,
+        "width": 164,
+        "height": 286,
+        "bottom": 614
+      },
+      "target": {
+        "left": 30,
+        "top": 5,
+        "width": 68,
+        "height": 118
+      }
+    },
+    {
+      "id": "male-2",
+      "dir": 3,
+      "source": {
+        "left": 1017,
+        "top": 329,
+        "width": 162,
+        "height": 286,
+        "bottom": 614
+      },
+      "target": {
+        "left": 30,
+        "top": 7,
+        "width": 66,
+        "height": 117
+      }
+    },
+    {
+      "id": "female-1",
+      "dir": 0,
+      "source": {
+        "left": 66,
+        "top": 640,
+        "width": 180,
+        "height": 287,
+        "bottom": 926
+      },
+      "target": {
+        "left": 29,
+        "top": 12,
+        "width": 70,
+        "height": 111
+      }
+    },
+    {
+      "id": "female-1",
+      "dir": 1,
+      "source": {
+        "left": 391,
+        "top": 641,
+        "width": 172,
+        "height": 286,
+        "bottom": 926
+      },
+      "target": {
+        "left": 31,
+        "top": 14,
+        "width": 66,
+        "height": 110
+      }
+    },
+    {
+      "id": "female-1",
+      "dir": 2,
+      "source": {
+        "left": 691,
+        "top": 640,
+        "width": 173,
+        "height": 287,
+        "bottom": 926
+      },
+      "target": {
+        "left": 31,
+        "top": 12,
+        "width": 67,
+        "height": 111
+      }
+    },
+    {
+      "id": "female-1",
+      "dir": 3,
+      "source": {
+        "left": 1008,
+        "top": 640,
+        "width": 180,
+        "height": 287,
+        "bottom": 926
+      },
+      "target": {
+        "left": 28,
+        "top": 5,
+        "width": 74,
+        "height": 118
+      }
+    },
+    {
+      "id": "female-2",
+      "dir": 0,
+      "source": {
+        "left": 66,
+        "top": 943,
+        "width": 168,
+        "height": 293,
+        "bottom": 1235
+      },
+      "target": {
+        "left": 30,
+        "top": 5,
+        "width": 68,
+        "height": 118
+      }
+    },
+    {
+      "id": "female-2",
+      "dir": 1,
+      "source": {
+        "left": 390,
+        "top": 945,
+        "width": 194,
+        "height": 291,
+        "bottom": 1235
+      },
+      "target": {
+        "left": 26,
+        "top": 12,
+        "width": 75,
+        "height": 112
+      }
+    },
+    {
+      "id": "female-2",
+      "dir": 2,
+      "source": {
+        "left": 670,
+        "top": 945,
+        "width": 194,
+        "height": 291,
+        "bottom": 1235
+      },
+      "target": {
+        "left": 27,
+        "top": 11,
+        "width": 75,
+        "height": 112
+      }
+    },
+    {
+      "id": "female-2",
+      "dir": 3,
+      "source": {
+        "left": 1020,
+        "top": 943,
+        "width": 168,
+        "height": 294,
+        "bottom": 1236
+      },
+      "target": {
+        "left": 31,
+        "top": 8,
+        "width": 66,
+        "height": 116
+      }
+    }
+  ]
+}

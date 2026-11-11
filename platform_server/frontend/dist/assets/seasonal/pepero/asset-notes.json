@@ -1,0 +1,21 @@
+{
+  "theme": "11.11 Chocolate Atelier",
+  "date": "2026-10-22",
+  "tool": "Built-in image_gen; transparent_background=true",
+  "assets": [
+    {
+      "file": "monument.png",
+      "prompt": "Create a production-ready transparent PNG isometric game environment prop, not a mockup: a luxurious Pepero Day chocolate-stick celebration monument, orthographic isometric camera 30 degree elevation, visible top and two sides, no perspective distortion. One cohesive free-standing sculpture on a low oval polished cocoa-brown plinth with thin champagne-gold trim. Tall elegantly fanned chocolate dipped biscuit sticks, ivory chocolate and strawberry pink sticks, delicate edible gold stripes, satin burgundy bow, a few small wrapped ivory gifts around the base, sculptural heart made of chocolate at center. Extremely polished cozy 3D game asset with beautiful beveled forms, fine material detail, warm baked soft lighting and ambient occlusion, clear silhouette readable at 320 pixels. Chic boutique patisserie art direction, restrained cocoa / warm cream / dusty strawberry / champagne gold palette. Full isolated object centered with generous transparent margins, absolutely no background scene, no floor outside the plinth, no UI, no characters, no text or logo, no Halloween objects. Wide landscape canvas. This actual asset will be composited into an isometric campus game."
+    },
+    {
+      "file": "cart.png",
+      "prompt": "Production transparent PNG game asset. A luxury chocolate boutique dessert display cart for Korean Pepero Day, full isolated object viewed orthographic isometric 30 degree elevation, top and front/right side visible. Wide compact walnut cocoa wooden counter with soft bevels, tiny brass wheels, elegant striped ivory and burgundy canvas canopy, polished brass framework. On the counter: three glass jars filled with long chocolate biscuit sticks, strawberry pink and dark chocolate varieties, beautifully wrapped cream gift boxes with burgundy satin ribbons, tiny ivory porcelain plates. Small charming bow atop canopy, boutique patisserie not carnival. Highly polished stylized 3D game render with physically convincing soft warm lighting, beautiful ambient occlusion, clean crisp silhouette readable at 250 pixels. Deep chocolate brown, ivory, dusty pink and gold palette. Entire cart on transparent background with generous margins, no environment, no people, no words, no letters, no logos, no interface. Single cohesive asset, landscape image."
+    },
+    {
+      "file": "gifts.png",
+      "prompt": "Transparent background production sprite for an isometric cozy game: an elegant luxury gift arrangement for Pepero Day, orthographic isometric 30 degree elevation with full object in frame. Stack of four ivory, dusty rose and dark cocoa rectangular gift boxes, exquisitely tied burgundy satin bows and champagne gold ribbon edges. Two small metallic rose-gold heart balloons above with fine visible gold strings anchored to the boxes, and a small bouquet of chocolate-dipped long biscuit sticks in a cream paper cone leaning beside the stack. Sophisticated boutique chocolate shop style, consistent polished stylized 3D material rendering with warm soft lighting and ambient occlusion. Compact clear silhouette, no environment, no floor tile, no backdrop, no words, no UI, no people. Full isolated arrangement with truly transparent outer background and soft contact shadow only. Portrait composition."
+    }
+  ],
+  "rendering": "71 scene decorations, three generated bitmap assets; cached sprites rebuilt on image load; reduced-motion aware particles.",
+  "backup": "before-pepero/ contains the prior versions of map-data.js, isometric.js, campus-background.js and index.html."
+}

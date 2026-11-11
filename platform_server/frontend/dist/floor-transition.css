@@ -39,3 +39,28 @@
 .portal-ad-0 {grid-column:1;grid-row:1;}
 .portal-ad-1 {grid-column:2;grid-row:1;}
 .portal-ad img {display:block;max-width:100%;max-height:70vh;width:auto;height:auto;}
+
+/* 11.11 event transfer: cocoa, rose and warm gold without changing dialog behavior. */
+#floorTransitionDialog {
+  background: radial-gradient(ellipse at 50% 28%,#76505c 0%,#50313e 46%,#30212e 100%);
+  color: #fff1da;
+}
+#floorTransitionDialog::before {
+  content: '';
+  position: fixed;
+  inset: 18px;
+  border: 1px solid #d8b57c5c;
+  border-radius: 24px;
+  pointer-events: none;
+}
+#floorTransitionDialog::backdrop { background: #30212e; }
+
+.floor-transition-eyebrow { color: #f7d5ae; letter-spacing: .25em; }
+.floor-transition-eyebrow::after { content: '  ·  11.11 CHOCOLATE ATELIER'; color: #f4b9c6; }
+.floor-transition-route span { background: #fff5e9ee; color: #68424c; border-color: #d7aa83; box-shadow: 0 5px 22px #20111b4a; }
+.floor-transition-route span:last-child { background: #f2cbd4; color: #633b49; border-color: #e6a9b9; }
+.floor-transition-route b { color: #f5c987; }
+.floor-transition-subtitle { color: #f0d1c6; }
+.floor-transition-track { background: #b08b9159; height: 5px; }
+#floorTransitionProgress { background: linear-gradient(90deg,#eaa2b5,#ffe0a1); box-shadow: 0 0 14px #ffca9a; }
+@media (max-width: 600px) { .floor-transition-eyebrow::after { display: block; } #floorTransitionDialog::before { inset: 8px; } }

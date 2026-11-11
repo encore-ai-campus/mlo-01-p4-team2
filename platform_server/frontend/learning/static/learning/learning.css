@@ -82,3 +82,8 @@
   height:min(520px,85vh);height:min(520px,85dvh);
  }
 }
+
+/* Match the private learning room to the 11.11 Chocolate Atelier map. */
+.classroom-screen,.classroom-screen::backdrop{background:#d8b8bd}
+.classroom-screen #classroomCanvas:focus-visible{outline-color:#a66c77}
+.classroom-screen .classroom-footer{border-color:#dfb995;background:#fff6e9f2;color:#67434b;box-shadow:0 5px 24px #50252b24}

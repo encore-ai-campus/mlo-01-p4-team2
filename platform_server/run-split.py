@@ -10,8 +10,8 @@ import time
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--frontend-port", type=int, default=8004)
-    parser.add_argument("--backend-port", type=int, default=9003)
+    parser.add_argument("--frontend-port", type=int, default=14029)
+    parser.add_argument("--backend-port", type=int, default=14030)
     parser.add_argument("--bind", default="0.0.0.0")
     options = parser.parse_args()
     ports = (options.frontend_port, options.backend_port)
@@ -21,6 +21,7 @@ def main():
         with socket.socket() as listener:
             listener.bind(("0.0.0.0", port))
     root = Path(__file__).resolve().parent
+    subprocess.run(["node", "frontend/tools/build-event-map.cjs"], cwd=root, check=True)
     from dotenv import load_dotenv
     load_dotenv(root / ".env", override=False)
     env = os.environ.copy()

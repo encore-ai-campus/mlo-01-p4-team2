@@ -9,8 +9,8 @@
   function portal(x,color){
    g.save();
    const glow=g.createRadialGradient(x,195,12,x,195,112);glow.addColorStop(0,color+'28');glow.addColorStop(.65,color+'12');glow.addColorStop(1,color+'00');g.fillStyle=glow;g.fillRect(x-115,80,230,230);
-   g.fillStyle='#d7c4a3';g.beginPath();g.ellipse(x,276,76,17,0,0,Math.PI*2);g.fill();
-   g.fillStyle='#f7ecd7';g.beginPath();g.ellipse(x,271,76,17,0,0,Math.PI*2);g.fill();
+   g.fillStyle='#704348';g.beginPath();g.ellipse(x,276,76,17,0,0,Math.PI*2);g.fill();
+   g.fillStyle='#b47e71';g.beginPath();g.ellipse(x,271,76,17,0,0,Math.PI*2);g.fill();
    oval(x,269,62,11,color+'66',1.2);
    g.fillStyle=color+'13';g.beginPath();g.ellipse(x,194,49,76,0,0,Math.PI*2);g.fill();
    oval(x,194,49,76,color+'aa',3);oval(x,194,42,68,color+'35',1.3);
@@ -21,9 +21,9 @@
    g.restore();
   }
   // A quiet path ties the two portals together without changing simulation positions.
-  g.save();g.setLineDash([3,9]);g.strokeStyle='#b8c7b2';g.lineWidth=1.5;g.beginPath();g.moveTo(224,267);g.quadraticCurveTo(320,310,416,267);g.stroke();g.restore();
-  portal(176,'#5d9d90');portal(464,'#a595bc');
-  g.fillStyle='#968269';g.font='600 12px system-ui,sans-serif';g.textAlign='center';g.fillText(from==='rooftop'?'ROOFTOP':'18F',176,315);g.fillText(to==='rooftop'?'ROOFTOP':'18F',464,315);
+  g.save();g.setLineDash([3,9]);g.strokeStyle='#f0c69b';g.lineWidth=1.5;g.beginPath();g.moveTo(224,267);g.quadraticCurveTo(320,310,416,267);g.stroke();g.restore();
+  portal(176,'#f1b0c1');portal(464,'#efc381');
+  g.fillStyle='#f6d7ae';g.font='600 12px system-ui,sans-serif';g.textAlign='center';g.fillText(from==='rooftop'?'ROOFTOP':'18F',176,315);g.fillText(to==='rooftop'?'ROOFTOP':'18F',464,315);
   let x,alpha=1,size=1,moving=false;
   if(reduced){x=510;}
   else if(phase<.32){x=104+72*ease(phase/.32);moving=true;alpha=1-ease((phase-.2)/.12);size=1-.3*ease((phase-.2)/.12);}
@@ -37,8 +37,8 @@
   }
   if(!reduced&&phase>.29&&phase<.73){
    const q=ease((phase-.29)/.44),x=176+288*q,y=208-Math.sin(q*Math.PI)*49;
-   for(let i=0;i<7;i++){const trail=x-i*9;g.fillStyle=i%2?'#a595bc70':'#5d9d9070';g.beginPath();g.arc(trail,y+i*1.5,Math.max(1,4-i*.45),0,Math.PI*2);g.fill();}
-   const glow=g.createRadialGradient(x,y,0,x,y,24);glow.addColorStop(0,'#fffdf1');glow.addColorStop(.3,'#d9e6c9b0');glow.addColorStop(1,'#d9e6c900');g.fillStyle=glow;g.fillRect(x-24,y-24,48,48);
+   for(let i=0;i<7;i++){const trail=x-i*9;g.fillStyle=i%2?'#efc38170':'#f1b0c170';g.beginPath();g.arc(trail,y+i*1.5,Math.max(1,4-i*.45),0,Math.PI*2);g.fill();}
+   const glow=g.createRadialGradient(x,y,0,x,y,24);glow.addColorStop(0,'#fffdf1');glow.addColorStop(.3,'#ffe2aeb0');glow.addColorStop(1,'#ffe2ae00');g.fillStyle=glow;g.fillRect(x-24,y-24,48,48);
   }
  }
  window.CampusPortalTransition={draw};

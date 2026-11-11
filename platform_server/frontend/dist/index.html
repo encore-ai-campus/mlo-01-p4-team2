@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#167d79">
   <meta name="description" content="실제 설계도와 사진을 반영한 PLAYDATA 캠퍼스. 캐릭터로 라운지, 강의실, 상담실을 둘러보세요.">
+  <script>(()=>{const season="pepero";window.CAMPUS_SEASON=season;document.documentElement.dataset.campusSeason=season;})();</script>
   <title>PLAYDATA · 캠퍼스 메타버스</title>
   <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="stylesheet" href="style.css">
@@ -23,14 +24,15 @@
   <link rel="stylesheet" href="campus-space-guide.css">
   <link rel="stylesheet" href="campus-snb.css">
   <link rel="stylesheet" href="campus-brand.css">
+  <link rel="stylesheet" href="pepero-theme.css">
   <link rel="preload" href="assets/fonts/PressStart2P-Regular.ttf" as="font" type="font/ttf" crossorigin>
 </head>
 <body>
   <main class="workspace">
     <section class="map-shell" aria-label="메타버스 캠퍼스">
       <div class="map-toolbar">
-        <button id="campusNavToggle" class="map-guide-toggle" type="button" aria-expanded="false" aria-controls="campusSpaceGuide" title="캠퍼스 공간 안내 펼치기">
-          <span class="map-title"><span class="map-brand-mark" aria-hidden="true"><img src="assets/logo.png" alt=""></span><span class="map-location"><strong>PLAYDATA CAMPUS</strong><span id="currentFloor" class="floor-badge">18F 캠퍼스</span></span></span>
+        <button id="campusNavToggle" class="map-guide-toggle" type="button" aria-expanded="false" aria-controls="campusSpaceGuide" title="빠른 이동 열기">
+          <span class="map-title"><span class="map-brand-mark" aria-hidden="true"><img src="assets/logo.png" alt=""></span><span class="map-location"><strong>빠른 이동</strong><span id="currentFloor" class="floor-badge">18F 캠퍼스</span></span></span>
           <span id="currentRoom" class="map-current-room">라운지 1</span>
           <svg class="map-guide-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
@@ -39,8 +41,8 @@
         <button id="followBtn" class="toolbtn" type="button" aria-pressed="true" hidden>화면 고정: 켬</button>
       </div>
       <aside id="campusSpaceGuide" class="campus-space-guide" aria-labelledby="spaceGuideTitle" hidden>
-        <div class="space-guide-heading"><span class="eyebrow">CAMPUS GUIDE</span><h2 id="spaceGuideTitle">공간 둘러보기</h2><p>공간 안내를 확인하고 키보드로 이동하세요.</p></div>
-        <nav id="roomNav" aria-label="현재 층 공간 안내"></nav>
+        <div class="space-guide-heading"><span class="eyebrow">QUICK TRAVEL</span><h2 id="spaceGuideTitle">빠른 이동</h2><p>원하는 장소를 선택하면 바로 이동합니다. 왼쪽 위 빠른 이동 버튼으로 열고 닫을 수 있어요.</p></div>
+        <nav id="roomNav" aria-label="빠른 이동 목적지"></nav>
       </aside>
       <div id="viewport" class="viewport">
         <canvas id="mapCanvas" tabindex="0" role="img" aria-label="PLAYDATA 캠퍼스 지도. 복도 오른쪽은 라운지 1, 왼쪽은 라운지 2입니다. 방향키 또는 WASD로 이동하고 가까운 시설에서 E로 상호작용합니다.">방향키로 움직이는 PLAYDATA 캠퍼스 지도</canvas>
@@ -82,7 +84,7 @@
           <button id="openBoardShortcut" class="board-shortcut-open" type="button" aria-haspopup="dialog" aria-controls="boardDialog">PLAYDATA 게시판 <span aria-hidden="true">↗</span></button>
           <button id="openCafeteriaShortcut" class="board-shortcut-open" type="button" aria-haspopup="dialog" aria-controls="boardDialog">지하1층 구내식당 &amp; Talk <span aria-hidden="true">↗</span></button>
         </section>
-        <div id="interactionPrompt" class="interaction-prompt" hidden><kbd>E</kbd><span></span><button aria-label="가까운 시설 안내 보기">보기</button></div>
+        <div id="interactionPrompt" class="interaction-prompt" hidden><kbd data-key-action="interact">E</kbd><span></span><button aria-label="가까운 시설 안내 보기">보기</button></div>
         <div id="toast" class="toast" role="status" hidden></div>
       </div>
       <dialog id="privateMessagesDialog" aria-labelledby="dmTitle">
@@ -108,6 +110,12 @@
           <label class="setting-row"><span class="setting-copy"><strong>다른 사람 닉네임</strong><small>캐릭터 머리 위 이름 표시</small></span><span class="setting-control"><span class="setting-state" aria-hidden="true">켬</span><input id="settingNicknames" type="checkbox" role="switch" checked></span></label>
           <label class="setting-row"><span class="setting-copy"><strong>채팅창</strong><small>Enter로 입력 · 새 메시지 후 30초 표시</small></span><span class="setting-control"><span class="setting-state" aria-hidden="true">켬</span><input id="settingChat" type="checkbox" role="switch" checked></span></label>
           <label class="setting-row"><span class="setting-copy"><strong>말풍선</strong><small>캐릭터 위에 10초 동안 표시</small></span><span class="setting-control"><span class="setting-state" aria-hidden="true">켬</span><input id="settingBubbles" type="checkbox" role="switch" checked></span></label>
+          <h3>키보드 조작</h3>
+          <p class="settings-hint">동작을 누르고 원하는 키를 입력하세요. 이미 쓰는 키를 선택하면 두 키가 서로 바뀝니다.</p>
+          <div class="keybind-grid"><div class="keybind-row"><span>위로 이동</span><button type="button" data-key-bind="up" aria-label="위로 이동 키 변경"></button></div><div class="keybind-row"><span>왼쪽 이동</span><button type="button" data-key-bind="left" aria-label="왼쪽 이동 키 변경"></button></div><div class="keybind-row"><span>아래로 이동</span><button type="button" data-key-bind="down" aria-label="아래로 이동 키 변경"></button></div><div class="keybind-row"><span>오른쪽 이동</span><button type="button" data-key-bind="right" aria-label="오른쪽 이동 키 변경"></button></div><div class="keybind-row"><span>달리기</span><button type="button" data-key-bind="run" aria-label="달리기 키 변경"></button></div><div class="keybind-row"><span>방어</span><button type="button" data-key-bind="guard" aria-label="방어 키 변경"></button></div><div class="keybind-row"><span>상호작용</span><button type="button" data-key-bind="interact" aria-label="상호작용 키 변경"></button></div><div class="keybind-row"><span>찌르기</span><button type="button" data-key-bind="poke" aria-label="찌르기 키 변경"></button></div><div class="keybind-row"><span>점프</span><button type="button" data-key-bind="jump" aria-label="점프 키 변경"></button></div></div>
+          <div class="keybind-actions"><button id="keybindReset" type="button">기본값 복원</button><span id="keybindStatus" role="status" aria-live="polite"></span></div>
+          <h3>이용 안내</h3>
+          <button id="campusGuideOpen" class="campus-guide-open" type="button"><span>처음 이용 안내 다시 보기</span><span aria-hidden="true">›</span></button>
           <div id="settingsAccount" class="settings-account"></div>
         </div>
       </dialog>
@@ -123,14 +131,15 @@
       </dialog>
       <footer class="map-footer">
         <div class="map-key-guide" aria-label="조작키 안내">
-          <span class="map-key-item"><kbd>WASD</kbd><span> / 방향키 이동</span></span>
+          <span class="map-key-item"><kbd id="movementKeyHint">W·A·S·D</kbd><span>이동</span></span>
+          <span class="map-key-item"><kbd data-key-action="run">Shift</kbd><span>달리기</span></span>
+          <span class="map-key-item"><kbd data-key-action="guard">Ctrl</kbd><span>방어</span></span>
+          <span class="map-key-item"><kbd data-key-action="interact">E</kbd><span>상호작용</span></span>
+          <span class="map-key-item"><kbd data-key-action="poke">Z</kbd><span>찌르기</span></span>
+          <button id="campusJumpButton" class="jump-key-button" type="button" aria-label="점프, 스페이스바"><kbd data-key-action="jump">Space</kbd><span>점프</span></button>
           <button id="chatOpen" class="chat-open" type="button" aria-controls="chatPanel" aria-expanded="false" title="채팅 입력 (Enter)" disabled><kbd>Enter</kbd> 채팅</button>
-          <span class="map-key-item"><kbd>E</kbd><span>상호작용</span></span>
-          <span class="map-key-item"><kbd>Z</kbd><span>찌르기</span></span>
-          <button id="campusJumpButton" class="jump-key-button" type="button" aria-label="점프, 스페이스바"><kbd>Space</kbd><span>점프</span></button>
-
           <span class="map-key-item"><kbd>Esc</kbd><span>설정</span></span>
-          <span class="map-key-item"><kbd>Tab</kbd><span>메뉴 접기·펼치기</span></span>
+          <span class="map-key-item"><kbd>Tab</kbd><span>사이드 메뉴</span></span>
         </div>
         <div class="map-player-tools">
           <div class="map-player" aria-label="나의 캐릭터와 닉네임"><img id="avatarPreview" class="avatar-preview" src="assets/characters/male-face.png" alt="나의 캐릭터"><div class="map-player-copy"><span class="map-player-label">나의 캐릭터</span><!-- campus-account --><span id="avatarName" class="sr-only">민트 후드</span></div></div>
@@ -140,7 +149,7 @@
     </section>
   </main>
   <dialog id="campusGuideDialog" class="campus-guide" aria-labelledby="campusGuideTitle" aria-describedby="campusGuideText">
-    <header class="campus-guide-header"><div class="campus-guide-brand"><span class="guide-p-mark" aria-hidden="true"><img src="assets/logo.png" alt=""></span>처음 이용 안내 <small class="campus-guide-version">2026.10.20 업데이트</small></div><button id="campusGuideSkip" class="campus-guide-skip" type="button">건너뛰기</button></header>
+    <header class="campus-guide-header"><div class="campus-guide-brand"><span class="guide-p-mark" aria-hidden="true"><img src="assets/logo.png" alt=""></span>11.11 이벤트 안내 <small class="campus-guide-version">빼빼로 데이 맵</small></div><button id="campusGuideSkip" class="campus-guide-skip" type="button">건너뛰기</button></header>
     <div id="campusGuideScroll" class="campus-guide-scroll"><div class="campus-guide-content">
       <section class="campus-guide-copy"><p id="campusGuideCategory" class="campus-guide-category"></p><h2 id="campusGuideTitle" class="campus-guide-title" tabindex="-1"></h2><p id="campusGuideText" class="campus-guide-text"></p><ol id="campusGuideItems" class="campus-guide-items"></ol><div id="campusGuideKeys" class="campus-guide-keys"></div></section>
       <figure class="campus-guide-figure"><div class="campus-guide-image-wrap"><img id="campusGuideImage" class="campus-guide-image" width="1200" height="900" alt="" decoding="async"><p id="campusGuideImageError" class="campus-guide-image-error" hidden>화면 예시를 불러오지 못했어요.<br>옆의 설명을 따라 이용해 주세요.</p></div><figcaption class="campus-guide-caption"><span>화면 예시 · 이름과 수치는 실제와 다를 수 있어요.</span><button id="campusGuideEnlarge" class="campus-guide-enlarge" type="button">화면 크게 보기</button></figcaption></figure>
@@ -320,19 +329,20 @@
   </dialog>
   <!-- learning-panels -->
   <script src="booth-panel.js"></script>
-  <script src="map-data.js"></script>
-  <script src="rooftop-data.js"></script>
+  <script src="event-map.js"></script>
   <script src="stair-motion.js"></script>
   <script src="avatars.js"></script>
   <script src="session-policy.js"></script>
   <script src="keyboard.js"></script>
   <script src="presence.js"></script>
+  <script src="pepero-swing.js"></script>
   <script src="poke.js"></script>
   <script src="jump.js"></script>
   <script src="social.js"></script>
   <script src="community.js"></script>
   <script src="rooftop-city.js"></script>
   <script src="campus-background.js"></script>
+  <script src="pepero-theme.js"></script>
   <script src="booth-assets.js"></script>
   <script src="isometric.js"></script>
   <script src="floor-transition-portal.js"></script>

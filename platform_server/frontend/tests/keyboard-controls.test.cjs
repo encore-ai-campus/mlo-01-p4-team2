@@ -13,6 +13,8 @@ function surface() {
 }
 function environment() {
   const document = surface(), window = surface(), button = surface();
+  document.createElement = () => Object.assign(surface(),{style:{}});
+  document.body = {append(){}};
   const elements = new Map([['campusPokeButton', button]]);
   document.getElementById = id => {
     if (!elements.has(id)) elements.set(id, surface());
@@ -85,5 +87,17 @@ for (const [label,character,composing] of languages) {
   assert.equal(pokes,1,`${label}: preserves shortcuts and text entry`);
   console.log(`PASS classroom poke, movement, release, text entry: ${label}`);
 }
-assert.ok(read('dist/index.html').indexOf('src="keyboard.js"') < read('dist/index.html').indexOf('src="poke.js"'));
+const loadedScripts=[...read('dist/index.html').matchAll(/<script src="([^"?]+)(?:\?[^" ]*)?"/g)].map(match=>match[1]);
+assert.ok(loadedScripts.indexOf('keyboard.js')>=0);
+assert.ok(loadedScripts.indexOf('keyboard.js')<loadedScripts.indexOf('poke.js'));
 console.log('PASS shared keyboard helper loads before controls');
+
+{
+ const env=environment(),keyboard=env.window.CampusKeyboard;
+ assert.equal(keyboard.save('poke','Space'),true);
+ assert.equal(keyboard.key(keyEvent(' ','Space')),'z');
+ assert.equal(keyboard.key(keyEvent('z','KeyZ')),' ');
+ assert.equal(keyboard.save('jump','Tab'),false);
+ keyboard.reset();assert.equal(keyboard.key(keyEvent(' ','Space')),' ');
+ console.log('PASS custom action mapping swaps duplicate keys and preserves action meanings');
+}

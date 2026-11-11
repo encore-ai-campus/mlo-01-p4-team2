@@ -241,3 +241,6 @@
 .campus-snb #privateMessagesOpen {transition:background-color .15s,border-color .15s}
 .campus-snb #privateMessagesOpen:hover {background:#fff;border-color:#b7d4cd}
 @media(prefers-reduced-motion:reduce){.campus-snb #privateMessagesOpen {transition:none}}
+
+/* Show all four quick-travel destinations in the left menu. */
+.campus-snb .campus-space-guide #roomNav { max-height: 420px; }

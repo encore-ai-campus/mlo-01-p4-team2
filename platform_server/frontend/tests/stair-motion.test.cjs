@@ -105,7 +105,8 @@ test('stairs and poses add no fields to movement reports or change world coordin
 
 test('stairs load before renderer and movement so the map cannot start with missing geometry',()=>{
   const html=fs.readFileSync(path.join(__dirname,'../dist/index.html'),'utf8');
-  const index=name=>html.indexOf(`src="${name}"`);
+  const scripts=[...html.matchAll(/<script src="([^"?]+)(?:\?[^" ]*)?"/g)].map(match=>match[1]);
+  const index=name=>scripts.indexOf(name);
   assert.ok(index('stair-motion.js')>index('rooftop-data.js'));
   assert.ok(index('stair-motion.js')<index('isometric.js'));
   assert.ok(index('stair-motion.js')<index('campus.js'));

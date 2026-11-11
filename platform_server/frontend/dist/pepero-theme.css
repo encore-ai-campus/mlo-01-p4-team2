@@ -1,0 +1,32 @@
+html[data-campus-season="pepero"]{--pepero-cocoa:#482b32;--pepero-cream:#fff3df;--pepero-rose:#a95f73}
+html[data-campus-season="pepero"] .map-guide-toggle{background:#fff8ebf5!important;border:1px solid #d8bd91!important;box-shadow:0 5px 24px #38202b1c!important}
+html[data-campus-season="pepero"] .map-brand-mark{background:#673d49!important;color:#fff1da!important}
+html[data-campus-season="pepero"] .map-location strong{color:#54343e!important}
+html[data-campus-season="pepero"] .floor-badge,html[data-campus-season="pepero"] .map-current-room{color:#886957!important}
+html[data-campus-season="pepero"] .workspace,html[data-campus-season="pepero"] .map-shell,html[data-campus-season="pepero"] .viewport{background:#ead3cb!important}
+html[data-campus-season="pepero"] .map-shell>.map-footer{border-color:#d9bda0!important;background:#fff8edf5!important;color:#85666a}
+html[data-campus-season="pepero"] .map-shell .map-toolbar{border-color:#dbc19a;background:#fff7e9}
+html[data-campus-season="pepero"] .map-shell .map-footer .settings-button{border-color:#d7b99d;color:#704650;background:#fffaf0}
+.season-map-toggle{display:inline-flex;align-items:center;justify-content:center;flex:none;gap:6px;margin:7px 8px;padding:8px 11px;border:1px solid #dbe4d7;border-radius:9px;background:#fff;color:#416450;font-size:11px;font-weight:750;line-height:1.2;white-space:nowrap;transition:background .15s,border-color .15s,color .15s}
+.season-map-toggle::before{content:'';width:7px;height:7px;border-radius:50%;background:#16877e;box-shadow:0 0 0 3px #e7f2ec}
+.season-map-toggle:hover{background:#edf5ed;border-color:#bfd6c7}
+.season-map-toggle:focus-visible{outline:3px solid #36a9a1;outline-offset:3px}
+html[data-campus-season="pepero"] .season-map-toggle{border-color:#bc9472;background:#603b48;color:#fff1d7}
+html[data-campus-season="pepero"] .season-map-toggle::before{background:#f0c778;box-shadow:0 0 0 3px #fff1d722}
+html[data-campus-season="pepero"] .season-map-toggle:hover{background:#704756}
+@media(max-width:700px){.season-map-toggle{margin:7px 6px;padding:7px 9px;font-size:10px}}
+
+/* The first-visit guide uses the same chocolate, rose, and cream palette as the event map. */
+html[data-campus-season="pepero"] .campus-guide{background:#fff9ef;border-color:#d6b69c;color:#4b303b}
+html[data-campus-season="pepero"] .campus-guide-header{border-color:#ead8c9}
+html[data-campus-season="pepero"] .campus-guide-footer{background:#f9ecdf;border-color:#ead8c9}
+html[data-campus-season="pepero"] .campus-guide-category{background:#f5e2e4;color:#794451}
+html[data-campus-season="pepero"] .campus-guide-items li::marker{color:#a75770}
+html[data-campus-season="pepero"] .campus-guide-keys span{background:#fff0df;border-color:#e7cfad;color:#734a4d}
+html[data-campus-season="pepero"] .campus-guide-dot[aria-current=step]::after{background:#8a495a}
+html[data-campus-season="pepero"] .campus-guide-next{background:#754152;border-color:#754152}
+html[data-campus-season="pepero"] .campus-guide-next:hover{background:#633746}
+html[data-campus-season="pepero"] .campus-guide-image-wrap{background:#ead8cc;border-color:#e1c4af}
+html[data-campus-season="pepero"] .campus-guide-brand .guide-p-mark{background:#754152;color:#fff1d7}
+html[data-campus-season="pepero"] .campus-guide-dot::after{background:#e3cbc8}
+html[data-campus-season="pepero"] .campus-guide::backdrop{background:#39242ca8}

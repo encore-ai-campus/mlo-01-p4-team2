@@ -1,7 +1,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const source=fs.readFileSync(path.join(__dirname,'../dist/main-quest.js'),'utf8');
-const start=source.indexOf('guide(){run('),end=source.indexOf(',paint(o,h,base)',start);
+const start=source.indexOf('guide(skipLastBite=false){run('),end=source.indexOf(',paint(o,h,base)',start);
 assert.ok(start>=0&&end>start);
 const plain=value=>JSON.parse(JSON.stringify(value));
 function fixture(serverState,hasNote=false,saved={}){
@@ -9,7 +9,7 @@ function fixture(serverState,hasNote=false,saved={}){
  const progress={hasNote,noteDelivered:false,deferred:false,secretStarted:false,secretCompleted:false,topping:null,...saved};
  const dialog={open:true,close(){this.open=false;}};
  const c=vm.createContext({state:{completed:true,stage:6},dialog,
-  window:{dispatchEvent:event=>{events.push(event);trace.push(event.type);}},CustomEvent:class{constructor(type,{detail}){this.type=type;this.detail=detail;}},
+  window:{CampusApp:{presence:{command:async()=>({eligible:false})}},dispatchEvent:event=>{events.push(event);trace.push(event.type);}},CustomEvent:class{constructor(type,{detail}){this.type=type;this.detail=detail;}},
   run:fn=>{pending=fn();},
   stop(){},greetGuide:async()=>{guideTalks++;return greeting;},
   refresh:async()=>{reads++;c.state={...serverState};},

@@ -1,0 +1,4 @@
+제작: imagegen 기본 도구. 참조: manager-poking.png, secret-recipe.png.
+프롬프트: 기존 업적과 같은 두꺼운 초콜릿색 외곽선, 금색 원형 배지와 상단 분홍 하트 보석. 가운데 작은 갈색 앞발이 마지막 한 조각의 짧은 초콜릿 빼빼로를 조심스레 잡고 있음. 초콜릿에 가느다란 금이 있지만 아직 한 조각으로 붙어 있는 상태. 작은 부스러기와 긴장감을 주는 분홍·금색 강조 효과. 하단 크림색 금테 명패에 1/10. 얼굴·몸통·추가 텍스트 없이 작은 크기에서 읽히는 구성, 배지 외부 투명 배경.
+원본 생성 파일은 CODEX_HOME/generated_images에 유지. 프로젝트에는 512×512 알파 WebP로 최적화.
+연결: backend/event_story/achievement_services.py의 FRAGILE_ID 이미지만 교체. last-bite-dialogue.js의 꾸왕이 대화 초상화는 유지.

@@ -32,6 +32,25 @@ class IssuedKey:
 
 
 @dataclass(frozen=True)
+class InternalIdentity:
+    """내부 키(C8) 인증에 성공한 클라이언트. `owner` 는 키의 주인 운영자(사용자 객체) — C8 서비스가 행위자로 쓰고 활성 관리자인지 본다."""
+
+    key_id: uuid.UUID
+    label: str
+    owner: object
+
+
+@dataclass(frozen=True)
+class IssuedInternalKey:
+    """내부 키 발급 결과. **`key` 는 이 한 번만 보인다**(저장하지 않는다)."""
+
+    key_id: uuid.UUID
+    label: str
+    key: str
+    created_at: datetime
+
+
+@dataclass(frozen=True)
 class MediaKeyView:
     key_id: uuid.UUID
     media_id: uuid.UUID

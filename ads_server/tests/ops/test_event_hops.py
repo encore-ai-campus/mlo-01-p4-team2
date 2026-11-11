@@ -16,6 +16,7 @@ from django.db import connection
 from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings, tag
 
 from billing import api as billing
+from campaigns import api as campaigns
 from events import api as events, hops, ndjson, store
 from events.models import EventOutbox
 from events.relay import relay_batch
@@ -142,6 +143,9 @@ class WindowedSummaryTests(Cases, TestCase):
         g = masters.create_segment(w.admin, w.slot.media_id, "mlo", "MLO", now=NOW - DAY)  # 대상 그룹 판: 10-06(--since 앞)·10-08·10-10(열린 창)
         masters.update_segment(w.admin, g.segment_id, 1, name="MLO 과정", now=NOW + DAY)
         masters.update_segment(w.admin, g.segment_id, 2, is_active=False, now=NOW + 3 * DAY)
+        client = masters.authenticate_internal_key(masters.issue_internal_key(w.admin, "모듈", now=NOW).key)  # 광고 카테고리 판(C8, ACW-3): 판 1(10-07)·판 2(10-08)·판 3(10-10, 열린 창)
+        campaigns.write_categories(client, [{"ad_group_id": str(w.group.ad_group_id), "category": 1}], now=NOW + DAY)
+        campaigns.write_weights(client, [{"ad_group_id": str(w.group.ad_group_id), "weight_mlo": 10, "weight_aio": 0, "weight_skn": 0}], now=NOW + 3 * DAY)
 
     def everything(self):
         """전부 읽은 기대 이벤트(예전 방식의 입력)."""
@@ -150,6 +154,7 @@ class WindowedSummaryTests(Cases, TestCase):
     def case_the_source_hop_matches_summarizing_everything_at_once(self):
         docs = self.everything()
         self.assertEqual({d["event_name"] for d in docs}, set(self.STREAM))  # 열 종류가 모두 있다(과금·구성의 첫 정책·광고그룹의 첫 입찰·캠페인 생성·광고그룹 생성과 소재 선택·광고 카테고리 판 1 포함)
+        self.assertEqual(sorted(d["payload"]["version"] for d in docs if d["event_name"] == events.NAMES["ad_group_profile_changed"]), [1, 2, 3])  # 원본 재구성에 판 셋(판 표 O13)
         for since, size in ((None, hops.DAY), (self.SINCE, hops.DAY), (None, hops.HOUR)):
             lines, open_windows, _read, _largest = events.summarize_windows(records.source_streams(), self.AS_OF, 120, since, size)
             self.assertEqual((lines, open_windows), events.summarize(docs, self.AS_OF, 120, since, size), (since, size))

@@ -3,6 +3,8 @@
 금액 계산(적용 금액·하한 판정)은 하지 않는다 — 입찰·상태·기간의 **값만 공급**한다(설계 §4.2, engine 한 곳).
 시계는 `now` 인자로 받는다. 안 주면 `_now()` 한 곳에서만 읽는다.
 """
+import uuid
+from collections import Counter
 from datetime import datetime, timezone as dt_timezone
 from urllib.parse import urlsplit
 
@@ -16,15 +18,16 @@ from django.utils import timezone
 from assets.api import store, validate_image
 from engine.api import effect_of, is_expired
 from events import api as events
-from foundation.api import MAX_AMOUNT, clean_request_key, clean_text, errors, is_int, is_request_key, lock_user, owned_or_404, parse_uuid, parse_uuids, record_audit, require_admin, require_advertiser
+from foundation.api import MAX_AMOUNT, UUID_TEXT, clean_request_key, clean_text, errors, is_int, is_request_key, lock_user, owned_or_404, parse_uuid, parse_uuids, record_audit, require_admin, require_advertiser
 from masters import api as masters
 
 from . import transitions as tr
 from .changes import record_change
 from .errors import LimitExceeded, NotSuspended, ReviewPending
-from .models import AdGroup, AdGroupCreative, AdGroupProfile, AdGroupSegment, AdGroupSlot, Bid, Campaign, CampaignStatus, ChangeTarget, Creative, CreativeImage, ReviewRequest, ReviewStatus
+from .models import CATEGORY_MAX, AdGroup, AdGroupCreative, AdGroupProfile, AdGroupProfileVersion, AdGroupSegment, AdGroupSlot, Bid, Campaign, CampaignStatus, ChangeTarget, Creative, CreativeImage, ReviewRequest, ReviewStatus
 from .types import (
     AdGroupEffects, AdGroupProfileView, AdGroupView, AdvertiserUsage, BidView, CampaignView, CandidateFacts, CreatedAd, CreativeUse, CreativeView, MonitoredCampaign, OwnedCreative,
+    ProfileCreativeView, ProfileSourcePage, ProfileSourceView, ProfileWriteResult,
     ReviewQueueItem, ReviewRequestView, SlotEffect, SuspensionView,
 )
 
@@ -152,8 +155,11 @@ def bid_stream(to_documents):
     return events.table_stream(Bid.objects.all(), "created_at", lambda rows: to_documents([_bid_view(b) for b in rows]))
 
 
-def _record_profile_event(p):
-    """광고 카테고리·가중치 판 하나의 이벤트(`ad.ad_group_profile_changed`) — 표의 줄과 **같은 트랜잭션**에서. 값만 넘긴다(계획 docs/plans/00 D1)."""
+def _record_profile(p):
+    """O12 줄 `p` 의 지금 판을 판 표(O13) 한 줄과 이벤트(`ad.ad_group_profile_changed`) 한 건으로 남긴다 — 줄과 **같은 트랜잭션**에서.
+    O12 를 쓰는 곳(광고 만들기·C8 묶음 쓰기)이 모두 이것을 부른다(O12 = O13 의 최대 판). 이벤트에는 값만 넘긴다(계획 docs/plans/00 D1)."""
+    AdGroupProfileVersion.objects.create(ad_group_id=p.ad_group_id, version=p.version, category=p.category, weight_mlo=p.weight_mlo, weight_aio=p.weight_aio,
+                                         weight_skn=p.weight_skn, changed_at=p.changed_at)
     events.record_ad_group_profile_changed(now=p.changed_at, ad_group_id=p.ad_group_id, version=p.version, category=p.category,
                                            weight_mlo=p.weight_mlo, weight_aio=p.weight_aio, weight_skn=p.weight_skn, changed_at=p.changed_at)
 
@@ -164,14 +170,13 @@ def _profile_view(p):
 
 
 def profile_rows():
-    """광고 카테고리·가중치의 지금 판 전부(`AdGroupProfileView`) — 이벤트 누락 점검·기대 이벤트용 읽기. 지금 줄만 있어 판 하나씩이다(값을 바꾸는 경로가 생기면 판 표가 원천이 된다)."""
-    return (_profile_view(p) for p in AdGroupProfile.objects.iterator(chunk_size=2000))
+    """광고 카테고리·가중치의 판 전부(판 표 O13, `AdGroupProfileView`) — 이벤트 누락 점검·기대 이벤트용 읽기. O13 은 O12 와 같은 속성 이름을 가져 `_profile_view` 를 함께 쓴다."""
+    return (_profile_view(p) for p in AdGroupProfileVersion.objects.iterator(chunk_size=2000))
 
 
 def profile_stream(to_documents):
-    """지금 판을 바뀐 시각(`changed_at`) 창으로 읽는 흐름(구간 manifest 의 원본 구간).
-    ponytail: changed_at 색인이 없어 창마다 표를 다 훑는다 — 광고 수만큼인 작은 표라 그대로 둔다(입찰 흐름과 같다). 값을 바꾸는 경로가 판 표를 더할 때 그 표에 (changed_at) 색인."""
-    return events.table_stream(AdGroupProfile.objects.all(), "changed_at", lambda rows: to_documents([_profile_view(p) for p in rows]))
+    """판을 생긴 시각(`changed_at`) 창으로 읽는 흐름(구간 manifest 의 원본 구간, 색인 `campaigns_profver_changed_idx`)."""
+    return events.table_stream(AdGroupProfileVersion.objects.all(), "changed_at", lambda rows: to_documents([_profile_view(p) for p in rows]))
 
 
 def _current_bid(ad_group):
@@ -592,7 +597,7 @@ def create_ad_group(user, campaign_id, name, slot_ids, bid_amount=None, now=None
         if AdGroup.objects.filter(campaign__owner=user).count() >= settings.MAX_AD_GROUPS_PER_ADVERTISER:
             raise LimitExceeded("광고 개수 상한에 도달했습니다.")
         group = AdGroup.objects.create(campaign=c, name=name, created_at=now, updated_at=now)
-        _record_profile_event(AdGroupProfile.objects.create(ad_group=group, created_at=now, changed_at=now))  # 분류 전·가중치 0·판 1(모델 기본값, 설계 §10 "광고 카테고리·과정 가중치")
+        _record_profile(AdGroupProfile.objects.create(ad_group=group, created_at=now, changed_at=now))  # 분류 전·가중치 0·판 1(모델 기본값, 설계 §10 "광고 카테고리·과정 가중치")
         AdGroupSlot.objects.bulk_create([AdGroupSlot(ad_group=group, slot_id=s) for s in ids])
         bid = Bid.objects.create(ad_group=group, bid_version=1, amount=bid_amount, created_by=user.pk, created_at=now) if bid_amount is not None else None
         if bid is not None:
@@ -1065,6 +1070,13 @@ def candidate_facts_for_slot(slot_id):
     ]
 
 
+def _servable_campaign_q(prefix, now):
+    """캠페인이 내보낼 수 있는가 — 집행 중·일시 중지이고 기간이 끝나지 않았고 광고주가 활성(시작 시각은 보지 않는다). C3 이미지 공개(`is_asset_servable`)와
+    C8 읽기(`profile_sources`)가 같은 조건을 쓴다. 여러 값 관계를 거쳐 걸 때는 다른 조건과 **한 filter() 안에** 둔다(나눠 거르면 서로 다른 연결끼리 조건이 섞인다)."""
+    return (Q(**{f"{prefix}__ends_at__isnull": True}) | Q(**{f"{prefix}__ends_at__gt": now})) & Q(
+        **{f"{prefix}__status__in": [CampaignStatus.ACTIVE, CampaignStatus.PAUSED], f"{prefix}__owner__is_active": True})
+
+
 def is_asset_servable(name, now=None):
     """C3 이미지를 내보내도 되는가: 그 이름을 **보유한**(현재 또는 과거 교체분) 소재가 **연결된 적 있는** 광고그룹 중 하나라도, 그 캠페인이
     ACTIVE·PAUSED 이고 기간이 끝나지 않았으며 광고주가 활성일 때만(6-9c — 소재는 캠페인 밖에 있고, 연결은 끊지 않는다).
@@ -1073,9 +1085,148 @@ def is_asset_servable(name, now=None):
 
     `config` 가 `ASSET_SERVABLE_CHECK` 로 연결한다(assets 는 campaigns 를 import 하지 않는다).
     """
+    # 한 filter() 안에 둔다 — 여러 값 관계(연결)를 나눠 거르면 서로 다른 연결끼리 조건이 섞인다
+    return CreativeImage.objects.filter(_servable_campaign_q("creative__ad_group_links__ad_group__campaign", _now(now)), image_name=name).exists()
+
+
+# ---------------------------------------------------------------- C8 내부 입력 API (ACW-3, 설계 §10 "내부 입력 API(C8)")
+
+BATCH_MAX = 200  # 묶음 쓰기 항목 수 상한(계약 C8 `maxItems`)
+SOURCE_PAGE_MAX = 200  # 읽기 한 페이지 상한(계약 C8 `limit` 최댓값)
+WEIGHT_FIELDS = ("weight_mlo", "weight_aio", "weight_skn")
+
+
+def _has_content(prefix):
+    """소재에 분류할 내용이 있는가 — 이름과 이동 주소가 둘 다 공백만이 아니다(사용자 2026-11-12: 이미지는 기준이 아님)."""
+    return Q(**{f"{prefix}__title__regex": r"\S", f"{prefix}__redirect_url__regex": r"\S"})
+
+
+def _category_problems(item, at):
+    v = item.get("category")
+    if "category" in item and not (is_int(v) and 0 <= v <= CATEGORY_MAX):  # null 은 받지 않는다 — 분류 전으로 되돌리지 않는다(0 = 기타)
+        return [{"pointer": f"{at}/category", "message": f"0 이상 {CATEGORY_MAX} 이하의 정수여야 합니다."}]
+    return []
+
+
+def _weight_problems(item, at):
+    bad = [{"pointer": f"{at}/{f}", "message": "0 이상 100 이하의 정수여야 합니다."}
+           for f in WEIGHT_FIELDS if f in item and not (is_int(item[f]) and 0 <= item[f] <= 100)]
+    if not bad and all(f in item for f in WEIGHT_FIELDS) and sum(item[f] for f in WEIGHT_FIELDS) > 100:
+        bad.append({"pointer": at, "message": "세 가중치의 합은 100 이하여야 합니다."})
+    return bad
+
+
+_CATEGORY_ITEM = (("category",), _category_problems)
+_WEIGHT_ITEM = (WEIGHT_FIELDS, _weight_problems)
+
+
+def write_categories(client, items, now=None):
+    """② 분류 모듈이 광고들의 카테고리만 쓴다. 가중치는 지금 값 그대로. 한 트랜잭션·전부 거절."""
+    return _write_profiles(client, items, _CATEGORY_ITEM, "ad_group.categories_written", now)
+
+
+def write_weights(client, items, now=None):
+    """④ 가중치 모델이 광고들의 세 가중치만 쓴다. 카테고리는 지금 값 그대로. 합 ≤ 100. 한 트랜잭션·전부 거절."""
+    return _write_profiles(client, items, _WEIGHT_ITEM, "ad_group.weights_written", now)
+
+
+def _checked_items(items, fields, problems_of):
+    """형식 검사(DB 없음): 틀린 곳을 **모두** 모아 400, 맞으면 항목마다 광고 ID(`uuid.UUID`). 같은 광고는 UUID 값으로 비교해 두 번째부터 거절."""
+    if not isinstance(items, list) or len(items) > BATCH_MAX:
+        raise _problem("/items", f"항목 {BATCH_MAX}개 이하의 배열이어야 합니다.")
+    expected = {"ad_group_id", *fields}
+    problems, ids, seen = [], [], set()
+    for i, item in enumerate(items):
+        at = f"/items/{i}"
+        if not isinstance(item, dict):
+            problems.append({"pointer": at, "message": "객체여야 합니다."})
+            continue
+        problems += [{"pointer": f"{at}/{f}", "message": "필수입니다."} for f in sorted(expected - item.keys())]
+        problems += [{"pointer": f"{at}/{f}", "message": "알 수 없는 필드입니다."} for f in sorted(item.keys() - expected)]
+        raw = item.get("ad_group_id")
+        ad_group_id = uuid.UUID(raw) if isinstance(raw, str) and UUID_TEXT.fullmatch(raw) else None
+        if "ad_group_id" in item and ad_group_id is None:
+            problems.append({"pointer": f"{at}/ad_group_id", "message": "UUID 형식이어야 합니다."})
+        elif ad_group_id is not None and ad_group_id in seen:
+            problems.append({"pointer": f"{at}/ad_group_id", "message": "같은 광고가 묶음에 두 번 있습니다."})
+        seen.add(ad_group_id)
+        problems += problems_of(item, at)
+        ids.append(ad_group_id)
+    if problems:
+        raise errors.InvalidRequest(errors=problems)
+    return ids
+
+
+def _write_profiles(client, items, kind, action, now):
+    """C8 묶음 쓰기의 흐름 하나(②·④는 바꾸는 필드와 값 검사만 다르다). 주인 확인 → 형식 검사(모두) → 한 트랜잭션에서 광고그룹 행을 ID 순으로 잠그고
+    없는 광고 거절 → 항목마다 보낸 순서대로 created·changed·unchanged → 감사 한 줄. 빈 묶음은 감사만 남는다(`pk__in=[]` 는 DB 를 묻지 않는다).
+    ponytail: 바뀐 항목마다 O12 쓰기·O13·outbox 가 한 문장씩이다 — 묶음 상한 200 이라 많아야 600여 문장. 커지면 O13·outbox 를 bulk_create 로 묶는다."""
+    require_admin(client.owner)  # 키의 주인이 지금도 활성 운영자인가(아니면 403, 검사보다 먼저)
+    fields, problems_of = kind
+    ids = _checked_items(items, fields, problems_of)
     now = _now(now)
-    campaign = "creative__ad_group_links__ad_group__campaign"
-    return CreativeImage.objects.filter(  # 한 filter() 안에 둔다 — 여러 값 관계(연결)를 나눠 거르면 서로 다른 연결끼리 조건이 섞인다
-        Q(**{f"{campaign}__ends_at__isnull": True}) | Q(**{f"{campaign}__ends_at__gt": now}),
-        image_name=name, **{f"{campaign}__status__in": [CampaignStatus.ACTIVE, CampaignStatus.PAUSED], f"{campaign}__owner__is_active": True},
-    ).exists()
+    results, counts = [], Counter()
+    with transaction.atomic():
+        found = set(AdGroup.objects.select_for_update(no_key=True).filter(pk__in=ids).order_by("pk").values_list("pk", flat=True))  # 행은 바꾸지 않는다(updated_at 그대로)
+        missing = [{"pointer": f"/items/{i}/ad_group_id", "message": "광고를 찾을 수 없습니다."} for i, g in enumerate(ids) if g not in found]
+        if missing:
+            raise errors.InvalidRequest(errors=missing)
+        rows = {p.ad_group_id: p for p in AdGroupProfile.objects.filter(ad_group_id__in=ids)}
+        for item, ad_group_id in zip(items, ids):
+            values = {f: item[f] for f in fields}
+            p = rows.get(ad_group_id)
+            if p is None:  # 0005 전에 만든 광고: 보낸 값 + 다른 쪽 초기값으로 판 1(사용자 2026-11-12)
+                p = AdGroupProfile.objects.create(ad_group_id=ad_group_id, created_at=now, changed_at=now, **values)
+                result = "created"
+            elif all(getattr(p, f) == v for f, v in values.items()):
+                result = "unchanged"
+            else:  # 이 입구의 필드만 — 다른 쪽 값은 잠근 뒤 읽은 그대로
+                for f, v in values.items():
+                    setattr(p, f, v)
+                p.version += 1
+                p.changed_at = now
+                p.save(update_fields=[*fields, "version", "changed_at"])
+                result = "changed"
+            if result != "unchanged":
+                _record_profile(p)
+            counts[result] += 1
+            results.append(ProfileWriteResult(ad_group_id=ad_group_id, result=result, profile=_profile_view(p)))
+        _audit(client.owner, action, None, {"client_id": str(client.key_id), "client_label": client.label, "items": len(ids),
+                                            **{k: counts[k] for k in ("created", "changed", "unchanged")}})
+    return results
+
+
+def profile_sources(client, *, unclassified=False, after=None, limit=100, now=None):
+    """①·③ 분류·가중치 모듈이 광고와 그 내용·지금 판을 읽는다. 범위는 `_servable_campaign_q`(C3 와 같은 캠페인 조건)인 광고 가운데
+    내보내는 소재(기본 + 구성별) 중 이름과 이동 주소가 둘 다 있는 소재가 하나 이상인 광고(사용자 2026-11-12). `unclassified` 면 그중 카테고리 NULL(줄 없는 광고 포함)만.
+    광고 ID 오름차순 커서 페이지(`after` 는 입구가 형식을 본 `uuid.UUID`). 질의는 광고 한 번 + 구성별 소재 한 번 — 광고 수와 무관하다."""
+    require_admin(client.owner)
+    if not is_int(limit) or not 1 <= limit <= SOURCE_PAGE_MAX:
+        raise _problem("/limit", f"1 이상 {SOURCE_PAGE_MAX} 이하의 정수여야 합니다.")
+    slot_ok = AdGroupSlot.objects.filter(_has_content("creative"), ad_group=OuterRef("pk"))
+    rows = (AdGroup.objects.filter(_servable_campaign_q("campaign", _now(now)))
+            .annotate(default_ok=_has_content("creative"))  # 기본 소재가 없으면 None — 참·거짓으로만 본다
+            .filter(Q(default_ok=True) | Exists(slot_ok)))
+    if unclassified:
+        rows = rows.filter(profile__category__isnull=True)  # 역방향 일대일이라 LEFT JOIN — 줄이 없는 광고도 걸린다
+    if after is not None:
+        rows = rows.filter(pk__gt=after)
+    page = list(rows.select_related("creative", "profile").order_by("pk")[:limit])
+    by_group = {}
+    for s in AdGroupSlot.objects.filter(_has_content("creative"), ad_group_id__in=[g.pk for g in page]).select_related("creative"):
+        by_group.setdefault(s.ad_group_id, {})[s.creative_id] = s.creative
+
+    def creatives(g):
+        first = [g.creative] if g.default_ok else []
+        rest = sorted((c for c in by_group.get(g.pk, {}).values() if c.creative_id != g.creative_id or not first), key=lambda c: c.creative_id)
+        return tuple(ProfileCreativeView(creative_id=c.creative_id, title=c.title, redirect_url=c.redirect_url, image_name=c.image_name, updated_at=c.updated_at)
+                     for c in first + rest)
+
+    def profile(g):
+        try:
+            return _profile_view(g.profile)
+        except AdGroupProfile.DoesNotExist:
+            return None
+
+    items = tuple(ProfileSourceView(ad_group_id=g.pk, name=g.name, updated_at=g.updated_at, creatives=creatives(g), profile=profile(g)) for g in page)
+    return ProfileSourcePage(items=items, next_after=page[-1].pk if len(page) == limit else None)

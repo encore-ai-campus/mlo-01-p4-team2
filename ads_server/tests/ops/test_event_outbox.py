@@ -107,7 +107,7 @@ class EnqueueTests(Cases, TestCase):
 
     def case_change_events_carry_the_planned_fields_under_their_own_message_key(self):
         """정책·입찰·캠페인·광고그룹·광고 카테고리 이벤트(계획 docs/plans/00 §5.1): 필드는 표 그대로(사유·바꾼 사람·이름 없음), 대상 키는 종류별 대상.
-        광고 카테고리는 판 행이 없어 원천 ID 가 (광고, 판) 문자열이다."""
+        광고 카테고리는 원천 ID 가 판 행(O13) ID 가 아니라 (광고, 판) 문자열이다."""
         slot, policy, ad_group, bid, campaign, change = (uuid.uuid4() for _ in range(6))
         policy_fields = dict(slot_id=slot, bid_policy_id=policy, policy_version=1, floor_amount=100, base_amount=200, cap_amount=300,
                              impression_share=98, click_share=1, conversion_share=1, changed_at=NOW)

@@ -127,7 +127,7 @@ DB 전체를 builtin `C.UTF-8`로 만든다. 그래서 ICU·glibc가 바뀌어�
 | `ad.campaign_changed` v1 | `change_id` | `campaign_id` | `campaign_id`, `change_id`, `change_type`, `previous_value`, `new_value`, `changed_at` |
 | `ad.ad_group_changed` v1 | `change_id` | `ad_group_id` | `ad_group_id`, `campaign_id`, `change_id`, `change_type`, `previous_value`, `new_value`, `changed_at` |
 | `ad.segment_changed` v1 (대상 그룹 타기팅 TG-S1, 2026-11-08 — §8.3) | `segment_version_id` | `segment_id` | `segment_id`, `segment_version_id`, `version`, `media_id`, `code`, `name`, `is_active`, `changed_at` |
-| `ad.ad_group_profile_changed` v1 (광고 카테고리·과정 가중치 ACW-1, 2026-11-11 — 설계서 §10 "광고 카테고리·과정 가중치") | `"<ad_group_id>/<version>"` 문자열(판 행이 없음) | `ad_group_id` | `ad_group_id`, `version`, `category`, `weight_mlo`, `weight_aio`, `weight_skn`, `changed_at` |
+| `ad.ad_group_profile_changed` v1 (광고 카테고리·과정 가중치 ACW-1, 2026-11-11 — 설계서 §10 "광고 카테고리·과정 가중치") | `"<ad_group_id>/<version>"` 문자열(ACW-1 형식. 2026-11-12 ACW-3에서 판 표 O13 `campaigns_ad_group_profile_version`이 생겨 원천이 되었지만 원천 ID는 이 형식 그대로 — 값을 넣는 경로는 C8 내부 API) | `ad_group_id` | `ad_group_id`, `version`, `category`, `weight_mlo`, `weight_aio`, `weight_skn`, `changed_at` |
 
 - (2026-11-04: Kafka 메시지 키는 `event_id`로 바뀌었다 — 설계 §10 C2. `aggregate_id`는 대상 키로 남는다.)
 - `event_id`는 기존 규칙대로 `event_id_of(event_name, source_id)`(UUIDv5)로 만든다.

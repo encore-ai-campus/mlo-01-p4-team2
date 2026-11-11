@@ -54,7 +54,7 @@ def error_page(request, status, title, message):
 
 
 def not_public(request, **kwargs):
-    """매체 API(C1)는 공개하지 않는다 — 게임 백엔드가 백 서버를 내부 주소로 부른다."""
+    """서버 간 API(C1 매체 API·C8 내부 API)는 공개하지 않는다 — 게임 백엔드·내부 모듈이 백 서버를 내부 주소로 부른다."""
     return HttpResponseNotFound()
 
 

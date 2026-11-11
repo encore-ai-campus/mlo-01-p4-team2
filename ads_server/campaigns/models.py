@@ -97,8 +97,8 @@ CATEGORY_MAX = 2**8 - 1  # 범주 8개(설계 §10 "광고 카테고리·과정 
 
 class AdGroupProfile(models.Model):
     """광고 하나의 카테고리(비트)와 과정별 노출 가중치 — 지금 상태 한 줄(설계 §10 "광고 카테고리·과정 가중치", DRD O12). 광고를 만들 때 같은 트랜잭션에서
-    분류 전·가중치 0 으로 생기고, 판마다 `ad.ad_group_profile_changed` 하나(이력은 outbox). 가중치는 지금 광고 선택에 쓰지 않는다. 0005 전에 만든 광고에는 줄이 없다.
-    바꾼 사람 열은 두지 않는다(사용자 결정)."""
+    분류 전·가중치 0 으로 생기고, 판마다 판 표(O13) 한 줄과 `ad.ad_group_profile_changed` 하나. 값은 C8 묶음 쓰기로 바뀐다. 가중치는 지금 광고 선택에 쓰지 않는다.
+    0005 전에 만든 광고에는 C8 값이 처음 올 때까지 줄이 없다. 바꾼 사람 열은 두지 않는다(사용자 결정)."""
 
     profile_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
     ad_group = models.OneToOneField(AdGroup, on_delete=models.PROTECT, related_name="profile")
@@ -118,6 +118,33 @@ class AdGroupProfile(models.Model):
                                    name="campaigns_ad_group_profile_weight_range"),
             models.CheckConstraint(condition=LessThanOrEqual(F("weight_mlo") + F("weight_aio") + F("weight_skn"), 100), name="campaigns_ad_group_profile_weight_sum"),
         ]
+
+
+class AdGroupProfileVersion(AppendOnlyModel):
+    """광고 카테고리·가중치의 판(DRD O13): 줄을 만들 때(판 1)와 값이 바뀔 때마다 그때 상태 전체. 현재 값은 O12(`AdGroupProfile`) = 이 표의 최대 판.
+    `ad.ad_group_profile_changed` 의 원천이다 — 원천 ID 는 이 행의 PK 가 아니라 `profile_source_id(광고, 판)`(ACW-1 형식 그대로)."""
+
+    profile_version_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
+    ad_group = models.ForeignKey(AdGroup, on_delete=models.PROTECT, related_name="profile_versions", db_index=False)  # 유일 제약이 이 열로 시작해 FK 색인이 겹친다
+    version = models.PositiveIntegerField()
+    category = models.IntegerField(null=True, blank=True)
+    weight_mlo = models.SmallIntegerField()
+    weight_aio = models.SmallIntegerField()
+    weight_skn = models.SmallIntegerField()
+    changed_at = models.DateTimeField()
+
+    class Meta:
+        db_table = "campaigns_ad_group_profile_version"
+        constraints = [  # O12 와 같은 규칙, 다른 이름(겹치면 models.E032). 이름 순으로 범위가 합보다 먼저다(O12 와 같은 까닭)
+            models.UniqueConstraint(fields=["ad_group", "version"], name="campaigns_profile_version_per_ad_group"),
+            models.CheckConstraint(condition=Q(category__isnull=True) | Q(category__gte=0, category__lte=CATEGORY_MAX),
+                                   name="campaigns_ad_group_profile_version_category_range"),
+            models.CheckConstraint(condition=Q(weight_mlo__gte=0, weight_mlo__lte=100, weight_aio__gte=0, weight_aio__lte=100, weight_skn__gte=0, weight_skn__lte=100),
+                                   name="campaigns_ad_group_profile_version_weight_range"),
+            models.CheckConstraint(condition=LessThanOrEqual(F("weight_mlo") + F("weight_aio") + F("weight_skn"), 100),
+                                   name="campaigns_ad_group_profile_version_weight_sum"),
+        ]
+        indexes = [models.Index(fields=["changed_at"], name="campaigns_profver_changed_idx")]  # 구간 manifest·정합 도구가 시각 범위로 읽는다
 
 
 class Creative(models.Model):

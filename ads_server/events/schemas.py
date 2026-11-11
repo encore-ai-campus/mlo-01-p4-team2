@@ -36,13 +36,13 @@ _NAMESPACE = uuid.uuid5(uuid.NAMESPACE_DNS, "events.ads-server")
 
 def event_id_of(event_name, source_id):
     """원천 행의 ID(결정·수신함·원장 항목 등)와 이벤트 종류에서 결정적으로 만든 이벤트 ID. 재처리·재전송에도 같은 값이다.
-    광고 카테고리는 판 행이 따로 없어 원천 ID 가 (광고, 판) 문자열이다(`profile_source_id`)."""
+    광고 카테고리는 원천 ID 가 판 행(O13) ID 가 아니라 (광고, 판) 문자열이다(`profile_source_id`)."""
     return uuid.uuid5(_NAMESPACE, f"{event_name}/{source_id}")
 
 
 def profile_source_id(ad_group_id, version):
-    """`ad.ad_group_profile_changed` 의 원천 ID. 지금 상태 한 줄만 있어 (광고, 판)을 이은 문자열이다 — UUID 가 아니다(설계 §10 "광고 카테고리·과정 가중치").
-    값을 바꾸는 경로가 판 표를 더해도 이 형식을 그대로 쓴다 — 바꾸면 이미 나간 이벤트의 ID 와 다시 만든 ID 가 갈린다."""
+    """`ad.ad_group_profile_changed` 의 원천 ID. (광고, 판)을 이은 문자열이다 — UUID 가 아니다(설계 §10 "광고 카테고리·과정 가중치").
+    ACW-1 에서 판 표 없이 정한 형식이고, 판 표(O13, ACW-3)가 생긴 뒤에도 그대로 쓴다 — 바꾸면 이미 나간 이벤트의 ID 와 다시 만든 ID 가 갈린다."""
     return f"{ad_group_id}/{version}"
 
 

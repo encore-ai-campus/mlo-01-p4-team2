@@ -12,6 +12,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import SimpleTestCase, TransactionTestCase, tag
 
+from campaigns import api as campaigns
 from events import api as events
 from events import ndjson, store
 from events.models import EventOutbox
@@ -44,7 +45,7 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         store.ensure()
         self.dir = Path(tempfile.mkdtemp())
         self.addCleanup(__import__("shutil").rmtree, self.dir, True)
-        w = World()
+        w = self.world = World()
         self.decision = records.decide(w.slot.media_id, w.slot.slot_id, subject_id=SUBJECT, now=NOW, rng=Random(1))
         view, _ = records.receive_reaction(w.slot.media_id, self.decision.decision_id, uuid.uuid4(), "IMPRESSION", NOW, {"type": "IMPRESSION"}, now=NOW)
         records.process_reaction(view.inbox_id, now=NOW + timedelta(seconds=7))  # 처리 시각 ≠ 수신 시각
@@ -121,6 +122,9 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
     def case_after_backfill_the_gap_check_and_the_event_verifier_are_clean(self):
         self.wipe()
         self.run_backfill(self.gaps_manifest(), "--apply")
+        client = masters.authenticate_internal_key(masters.issue_internal_key(self.world.admin, "모듈").key)  # C8(ACW-3): 값을 두 번 바꾼 광고의 판 1·2·3 — 원본(판 표 O13)과 outbox 가 같아 누락·유령 0
+        for category in (1, 2):
+            campaigns.write_categories(client, [{"ad_group_id": str(self.world.group.ad_group_id), "category": category}])
         out = self.dir / "after"
         call_command("export_integrity", "--out", str(out), stdout=io.StringIO())  # 문제 없으면 정상 종료
         self.assertEqual(ndjson.read_manifest(ndjson.manifest_path(out, "event_gaps"))["rows"], 0)
@@ -221,6 +225,9 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         ok, text = self.run_backfill(self.forged_manifest([self.line(any_id, source_id=source)], name="forged_string"), "--apply", out="res_string")
         self.assertFalse(ok)
         self.assertIn("형식이 올바르지 않다", text)  # 문자열 원천 ID 는 광고 카테고리 판에서만 받는다
+        ok, text = self.run_backfill(self.forged_manifest([self.line(any_id, source_id=12345)], name="forged_number"), "--apply", out="res_number")
+        self.assertFalse(ok)
+        self.assertIn("형식이 올바르지 않다", text)  # 숫자 원천 ID 도 500(AttributeError)이 아니라 입력 오류다(ACW-3)
 
     def case_a_mismatched_event_name_and_source_kind_is_refused(self):
         self.wipe()

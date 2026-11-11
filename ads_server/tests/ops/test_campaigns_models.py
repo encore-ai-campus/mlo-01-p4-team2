@@ -5,7 +5,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError
 from django.test import TestCase, tag
 
-from campaigns.models import AdGroup, AdGroupProfile, Bid, Campaign, ReviewRequest
+from campaigns.models import AdGroup, AdGroupProfile, AdGroupProfileVersion, Bid, Campaign, ReviewRequest
 from foundation.models import AppendOnlyError
 from tests.support.factories import DAY, NOW, make_advertiser
 from tests.support.cases import Cases
@@ -98,6 +98,32 @@ class BidAndAdGroupModelTests(Cases, TestCase):
         profile()
         with self.assertRaises(IntegrityError), transaction.atomic():
             profile()  # 같은 광고에 둘째 줄
+        with self.assertRaises(ProtectedError):
+            self.group.delete()
+
+    def case_profile_version_values_are_bounded_in_db(self):
+        """판 표(O13, ACW-3)도 O12 와 같은 규칙을 DB 가 막는다 — 다른 제약 이름이고 이름 순으로 범위가 합보다 먼저다(smallint 넘침이 아니라 범위 위반).
+        (광고, 판)은 한 줄, 추가 전용, 광고그룹은 판이 있으면 지울 수 없다."""
+        def version(n, **kw):
+            return AdGroupProfileVersion.objects.create(**{"ad_group": self.group, "version": n, "weight_mlo": 0, "weight_aio": 0, "weight_skn": 0, "changed_at": NOW, **kw})
+
+        good = (dict(), dict(category=0), dict(category=255, weight_mlo=34, weight_aio=33, weight_skn=33), dict(weight_mlo=100), dict(weight_skn=100))
+        for n, kw in enumerate(good, 1):
+            version(n, **kw)
+        bad = {"category_range": [dict(category=-1), dict(category=256)],
+               "weight_range": [dict(weight_mlo=30000, weight_aio=30000),  # 처음에 — 합 CHECK 가 먼저 검사되면 여기서 넘침 오류(DataError)가 난다
+                                dict(weight_mlo=-1), dict(weight_mlo=101), dict(weight_aio=-1), dict(weight_aio=101), dict(weight_skn=-1), dict(weight_skn=101)],
+               "weight_sum": [dict(weight_mlo=50, weight_aio=50, weight_skn=1)]}
+        for name, cases in bad.items():
+            for kw in cases:
+                with self.subTest(kw), self.assertRaises(IntegrityError) as e, transaction.atomic():
+                    version(99, **kw)
+                self.assertIn(f"campaigns_ad_group_profile_version_{name}", str(e.exception))
+        with self.assertRaises(IntegrityError) as e, transaction.atomic():
+            version(1)  # 같은 광고의 같은 판
+        self.assertIn("campaigns_profile_version_per_ad_group", str(e.exception))
+        with self.assertRaises(AppendOnlyError):
+            AdGroupProfileVersion.objects.get(version=1).delete()
         with self.assertRaises(ProtectedError):
             self.group.delete()
 

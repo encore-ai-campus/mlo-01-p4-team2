@@ -10,7 +10,7 @@ from django.test.utils import CaptureQueriesContext
 from assets.api import ImageRejected, asset_exists
 from campaigns import api
 from campaigns.changes import record_change
-from campaigns.models import AdGroup, AdGroupProfile, AdGroupSegment, Bid, ChangeLog, Creative
+from campaigns.models import AdGroup, AdGroupProfile, AdGroupProfileVersion, AdGroupSegment, Bid, Campaign, ChangeLog, Creative
 from events.api import OutsideTransaction, event_id_for
 from events.models import EventOutbox
 from foundation.errors import Conflict, Forbidden, InvalidRequest, StaleVersion
@@ -23,6 +23,24 @@ from tests.support.cases import Cases
 
 SEC = DAY / 86400
 ENDS_AT_ERROR = [{"pointer": "/ends_at", "message": "종료 시각은 시작보다 뒤이고 지금보다 뒤여야 합니다."}]
+
+
+
+def internal_client(admin, label="분류 모듈"):
+    """C8 시험: 관리자가 발급한 내부 키로 인증한 클라이언트(`InternalIdentity`)."""
+    return masters.authenticate_internal_key(masters.issue_internal_key(admin, label, now=NOW).key)
+
+
+def bare_ad_group(campaign_id, creative_id=None, name="옛 광고"):
+    """0005 전에 만든 광고처럼 카테고리 줄이 없는 광고그룹(ORM 으로만 — 광고 만들기 서비스는 줄을 함께 만든다)."""
+    return AdGroup.objects.create(campaign_id=campaign_id, name=name, creative_id=creative_id, created_at=NOW, updated_at=NOW)
+
+
+def ad_with_creative(w, campaign_id, name, color):
+    """`w.slot` 에 놓인 광고 하나와 그 기본 소재(이미지 색 `color` — 광고마다 다른 이미지). 광고 ID 를 돌려준다."""
+    g = api.create_ad_group(w.adv, campaign_id, name, [w.slot.slot_id], now=NOW).ad_group_id
+    api.create_creative(w.adv, g, f"{name} 소재", "https://example.com/x", png_file(color), now=NOW)
+    return g
 
 
 class CampaignServiceTests(Cases, TestCase):
@@ -442,6 +460,296 @@ class CampaignServiceTests(Cases, TestCase):
         self.assertEqual([(f.ad_group_id, f.creative_id) for f in api.candidate_facts_for_slot(other.slot_id)], [(w.group.ad_group_id, c.creative_id)])
         self.assertEqual(api.candidate_facts_for_slot(w.slot.slot_id), [])
 
+    # ---------------------------------------------------------------- C8 내부 입력 API(ACW-3, 설계 §10 "내부 입력 API(C8)") — 쓰기
+
+    def case_c8_categories_create_change_or_leave_each_ad_in_order(self):
+        """② 항목마다 보낸 순서대로: 줄이 없는 광고(0005 전)는 보낸 값 + 가중치 0·0·0 으로 판 1(created), 값이 다르면 판 + 1(changed), 같으면 아무것도 쓰지 않음(unchanged).
+        만들거나 바꾼 항목마다 판 표(O13) 한 줄과 이벤트 한 건이고 O12 = O13 의 최대 판이다. 같은 광고는 대·소문자가 달라도 같은 광고다."""
+        w, client = self.w, internal_client(self.w.admin)
+        bare, g = bare_ad_group(w.campaign.campaign_id, w.creative.creative_id), w.group.ad_group_id
+        later = NOW + SEC
+        out = api.write_categories(client, [{"ad_group_id": str(bare.pk), "category": 3}, {"ad_group_id": str(g), "category": 5}], now=later)
+        self.assertEqual([(r.ad_group_id, r.result, r.profile.version, r.profile.category, r.profile.changed_at) for r in out],
+                         [(bare.pk, "created", 1, 3, later), (g, "changed", 2, 5, later)])
+        p = AdGroupProfile.objects.get(ad_group=bare)
+        self.assertEqual((p.weight_mlo, p.weight_aio, p.weight_skn, p.created_at, p.changed_at), (0, 0, 0, later, later))
+        again = api.write_categories(client, [{"ad_group_id": str(g).upper(), "category": 5}], now=later + SEC)
+        self.assertEqual([(r.result, r.profile.version, r.profile.changed_at) for r in again], [("unchanged", 2, later)])
+        versions = list(AdGroupProfileVersion.objects.order_by("ad_group_id", "version").values_list("ad_group_id", "version", "category", "changed_at"))
+        self.assertEqual(sorted(versions), sorted([(g, 1, None, NOW), (g, 2, 5, later), (bare.pk, 1, 3, later)]))
+        for row in AdGroupProfile.objects.all():  # 지금 줄 = 판 표의 최대 판(네 값까지)
+            top = AdGroupProfileVersion.objects.filter(ad_group_id=row.ad_group_id).order_by("-version").first()
+            self.assertEqual((top.version, top.category, top.weight_mlo, top.weight_aio, top.weight_skn, top.changed_at),
+                             (row.version, row.category, row.weight_mlo, row.weight_aio, row.weight_skn, row.changed_at))
+        events = EventOutbox.objects.filter(event_name="ad.ad_group_profile_changed")
+        self.assertEqual(sorted(events.values_list("event_id", flat=True)),
+                         sorted(event_id_for("ad.ad_group_profile_changed", f"{a}/{v}") for a, v, _c, _t in versions))
+        self.assertEqual(events.get(event_id=event_id_for("ad.ad_group_profile_changed", f"{g}/2")).payload,
+                         {"ad_group_id": str(g), "version": 2, "category": 5, "weight_mlo": 0, "weight_aio": 0, "weight_skn": 0, "changed_at": later.isoformat()})
+        self.assertEqual(AdGroup.objects.get(pk=g).updated_at, NOW)  # 광고그룹 행은 잠그기만 하고 쓰지 않는다
+
+    def case_c8_weights_write_leaves_the_category(self):
+        """④ 는 가중치만, ② 는 카테고리만 바꾼다 — 서로 덮지 않는다(사용자 2026-11-12). 줄이 없는 광고는 ④ 에서 카테고리 NULL 로 판 1."""
+        w, client = self.w, internal_client(self.w.admin)
+        bare, g = bare_ad_group(w.campaign.campaign_id, w.creative.creative_id), w.group.ad_group_id
+        api.write_categories(client, [{"ad_group_id": str(g), "category": 7}], now=NOW + SEC)
+        out = api.write_weights(client, [{"ad_group_id": str(g), "weight_mlo": 50, "weight_aio": 30, "weight_skn": 20},
+                                         {"ad_group_id": str(bare.pk), "weight_mlo": 0, "weight_aio": 100, "weight_skn": 0}], now=NOW + 2 * SEC)
+        self.assertEqual([(r.result, r.profile.version, r.profile.category, r.profile.weight_mlo, r.profile.weight_aio, r.profile.weight_skn) for r in out],
+                         [("changed", 3, 7, 50, 30, 20), ("created", 1, None, 0, 100, 0)])
+        api.write_categories(client, [{"ad_group_id": str(g), "category": 9}], now=NOW + 3 * SEC)
+        p = AdGroupProfile.objects.get(ad_group_id=g)
+        self.assertEqual((p.version, p.category, p.weight_mlo, p.weight_aio, p.weight_skn), (4, 9, 50, 30, 20))  # 카테고리 쓰기가 가중치를 되돌리지 않는다
+        same = api.write_weights(client, [{"ad_group_id": str(g), "weight_mlo": 50, "weight_aio": 30, "weight_skn": 20}], now=NOW + 4 * SEC)
+        self.assertEqual([(r.result, r.profile.version) for r in same], [("unchanged", 4)])
+        self.assertEqual(AdGroupProfileVersion.objects.filter(ad_group_id=g).count(), 4)
+
+    def case_c8_a_batch_is_audited_once_by_the_key_owner(self):
+        """감사는 묶음 한 번에 한 줄: 행위자 = 키의 주인 운영자, 대상 없음, `detail` 은 키 ID·이름과 항목 수·결과별 수. 모두 unchanged 여도, 빈 묶음이어도 한 줄.
+        키(평문)·해시는 남지 않는다."""
+        w = self.w
+        issued = masters.issue_internal_key(w.admin, "분류 모듈", now=NOW)
+        client = masters.authenticate_internal_key(issued.key)
+        bare, g = bare_ad_group(w.campaign.campaign_id, w.creative.creative_id), w.group.ad_group_id
+        other = api.create_ad_group(w.adv, w.campaign.campaign_id, "다른 광고", [w.slot.slot_id], now=NOW).ad_group_id
+        api.write_categories(client, [{"ad_group_id": str(bare.pk), "category": 1}, {"ad_group_id": str(g), "category": 2},
+                                      {"ad_group_id": str(other), "category": 2}], now=NOW + SEC)
+        api.write_categories(client, [{"ad_group_id": str(g), "category": 2}], now=NOW + 2 * SEC)
+        written = api.write_weights(client, [], now=NOW + 3 * SEC)
+        self.assertEqual(written, [])
+        logs = list(AuditLog.objects.filter(action__in=["ad_group.categories_written", "ad_group.weights_written"]).order_by("created_at", "pk"))
+        base = {"client_id": str(issued.key_id), "client_label": "분류 모듈"}
+        self.assertEqual([(a.action, a.actor_id, a.actor_username, a.target_type, a.target_id, a.detail) for a in logs], [
+            ("ad_group.categories_written", w.admin.pk, w.admin.username, "", "", {**base, "items": 3, "created": 1, "changed": 2, "unchanged": 0}),
+            ("ad_group.categories_written", w.admin.pk, w.admin.username, "", "", {**base, "items": 1, "created": 0, "changed": 0, "unchanged": 1}),
+            ("ad_group.weights_written", w.admin.pk, w.admin.username, "", "", {**base, "items": 0, "created": 0, "changed": 0, "unchanged": 0}),
+        ])
+        secret = issued.key.split(".", 1)[1]
+        self.assertNotIn(secret, str(list(AuditLog.objects.values_list("detail", flat=True))))
+        self.assertEqual(AdGroupProfileVersion.objects.count(), 5)  # World·다른 광고의 판 1 둘 + 바뀐 둘 + 만든 하나(같은 값·빈 묶음은 아무것도 쓰지 않는다)
+
+    def case_c8_a_batch_with_any_error_writes_nothing(self):
+        """한 트랜잭션·전부 거절(사용자 2026-11-12): 형식·범위·합·같은 광고 두 번은 모든 항목에서 틀린 곳을 **모두** 모아 400, DB 를 열지 않는다.
+        형식이 맞으면 없는 광고를 모아 400. 어느 쪽이든 O12·O13·outbox·감사가 그대로다."""
+        w, client = self.w, internal_client(self.w.admin)
+        g = str(w.group.ad_group_id)
+        ids = [str(uuid.uuid4()) for _ in range(9)]
+
+        def state():
+            return (list(AdGroupProfile.objects.values_list("ad_group_id", "version", "category", "weight_mlo")), AdGroupProfileVersion.objects.count(),
+                    EventOutbox.objects.count(), AuditLog.objects.filter(action__endswith="_written").count())
+
+        before = state()
+        categories = [
+            "x", {"ad_group_id": g}, {"ad_group_id": ids[0], "category": 1, "extra": 1}, {"ad_group_id": "not-a-uuid", "category": 1},
+            {"ad_group_id": g.upper(), "category": 1},
+            {"ad_group_id": ids[1], "category": -1}, {"ad_group_id": ids[2], "category": 256}, {"ad_group_id": ids[3], "category": "1"},
+            {"ad_group_id": ids[4], "category": True}, {"ad_group_id": ids[5], "category": 1.0}, {"ad_group_id": ids[6], "category": None},
+        ]
+        with self.assertRaises(InvalidRequest) as e:
+            api.write_categories(client, categories, now=NOW)
+        self.assertEqual([x["pointer"] for x in e.exception.errors], [
+            "/items/0", "/items/1/category", "/items/2/extra", "/items/3/ad_group_id", "/items/4/ad_group_id",
+            "/items/5/category", "/items/6/category", "/items/7/category", "/items/8/category", "/items/9/category", "/items/10/category",
+        ])
+        self.assertEqual(e.exception.errors[4]["message"], "같은 광고가 묶음에 두 번 있습니다.")
+        weights = [
+            {"ad_group_id": ids[0], "weight_mlo": -1, "weight_aio": 101, "weight_skn": None},
+            {"ad_group_id": ids[1], "weight_mlo": True, "weight_aio": 0, "weight_skn": 0},
+            {"ad_group_id": ids[2], "weight_mlo": 50, "weight_aio": 50, "weight_skn": 1},
+            {"ad_group_id": ids[3], "weight_mlo": 1, "weight_aio": 1},
+        ]
+        with self.assertRaises(InvalidRequest) as e:
+            api.write_weights(client, weights, now=NOW)
+        self.assertEqual([x["pointer"] for x in e.exception.errors], [
+            "/items/0/weight_mlo", "/items/0/weight_aio", "/items/0/weight_skn", "/items/1/weight_mlo", "/items/2", "/items/3/weight_skn",
+        ])
+        with self.assertRaises(InvalidRequest) as e:  # 형식은 맞고 둘째·넷째 광고가 없다 — 첫째(있는 광고)도 쓰지 않는다
+            api.write_categories(client, [{"ad_group_id": g, "category": 1}, {"ad_group_id": ids[7], "category": 1}, {"ad_group_id": ids[8], "category": 2}], now=NOW)
+        self.assertEqual([(x["pointer"], x["message"]) for x in e.exception.errors],
+                         [("/items/1/ad_group_id", "광고를 찾을 수 없습니다."), ("/items/2/ad_group_id", "광고를 찾을 수 없습니다.")])
+        for bad in ({"items": []}, "x", None, [{"ad_group_id": g, "category": 1}] * 201):
+            with self.subTest(type(bad)), self.assertRaises(InvalidRequest) as e:
+                api.write_categories(client, bad, now=NOW)
+            self.assertEqual([x["pointer"] for x in e.exception.errors], ["/items"])  # 배열이 아니거나 201개 이상이면 위치 하나
+        self.assertEqual(state(), before)
+
+    def case_c8_batch_size_limits_and_the_empty_batch(self):
+        """묶음은 0~200개(사용자 2026-11-12). 200개는 되고, 빈 묶음은 아무것도 바꾸지 않고 감사 한 줄만(모듈이 돌았다는 기록)."""
+        w, client = self.w, internal_client(self.w.admin)
+        groups = AdGroup.objects.bulk_create([AdGroup(campaign_id=w.campaign.campaign_id, name=f"광고 {i}", created_at=NOW, updated_at=NOW) for i in range(200)])
+        out = api.write_weights(client, [{"ad_group_id": str(x.pk), "weight_mlo": 10, "weight_aio": 10, "weight_skn": 10} for x in groups], now=NOW)
+        self.assertEqual({r.result for r in out}, {"created"})
+        self.assertEqual(len(out), 200)
+        before = (AdGroupProfile.objects.count(), AdGroupProfileVersion.objects.count(), EventOutbox.objects.count())
+        with CaptureQueriesContext(connection) as queries:
+            self.assertEqual(api.write_categories(client, [], now=NOW), [])
+        self.assertEqual([q["sql"].split()[:3] for q in queries if not q["sql"].startswith(("SAVEPOINT", "RELEASE SAVEPOINT"))],
+                         [["INSERT", "INTO", '"foundation_audit_log"']])  # 감사 한 줄뿐(빈 ID 목록은 DB 에 묻지 않는다)
+        self.assertEqual((AdGroupProfile.objects.count(), AdGroupProfileVersion.objects.count(), EventOutbox.objects.count()), before)
+        self.assertEqual(AuditLog.objects.filter(action="ad_group.categories_written").get().detail["items"], 0)
+
+    def case_c8_ads_of_ended_campaigns_can_be_written(self):
+        """끝난 캠페인의 광고에도 쓴다(설계 §4.5 예외 — 분석·ML 용 값이고 서빙·과금에 쓰지 않는다)."""
+        w, client = self.w, internal_client(self.w.admin)
+        api.end_campaign(w.adv, w.campaign.campaign_id, now=NOW)
+        out = api.write_categories(client, [{"ad_group_id": str(w.group.ad_group_id), "category": 4}], now=NOW + SEC)
+        self.assertEqual([(r.result, r.profile.version) for r in out], [("changed", 2)])
+
+    def case_c8_a_key_whose_owner_is_no_longer_an_admin_is_refused(self):
+        """키의 주인이 비활성화되거나 관리자가 아니게 되면 읽기·두 쓰기 모두 403 이고 아무것도 쓰지 않는다 — 인증은 주인을 보지 않고 서비스가 본다."""
+        w = self.w
+        g = str(w.group.ad_group_id)
+        for change in ({"is_active": False}, {"role": "advertiser"}):
+            owner = make_admin()
+            issued = masters.issue_internal_key(owner, "모듈", now=NOW)
+            for field, value in change.items():
+                setattr(owner, field, value)
+            owner.save()
+            client = masters.authenticate_internal_key(issued.key)
+            self.assertIsNotNone(client)
+            with self.subTest(change):
+                for call in (lambda: api.profile_sources(client, now=NOW), lambda: api.write_categories(client, [{"ad_group_id": g, "category": 1}], now=NOW),
+                             lambda: api.write_weights(client, [], now=NOW)):
+                    with self.assertRaises(Forbidden):
+                        call()
+        self.assertEqual((AdGroupProfileVersion.objects.count(), AuditLog.objects.filter(action__endswith="_written").count()), (1, 0))
+
+    # ---------------------------------------------------------------- C8 — 읽기
+
+    def case_c8_reads_only_live_ads_with_content(self):
+        """범위(사용자 2026-11-12): 캠페인이 집행 중·일시 중지이고 기간이 끝나지 않았고 광고주가 활성(C3 와 같은 조건 — 시작 전도 나옴, 광고 OFF 도 나옴)이며,
+        내보내는 소재 중 이름과 이동 주소가 **둘 다** 있는 소재가 하나 이상인 광고. 이미지는 기준이 아니다."""
+        w, client = self.w, internal_client(self.w.admin)
+        listed = lambda: {s.ad_group_id for s in api.profile_sources(client, now=NOW).items}  # noqa: E731
+        base = w.group.ad_group_id
+        no_creative = api.create_ad_group(w.adv, w.campaign.campaign_id, "소재 없음", [w.slot.slot_id], now=NOW).ad_group_id
+        off = ad_with_creative(w, w.campaign.campaign_id, "꺼진 광고", color=(1, 1, 1))
+        api.update_ad_group(w.adv, off, {"enabled": False}, now=NOW)
+        later = api.create_campaign(w.adv, "시작 전", NOW + DAY, None, 1000, now=NOW)
+        not_started = ad_with_creative(w, later.campaign_id, "시작 전 광고", color=(2, 2, 2))
+        paused_c = api.create_campaign(w.adv, "일시 중지", NOW - DAY, None, 1000, now=NOW)
+        paused = ad_with_creative(w, paused_c.campaign_id, "일시 중지 광고", color=(3, 3, 3))
+        api.update_campaign(w.adv, paused_c.campaign_id, {"status": "PAUSED"}, now=NOW)
+        self.assertEqual(listed(), {base, off, not_started, paused})
+        self.assertNotIn(no_creative, listed())
+        # 이름 또는 이동 주소가 공백뿐이면 그 소재는 내용이 없다 — 같은 이미지를 쓰는 다른 소재가 있어도 그 소재의 이름·링크로 본다
+        Creative.objects.filter(pk=w.creative.creative_id).update(title="   ")
+        self.assertNotIn(base, listed())
+        Creative.objects.filter(pk=w.creative.creative_id).update(title="제목", redirect_url=" \t")
+        self.assertNotIn(base, listed())
+        Creative.objects.filter(pk=w.creative.creative_id).update(redirect_url="https://example.com/landing")
+        self.assertIn(base, listed())
+        # 캠페인 조건으로 빠지는 광고: 관리자 중단·종료·기간 지남·광고주 비활성
+        Campaign.objects.filter(pk=paused_c.campaign_id).update(status="SUSPENDED")
+        Campaign.objects.filter(pk=later.campaign_id).update(status="ENDED")
+        self.assertEqual(listed(), {base, off})
+        self.assertEqual({s.ad_group_id for s in api.profile_sources(client, now=NOW + 11 * DAY).items}, set())  # World 의 캠페인은 NOW + 10일에 끝난다
+        w.adv.is_active = False
+        w.adv.save()
+        self.assertEqual(listed(), set())
+
+    def case_c8_reads_unclassified_ads_including_those_without_a_row(self):
+        """① 미분류 = 카테고리 NULL 인 광고와 줄이 없는 광고(0005 전). 분류하면(0 = 기타 포함) 다음 읽기에서 빠진다. ③ 은 같은 모양으로 전부."""
+        w, client = self.w, internal_client(self.w.admin)
+        bare, g = bare_ad_group(w.campaign.campaign_id, w.creative.creative_id), w.group.ad_group_id
+        unclassified = lambda: [s.ad_group_id for s in api.profile_sources(client, unclassified=True, now=NOW).items]  # noqa: E731
+        self.assertEqual(unclassified(), sorted([bare.pk, g]))
+        page = {s.ad_group_id: s for s in api.profile_sources(client, now=NOW).items}
+        self.assertIsNone(page[bare.pk].profile)
+        self.assertEqual((page[g].profile.version, page[g].profile.category), (1, None))
+        api.write_categories(client, [{"ad_group_id": str(g), "category": 0}], now=NOW)
+        self.assertEqual(unclassified(), [bare.pk])
+        api.write_weights(client, [{"ad_group_id": str(bare.pk), "weight_mlo": 1, "weight_aio": 0, "weight_skn": 0}], now=NOW)
+        self.assertEqual(unclassified(), [bare.pk])  # 가중치만 들어온 광고는 아직 분류 전
+        api.write_categories(client, [{"ad_group_id": str(bare.pk), "category": 2}], now=NOW)
+        self.assertEqual(unclassified(), [])
+        self.assertEqual(sorted(s.ad_group_id for s in api.profile_sources(client, now=NOW).items), sorted([bare.pk, g]))
+
+    def case_c8_read_creatives_are_default_first_then_by_id(self):
+        """소재 목록: 기본 소재(내용이 있을 때) 다음 구성별 소재를 소재 ID 순으로, 같은 소재는 한 번. 연결만 된 소재는 나오지 않는다. 기본 소재가 없는 광고도 구성별 소재로 나온다."""
+        w, client = self.w, internal_client(self.w.admin)
+        s2, s3 = make_slot(w.admin), make_slot(w.admin)
+        g = api.create_ad_group(w.adv, w.campaign.campaign_id, "구성 셋", [w.slot.slot_id, s2.slot_id, s3.slot_id], now=NOW).ad_group_id
+        default = api.create_creative(w.adv, g, "기본", "https://example.com/d", png_file((10, 10, 10)), now=NOW).creative_id
+        a = api.create_creative(w.adv, None, "가", "https://example.com/a", png_file((11, 11, 11)), now=NOW).creative_id
+        b = api.create_creative(w.adv, None, "나", "https://example.com/b", png_file((12, 12, 12)), now=NOW).creative_id
+        linked = api.create_creative(w.adv, None, "연결만", "https://example.com/l", png_file((13, 13, 13)), now=NOW).creative_id
+        api.link_creative(w.adv, g, linked, now=NOW)
+        for slot, creative in ((w.slot, b), (s2, a), (s3, default)):
+            api.select_slot_creative(w.adv, g, slot.slot_id, creative, now=NOW)
+        item = {s.ad_group_id: s for s in api.profile_sources(client, now=NOW).items}[g]
+        self.assertEqual([c.creative_id for c in item.creatives], [default, *sorted([a, b])])
+        c = item.creatives[0]
+        self.assertEqual((c.title, c.redirect_url), ("기본", "https://example.com/d"))
+        no_default = api.create_ad_group(w.adv, w.campaign.campaign_id, "기본 없음", [w.slot.slot_id], now=NOW).ad_group_id
+        api.select_slot_creative(w.adv, no_default, w.slot.slot_id, a, now=NOW)
+        item = {s.ad_group_id: s for s in api.profile_sources(client, now=NOW).items}[no_default]
+        self.assertEqual([c.creative_id for c in item.creatives], [a])
+        Creative.objects.filter(pk=default).update(title="")  # 기본 소재에 내용이 없으면 구성별 소재만
+        item = {s.ad_group_id: s for s in api.profile_sources(client, now=NOW).items}[g]
+        self.assertEqual([c.creative_id for c in item.creatives], sorted([a, b]))
+
+    def case_c8_read_pages_follow_the_id_cursor(self):
+        """광고 ID 오름차순 커서: `limit` 1~200(그 밖은 400 /limit), `after` 다음부터, 페이지가 차지 않으면 `next_after` None. 훑는 사이 만든 광고(ID 가 더 큼)는 뒤 페이지에 나오고
+        어떤 광고도 두 번 나오지 않는다."""
+        w, client = self.w, internal_client(self.w.admin)
+        for i in range(3):
+            ad_with_creative(w, w.campaign.campaign_id, f"광고 {i}", color=(20 + i, 0, 0))
+        everything = [s.ad_group_id for s in api.profile_sources(client, now=NOW).items]
+        self.assertEqual(everything, sorted(everything))
+        first = api.profile_sources(client, limit=2, now=NOW)
+        self.assertEqual(([s.ad_group_id for s in first.items], first.next_after), (everything[:2], everything[1]))
+        newer = ad_with_creative(w, w.campaign.campaign_id, "훑는 중에", color=(30, 0, 0))
+        seen, after = [s.ad_group_id for s in first.items], first.next_after
+        while after is not None:
+            page = api.profile_sources(client, after=after, limit=2, now=NOW)
+            seen += [s.ad_group_id for s in page.items]
+            after = page.next_after
+        self.assertEqual(seen, everything + [newer])
+        self.assertEqual(len(api.profile_sources(client, limit=200, now=NOW).items), 5)
+        tail = api.profile_sources(client, limit=1, after=newer, now=NOW)
+        self.assertEqual((tail.items, tail.next_after), ((), None))
+        for bad in (0, 201, True, "5", None):
+            with self.subTest(bad), self.assertRaises(InvalidRequest) as e:
+                api.profile_sources(client, limit=bad, now=NOW)
+            self.assertEqual([x["pointer"] for x in e.exception.errors], ["/limit"])
+
+    def case_c8_read_query_count_does_not_grow_with_ads(self):
+        """질의는 광고 한 번 + 구성별 소재 한 번 — 광고 하나일 때와 구성별 소재가 있는 광고 여럿일 때 같다."""
+        w, client = self.w, internal_client(self.w.admin)
+        with CaptureQueriesContext(connection) as one:
+            self.assertEqual(len(api.profile_sources(client, now=NOW).items), 1)
+        for i in range(4):
+            g = ad_with_creative(w, w.campaign.campaign_id, f"광고 {i}", color=(40 + i, 0, 0))
+            extra = api.create_creative(w.adv, None, f"구성 {i}", "https://example.com/s", png_file((50 + i, 0, 0)), now=NOW).creative_id
+            api.select_slot_creative(w.adv, g, w.slot.slot_id, extra, now=NOW)
+        bare_ad_group(w.campaign.campaign_id, w.creative.creative_id)
+        with CaptureQueriesContext(connection) as many:
+            page = api.profile_sources(client, now=NOW)
+        self.assertEqual(len(page.items), 6)
+        self.assertEqual(sum(len(s.creatives) for s in page.items), 1 + 4 * 2 + 1)
+        self.assertEqual(len(many), len(one))
+        self.assertEqual(len(one), 2)
+
+    def case_c8_reads_the_same_campaign_condition_as_public_images(self):
+        """캠페인 조건은 C3 이미지 공개(`is_asset_servable`)와 같은 Q 하나다: 같은 광고 세계에서 목록에 나온 광고의 소재 이미지는 모두 열리고,
+        캠페인 조건으로 빠진 광고만 쓰는 이미지는 열리지 않는다. 내용 조건으로만 빠진 광고는 이 대조에서 뺀다(C3 는 내용 조건을 보지 않는다)."""
+        w, client = self.w, internal_client(self.w.admin)
+        worlds = {}
+        for i, (status, starts, ends) in enumerate((("ACTIVE", NOW - DAY, None), ("PAUSED", NOW - DAY, NOW + DAY), ("ACTIVE", NOW + DAY, None),
+                                                    ("SUSPENDED", NOW - DAY, None), ("ENDED", NOW - DAY, None), ("ACTIVE", NOW - 2 * DAY, NOW - DAY))):
+            c = api.create_campaign(w.adv, f"캠페인 {i}", NOW - 3 * DAY, None, 1000, now=NOW - 3 * DAY)
+            g = ad_with_creative(w, c.campaign_id, f"광고 {i}", color=(60 + i, 0, 0))
+            Campaign.objects.filter(pk=c.campaign_id).update(status=status, starts_at=starts, ends_at=ends)
+            worlds[g] = AdGroup.objects.get(pk=g).creative.image_name
+        listed = {s.ad_group_id: s for s in api.profile_sources(client, now=NOW).items}
+        for g, image in worlds.items():
+            self.assertEqual(g in listed, api.is_asset_servable(image, now=NOW), g)
+            if g in listed:
+                self.assertTrue(all(api.is_asset_servable(c.image_name, now=NOW) for c in listed[g].creatives))
+        self.assertEqual(sum(g in listed for g in worlds), 3)
+
     def test_campaign_service(self):
         self.run_cases()
 
@@ -537,6 +845,21 @@ class ImageHoldingTests(Cases, TestCase):
             for name in (old_url_name, new_name):
                 self.assertEqual(client.get(f"/assets/{name}").status_code, 404, name)
         self.assertFalse(api.is_asset_servable(old_url_name, now=NOW + 11 * DAY))
+
+    def case_one_ad_cannot_fill_the_period_and_another_the_status(self):
+        """`is_asset_servable` 의 캠페인 조건은 연결 하나에 함께 걸린다(`_servable_campaign_q` 를 한 filter() 안에): **소재 하나**가 두 광고에 연결되어 있고, A 는 집행 중이지만
+        기간이 지났고 B 는 종료(`ENDED`)이며 끝 시각이 없다 — 조건을 나눠 거르면 B 의 연결이 기간을, A 의 연결이 상태를 채워 열린다(이미지 보유 행 하나에 연결 둘).
+        같은 세계에서 C8 읽기에도 둘 다 나오지 않는다."""
+        w = World()
+        image, later = w.creative.image_name, NOW + 2 * DAY
+        Campaign.objects.filter(pk=w.campaign.campaign_id).update(ends_at=NOW + DAY)  # A: 집행 중, 기간은 NOW + 1일에 끝남
+        ended = api.create_campaign(w.adv, "끝남", NOW - DAY, None, 1000, now=NOW)
+        b = api.create_ad_group(w.adv, ended.campaign_id, "B", [w.slot.slot_id], now=NOW).ad_group_id
+        api.link_creative(w.adv, b, w.creative.creative_id, now=NOW)  # 같은 소재를 B 에도(끝나기 전에 연결)
+        Campaign.objects.filter(pk=ended.campaign_id).update(status="ENDED", ends_at=None)
+        self.assertTrue(api.is_asset_servable(image, now=NOW))  # 그때는 A 가 둘 다 채운다
+        self.assertFalse(api.is_asset_servable(image, now=later))
+        self.assertEqual(api.profile_sources(internal_client(w.admin), now=later).items, ())
 
     def test_image_holding(self):
         self.run_cases()
@@ -731,7 +1054,8 @@ class CreateAdTests(Cases, TestCase):
 
     def assertNothingCreated(self):
         self.assertEqual((AdGroup.objects.count(), Bid.objects.count(), Creative.objects.count()), (0, 0, 0))
-        self.assertEqual((AdGroupProfile.objects.count(), EventOutbox.objects.filter(event_name="ad.ad_group_profile_changed").count()), (0, 0))  # 카테고리 줄과 그 이벤트도 함께 되돌려진다
+        self.assertEqual((AdGroupProfile.objects.count(), AdGroupProfileVersion.objects.count(), EventOutbox.objects.filter(event_name="ad.ad_group_profile_changed").count()),
+                         (0, 0, 0))  # 카테고리 줄·판과 그 이벤트도 함께 되돌려진다
         self.assertFalse(AuditLog.objects.filter(action__in=["ad_group.created", "creative.created"]).exists())
 
     def case_creates_the_ad_group_and_its_creative_in_one_go(self):
@@ -750,6 +1074,8 @@ class CreateAdTests(Cases, TestCase):
         self.assertEqual((p.ad_group_id, p.category, p.weight_mlo, p.weight_aio, p.weight_skn, p.version, p.created_at, p.changed_at),
                          (ad.ad_group.ad_group_id, None, 0, 0, 0, 1, NOW, NOW))
         self.assertNotIn("changed_by", {f.name for f in AdGroupProfile._meta.get_fields()})  # 바꾼 사람 열은 두지 않는다(사용자 결정)
+        v = AdGroupProfileVersion.objects.get()  # 판 표(O13)에도 판 1 한 줄 = 지금 줄(ACW-3)
+        self.assertEqual((v.ad_group_id, v.version, v.category, v.weight_mlo, v.weight_aio, v.weight_skn, v.changed_at), (p.ad_group_id, 1, None, 0, 0, 0, NOW))
         row = EventOutbox.objects.get(event_name="ad.ad_group_profile_changed")
         gid = ad.ad_group.ad_group_id
         self.assertEqual((row.event_id, row.aggregate_id, row.schema_version, row.created_at),

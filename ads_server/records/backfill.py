@@ -91,7 +91,7 @@ def read_items(manifest_path):
             # 광고 카테고리 판만 원천 ID 가 (광고, 판) 문자열이다(events.profile_source_id) — 다른 종류는 그대로 UUID 만 받는다
             source_id = record["source_id"] if SOURCE_KINDS.get(name) == "ad_group_profile" and isinstance(record["source_id"], str) else uuid.UUID(record["source_id"])
             event_id = uuid.UUID(record["event_id"])
-        except (KeyError, ValueError, TypeError):
+        except (KeyError, ValueError, TypeError, AttributeError):  # AttributeError: 숫자인 ID(uuid.UUID 가 문자열 메서드를 부른다)
             raise InvalidInput(f"{number}번째 줄의 형식이 올바르지 않다")
         if SOURCE_KINDS.get(name) != kind:
             raise InvalidInput(f"{number}번째 줄: 이벤트 {name!r} 에 원천 종류 {kind!r} 는 맞지 않는다")

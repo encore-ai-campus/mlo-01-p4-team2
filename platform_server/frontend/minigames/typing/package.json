@@ -1,0 +1,14 @@
+{
+  "name": "code-typing-lab",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "node scripts/serve.mjs",
+    "dev": "node scripts/build.mjs && node scripts/serve.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -1,0 +1,789 @@
+[
+  {
+    "title": "고객별 주문 TOP 3",
+    "goal": "완료된 주문을 집계하고 주문이 3건 이상인 고객을 골라요.",
+    "blocks": [
+      {
+        "id": "i",
+        "name": "안쪽 · 고객별 집계",
+        "rows": [
+          "FROM",
+          "WHERE",
+          "GROUP BY",
+          "SELECT"
+        ]
+      },
+      {
+        "id": "o",
+        "name": "바깥 · 상위 고객",
+        "rows": [
+          "FROM",
+          "WHERE",
+          "SELECT",
+          "ORDER BY",
+          "LIMIT"
+        ]
+      }
+    ],
+    "lines": [
+      [
+        "SELECT customer_id, order_count",
+        "o",
+        "SELECT"
+      ],
+      [
+        "FROM (",
+        "o",
+        "FROM"
+      ],
+      [
+        "  SELECT customer_id, COUNT(*) AS order_count",
+        "i",
+        "SELECT"
+      ],
+      [
+        "  FROM orders",
+        "i",
+        "FROM"
+      ],
+      [
+        "  WHERE status = 'completed'",
+        "i",
+        "WHERE"
+      ],
+      [
+        "  GROUP BY customer_id",
+        "i",
+        "GROUP BY"
+      ],
+      [
+        ") AS summary"
+      ],
+      [
+        "WHERE order_count >= 3",
+        "o",
+        "WHERE"
+      ],
+      [
+        "ORDER BY order_count DESC, customer_id",
+        "o",
+        "ORDER BY"
+      ],
+      [
+        "LIMIT 3;",
+        "o",
+        "LIMIT"
+      ]
+    ],
+    "sequence": [
+      "FROM",
+      "WHERE",
+      "GROUP BY",
+      "SELECT",
+      "FROM",
+      "WHERE",
+      "SELECT",
+      "ORDER BY",
+      "LIMIT"
+    ]
+  },
+  {
+    "title": "학습 참가 지역 찾기",
+    "goal": "활동 중인 학습자의 중복 지역을 제거하고 이름순으로 정렬해요.",
+    "blocks": [
+      {
+        "id": "i",
+        "name": "안쪽 · 중복 지역 제거",
+        "rows": [
+          "FROM",
+          "WHERE",
+          "SELECT",
+          "DISTINCT"
+        ]
+      },
+      {
+        "id": "o",
+        "name": "바깥 · 지역 정렬",
+        "rows": [
+          "FROM",
+          "SELECT",
+          "ORDER BY"
+        ]
+      }
+    ],
+    "lines": [
+      [
+        "SELECT region",
+        "o",
+        "SELECT"
+      ],
+      [
+        "FROM (",
+        "o",
+        "FROM"
+      ],
+      [
+        "  SELECT DISTINCT region",
+        "i",
+        "SELECT"
+      ],
+      [
+        "  FROM learners",
+        "i",
+        "FROM"
+      ],
+      [
+        "  WHERE active = TRUE",
+        "i",
+        "WHERE"
+      ],
+      [
+        ") AS regions"
+      ],
+      [
+        "ORDER BY region;",
+        "o",
+        "ORDER BY"
+      ]
+    ],
+    "sequence": [
+      "FROM",
+      "WHERE",
+      "SELECT",
+      "DISTINCT",
+      "FROM",
+      "SELECT",
+      "ORDER BY"
+    ]
+  },
+  {
+    "title": "상품별 매출 분석",
+    "goal": "주문과 상품을 연결하고 매출 기준을 통과한 상품을 뽑아요.",
+    "blocks": [
+      {
+        "id": "i",
+        "name": "안쪽 · 상품 매출 집계",
+        "rows": [
+          "FROM",
+          "JOIN",
+          "WHERE",
+          "GROUP BY",
+          "HAVING",
+          "SELECT"
+        ]
+      },
+      {
+        "id": "o",
+        "name": "바깥 · 매출 순위",
+        "rows": [
+          "FROM",
+          "WHERE",
+          "SELECT",
+          "ORDER BY",
+          "LIMIT"
+        ]
+      }
+    ],
+    "lines": [
+      [
+        "SELECT product_id, revenue",
+        "o",
+        "SELECT"
+      ],
+      [
+        "FROM (",
+        "o",
+        "FROM"
+      ],
+      [
+        "  SELECT p.id AS product_id,",
+        "i",
+        "SELECT"
+      ],
+      [
+        "         SUM(oi.qty * p.price) AS revenue"
+      ],
+      [
+        "  FROM order_items AS oi",
+        "i",
+        "FROM"
+      ],
+      [
+        "  JOIN products AS p ON p.id = oi.product_id",
+        "i",
+        "JOIN"
+      ],
+      [
+        "  WHERE oi.qty > 0",
+        "i",
+        "WHERE"
+      ],
+      [
+        "  GROUP BY p.id",
+        "i",
+        "GROUP BY"
+      ],
+      [
+        "  HAVING SUM(oi.qty * p.price) >= 10000",
+        "i",
+        "HAVING"
+      ],
+      [
+        ") AS sales"
+      ],
+      [
+        "WHERE revenue >= 20000",
+        "o",
+        "WHERE"
+      ],
+      [
+        "ORDER BY revenue DESC, product_id",
+        "o",
+        "ORDER BY"
+      ],
+      [
+        "LIMIT 5;",
+        "o",
+        "LIMIT"
+      ]
+    ],
+    "sequence": [
+      "FROM",
+      "JOIN",
+      "WHERE",
+      "GROUP BY",
+      "HAVING",
+      "SELECT",
+      "FROM",
+      "WHERE",
+      "SELECT",
+      "ORDER BY",
+      "LIMIT"
+    ]
+  },
+  {
+    "title": "3중 쿼리 · 우수 학습자",
+    "goal": "통과한 제출만 모아 학습자별 평균을 계산하고 우수자를 골라요.",
+    "blocks": [
+      {
+        "id": "i",
+        "name": "가장 안쪽 · 제출 필터",
+        "rows": [
+          "FROM",
+          "WHERE",
+          "SELECT"
+        ]
+      },
+      {
+        "id": "m",
+        "name": "중간 · 평균 점수",
+        "rows": [
+          "FROM",
+          "GROUP BY",
+          "HAVING",
+          "SELECT"
+        ]
+      },
+      {
+        "id": "o",
+        "name": "바깥 · 우수자 순위",
+        "rows": [
+          "FROM",
+          "WHERE",
+          "SELECT",
+          "ORDER BY",
+          "LIMIT"
+        ]
+      }
+    ],
+    "lines": [
+      [
+        "SELECT learner_id, avg_score",
+        "o",
+        "SELECT"
+      ],
+      [
+        "FROM (",
+        "o",
+        "FROM"
+      ],
+      [
+        "  SELECT learner_id, AVG(score) AS avg_score",
+        "m",
+        "SELECT"
+      ],
+      [
+        "  FROM (",
+        "m",
+        "FROM"
+      ],
+      [
+        "    SELECT learner_id, score",
+        "i",
+        "SELECT"
+      ],
+      [
+        "    FROM submissions",
+        "i",
+        "FROM"
+      ],
+      [
+        "    WHERE passed = TRUE",
+        "i",
+        "WHERE"
+      ],
+      [
+        "  ) AS passed_rows"
+      ],
+      [
+        "  GROUP BY learner_id",
+        "m",
+        "GROUP BY"
+      ],
+      [
+        "  HAVING COUNT(*) >= 3",
+        "m",
+        "HAVING"
+      ],
+      [
+        ") AS learner_scores"
+      ],
+      [
+        "WHERE avg_score >= 80",
+        "o",
+        "WHERE"
+      ],
+      [
+        "ORDER BY avg_score DESC, learner_id",
+        "o",
+        "ORDER BY"
+      ],
+      [
+        "LIMIT 5;",
+        "o",
+        "LIMIT"
+      ]
+    ],
+    "sequence": [
+      "FROM",
+      "WHERE",
+      "SELECT",
+      "FROM",
+      "GROUP BY",
+      "HAVING",
+      "SELECT",
+      "FROM",
+      "WHERE",
+      "SELECT",
+      "ORDER BY",
+      "LIMIT"
+    ]
+  },
+  {
+    "title": "참여한 강좌 수 집계",
+    "goal": "중복 수강 신청을 제거하고 강좌가 2개 이상인 학습자를 골라요.",
+    "blocks": [
+      {
+        "id": "i",
+        "name": "안쪽 · 수강 중복 제거",
+        "rows": [
+          "FROM",
+          "JOIN",
+          "WHERE",
+          "SELECT",
+          "DISTINCT"
+        ]
+      },
+      {
+        "id": "o",
+        "name": "바깥 · 강좌 수 집계",
+        "rows": [
+          "FROM",
+          "GROUP BY",
+          "HAVING",
+          "SELECT",
+          "ORDER BY",
+          "LIMIT"
+        ]
+      }
+    ],
+    "lines": [
+      [
+        "SELECT learner_id, COUNT(*) AS course_count",
+        "o",
+        "SELECT"
+      ],
+      [
+        "FROM (",
+        "o",
+        "FROM"
+      ],
+      [
+        "  SELECT DISTINCT e.learner_id, e.course_id",
+        "i",
+        "SELECT"
+      ],
+      [
+        "  FROM enrollments AS e",
+        "i",
+        "FROM"
+      ],
+      [
+        "  JOIN courses AS c ON c.id = e.course_id",
+        "i",
+        "JOIN"
+      ],
+      [
+        "  WHERE c.category = 'SQL'",
+        "i",
+        "WHERE"
+      ],
+      [
+        ") AS unique_enrollments"
+      ],
+      [
+        "GROUP BY learner_id",
+        "o",
+        "GROUP BY"
+      ],
+      [
+        "HAVING COUNT(*) >= 2",
+        "o",
+        "HAVING"
+      ],
+      [
+        "ORDER BY course_count DESC, learner_id",
+        "o",
+        "ORDER BY"
+      ],
+      [
+        "LIMIT 5;",
+        "o",
+        "LIMIT"
+      ]
+    ],
+    "sequence": [
+      "FROM",
+      "JOIN",
+      "WHERE",
+      "SELECT",
+      "DISTINCT",
+      "FROM",
+      "GROUP BY",
+      "HAVING",
+      "SELECT",
+      "ORDER BY",
+      "LIMIT"
+    ]
+  },
+  {
+    "title": "인기 상품 안에서 재선택",
+    "goal": "판매량 TOP 10을 먼저 구한 뒤 기준에 맞는 상품만 다시 정렬해요.",
+    "blocks": [
+      {
+        "id": "i",
+        "name": "안쪽 · 판매량 TOP 10",
+        "rows": [
+          "FROM",
+          "GROUP BY",
+          "SELECT",
+          "ORDER BY",
+          "LIMIT"
+        ]
+      },
+      {
+        "id": "o",
+        "name": "바깥 · 기준 상품 필터",
+        "rows": [
+          "FROM",
+          "WHERE",
+          "SELECT",
+          "ORDER BY"
+        ]
+      }
+    ],
+    "lines": [
+      [
+        "SELECT product_id, total_qty",
+        "o",
+        "SELECT"
+      ],
+      [
+        "FROM (",
+        "o",
+        "FROM"
+      ],
+      [
+        "  SELECT product_id, SUM(qty) AS total_qty",
+        "i",
+        "SELECT"
+      ],
+      [
+        "  FROM order_items",
+        "i",
+        "FROM"
+      ],
+      [
+        "  GROUP BY product_id",
+        "i",
+        "GROUP BY"
+      ],
+      [
+        "  ORDER BY total_qty DESC, product_id",
+        "i",
+        "ORDER BY"
+      ],
+      [
+        "  LIMIT 10",
+        "i",
+        "LIMIT"
+      ],
+      [
+        ") AS popular"
+      ],
+      [
+        "WHERE total_qty >= 50",
+        "o",
+        "WHERE"
+      ],
+      [
+        "ORDER BY product_id;",
+        "o",
+        "ORDER BY"
+      ]
+    ],
+    "sequence": [
+      "FROM",
+      "GROUP BY",
+      "SELECT",
+      "ORDER BY",
+      "LIMIT",
+      "FROM",
+      "WHERE",
+      "SELECT",
+      "ORDER BY"
+    ]
+  },
+  {
+    "title": "활성 고객이 있는 지역",
+    "goal": "고객별 완료 주문 수를 구하고 기준을 만족하는 지역을 중복 없이 골라요.",
+    "blocks": [
+      {
+        "id": "i",
+        "name": "안쪽 · 지역별 고객 집계",
+        "rows": [
+          "FROM",
+          "WHERE",
+          "GROUP BY",
+          "HAVING",
+          "SELECT"
+        ]
+      },
+      {
+        "id": "o",
+        "name": "바깥 · 지역 추출",
+        "rows": [
+          "FROM",
+          "SELECT",
+          "DISTINCT",
+          "ORDER BY",
+          "LIMIT"
+        ]
+      }
+    ],
+    "lines": [
+      [
+        "SELECT DISTINCT region",
+        "o",
+        "SELECT"
+      ],
+      [
+        "FROM (",
+        "o",
+        "FROM"
+      ],
+      [
+        "  SELECT region, customer_id, COUNT(*) AS n",
+        "i",
+        "SELECT"
+      ],
+      [
+        "  FROM orders",
+        "i",
+        "FROM"
+      ],
+      [
+        "  WHERE status = 'completed'",
+        "i",
+        "WHERE"
+      ],
+      [
+        "  GROUP BY region, customer_id",
+        "i",
+        "GROUP BY"
+      ],
+      [
+        "  HAVING COUNT(*) >= 3",
+        "i",
+        "HAVING"
+      ],
+      [
+        ") AS active_customers"
+      ],
+      [
+        "ORDER BY region",
+        "o",
+        "ORDER BY"
+      ],
+      [
+        "LIMIT 5;",
+        "o",
+        "LIMIT"
+      ]
+    ],
+    "sequence": [
+      "FROM",
+      "WHERE",
+      "GROUP BY",
+      "HAVING",
+      "SELECT",
+      "FROM",
+      "SELECT",
+      "DISTINCT",
+      "ORDER BY",
+      "LIMIT"
+    ]
+  },
+  {
+    "title": "3중 쿼리 · 팀별 성과",
+    "goal": "학습자 점수를 집계하고 소속 팀을 연결해 팀 평균을 비교해요.",
+    "blocks": [
+      {
+        "id": "i",
+        "name": "가장 안쪽 · 개인 점수",
+        "rows": [
+          "FROM",
+          "WHERE",
+          "GROUP BY",
+          "SELECT"
+        ]
+      },
+      {
+        "id": "m",
+        "name": "중간 · 소속 팀 연결",
+        "rows": [
+          "FROM",
+          "JOIN",
+          "WHERE",
+          "SELECT"
+        ]
+      },
+      {
+        "id": "o",
+        "name": "바깥 · 팀 평균 순위",
+        "rows": [
+          "FROM",
+          "GROUP BY",
+          "HAVING",
+          "SELECT",
+          "ORDER BY",
+          "LIMIT"
+        ]
+      }
+    ],
+    "lines": [
+      [
+        "SELECT team_id, AVG(total_score) AS team_avg",
+        "o",
+        "SELECT"
+      ],
+      [
+        "FROM (",
+        "o",
+        "FROM"
+      ],
+      [
+        "  SELECT l.team_id, scores.total_score",
+        "m",
+        "SELECT"
+      ],
+      [
+        "  FROM (",
+        "m",
+        "FROM"
+      ],
+      [
+        "    SELECT learner_id, SUM(score) AS total_score",
+        "i",
+        "SELECT"
+      ],
+      [
+        "    FROM submissions",
+        "i",
+        "FROM"
+      ],
+      [
+        "    WHERE passed = TRUE",
+        "i",
+        "WHERE"
+      ],
+      [
+        "    GROUP BY learner_id",
+        "i",
+        "GROUP BY"
+      ],
+      [
+        "  ) AS scores"
+      ],
+      [
+        "  JOIN learners AS l ON l.id = scores.learner_id",
+        "m",
+        "JOIN"
+      ],
+      [
+        "  WHERE l.active = TRUE",
+        "m",
+        "WHERE"
+      ],
+      [
+        ") AS team_scores"
+      ],
+      [
+        "GROUP BY team_id",
+        "o",
+        "GROUP BY"
+      ],
+      [
+        "HAVING AVG(total_score) >= 150",
+        "o",
+        "HAVING"
+      ],
+      [
+        "ORDER BY team_avg DESC, team_id",
+        "o",
+        "ORDER BY"
+      ],
+      [
+        "LIMIT 3;",
+        "o",
+        "LIMIT"
+      ]
+    ],
+    "sequence": [
+      "FROM",
+      "WHERE",
+      "GROUP BY",
+      "SELECT",
+      "FROM",
+      "JOIN",
+      "WHERE",
+      "SELECT",
+      "FROM",
+      "GROUP BY",
+      "HAVING",
+      "SELECT",
+      "ORDER BY",
+      "LIMIT"
+    ]
+  }
+]

@@ -208,4 +208,8 @@ def answers(request, session_id, order):
 
 @endpoint('POST')
 def completion(request, session_id):
-    return JsonResponse(session_data(services.complete_session(request.user, session_id)))
+    session = services.complete_session(request.user, session_id)
+    data = session_data(session)
+    if session.achievement_update is not None:
+        data.update(session.achievement_update)
+    return JsonResponse(data)

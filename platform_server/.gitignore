@@ -41,3 +41,6 @@ Desktop.ini
 
 # Local pre-integration database backup
 /var/learning-integration-backup.sqlite3
+
+# Intermediate supplied-game builds; final HTML lives in frontend/dist/minigames.
+/frontend/minigames/*/dist/

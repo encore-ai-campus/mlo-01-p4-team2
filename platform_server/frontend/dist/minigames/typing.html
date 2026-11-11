@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>코드 타이핑 · PLAYDATA</title><link rel="icon" href="data:,"><style>:root{font-family:Inter,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;color:#213b35;background:#f6f8f6;font-synthesis:none}*{box-sizing:border-box}body{margin:0}button,select{font:inherit}button{cursor:pointer;border:1px solid #d7e1dc;background:white;border-radius:8px;color:#36574d;padding:9px 14px}button:hover{background:#eff6f0}button:focus-visible,select:focus-visible{outline:3px solid #65a582;outline-offset:3px}button:disabled{opacity:.5;cursor:default}[hidden]{display:none!important}.practice{max-width:1120px;padding:35px 34px;margin:auto}.intro{display:flex;align-items:center;justify-content:space-between;margin-bottom:27px}.eyebrow{font-size:10px;letter-spacing:2px;color:#6b8e77;font-weight:800}h1{font-size:30px;margin:12px 0}h1 span{color:#69a380}p{line-height:1.6}.intro p{font-size:13px;color:#78867e;margin:0}.tag{font-size:11px;color:#7d8c80;border-left:1px solid #d8e1d9;padding-left:24px}.selectors{display:flex;gap:16px;background:white;border:1px solid #dfe7df;padding:17px;border-radius:12px}.selectors label{font-size:11px;font-weight:700;color:#718478;display:flex;flex-direction:column;gap:8px}.selectors select{padding:8px 28px 8px 9px;border:1px solid #dce4dc;border-radius:6px;background:#fcfdfb;color:#2d4a3b;font-size:12px}.problem-select{flex:1}.lesson{display:flex;align-items:center;gap:13px;padding:24px 0 18px}.lesson>span{padding:12px;background:#e9f0e7;border:1px solid #d9e4d6;border-radius:8px;color:#6f8c69;font:18px monospace}.lesson h2{font-size:18px;margin:0 0 5px}.lesson p{font-size:12px;margin:0;color:#818e84}.lesson small{margin-left:auto;font-size:11px;color:#859385}.metrics{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #dce5dc;border-radius:10px;background:white;padding:17px 0}.metrics>div{font-size:10px;color:#8a968b;padding:0 20px;border-right:1px solid #edf0ea}.metrics>div:last-child{border:0}.metrics strong{display:block;margin-top:7px;color:#345741;font-size:23px;font-variant-numeric:tabular-nums}.progress{height:3px;background:#e4ebe1;margin:12px 0 18px;border-radius:4px;overflow:hidden}.progress i{display:block;background:#7fa17d;height:100%;width:0}.editor{border:1px solid #d9e2da;border-radius:11px;background:#fff;overflow:hidden}.editor header,.editor footer{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:#f0f4ee;font-size:11px;color:#67826c}.editor header small{margin-left:14px;color:#8b9b8c}.editor header button{font-size:10px;padding:5px 8px;background:transparent}.editor footer{background:#f9fbf8;border-top:1px solid #edf1e9;color:#8a998a;font-size:10px}#typing-surface{position:relative;cursor:text}.code-scroll{max-height:350px;overflow:auto;padding:21px 22px;min-height:148px}pre{margin:0;font:15px/2.05 "SFMono-Regular",Consolas,monospace;tab-size:4}.code-line{display:flex;min-height:30px}.line-number{user-select:none;width:34px;flex-shrink:0;color:#c1c9bc;font-size:11px}.character{position:relative;white-space:pre}.character.keyword{color:#956396}.character.string{color:#728b57}.character.builtin{color:#5d8da3}.character.number{color:#ba8c49}.character.comment{color:#a4ada0}.character[data-typed-status=correct]{color:#b5c8b2;background:#eff6eb}.character[data-typed-status=wrong],.character[data-typed-status=pending]{color:#bf6261;background:#ffe5df;text-decoration:underline}.character[data-current]::before{content:"";position:absolute;left:-1px;top:0;height:1.3em;border-left:2px solid #528363;animation:blink 1s steps(2) infinite}.newline{opacity:.25}.native-input{position:absolute;width:1px;height:1px;opacity:.01;left:18px;top:24px;resize:none;padding:0;border:0}.editor:focus-within{outline:2px solid #9fb599;outline-offset:2px}.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:13px 0 24px}.toolbar p{font-size:11px;color:#6d8d72}.toolbar button{font-size:11px;padding:8px 12px}.guide{border:1px solid #dce5d8;border-radius:12px;background:#fff;margin-bottom:18px;padding:20px 24px}.guide>header{display:flex;justify-content:space-between;align-items:center}.guide h3{font-size:14px;margin:7px 0}.guide>header button{font-size:10px;border:0}.instruction{display:flex;justify-content:center;align-items:center;gap:12px;font-size:11px;color:#73876e;margin:16px 0}kbd{font:11px monospace;border:1px solid #dbe4d6;background:#f2f6ef;border-bottom-width:2px;padding:3px 7px;border-radius:5px;color:#5b7a54}.keyboard{max-width:720px;margin:auto;overflow:auto;padding:3px}.key-row{display:flex;gap:4px;margin-bottom:4px;min-width:470px}.key{flex:var(--key-width,1) 1 0;width:0;min-height:33px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid #dfe5da;border-bottom:3px solid #d7e0d0;border-radius:5px;background:#fafbf8;color:#94a38e;font:10px monospace;position:relative}.key small{font-size:7px;line-height:9px}.key[data-active]{background:#7f9e68;color:#fff;border-color:#6b8b55;box-shadow:0 2px 9px #a5bb8a66}.key[data-shift]{background:#e5c88e;border-color:#c3a86d;color:#765d29}.key[data-heat]{background:#fbd5b9;border-color:#d0ab8f;color:#8c5639}.key[data-heat="4"],.key[data-heat="5"]{background:#b66552;color:white}.key b{position:absolute;top:-3px;right:2px;background:#95533e;color:white;border-radius:4px;padding:1px 3px;font-size:8px}.hands{display:block;width:270px;max-width:100%;height:142px;margin:8px auto}.finger{fill:#ecf0e5;stroke:#cbd7be;stroke-width:1.5}.finger[data-active]{fill:#91aa6c;stroke:#769451}.finger[data-shift]{fill:#e7cc98;stroke:#ba9c63}.palm{fill:#ecf0e5;stroke:#cbd7be;stroke-width:1.5}.palm-line{fill:none;stroke:#cbd7be}.hand-label{font:9px sans-serif;text-anchor:middle;fill:#9aaa8f}.caption{display:flex;justify-content:center;gap:6px;align-items:center;color:#8b9b82;font-size:9px}.caption i{background:#91aa6c;width:7px;height:7px;border-radius:50%;margin-left:10px}.caption .shift-dot{background:#e7cc98}aside{background:#eef3e9;border:1px solid #dce5d4;border-radius:9px;padding:16px 20px;color:#7f9274;font-size:11px}aside strong{color:#5a7751}aside p{margin:10px 0}aside small{font-size:10px}.page-footer{display:flex;justify-content:space-between;margin:23px 0 0;color:#94a28b;font-size:9px}.result{background:#f0f6e9;border:1px solid #d6e2c9;border-radius:12px;padding:27px;margin:16px 0}.result h2{font-size:24px}.result p{font-size:13px;color:#6b805e}.result button{background:#4e7147;color:white;margin-right:8px}#mistake-rank{font-size:12px;color:#8f6e58;text-align:center}@keyframes blink{50%{opacity:0}}@media(prefers-reduced-motion:reduce){*{animation:none!important}}@media(max-width:650px){.practice{padding:22px 16px}.tag{display:none}h1{font-size:24px}.selectors{flex-wrap:wrap;gap:12px}.problem-select{min-width:150px}.selectors label:last-child{width:100%}.metrics>div{padding:0 10px}.metrics strong{font-size:19px}.guide{padding:15px 10px}.lesson small{display:none}.toolbar{align-items:start}.toolbar p{max-width:52%}.page-footer{line-height:1.8;flex-direction:column}.code-scroll{padding:18px 13px}pre{font-size:13px}.editor footer{font-size:9px;padding:10px}.guide .eyebrow{font-size:8px}}
+.selectors input{font:inherit;width:105px;padding:8px 9px;border:1px solid #dce4dc;border-radius:6px;background:#fcfdfb;color:#2d4a3b;font-size:12px}.selectors input:focus-visible{outline:3px solid #65a582;outline-offset:3px}.selectors input:disabled{opacity:.65}@media(max-width:850px){.selectors{flex-wrap:wrap}}
+</style><script>(() => {
+ const gameId='typing',playId=window.frameElement?.dataset.sessionId;
+ if(window.parent===window||!playId)return;
+ const origin=window.parent.location.origin;
+ let started=false,finished=false,callback;
+ const send=data=>window.parent.postMessage({version:1,gameId,playId,...data},origin);
+ window.addEventListener('message',event=>{
+  const d=event.data;
+  if(event.source!==window.parent||event.origin!==origin||!d||d.type!=='minigame:init'||d.playId!==playId||d.gameId!==gameId||d.version!==1||started||!callback)return;
+  try{callback(d.config,playId);started=true;}catch{send({type:'minigame:error'});}
+ });
+ window.minigameChannel=Object.freeze({
+  start(fn){callback=fn;send({type:'minigame:ready'});},
+  complete(result){if(!started||finished)return;finished=true;send({type:'minigame:result',result});},
+  exit(){send({type:'minigame:exit'});}
+ });
+})();
+</script></head>
+<body><main class="practice">
+<header class="intro"><div><div class="eyebrow">● YOUR DAILY CODE PRACTICE</div><h1>코드를 손에 익히는 시간<span>.</span></h1><p>입문 Python 문제를 무작위로 제공해요. 한 글자씩, 내 속도로 입력해 보세요.</p></div><span class="tag">⌘ &nbsp; 작은 연습, 단단한 기본기</span></header>
+<section class="selectors" aria-label="연습 설정"><label>교정 방식<select id="mode"><option value="natural">Natural · 자유 교정</option><option value="forced">Forced Correction · 필수 교정</option></select></label><label>목표 정확도 (%)<input id="minimum-accuracy" type="number" min="0" max="100" step="0.1" value="95" required></label></section>
+<div class="lesson"><span id="lesson-number">01</span><div><h2 id="problem-title"></h2><p id="problem-description"></p></div><small id="lesson-position"></small></div>
+<div class="metrics" aria-label="실시간 기록"><div>진행 시간<strong id="metric-time">00:00.00</strong></div><div>WPM<strong id="metric-wpm">0</strong></div><div>정확도<strong id="metric-accuracy">—</strong></div><div>진행률<strong id="metric-progress">0%</strong></div></div>
+<div id="progress" class="progress" role="progressbar" aria-label="문제 진행률" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+<section id="editor-panel" class="editor" aria-label="코드 위에 타이핑"><header><span>● &nbsp; main.py <small>코드 위에 타이핑</small></span><button id="whitespace" aria-pressed="false">공백 표시 ␣</button></header><div id="typing-surface" data-testid="inline-typing-surface"><div id="reference-code" class="code-scroll" data-testid="reference-code" aria-label="문제 코드"><pre id="code"></pre></div><textarea id="input" class="native-input" aria-label="코드 입력" aria-describedby="typing-help" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea></div><footer><span id="position">Ln 1, Col 1</span><span id="char-count"></span></footer></section>
+<div class="toolbar"><p id="feedback" role="status">첫 글자를 입력하면 시작해요.</p><div><button id="restart">↻ 다시 시작</button><button id="exit">나가기 ↗</button></div></div>
+<section id="result" class="result" aria-label="연습 결과" hidden><div class="eyebrow">PRACTICE COMPLETE</div><h2 id="result-title"></h2><p id="result-description"></p><p id="result-errors"></p><div id="repeat-actions"><button id="repeat">다시 연습 ↻</button><button id="next">다음 문제 →</button></div></section>
+<section class="guide" aria-label="키보드와 손가락 가이드"><header><div><div class="eyebrow">FIND YOUR FINGER</div><h3 id="guide-title">키보드 & 손가락 가이드</h3></div><button id="toggle-guide" aria-expanded="true">가이드 숨기기 −</button></header><div id="guide-body"><p class="instruction"><kbd id="expected"></kbd><span id="finger-description"></span></p><div id="keyboard" class="keyboard" aria-label="QWERTY 키보드"></div><div id="hands"></div><p class="caption"><i></i> 입력할 키와 손가락 <i class="shift-dot"></i> 함께 누를 Shift</p><p id="mistake-rank" hidden></p></div></section>
+<aside id="typing-help"><strong id="mode-help"></strong><p><kbd>Tab</kbd> 공백 4칸 &nbsp; <kbd>Enter</kbd> 줄바꿈 &nbsp; <kbd>Backspace</kbd> 수정 &nbsp; <kbd>Esc</kbd> / <kbd>Shift Tab</kbd> 입력 영역 나가기</p><small id="pass-rule">정확도 95% 이상으로 끝까지 입력하면 성공해요. 코드는 실행하지 않습니다.</small></aside>
+<footer class="page-footer">● 내 브라우저에서, 나만의 속도로 <span>게임 종료 시 플레이 시간과 성공 여부를 플랫폼에 저장합니다.</span></footer>
+</main><script>(()=>{
+const problems = [
+  {"id":"py-beginner-01","version":1,"language":"python","difficulty":"beginner","title":"Hello, Python","description":"변수를 만들고, 첫 인사를 출력해 보세요.","code":"name = \"Ada\"\nprint(f\"Hello, {name}!\")"},
+  {"id":"py-beginner-02","version":1,"language":"python","difficulty":"beginner","title":"작은 계산기","description":"기본 연산자와 변수 이름에 익숙해져요.","code":"price = 1200\nquantity = 3\ntotal = price * quantity\nprint(total)"},
+  {"id":"py-beginner-03","version":1,"language":"python","difficulty":"beginner","title":"조건을 읽는 법","description":"조건식과 네 칸 들여쓰기를 연습해요.","code":"temperature = 24\nif temperature >= 20:\n    print(\"A warm day\")\nelse:\n    print(\"Bring a jacket\")"},
+  {"id":"py-beginner-04","version":1,"language":"python","difficulty":"beginner","title":"문자열 조각","description":"대괄호와 문자열 슬라이싱을 연습해요.","code":"message = \"Keep learning\"\nfirst_word = message[:4]\nprint(first_word.upper())"},
+  {"id":"py-beginner-05","version":1,"language":"python","difficulty":"beginner","title":"목록에 담기","description":"리스트를 만들고 값을 추가해요.","code":"colors = [\"mint\", \"blue\", \"gold\"]\ncolors.append(\"coral\")\nprint(len(colors))"},
+  {"id":"py-intermediate-01","version":1,"language":"python","difficulty":"intermediate","title":"한 걸음씩 반복","description":"반복문과 enumerate의 구조를 익혀요.","code":"topics = [\"syntax\", \"loops\", \"functions\"]\nfor index, topic in enumerate(topics, start=1):\n    print(f\"{index}. {topic}\")"},
+  {"id":"py-intermediate-02","version":1,"language":"python","difficulty":"intermediate","title":"함수의 경계","description":"함수 선언, 조건 분기와 반환문을 입력해요.","code":"def average(values):\n    if not values:\n        return 0\n    return sum(values) / len(values)\n\nprint(average([4, 7, 10]))"},
+  {"id":"py-intermediate-03","version":1,"language":"python","difficulty":"intermediate","title":"한 줄의 변환","description":"리스트 컴프리헨션의 괄호와 조건을 연습해요.","code":"numbers = range(1, 11)\nsquares = [n ** 2 for n in numbers if n % 2 == 0]\nprint(squares)"},
+  {"id":"py-intermediate-04","version":1,"language":"python","difficulty":"intermediate","title":"이름과 값","description":"딕셔너리와 항목 순회를 연습해요.","code":"scores = {\"Ada\": 92, \"Linus\": 87}\nfor name, score in scores.items():\n    label = \"pass\" if score >= 80 else \"retry\"\n    print(name, label)"},
+  {"id":"py-intermediate-05","version":1,"language":"python","difficulty":"intermediate","title":"실패를 다루기","description":"try와 except의 들여쓰기를 익혀요.","code":"def parse_number(text):\n    try:\n        return int(text)\n    except ValueError:\n        return None\n\nprint(parse_number(\"42\"))"},
+  {"id":"py-advanced-01","version":1,"language":"python","difficulty":"advanced","title":"필요할 때 하나씩","description":"제너레이터와 복합 조건을 연습해요.","code":"def even_squares(limit):\n    for value in range(limit):\n        if value > 0 and value % 2 == 0:\n            yield value ** 2\n\nprint(list(even_squares(10)))"},
+  {"id":"py-advanced-02","version":1,"language":"python","difficulty":"advanced","title":"중첩된 조건","description":"중첩 반복과 여러 단계의 들여쓰기를 입력해요.","code":"def find_pairs(values, target):\n    pairs = []\n    for left in range(len(values)):\n        for right in range(left + 1, len(values)):\n            if values[left] + values[right] == target:\n                pairs.append((values[left], values[right]))\n    return pairs"},
+  {"id":"py-advanced-03","version":1,"language":"python","difficulty":"advanced","title":"함수를 감싸는 함수","description":"데코레이터와 가변 인자를 연습해요.","code":"def announce(func):\n    def wrapper(*args, **kwargs):\n        print(f\"Running {func.__name__}\")\n        return func(*args, **kwargs)\n    return wrapper\n\n@announce\ndef greet(name):\n    return f\"Hello, {name}\""},
+  {"id":"py-advanced-04","version":1,"language":"python","difficulty":"advanced","title":"작은 객체의 설계","description":"클래스, 메서드와 상태 변경을 입력해요.","code":"class Counter:\n    def __init__(self, start=0):\n        self.value = start\n\n    def increment(self, step=1):\n        self.value += step\n        return self.value\n\ncounter = Counter()\nprint(counter.increment())"},
+  {"id":"py-advanced-05","version":1,"language":"python","difficulty":"advanced","title":"데이터를 재구성하기","description":"복합 자료와 정렬 키 함수를 연습해요.","code":"records = [(\"Ada\", 92), (\"Linus\", 87), (\"Grace\", 95)]\nranked = sorted(records, key=lambda item: item[1], reverse=True)\nresult = {\n    name: {\"score\": score, \"rank\": rank}\n    for rank, (name, score) in enumerate(ranked, start=1)\n}\nprint(result)"}
+]
+;
+
+function pickBeginnerProblem(pool, random = Math.random) {
+  const beginners = pool.filter(problem => problem.difficulty === 'beginner');
+  if (!beginners.length) throw new Error('입문 문제가 필요해요.');
+  return beginners[Math.floor(random() * beginners.length)];
+}
+
+function normalizeCode(code) {
+    return code.replace(/\r\n?/g, '\n');
+}
+function validateProblems(problems) {
+    const seen = new Set();
+    return problems.map((problem) => {
+        const key = `${problem.id}@${problem.version}`;
+        if (!problem.id || !Number.isInteger(problem.version) || problem.version < 1 || seen.has(key)) {
+            throw new Error('문제 ID와 버전은 유효하고 고유해야 합니다.');
+        }
+        if (problem.language !== 'python' || !['beginner', 'intermediate', 'advanced'].includes(problem.difficulty)) {
+            throw new Error('지원하지 않는 문제 형식입니다.');
+        }
+        const code = normalizeCode(problem.code);
+        if (!code.length || /[^\x20-\x7e\n]/.test(code)) {
+            throw new Error('문제는 비어 있지 않은 ASCII 코드와 공백 들여쓰기를 사용해야 합니다.');
+        }
+        seen.add(key);
+        return { ...problem, code };
+    });
+}
+
+function createTypingState(mode) {
+    return { status: 'idle', mode, cursor: 0, slots: [], activeErrorIndex: null,
+        mistakeCount: 0, forcedErrorEpisodes: 0, mistakeByExpectedChar: {} };
+}
+function remainingErrors(state) {
+    return state.slots.filter((slot) => slot.status === 'wrong' || slot.status === 'pending').length;
+}
+/** All scoring decisions live here. Input adapters never derive scores from DOM. */
+function transition(previous, target, action) {
+    if (!target.length || previous.status === 'completed' || previous.status === 'abandoned')
+        return previous;
+    if (action.type === 'backspace') {
+        if (!previous.cursor && previous.activeErrorIndex === null)
+            return previous;
+        const stuckAtLast = previous.activeErrorIndex === previous.cursor;
+        const cursor = stuckAtLast ? previous.cursor : Math.max(0, previous.cursor - 1);
+        return { ...previous, cursor, slots: previous.slots.slice(0, cursor),
+            activeErrorIndex: previous.activeErrorIndex !== null && cursor > previous.activeErrorIndex
+                ? previous.activeErrorIndex : null };
+    }
+    if (!action.text)
+        return previous;
+    let state = previous;
+    // UTF-16 positions agree with the editor. Initial problem data is ASCII.
+    for (const typed of action.text.split('')) {
+        if (state.status === 'completed' || state.cursor >= target.length)
+            break;
+        const index = state.cursor;
+        const correct = typed === target[index];
+        const forced = state.mode === 'forced';
+        const inError = state.activeErrorIndex !== null;
+        const lastException = forced && inError && index === target.length - 1 && correct;
+        const slots = [...state.slots];
+        if (forced && inError && !lastException) {
+            if (index >= Math.min(state.activeErrorIndex + 5, target.length - 1))
+                continue;
+            slots[index] = { typed, status: 'pending' };
+            state = { ...state, cursor: index + 1, slots };
+            continue;
+        }
+        slots[index] = { typed, status: correct ? 'correct' : 'wrong' };
+        const mistake = !correct;
+        const cursor = forced && mistake ? Math.min(index + 1, target.length - 1) : index + 1;
+        state = {
+            ...state,
+            slots,
+            cursor,
+            status: cursor >= target.length ? 'completed' : 'running',
+            activeErrorIndex: forced && mistake ? index : null,
+            mistakeCount: state.mistakeCount + Number(mistake),
+            forcedErrorEpisodes: state.forcedErrorEpisodes + Number(forced && mistake),
+            mistakeByExpectedChar: mistake
+                ? { ...state.mistakeByExpectedChar, [target[index]]: (state.mistakeByExpectedChar[target[index]] ?? 0) + 1 }
+                : state.mistakeByExpectedChar,
+        };
+    }
+    return state;
+}
+
+function calculateMetrics(state, targetChars, elapsedMs) {
+    const elapsed = Math.max(0, Number.isFinite(elapsedMs) ? elapsedMs : 0);
+    const n = state.cursor;
+    const errors = remainingErrors(state);
+    const penalty = state.mode === 'natural' ? errors : state.forcedErrorEpisodes;
+    const minutes = Math.max(1, Math.floor(elapsed / 1000)) / 60;
+    return {
+        elapsed_ms: elapsed,
+        target_chars: targetChars,
+        progressed_chars: n,
+        remaining_error_chars: errors,
+        mistake_count: state.mistakeCount,
+        forced_error_episodes: state.forcedErrorEpisodes,
+        accuracy_pct: n ? Math.max(0, Math.min(100, (n - penalty) / n * 100)) : null,
+        wpm: !n || !elapsed ? 0 : Math.max(0, Math.round((n / 5 - (state.mode === 'natural' ? errors : 0)) / minutes)),
+        cpm: !n || !elapsed ? 0 : n / minutes,
+        progress_pct: targetChars > 0 ? n / targetChars * 100 : 0,
+    };
+}
+function formatDuration(ms) {
+    const centiseconds = Math.round(Math.max(0, Number.isFinite(ms) ? ms : 0) / 10);
+    const minutes = Math.floor(centiseconds / 6000);
+    const seconds = (centiseconds % 6000) / 100;
+    return `${String(minutes).padStart(2, '0')}:${seconds.toFixed(2).padStart(5, '0')}`;
+}
+
+const browserClock = { monotonic: () => performance.now(), utc: () => new Date().toISOString() };
+function newId() {
+    if (typeof crypto.randomUUID === 'function')
+        return crypto.randomUUID();
+    // LAN HTTP lacks randomUUID (secure-context only); getRandomValues still works.
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+class AttemptController {
+    id = newId();
+    problem;
+    state;
+    listeners = new Set();
+    startedAt = null;
+    endedAt = null;
+    terminalSent = false;
+    startedSent = false;
+    sink;
+    context;
+    sessionId;
+    clock;
+    constructor(problem, mode, sink, context, sessionId, clock = browserClock) {
+        this.problem = problem;
+        this.state = createTypingState(mode);
+        this.sink = sink;
+        this.context = { ...context };
+        this.sessionId = context.sessionId ?? sessionId;
+        this.clock = clock;
+    }
+    getSnapshot = () => this.state;
+    subscribe = (listener) => {
+        this.listeners.add(listener);
+        return () => { this.listeners.delete(listener); };
+    };
+    notify() { for (const listener of this.listeners)
+        listener(); }
+    metrics = () => calculateMetrics(this.state, this.problem.code.length, this.startedAt === null ? 0 : (this.endedAt ?? this.clock.monotonic()) - this.startedAt);
+    input = (action) => {
+        if (this.state.status === 'completed' || this.state.status === 'abandoned')
+            return;
+        if (action.type === 'append' && action.text && !this.startedSent) {
+            this.startedAt = this.clock.monotonic();
+            this.startedSent = true;
+            this.state = { ...this.state, status: 'running' };
+            this.emit('code_typing.started');
+        }
+        this.state = transition(this.state, this.problem.code, action);
+        if (this.state.status === 'completed' && !this.terminalSent) {
+            this.terminalSent = true;
+            this.endedAt = this.clock.monotonic();
+            this.emit('code_typing.completed');
+        }
+        this.notify();
+    };
+    abandon = (reason) => {
+        if (!this.startedSent || this.terminalSent)
+            return;
+        this.terminalSent = true;
+        this.endedAt = this.clock.monotonic();
+        this.state = { ...this.state, status: 'abandoned' };
+        this.emit('code_typing.abandoned', reason);
+        this.notify();
+    };
+    emit(type, reason) {
+        const event = {
+            schema_version: 2, event_id: newId(), event_type: type, occurred_at: this.clock.utc(),
+            attempt_id: this.id, session_id: this.sessionId, user_id: this.context.userId ?? null,
+            class_id: this.context.classId ?? null, content_id: this.problem.id,
+            content_version: this.problem.version, language: this.problem.language,
+            difficulty: this.problem.difficulty, typing_mode: this.state.mode,
+            metric_policy: 'speedcoder-v1-manual-whitespace', metrics: this.metrics(),
+            ...(reason ? { abandon_reason: reason } : {}),
+        };
+        try {
+            void Promise.resolve(this.sink.emit(event)).catch(() => undefined);
+        }
+        catch { /* Analytics must never interrupt practice, including synchronous failures. */ }
+    }
+}
+
+function key(base, shifted, finger) {
+    return { id: /^[a-z]$/.test(base) ? `Key${base.toUpperCase()}` : `Char${base.charCodeAt(0)}`,
+        label: /^[a-z]$/.test(base) ? base.toUpperCase() : base, base, shifted, finger };
+}
+const keyboardRows = [
+    [key('`', '~', 1), key('1', '!', 1), key('2', '@', 2), key('3', '#', 3), key('4', '$', 4), key('5', '%', 4),
+        key('6', '^', 7), key('7', '&', 7), key('8', '*', 8), key('9', '(', 9), key('0', ')', 10),
+        key('-', '_', 10), key('=', '+', 10), { id: 'Backspace', label: '⌫', finger: 10, width: 2 }],
+    [{ id: 'Tab', label: 'Tab', finger: 1, width: 1.5 }, key('q', undefined, 1), key('w', undefined, 2), key('e', undefined, 3),
+        key('r', undefined, 4), key('t', undefined, 4), key('y', undefined, 7), key('u', undefined, 7), key('i', undefined, 8),
+        key('o', undefined, 9), key('p', undefined, 10), key('[', '{', 10), key(']', '}', 10), key('\\', '|', 10)],
+    [{ id: 'CapsLock', label: 'Caps', finger: 1, width: 1.75 }, key('a', undefined, 1), key('s', undefined, 2), key('d', undefined, 3),
+        key('f', undefined, 4), key('g', undefined, 4), key('h', undefined, 7), key('j', undefined, 7), key('k', undefined, 8),
+        key('l', undefined, 9), key(';', ':', 10), key("'", '"', 10), { id: 'Enter', label: 'Enter ↵', base: '\n', finger: 10, width: 2.25 }],
+    [{ id: 'ShiftLeft', label: 'Shift', finger: 1, width: 2.25 }, key('z', undefined, 1), key('x', undefined, 2), key('c', undefined, 3),
+        key('v', undefined, 4), key('b', undefined, 4), key('n', undefined, 7), key('m', undefined, 7), key(',', '<', 8),
+        key('.', '>', 9), key('/', '?', 10), { id: 'ShiftRight', label: 'Shift', finger: 10, width: 2.75 }],
+    [{ id: 'ControlLeft', label: 'Ctrl', finger: 1, width: 1.25 }, { id: 'MetaLeft', label: '⌘', finger: 1, width: 1.25 },
+        { id: 'AltLeft', label: 'Alt', finger: 5, width: 1.25 }, { id: 'Space', label: 'Space', base: ' ', finger: 6, width: 6.25 },
+        { id: 'AltRight', label: 'Alt', finger: 6, width: 1.25 }, { id: 'MetaRight', label: '⌘', finger: 10, width: 1.25 },
+        { id: 'ControlRight', label: 'Ctrl', finger: 10, width: 1.25 }],
+];
+const keyboardKeys = keyboardRows.flat();
+const fingerNames = {
+    1: '왼손 새끼손가락', 2: '왼손 약지', 3: '왼손 중지', 4: '왼손 검지', 5: '왼손 엄지',
+    6: '오른손 엄지', 7: '오른손 검지', 8: '오른손 중지', 9: '오른손 약지', 10: '오른손 새끼손가락',
+};
+function findKeyboardKey(char) {
+    return keyboardKeys.find((item) => item.base === char || item.shifted === char
+        || (/^[A-Z]$/.test(char) && item.base === char.toLowerCase()));
+}
+function keyboardGuide(expected, correcting = false) {
+    const target = correcting ? keyboardKeys.find((item) => item.id === 'Backspace') : expected ? findKeyboardKey(expected) : undefined;
+    const needsShift = !correcting && !!expected && (!!target?.shifted && target.shifted === expected || /^[A-Z]$/.test(expected));
+    const shiftId = needsShift && target ? (target.finger <= 5 ? 'ShiftRight' : 'ShiftLeft') : undefined;
+    const shift = keyboardKeys.find((item) => item.id === shiftId);
+    return { target, shift, description: target
+            ? `${fingerNames[target.finger]}${shift ? ` + ${fingerNames[shift.finger]} Shift` : ''}` : '다음 입력을 기다리고 있어요.' };
+}
+/** Fold A/a and shifted punctuation onto their shared physical QWERTY key. */
+function aggregateKeyMistakes(mistakes) {
+    const result = new Map();
+    for (const [char, count] of Object.entries(mistakes)) {
+        const physical = findKeyboardKey(char);
+        if (!physical || !Number.isFinite(count) || count <= 0)
+            continue;
+        const entry = result.get(physical.id) ?? { key: physical, count: 0, characters: {} };
+        entry.count += count;
+        entry.characters[char] = count;
+        result.set(physical.id, entry);
+    }
+    return result;
+}
+
+const keywords = new Set('and as assert async await break class continue def del elif else except False finally for from global if import in is lambda None nonlocal not or pass raise return True try while with yield'.split(' '));
+const builtins = new Set('print len range enumerate sum list dict int str sorted zip set float'.split(' '));
+/** Small lexical highlighter for the fixed ASCII Python curriculum; never evaluates code. */
+function pythonCharacterClasses(code) {
+    const classes = Array(code.length).fill('');
+    const tokens = /#[^\n]*|(?:[fFrRbuBU]{0,2})(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|\b[A-Za-z_]\w*\b|\b\d+(?:\.\d+)?\b/g;
+    for (const match of code.matchAll(tokens)) {
+        const token = match[0];
+        const kind = token.startsWith('#') ? 'comment' : /["']/.test(token) ? 'string'
+            : /^\d/.test(token) ? 'number' : keywords.has(token) ? 'keyword' : builtins.has(token) ? 'builtin' : '';
+        classes.fill(kind, match.index, match.index + token.length);
+    }
+    return classes;
+}
+
+/** Restricted tail input, scoped to one textarea. No global keyboard listeners. */
+function attachTypingInput(element, input, readValue, escape) {
+    let composing = false;
+    let compositionCommit = null;
+    const restore = () => {
+        if (composing)
+            return;
+        const value = readValue();
+        if (element.value !== value)
+            element.value = value;
+        if (element.selectionStart !== value.length || element.selectionEnd !== value.length) {
+            element.setSelectionRange(value.length, value.length);
+        }
+    };
+    const append = (text) => { input({ type: 'append', text }); restore(); };
+    const keydown = (event) => {
+        if (composing || event.isComposing || event.keyCode === 229 || !event.cancelable)
+            return;
+        compositionCommit = null;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            restore();
+            escape();
+            return;
+        }
+        if (event.key === 'Tab') {
+            // Shift+Tab remains a standard focus escape, in addition to Escape.
+            if (event.shiftKey)
+                return;
+            event.preventDefault();
+            append('    ');
+            return;
+        }
+        if (event.metaKey || event.ctrlKey || event.altKey) {
+            // Copy and browser shortcuts remain available; editing shortcuts do not.
+            if (['v', 'x', 'z', 'y', 'a', 'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight'].includes(event.key.toLowerCase())
+                || ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight'].includes(event.key))
+                event.preventDefault();
+            return;
+        }
+        if (event.key === 'Backspace') {
+            event.preventDefault();
+            input({ type: 'backspace' });
+            restore();
+            return;
+        }
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            append('\n');
+            return;
+        }
+        if (['Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'].includes(event.key)) {
+            event.preventDefault();
+            restore();
+            return;
+        }
+        if (event.key.length === 1) {
+            event.preventDefault();
+            append(event.key);
+        }
+    };
+    const beforeinput = (event) => {
+        if (composing || event.isComposing)
+            return;
+        // Some browser/IME paths deliver a non-cancelable beforeinput. Let the DOM
+        // finish that edit and consume it once from input instead of overwriting it.
+        if (!event.cancelable)
+            return;
+        event.preventDefault();
+        if (event.inputType === 'insertText' && event.data) {
+            if (compositionCommit === event.data) {
+                compositionCommit = null;
+                restore();
+                return;
+            }
+            append(event.data);
+        }
+        else if (event.inputType === 'deleteContentBackward') {
+            input({ type: 'backspace' });
+            restore();
+        }
+        else if (event.inputType === 'insertLineBreak')
+            append('\n');
+        else
+            restore();
+    };
+    const nativeInput = (event) => {
+        const edit = event;
+        if (composing || edit.isComposing)
+            return;
+        const previous = readValue();
+        const value = element.value;
+        if (value === previous)
+            return;
+        // Accept real tail edits when keydown/beforeinput was skipped (e.g. 229).
+        // All other DOM replacements, paste and history edits are still rejected.
+        if (edit.inputType === 'insertText' && edit.data) {
+            if (compositionCommit === edit.data) {
+                compositionCommit = null;
+                restore();
+                return;
+            }
+            append(edit.data);
+        }
+        else if (edit.inputType === 'insertText' && value.startsWith(previous) && value.length > previous.length) {
+            append(value.slice(previous.length));
+        }
+        else if (edit.inputType === 'deleteContentBackward' && previous.length > 0 && value === previous.slice(0, -1)) {
+            input({ type: 'backspace' });
+            restore();
+        }
+        else
+            restore();
+    };
+    const compositionstart = () => { composing = true; };
+    const compositionend = (event) => {
+        composing = false;
+        compositionCommit = event.data || null;
+        if (event.data)
+            input({ type: 'append', text: event.data });
+        restore();
+        // Only suppress the immediate browser echo, never a later repeated letter.
+        queueMicrotask(() => { compositionCommit = null; });
+    };
+    const prevent = (event) => { event.preventDefault(); };
+    element.addEventListener('keydown', keydown);
+    element.addEventListener('beforeinput', beforeinput);
+    element.addEventListener('input', nativeInput);
+    element.addEventListener('select', restore);
+    element.addEventListener('pointerup', restore);
+    element.addEventListener('focus', restore);
+    element.addEventListener('compositionstart', compositionstart);
+    element.addEventListener('compositionend', compositionend);
+    for (const type of ['paste', 'drop', 'cut', 'dragstart'])
+        element.addEventListener(type, prevent);
+    return () => {
+        element.removeEventListener('keydown', keydown);
+        element.removeEventListener('beforeinput', beforeinput);
+        element.removeEventListener('input', nativeInput);
+        element.removeEventListener('select', restore);
+        element.removeEventListener('pointerup', restore);
+        element.removeEventListener('focus', restore);
+        element.removeEventListener('compositionstart', compositionstart);
+        element.removeEventListener('compositionend', compositionend);
+        for (const type of ['paste', 'drop', 'cut', 'dragstart'])
+            element.removeEventListener(type, prevent);
+    };
+}
+
+const $=id=>document.getElementById(id);
+const all=validateProblems(problems);
+const channel=window.minigameChannel;
+let controller, detach, clock, whitespace=false, minimumAccuracy=95, sessionId=newId(), locked=false;
+let spans=[], keys=new Map(), fingers=new Map(), previousCursor=-1;
+const visible=c=>c==='\n'?'Enter ↵':c===' '?'Space ␣':c;
+function createKeyboard() {
+  for(const row of keyboardRows) {
+    const el=document.createElement('div'); el.className='key-row';
+    for(const key of row) {
+      const elKey=document.createElement('span'); elKey.className='key'; elKey.dataset.key=key.id; elKey.style.setProperty('--key-width',key.width??1);
+      if(key.shifted) {const small=document.createElement('small');small.textContent=key.shifted;elKey.append(small);}
+      const label=document.createElement('span');label.textContent=key.label;elKey.append(label);
+      elKey.title=`${key.label} · ${fingerNames[key.finger]}`; elKey.setAttribute('role','img');elKey.setAttribute('aria-label',elKey.title);
+      keys.set(key.id,elKey);el.append(elKey);
+    } $('keyboard').append(el);
+  }
+  let svg='<svg class="hands" viewBox="0 0 390 210" role="img" aria-label="手 손가락 가이드"><title>입력할 손가락을 강조합니다.</title>';
+  for(const right of [false,true]) {
+    svg+=`<g transform="${right?'translate(375 0) scale(-1 1)':'translate(15 0)'}">`;
+    const ids=right?[10,9,8,7,6]:[1,2,3,4,5];
+    [{x:9,y:62,h:81},{x:40,y:33,h:110},{x:71,y:20,h:123},{x:102,y:40,h:103},{x:135,y:103,h:65}].forEach((f,i)=>{svg+=`<rect class="finger" data-finger="${ids[i]}" x="${f.x}" y="${f.y}" width="26" height="${f.h}" rx="13" ${i===4?'transform="rotate(-30 148 135)"':''}><title>${fingerNames[ids[i]]}</title></rect>`;});
+    svg+='<path class="palm" d="M9 129 Q70 116 128 129 L147 146 Q156 166 137 183 Q123 193 118 204 H48 Q41 194 25 180 Q9 165 9 146Z"/><path class="palm-line" d="M30 156 Q74 142 113 158 M40 172 Q70 166 96 176"/>';
+    svg+=`<text x="69" y="201" class="hand-label" ${right?'transform="translate(138 0) scale(-1 1)"':''}>${right?'오른손':'왼손'}</text></g>`;
+  }
+  $('hands').innerHTML=svg+'</svg>';
+  for(const el of $('hands').querySelectorAll('[data-finger]')) fingers.set(Number(el.dataset.finger),el);
+}
+function updateGuide(state) {
+  const guide=keyboardGuide(controller.problem.code[state.cursor],state.activeErrorIndex!==null);
+  $('expected').textContent=state.activeErrorIndex!==null?'Backspace ⌫':visible(controller.problem.code[state.cursor]??'');
+  $('finger-description').textContent=guide.description;
+  for(const [id,el] of keys) {el.toggleAttribute('data-active',id===guide.target?.id);el.toggleAttribute('data-shift',id===guide.shift?.id);}
+  for(const [id,el] of fingers) {el.toggleAttribute('data-active',id===guide.target?.finger);el.toggleAttribute('data-shift',id===guide.shift?.finger);}
+}
+function metrics() {
+  const m=controller.metrics();
+  $('metric-time').textContent=formatDuration(m.elapsed_ms);
+  $('metric-wpm').textContent=m.wpm;
+  $('metric-accuracy').textContent=m.accuracy_pct===null?'—':`${m.accuracy_pct.toFixed(1)}%`;
+  $('metric-progress').textContent=`${Math.floor(m.progress_pct)}%`;
+  $('progress').setAttribute('aria-valuenow',Math.floor(m.progress_pct));
+  $('progress').firstElementChild.style.width=`${m.progress_pct}%`;
+}
+function renderCode(code) {
+  const classes=pythonCharacterClasses(code);
+  $('code').replaceChildren();spans=[];let offset=0;
+  code.split('\n').forEach((line,n,lines)=>{
+    const el=document.createElement('span');el.className='code-line';
+    const number=document.createElement('span');number.className='line-number';number.textContent=n+1;number.setAttribute('aria-hidden','true');el.append(number);
+    const chars=document.createElement('span');
+    for(const char of line+(n<lines.length-1?'\n':'')) {
+      const span=document.createElement('span');span.className='character '+classes[offset];span.dataset.char=char;
+      span.textContent=char==='\n'?'↵':char===' '&&whitespace?'·':char;
+      if(char==='\n') span.classList.add('newline');
+      spans.push(span);chars.append(span);offset++;
+    } el.append(chars);$('code').append(el);
+  });
+}
+function paint() {
+  const state=controller.getSnapshot();
+  $('minimum-accuracy').disabled=!!channel||state.status==='running'||locked;
+  for(let i=0;i<spans.length;i++) {
+    const status=state.slots[i]?.status;
+    if(status!==spans[i].dataset.typedStatus) {if(status)spans[i].dataset.typedStatus=status;else delete spans[i].dataset.typedStatus;}
+    spans[i].toggleAttribute('data-current',i===state.cursor&&state.status!=='completed');
+  }
+  const line=controller.problem.code.slice(0,state.cursor).split('\n').length;
+  const column=state.cursor-controller.problem.code.lastIndexOf('\n',state.cursor-1);
+  $('position').textContent=`Ln ${line}, Col ${column}`;
+  $('feedback').textContent=state.activeErrorIndex!==null?'Backspace로 오류 위치까지 돌아가 주세요.':state.status==='idle'?'첫 글자를 입력하면 시작해요.':`다음 문자 ${visible(controller.problem.code[state.cursor]??'')} · 실수 ${state.mistakeCount}회`;
+  metrics();updateGuide(state);
+  if(state.status==='running'&&!clock) clock=setInterval(metrics,100);
+  if(state.status==='completed') {clearInterval(clock);clock=null;showResult(state);}
+  if(previousCursor!==state.cursor) {
+    previousCursor=state.cursor;
+    const caret=spans[state.cursor],box=$('reference-code');
+    if(caret) requestAnimationFrame(()=>{
+      const rect=caret.getBoundingClientRect(),view=box.getBoundingClientRect();
+      if(rect.bottom>view.bottom)box.scrollTop+=rect.bottom-view.bottom;
+      if(rect.top<view.top)box.scrollTop-=view.top-rect.top;
+      if(rect.right>view.right)box.scrollLeft+=rect.right-view.right;
+      if(rect.left<view.left)box.scrollLeft-=view.left-rect.left;
+    });
+  }
+}
+function showResult(state) {
+  const m=controller.metrics(),success=m.accuracy_pct!==null&&m.accuracy_pct>=minimumAccuracy;
+  $('editor-panel').hidden=true;$('result').hidden=false;
+  $('result-title').textContent=success?'멋진 연습이었어요!':'한 번 더, 더 정확하게.';
+  $('result-description').textContent=`${formatDuration(m.elapsed_ms)} · ${m.wpm} WPM · 정확도 ${m.accuracy_pct?.toFixed(1)}% · ${success?'성공':'실패'}`;
+  $('result-errors').textContent=`미수정 오류 ${remainingErrors(state)}개 · 총 실수 ${state.mistakeCount}회`;
+  $('feedback').textContent=channel?'최종 결과를 캠퍼스에 전달했어요.':'완료했어요. 다른 문제도 연습해 보세요.';
+  $('guide-title').textContent='어떤 키가 어려웠나요?';$('hands').hidden=true;$('guide-body').querySelector('.instruction').hidden=true;
+  for(const el of keys.values()){el.removeAttribute('data-active');el.removeAttribute('data-shift');}
+  const mistakes=aggregateKeyMistakes(state.mistakeByExpectedChar);
+  for(const [id,entry] of mistakes) {
+    const el=keys.get(id);el.dataset.heat=Math.min(5,entry.count);el.tabIndex=0;
+    el.title=`${entry.key.label}: ${entry.count}회`;el.setAttribute('aria-label',el.title);
+    const badge=document.createElement('b');badge.textContent=entry.count;el.append(badge);
+  }
+  $('mistake-rank').hidden=false;
+  $('mistake-rank').textContent=[...mistakes.values()].sort((a,b)=>b.count-a.count).slice(0,5).map(e=>`${e.key.label} ${e.count}회`).join(' · ')||'모든 키를 정확하게 입력했어요!';
+  if(channel){locked=true;channel.complete({duration_ms:Math.round(m.elapsed_ms),status:success?'SUCCESS':'FAILED'});for(const id of ['mode','minimum-accuracy','restart'])$(id).disabled=true;}
+}
+function start(problem) {
+  if(locked)return;
+  controller?.abandon('restart');detach?.();clearInterval(clock);clock=null;
+  controller=new AttemptController(problem,$('mode').value,{emit(){}},{},sessionId);
+  $('input').value='';$('editor-panel').hidden=false;$('result').hidden=true;
+  $('guide-title').textContent='키보드 & 손가락 가이드';$('hands').hidden=false;$('guide-body').querySelector('.instruction').hidden=false;$('mistake-rank').hidden=true;
+  for(const el of keys.values()){delete el.dataset.heat;el.querySelector('b')?.remove();el.removeAttribute('tabindex');}
+  $('problem-title').textContent=problem.title;$('problem-description').textContent=problem.description;
+  const group=all.filter(p=>p.difficulty==='beginner'),index=group.findIndex(p=>p.id===problem.id)+1;
+  $('lesson-number').textContent=String(index).padStart(2,'0');$('lesson-position').textContent=`${index} / ${group.length} 문제`;
+  $('char-count').textContent=`${problem.code.length} characters · Python · Spaces: 4`;
+  $('mode-help').textContent=$('mode').value==='natural'?'Natural · 오타가 있어도 계속 입력할 수 있어요. Backspace로 수정해 보세요.':'Forced Correction · 오타 뒤 최대 5칸까지 진행해요. Backspace로 오류 위치까지 돌아가 수정하세요.';
+  renderCode(problem.code);previousCursor=-1;
+  controller.subscribe(paint);
+  detach=attachTypingInput($('input'),action=>controller.input(action),()=>controller.getSnapshot().slots.map(s=>s.typed).join(''),()=>$('restart').focus());
+  paint();
+  $('input').focus({preventScroll:true});
+}
+createKeyboard();
+$('mode').addEventListener('change',()=>start(controller.problem));
+$('minimum-accuracy').addEventListener('change',()=>{
+  if(!$('minimum-accuracy').checkValidity()){$('minimum-accuracy').value=minimumAccuracy;return;}
+  minimumAccuracy=Number($('minimum-accuracy').value);
+  $('pass-rule').textContent=`정확도 ${minimumAccuracy}% 이상으로 끝까지 입력하면 성공해요. 코드는 실행하지 않습니다.`;
+  start(controller.problem);
+});
+for(const id of ['restart','repeat'])$(id).addEventListener('click',()=>{start(controller.problem);$('input').focus();});
+$('next').addEventListener('click',()=>{start(pickBeginnerProblem(all));$('input').focus();});
+$('exit').addEventListener('click',()=>{controller?.abandon('exit');clearInterval(clock);clock=null;if(channel)channel.exit();else{start(controller.problem);$('feedback').textContent='좋은 연습이었어요. 준비되면 다시 시작해요.';}});
+$('typing-surface').addEventListener('click',()=>$('input').focus({preventScroll:true}));
+$('whitespace').addEventListener('click',()=>{whitespace=!whitespace;$('whitespace').setAttribute('aria-pressed',whitespace);for(const span of spans)if(span.dataset.char===' ')span.textContent=whitespace?'·':' ';});
+$('toggle-guide').addEventListener('click',()=>{const hidden=!$('guide-body').hidden;$('guide-body').hidden=hidden;$('toggle-guide').setAttribute('aria-expanded',!hidden);$('toggle-guide').textContent=hidden?'가이드 보기 +':'가이드 숨기기 −';});
+window.addEventListener('pagehide',()=>{controller?.abandon('pagehide');clearInterval(clock);detach?.();});
+if(channel){
+  $('input').disabled=true;$('repeat-actions').hidden=true;
+  channel.start((config,id)=>{
+    if(!Number.isFinite(config.minimumAccuracy)||config.minimumAccuracy<0||config.minimumAccuracy>100)throw new Error('정확도 설정 오류');
+    minimumAccuracy=config.minimumAccuracy;$('minimum-accuracy').value=minimumAccuracy;sessionId=id;
+    $('pass-rule').textContent=`정확도 ${minimumAccuracy}% 이상으로 끝까지 입력하면 성공해요. 코드는 실행하지 않습니다.`;
+    $('input').disabled=false;start(pickBeginnerProblem(all));
+  });
+}else start(pickBeginnerProblem(all));
+
+})();</script></body></html>

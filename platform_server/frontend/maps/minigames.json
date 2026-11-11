@@ -1,0 +1,32 @@
+[
+  {
+    "id": "minigame-timer",
+    "gameCode": "timer",
+    "name": "타이머 게임",
+    "floor": "campus",
+    "x": 2280,
+    "y": 180,
+    "w": 74,
+    "h": 54,
+    "interactionPoint": [
+      2317,
+      262
+    ],
+    "renderHeight": 170
+  },
+  {
+    "id": "minigame-typing",
+    "gameCode": "typing",
+    "name": "코드 타이핑 게임",
+    "floor": "campus",
+    "x": 2280,
+    "y": 340,
+    "w": 74,
+    "h": 54,
+    "interactionPoint": [
+      2317,
+      422
+    ],
+    "renderHeight": 170
+  }
+]

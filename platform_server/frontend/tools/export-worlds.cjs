@@ -24,7 +24,7 @@ function build(root = FRONTEND) {
   const object = o => {
     const row = {id: o.id, type: o.type};
     if (o.name) row.name = o.name;
-    for (const key of ['toFloor', 'arrival', 'action', 'contentType']) if (o[key] !== undefined) row[key] = o[key];
+    for (const key of ['toFloor', 'arrival', 'action', 'contentType', 'gameCode']) if (o[key] !== undefined) row[key] = o[key];
     row.confirmTransfer = o.confirmTransfer === true;
     if (o.interactionPoint) row.interactionPoint = o.interactionPoint;
     if (o.interactionRadius !== undefined) row.interactionRadius = o.interactionRadius;

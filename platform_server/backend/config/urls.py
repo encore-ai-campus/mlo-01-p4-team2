@@ -4,6 +4,7 @@ from learning.views import learning_page
 from campus_control.views import freeze
 
 urlpatterns = [
+    path("api/event-main/", include("event_story.main_urls")),
     path("api/campus/freeze/", freeze, name="campus-freeze"),
     path("api/event-story/", include("event_story.urls")),
     path("api/messages/", include("direct_messages.urls")),

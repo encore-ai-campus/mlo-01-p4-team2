@@ -60,7 +60,12 @@
   const createSession = () => post('sessions/', {subject:state.subject, question_type: state.questionType, difficulty: state.difficulty});
   const fetchQuestion = (order) => request(`sessions/${state.sessionId}/questions/${order}/`);
   const submitAnswer = (answer) => post(`sessions/${state.sessionId}/questions/${state.currentOrder}/answers/`, {answer, submission_request_uuid:state.pendingSubmission.uuid, choice_uuid:state.pendingSubmission.choiceUuid ?? null});
-  const completeSession = () => post(`sessions/${state.sessionId}/complete/`);
+  async function completeSession() {
+    const result = await post('sessions/' + state.sessionId + '/complete/');
+    if (Array.isArray(result.achievements)) window.dispatchEvent(new CustomEvent('campus:achievements', {detail: result.achievements}));
+    if (Array.isArray(result.newly_completed) && result.newly_completed.length) window.dispatchEvent(new CustomEvent('campus:achievement-earned', {detail: result}));
+    return result;
+  }
   const fetchSessionResult = () => request(`sessions/${state.sessionId}/`);
 
   function showBalance(balance) {

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f7f2">
+  <meta name="description" content="흐르는 시간을 느끼고, 정확한 순간에 멈추세요. 브라우저 타이밍 미니게임 ON TIME.">
+  <title>ON TIME — 순간을 맞추는 게임</title>
+  <link rel="icon" href="./assets/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="site-header">
+      <a href="#page-title" class="brand" aria-label="ON TIME 홈"><img src="./assets/mark.svg" width="36" height="36" alt=""><span>ON TIME<span class="brand-dot">.</span></span></a>
+      <span class="header-label">A LITTLE BREAK. A PERFECT MOMENT.</span>
+      <span class="demo-badge"><span></span> PLAYABLE DEMO</span>
+    </header>
+
+    <main>
+      <section class="intro" aria-labelledby="page-title">
+        <div><p class="eyebrow"><span class="tiny-cross">✳</span> THE TIMING CHALLENGE</p><h1 id="page-title">딱, 그 순간에<span class="accent">.</span></h1><p class="intro-copy">시간을 느끼고, 목표에 맞춰 멈추세요.<br class="mobile-break"> 당신의 타이밍은 얼마나 정확할까요?</p></div>
+        <div class="intro-stamp" aria-hidden="true"><span>TRUST YOUR</span><svg viewBox="0 0 52 52" fill="none"><path d="M26 5v42M5 26h42M11 11l30 30M11 41l30-30" stroke="currentColor" stroke-width="3"/></svg><span>INNER CLOCK</span></div>
+      </section>
+
+      <div class="game-layout">
+        <section class="game-card" aria-label="타이머 게임">
+          <div class="game-topline"><span class="section-label"><span class="live-dot"></span> TIME TO FOCUS</span><span id="round-label" class="round-label">ROUND 01</span></div>
+          <div id="game-status" class="status-pill" data-state="idle"><span></span><span id="status-text">준비되셨나요?</span></div>
+
+          <div class="dial" id="dial">
+            <svg class="dial-svg" viewBox="0 0 360 360" aria-hidden="true">
+              <circle class="dial-track" cx="180" cy="180" r="153"/>
+              <g id="dial-ticks"></g>
+              <circle class="dial-progress" id="dial-progress" cx="180" cy="180" r="153" pathLength="100"/>
+              <circle class="dial-target" cx="180" cy="27" r="5"/>
+            </svg>
+            <div class="dial-center"><span class="timer-overline" id="timer-overline">ELAPSED TIME</span><div class="time-reading" role="timer" aria-label="경과 시간"><span id="time-seconds">00</span><span class="time-dot">.</span><span id="time-fraction">000</span></div><span class="time-unit">SECONDS</span><div class="dial-target-label">목표 <strong id="dial-target-value">5.000</strong><span>초</span></div></div>
+          </div>
+
+          <div class="result-copy" role="status" aria-live="polite" aria-atomic="true"><h2 id="result-title">당신의 감각을 믿어보세요.</h2><p id="result-description">시작한 뒤, 목표 시간에 맞춰 멈추면 성공!</p></div>
+          <button type="button" id="action-button" class="action-button"><svg id="action-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l11 7-11 7V5Z" fill="currentColor"/></svg><span id="action-label">도전 시작</span><span class="button-arrow" aria-hidden="true">↗</span></button>
+          <p class="keyboard-hint"><kbd>Space</kbd> 키 또는 버튼으로 시작 · 멈추기</p>
+        </section>
+
+        <aside class="side-panel">
+          <section class="mission-card" aria-labelledby="mission-heading"><div class="card-heading"><h2 id="mission-heading">이번 도전</h2><span class="small-tag">MISSION</span></div>
+            <div class="target-metric"><span>목표 시간</span><p><strong id="target-value">5.000</strong><span>초</span></p></div>
+            <div class="tolerance-row"><span>허용 오차</span><strong id="tolerance-value">± 0.200초</strong></div>
+            <div class="range-visual" aria-hidden="true"><div class="range-line"></div><div class="range-zone"></div><div class="range-marker"></div></div>
+            <div class="range-labels"><span id="range-min">4.800초</span><span class="range-center">성공 구간</span><span id="range-max">5.200초</span></div>
+            <p class="mission-note"><span aria-hidden="true">↳</span> 화면의 시간이 정확히 11.11초일 때 성공이에요.</p>
+          </section>
+
+          <section class="howto-card" aria-labelledby="howto-heading"><h2 id="howto-heading">플레이 방법</h2><ol><li><span class="step-number">01</span><div><strong>목표를 확인하고</strong><p>목표 시간과 성공 구간을 기억하세요.</p></div></li><li><span class="step-number">02</span><div><strong>흐르는 시간에 집중하고</strong><p>시작 버튼을 누르면 시간이 흘러요.</p></div></li><li><span class="step-number">03</span><div><strong>바로 그 순간, 멈추세요</strong><p>멈추기 버튼이나 Space 키를 누르세요.</p></div></li></ol></section>
+
+          <section class="settings-card" id="settings-card"><details id="settings-details"><summary><span><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14M7 3v4M13 8v4M8 13v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>데모 설정</span><span class="summary-plus" aria-hidden="true">+</span></summary><form id="settings-form"><p class="settings-note">다음 도전의 난이도를 바꿔보세요.</p><div class="setting-fields"><label>목표 시간 <span>(초)</span><input id="target-input" name="target" type="number" min="0.1" max="300" step="0.001" value="5" required></label><label>허용 오차 <span>(초)</span><input id="tolerance-input" name="tolerance" type="number" min="0" step="0.001" value="0.2" required></label></div><p id="settings-error" class="settings-error" role="alert"></p><button type="submit" class="apply-button">설정 적용 <span aria-hidden="true">↗</span></button></form></details></section>
+        </aside>
+      </div>
+
+      <footer class="site-footer"><span>작은 도전, 기분 좋은 몰입.</span><span>MADE FOR YOUR IN-BETWEEN MOMENTS <span class="footer-spark">✳</span></span></footer>
+    </main>
+  </div>
+  <noscript><p class="noscript">이 게임을 실행하려면 브라우저의 JavaScript를 활성화하세요.</p></noscript>
+</body>
+</html>

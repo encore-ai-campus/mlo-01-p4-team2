@@ -27,7 +27,21 @@ class ControlError(ValueError):
 
 @lru_cache(maxsize=1)
 def geometry():
-    return json.loads((Path(__file__).parent / 'data/worlds.json').read_text(encoding='utf-8'))
+    data=json.loads((Path(__file__).parent / 'data/worlds.json').read_text(encoding='utf-8'))
+    mission=mission_geometry()
+    for e in mission['entrances']:
+        w=data['worlds'][e['floor']];b=e['building'];w['colliders'].append({**b,'pad':1})
+        w['objects'].append({'id':'mission-building-'+str(e['room']),'type':'mission-building','footprint':b})
+    for npc in mission['npcs']:
+        w=data['worlds'][npc['floor']];fp={'x':npc['x']-9,'y':npc['y']-7,'w':18,'h':14}
+        w['objects'].append({**npc,'type':'mission-manager','action':'manager_greet','interactionPoint':[npc['x']+(60 if npc['id']=='manager-suhyeon' else 0),npc['y']+(0 if npc['id']=='manager-suhyeon' else 50)],'footprint':fp,'interactionRadius':110 if npc['id']=='manager-suhyeon' else 65})
+        w['colliders'].append({**fp,'pad':0,'objectId':npc['id']})
+    data['worlds']['campus']['colliders'].append({'x':2040,'y':846,'w':100,'h':30,'pad':1})
+    return data
+
+@lru_cache(maxsize=1)
+def mission_geometry():
+    return json.loads((Path(__file__).resolve().parents[1]/'event_story/mission_rooms.json').read_text(encoding='utf-8'))
 
 def inside(rectangle, x, y):
     return rectangle['x'] <= x <= rectangle['x'] + rectangle['w'] and rectangle['y'] <= y <= rectangle['y'] + rectangle['h']
@@ -65,7 +79,7 @@ class World:
         if not math.isfinite(x) or not math.isfinite(y):
             return False
         if self.data['privateRoom']:
-            if not (23 <= x <= 617 and 23 <= y <= 493):
+            if not (23 <= x <= self.data['width']-23 and 23 <= y <= self.data['height']-27):
                 return False
             radius = self.data['radius']
             return not any(row['x']-radius < x < row['x']+row['w']+radius and row['y']-radius < y < row['y']+row['h']+radius
@@ -172,9 +186,9 @@ class World:
                     heapq.heappush(heap,(cost+heuristic,next_cell))
         return None
 
-@lru_cache(maxsize=4)
+@lru_cache(maxsize=8)
 def world(name):
-    data=geometry()['worlds'].get(name) or geometry()['classrooms'].get(name)
+    data=geometry()['worlds'].get(name) or geometry()['classrooms'].get(name) or mission_geometry()['rooms'].get(name)
     if data is None:
         raise ControlError('이동할 공간을 확인해 주세요.')
     return World(data)
@@ -237,6 +251,9 @@ class MotionController:
         data=world(self.interior['subject']).data;actor=self.interior['actor'];exit=data['exit']
         if math.hypot(actor['x']-exit['interactionPoint'][0],actor['y']-exit['interactionPoint'][1])<35:
             return exit
+        if self.interior.get('missionRoom'):
+            rows=[o for o in data['objects'] if o.get('code') and math.hypot(actor['x']-o['interactionPoint'][0],actor['y']-o['interactionPoint'][1])<55]
+            return min(rows,key=lambda o:math.hypot(actor['x']-o['interactionPoint'][0],actor['y']-o['interactionPoint'][1]),default=None)
         kind=('multiple_choice' if 70<=actor['x']<=270 else 'fill_blank' if 390<=actor['x']<=590 else None) if 145<=actor['y']<=413 else None
         if not kind:
             return None
@@ -245,7 +262,7 @@ class MotionController:
 
     def hints(self):
         rows=[obj for obj in self.world.data['objects'] if obj.get('name') and self.world.distance(obj,self.pose)<obj.get('interactionRadius',35)]
-        nearby=min(rows,key=lambda obj:self.world.distance(obj,self.pose),default=None)
+        nearby=min(rows,key=lambda obj:(0 if obj['id']=='campus-guide-kkuwang' else 1,self.world.distance(obj,self.pose)),default=None)
         room=next((row for row in reversed(self.world.data['rooms']) if inside(row,self.pose['x'],self.pose['y'])),None)
         entrance=self.world.data.get('entrance')
         on_roof_stairs=any(o['type']=='stairs' and o.get('toFloor')=='rooftop' and inside(o['footprint'],self.pose['x'],self.pose['y']) for o in self.world.data['objects'])
@@ -257,7 +274,7 @@ class MotionController:
         if self.interior:
             near=self.private_near()
             interior={'subject':self.interior['subject'],'actor':dict(self.interior['actor']),
-                      'nearby':{key:near[key] for key in ('id','name','contentType') if key in near} if near else None,
+                      'nearby':{key:near[key] for key in ('id','name','contentType','code') if key in near} if near else None,
                       'exitCooldownMs':math.ceil(max(0,CLASSROOM_TRANSITION_DELAY-(time.monotonic()-self.last_classroom_transition))*1000)}
         return {'main':dict(self.pose),'hints':self.hints(),'interior':interior}
 
@@ -269,7 +286,7 @@ class MotionController:
         active_world=world(self.interior['subject']) if self.interior else self.world
         was_moving=actor['moving'];actor['moving']=False;actor['running']=False;actor['guarding']='control' in keys
         previous=dict(self.pose)
-        if (self.interior and self.classroom_exit_armed and now-self.last_classroom_transition>=CLASSROOM_TRANSITION_DELAY
+        if (self.interior and not self.interior.get('missionRoom') and self.classroom_exit_armed and now-self.last_classroom_transition>=CLASSROOM_TRANSITION_DELAY
                 and 'arrowdown' in keys and (near:=self.private_near()) and near['id']=='classroom-exit'):
             self.leave_classroom(now=now);keys=set();actor=self.pose;active_world=self.world
         if not self.pending_transfer:
@@ -333,6 +350,8 @@ class MotionController:
         now=time.monotonic() if now is None else now
         if now-self.last_classroom_transition<CLASSROOM_TRANSITION_DELAY:
             raise ControlError('입장 후 2초 뒤에 나갈 수 있어요.')
+        if self.interior.get('missionRoom'):
+            target=self.interior['return'];self.pose.update(target,moving=False,running=False,guarding=False);self.interior=None;self.keys=set();self.route=[];self.last_classroom_transition=now;return
         gate=self.interior['gate'];target=self.world.closest((gate['left']+gate['right'])/2,gate['y']-18)
         if target is None:
             raise ControlError('교실 출입구를 확인해 주세요.')
@@ -341,6 +360,17 @@ class MotionController:
         self.poke_direction=self.pose['dir']
 
     def command(self, action, data):
+        if action=='mission_room_enter':
+            n=data.get('room')
+            gate=next((e for e in mission_geometry()['entrances'] if type(n) is int and e['room']==n),None)
+            if not gate or self.interior or self.pending_transfer or self.pose['floor']!=gate['floor'] or math.hypot(self.pose['x']-gate['x'],self.pose['y']-gate['y'])>70:
+                raise ControlError('옥상 방 입구 가까이에서 상호작용해 주세요.')
+            room=world('mission'+str(n)).data
+            self.interior={'subject':'mission'+str(n),'missionRoom':n,'return':{'x':self.pose['x'],'y':self.pose['y']},'actor':{'x':room['spawn'][0],'y':room['spawn'][1],'dir':'up','moving':False,'running':False,'guarding':False}}
+            self.keys=set();self.route=[];self.pose.update(moving=False,running=False,guarding=False);self.last_classroom_transition=time.monotonic();return {'type':'mission_room_entered','room':n}
+        if action=='mission_room_exit':
+            if not self.interior or not self.interior.get('missionRoom'):raise ControlError('미션 방 안에서 이용해 주세요.')
+            self.leave_classroom();return {'type':'mission_room_left'}
         if action=='quick_travel':
             destination_id=data.get('destination')
             if not isinstance(destination_id,str) or destination_id not in QUICK_TRAVEL_DESTINATIONS:
@@ -405,6 +435,7 @@ class MotionController:
                 self.leave_classroom()
             else:
                 self.keys=set();self.interior['actor']['moving']=False;self.interior['actor']['running']=False
+                if self.interior.get('missionRoom'):return {'type':'mission_station','room':self.interior['missionRoom'],'code':near['code']}
                 return {'type':'learning_open','subject':self.interior['subject'],'questionType':near['contentType']}
         elif action=='navigate':
             x,y=data.get('x'),data.get('y')

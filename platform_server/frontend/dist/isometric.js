@@ -637,6 +637,33 @@
         verticalPanel(x,y+h,w,25,base+114,'#253a58');
         const span=w/2;
         for(const [i,text,color] of [[0,'Nintendo','#d85760'],[1,'STEAM','#253d55']])verticalPanel(x+3+i*span,y+h,span-6,18,base+117,color,'x',text,'#fff8f5');
+      } else if(type==='game-pc-station'&&o.action==='minigame') {
+        const timer=o.gameCode==='timer',accent=timer?'#df91a2':'#c995ad',gold='#c9a15e',ink='#674b42';
+        for(const [dx,dy] of [[4,4],[w-8,4],[4,h-8],[w-8,h-8]])box(x+dx,y+dy,4,4,base,32,'#e6c38c',gold,'#aa804b');
+        box(x,y,w,h,base+32,6,'#fff3df','#eccdbd','#d6ae9e');
+        box(x+2,y+h-3,w-4,2,base+36,3,'#f7d0d6',accent,'#bc7b90');
+        box(x+26,y+10,16,8,base+38,7,'#f0d7b0',gold,'#ae824b');
+        verticalPanel(x+8,y+19,w-16,39,base+43,gold);
+        verticalPanel(x+11,y+19,w-22,33,base+46,timer?'#fbe4e8':'#f8e9dc');
+        const screen=p(x+w/2,y+19,base+64);
+        if(timer){
+          ellipse(screen.x,screen.y,11,11,'#fffaf1');
+          g.beginPath();g.arc(screen.x,screen.y,11,0,Math.PI*2);g.strokeStyle=accent;g.lineWidth=2;g.stroke();
+          line(screen,{x:screen.x,y:screen.y-7},ink,2);line(screen,{x:screen.x+5,y:screen.y+3},ink,2);
+        }else{
+          g.font=`700 15px ${font}`;g.fillStyle=ink;g.textAlign='center';g.textBaseline='middle';g.fillText('</>',screen.x,screen.y);
+        }
+        plane(x+9,y+h-20,w-18,13,base+39,'#f5dfc7',gold);
+        for(let i=0;i<9;i++)for(let j=0;j<3;j++)plane(x+12+i*5,y+h-18+j*3.3,3,2,base+39.2,j===0?'#e7afbe':'#fff8ee',null);
+        for(const dx of [4,w-8])box(x+dx,y+4,4,4,base+38,85,'#e4c18a',gold,'#ae824b');
+        const sign=p(x+w/2,y+8,base+135);
+        g.save();g.fillStyle='#fff6e8';g.strokeStyle=gold;g.lineWidth=2;
+        g.beginPath();g.roundRect(sign.x-85,sign.y-25,170,50,7);g.fill();g.stroke();
+        g.fillStyle=accent;g.fillRect(sign.x-77,sign.y-18,4,36);
+        g.font=`700 15px ${font}`;g.fillStyle=ink;g.textAlign='center';g.textBaseline='middle';
+        g.fillText(timer?'◷ 타이머 게임':'⌨ 코드 타이핑',sign.x+3,sign.y-8);
+        g.font=`600 11px ${font}`;g.fillStyle='#8e6258';g.fillText(timer?'11.11초 맞추기':'정확도 95% 도전',sign.x+3,sign.y+12);g.restore();
+        label('E 키로 시작',x+w/2,y+h+12,10,ink,'#fff6e8ee',base+5);
       } else if(type==='game-pc-station') {
         for(const [dx,dy] of [[4,4],[w-8,4],[4,h-8],[w-8,h-8]])box(x+dx,y+dy,4,4,base,32,'#7996b9','#527296','#3a5276');
         box(x,y,w,h,base+32,5,'#334c6d','#233c5b','#192d49');box(x+2,y+h-3,w-4,2,base+35,2,'#80d8ed','#76bfd9','#598daa');
@@ -648,7 +675,7 @@
         plane(x+8,y+h-24,43,14,base+38,'#182a40','#728ba8');
         for(let i=0;i<8;i++)for(let j=0;j<3;j++)plane(x+11+i*4.5,y+h-22+j*3.5,2.6,1.8,base+38.2,j===0?'#7cd4dd':'#a3b0e0',null);
         box(x+w-18,y+h-19,9,12,base+37,3,'#acc3de','#6e8cb4','#4b6a95');
-        verticalPanel(x+3,y+h,w-6,15,base+10,'#274b67','x','STEAM PC','#e9faff');
+        verticalPanel(x+3,y+h,w-6,15,base+10,'#274b67','x',o.gameCode==='timer'?'TIMER':o.gameCode==='typing'?'CODE TYPING':'STEAM PC','#e9faff');
       } else if(type==='game-console-display') {
         const nintendo=o.platform==='nintendo';
         box(x,y,w,h,base,32,nintendo?'#f2c7c3':'#cad8ee',nintendo?'#c98482':'#92aace',nintendo?'#ab666c':'#6c87b1');
@@ -934,12 +961,17 @@
       const r=footprint(o),area=o,corners=[[area.x-12,area.y-12],[area.x+area.w+12,area.y-12],[area.x+area.w+12,area.y+area.h+12],[area.x-12,area.y+area.h+12]].map(([x,y])=>p(x,y));
       const b={x:Math.floor(Math.min(...corners.map(q=>q.x))-7),y:Math.floor(Math.min(...corners.map(q=>q.y))-groundHeight(o.x+o.w/2,o.y+o.h/2)-(o.renderHeight||110))};
       b.w=Math.ceil(Math.max(...corners.map(q=>q.x))-b.x+7);b.h=Math.ceil(Math.max(...corners.map(q=>q.y))-b.y+10+(o.renderDepth||0));
+      if(o.type==='mission-manager'){const q=projectGround(o.x+o.w/2,o.y+o.h/2);Object.assign(b,{x:Math.floor(q.x-75),y:Math.floor(q.y-90),w:150,h:110});}
       if(o.type==='plaza-display') {
         const q=projectGround(o.x+o.w/2,o.y+o.h/2),sw=o.screenWidth||250,v=o.displayAxis==='y'?P.vector(0,-1):{x:1,y:0};
         const half=(sw/2+16),spreadX=Math.abs(v.x)*half,spreadY=Math.abs(v.y)*half;
         const image=displayImages.get(o.id),height=Math.max(o.renderHeight||230,o.imageOnly&&image?44+sw*image.height/image.width+8:0);
         b.x=Math.floor(q.x-spreadX-10);b.y=Math.floor(q.y-spreadY-height);
         b.w=Math.ceil(spreadX*2+20);b.h=Math.ceil(spreadY*2+height+14);
+      }
+      if(o.action==='minigame'){
+        const q=projectGround(o.x+o.w/2,o.y+8),right=Math.max(b.x+b.w,Math.ceil(q.x+90));
+        b.x=Math.min(b.x,Math.floor(q.x-90));b.w=right-b.x;
       }
       // Generated art needs bounds independent of its small ground footprint.
       if(o.seasonalArt||o.type==='pepero-monument'||o.type==='pepero-cart'||o.type==='pepero-gift-art'){
@@ -950,7 +982,7 @@
       return {o,r,b,canvas,isWall,groundOutline:o.seasonalArt&&o.collisionPolygon?o.collisionPolygon.map(([x,y])=>p(x,y)):null,depth:isWall&&D.backdropWalls&&((o.x<=15&&o.w<=10)||(o.y<=15&&o.h<=10))?-Infinity:p(r.x+r.w/2,r.y+r.h/2).y};
     }
     const sprites=[];
-    for(const o of objects.filter(o=>!attached.has(o.id)&&!['rug','plaza-paving','floor-arrow','booth-collider'].includes(o.type))) {
+    for(const o of objects.filter(o=>!attached.has(o.id)&&!['rug','plaza-paving','floor-arrow','booth-collider','manager'].includes(o.type))) {
       if(o.type==='stairs') {
         if(o.portalGlow){
           const center=o.portalAnchor||o.approach||[o.x+o.w/2,o.y+o.h*.12];
@@ -1000,8 +1032,8 @@
           const fx=alongX?0:5,fy=alongX?5:0,forward=ux+uy>0,first=forward?a===0:b===1,last=forward?b===1:a===0;
           const o={type:'wall',x:Math.min(X1,X2)-fx,y:Math.min(Y1,Y2)-fy,w:Math.abs(X2-X1)+fx*2,h:Math.abs(Y2-Y1)+fy*2,renderHeight:h+14,occludes:wall.occludes};
           const ends=[first&&reach[forward?0:1]>0,last&&reach[forward?1:0]>0],trim=first?0:.5,foot={x:o.x+(alongX?trim:0),y:o.y+(alongX?0:trim),w:o.w-(alongX?trim+(last?0:3.5):0),h:o.h-(alongX?0:trim+(last?0:4.5))};
-          const body=peperoSeason?(h>=170?['#75504a','#513039','#3c252e']:[wall.color||'#f4e3c6','#d8bb95','#bd9679']):[wall.color||D.wallColor||'#eee5d0',D.wallColor?'#cad5ca':'#c8b99a',D.wallColor?'#b5c3b5':'#b4a387'];
-          const cap=peperoSeason?['#8e5236','#6a3829','#47221e']:[D.wallColor?'#e7eee3':'#8d775b',D.wallColor?'#c9d4c3':'#917656',D.wallColor?'#b2c2ab':'#786449'];
+          const body=peperoSeason?(h>=170?['#75504a','#513039','#3c252e']:[wall.color||'#f4e3c6','#d8bb95','#bd9679']):D.wallPalette?.body||[wall.color||D.wallColor||'#eee5d0',D.wallColor?'#cad5ca':'#c8b99a',D.wallColor?'#b5c3b5':'#b4a387'];
+          const cap=peperoSeason?['#8e5236','#6a3829','#47221e']:D.wallPalette?.cap||[D.wallColor?'#e7eee3':'#8d775b',D.wallColor?'#c9d4c3':'#917656',D.wallColor?'#b2c2ab':'#786449'];
           sprites.push(cacheSprite(o,()=>{if(D.wallShadows!==false)shadow(foot,z);wallBox(o.x,o.y,o.w,o.h,z,h,body,alongX,...ends);wallBox(o.x,o.y,o.w,o.h,z+h,4,cap,alongX,...ends);},true));
         }
       }
@@ -1051,11 +1083,15 @@
       sprites.splice(0,n,...order);
     }
     orderSprites();
-    const hitSprites=objects.filter(o=>o.name).map(o=>sprites.find(s=>s.o.id===o.id)||cacheSprite(o,()=>{
+    const hitSprites=objects.filter(o=>o.name&&o.type!=='manager').map(o=>sprites.find(s=>s.o.id===o.id)||cacheSprite(o,()=>{
       furniture(o,groundHeight(o.x,o.y)+27);
       if(o.portalGlow){const glow=sprites.find(s=>s.o.id===o.id+'-glow');if(glow)compactPortalBase(glow.o);}
     })).sort((a,b)=>b.depth-a.depth);
     function hitTest(x,y) {
+      for(const actor of (D.npcs||[]).filter(actor=>actor.managerNpc).sort((a,b)=>projectActor(b).y-projectActor(a).y)){
+        const q=projectActor(actor);
+        if(x>=q.x-18&&x<=q.x+18&&y>=q.y-42&&y<=q.y+5)return D.objects.find(o=>o.id===actor.id);
+      }
       for(const s of hitSprites){const b=s.b;if(x<b.x||y<b.y||x>=b.x+b.w||y>=b.y+b.h)continue;
         const alpha=s.canvas.getContext('2d').getImageData(Math.floor((x-b.x)*2),Math.floor((y-b.y)*2),1,1).data[3];
         if(alpha>60)return D.objects.find(o=>o.id===s.o.id);
@@ -1119,6 +1155,10 @@
     function drawSprite(ctx,s,alpha=1){ctx.save();ctx.globalAlpha=alpha;if(s.o.type==='story-evidence'){g=ctx;furniture(s.o,groundHeight(s.o.x+s.o.w/2,s.o.y+s.o.h/2));}else if(s.o.type==='sliding-door'&&doorStates.has(s.o.id)){const progress=doorProgress(doorStates.get(s.o.id),performance.now());g=ctx;furniture({...s.o,x:s.o.x-s.o.w*progress,closed:true},0);}else ctx.drawImage(s.canvas,s.b.x,s.b.y,s.b.w,s.b.h);ctx.restore();}
     const scene=makeCanvas(P.width*resolution,P.height*resolution),sg=scene.getContext('2d');
     function repaintScene(){sg.setTransform(1,0,0,1,0,0);sg.clearRect(0,0,scene.width,scene.height);sg.setTransform(resolution,0,0,resolution,0,0);city?.draw(sg);sg.drawImage(floorCanvas,0,0,P.width,P.height);for(const s of sprites){drawSprite(sg,s);if(s.o.type==='fountain'){g=sg;fountainWater(s.o,0);}if(s.o.type==='floor-portal'){g=sg;if(s.o.portalStyle==='compact')compactPortalEnergy(s.o);else portalEnergy(s.o,groundHeight(s.o.x+s.o.w/2,s.o.y+s.o.h/2));}else if(s.o.type==='stair-portal'||(s.o.type==='fire-extinguisher'&&s.o.portalGlow)){g=sg;compactPortalEnergy(s.o);}}for(const sprite of sprites.filter(sprite=>sprite.o.type==='wall-sign'||(sprite.o.type==='wall-poster'&&sprite.o.inFrontOfWalls)))drawSprite(sg,sprite);drawLabels(sg);}
+    window.addEventListener('campus-mission-assets-ready',()=>{
+      for(const sprite of sprites.filter(s=>s.o.type?.startsWith('mission-'))){const depth=sprite.depth;Object.assign(sprite,cacheSprite(sprite.o,()=>furniture(sprite.o,groundHeight(sprite.o.x+sprite.o.w/2,sprite.o.y+sprite.o.h/2))));sprite.depth=depth;}
+      repaintScene();
+    });
     let seasonRepaintPending=false;
     window.addEventListener?.('campus-seasonal-assets-ready',event=>{
       if(!peperoSeason)return;
@@ -1217,7 +1257,7 @@
       // Keep the stair destination marker readable above nearby walls.
       for(const marker of visible.filter(s=>s.o.type==='stair-portal'))drawSprite(ctx,marker);
       drawLabels(ctx,actors);
-      for(const actor of drawnActors)if(actor===actors[0]||(showNicknames&&actor.nickname))drawName(ctx,actor,camera.zoom,actor.nickname||(actor===actors[0]?'나':''),actor===actors[0],t);
+      for(const actor of drawnActors)if(actor===actors[0]||actor.managerNpc||(showNicknames&&actor.nickname))drawName(ctx,actor,camera.zoom,actor.nickname||(actor===actors[0]?'나':''),actor===actors[0],t);
     }
     // 확대·카메라 이동 전 광고 이미지의 실제 사각형을 투영한다. 테두리는 포함하지 않는다.
     function displayPolygon(id){

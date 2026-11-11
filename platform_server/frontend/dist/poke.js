@@ -18,7 +18,8 @@
     return value;
   }
   function targets(floor){
-    return (window.CampusWorlds?.[floor]?.objects||[]).filter(o=>o.action==='guard_sandbag'||o.type==='guide-npc').map(o=>o._guardTarget||(o._guardTarget={id:o.id,x:o.x+o.w/2,y:o.y+o.h/2,guarding:o.action==='guard_sandbag'}));
+    const world=window.CampusWorlds?.[floor];
+    return [...(world?.npcs||[]).filter(actor=>actor.managerNpc),...(world?.objects||[]).filter(o=>o.action==='guard_sandbag'||o.type==='guide-npc'||o.type==='mission-manager').map(o=>o._guardTarget||(o._guardTarget={id:o.id,x:o.x+o.w/2,y:o.y+o.h/2,guarding:o.action==='guard_sandbag'}))];
   }
   function action(actor,t){
     const loop=actor._campusPokeLoop;
@@ -175,8 +176,8 @@
     const button=document.getElementById('campusPokeButton'),held=new Set(),seen=new Set();
     let remaining=0;
     const meter=document.createElement('div');meter.id='peperoMeter';meter.setAttribute('role','status');meter.setAttribute('aria-live','polite');
-    Object.assign(meter.style,{position:'fixed',right:'20px',top:'108px',zIndex:'25',padding:'12px 16px',border:'1px solid #e0b893',borderRadius:'16px',background:'#fff4e8ed',color:'#643647',boxShadow:'0 5px 24px #4a233322',font:'600 13px sans-serif',pointerEvents:'none',maxWidth:'240px'});
-    document.body.append(meter);
+    Object.assign(meter.style,{position:'absolute',left:'18px',top:'18px',zIndex:'25',padding:'12px 16px',border:'1px solid #e0b893',borderRadius:'16px',background:'#fff4e8ed',color:'#643647',boxShadow:'0 5px 24px #4a233322',font:'600 13px sans-serif',pointerEvents:'none',maxWidth:'240px'});
+    (document.getElementById('viewport')||document.body).append(meter);
     function updateMeter(){meter.textContent=remaining?`빼빼로 ${remaining}/10`:'빼빼로 0/10 · 빈손 휘두르기 가능 · 상자 앞 E로 리필';}
     updateMeter();
     let lastContext='',readyAt=0,pulseTimer=null,suppressClick=false;

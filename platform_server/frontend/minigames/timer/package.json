@@ -1,0 +1,15 @@
+{
+  "name": "on-time-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A self-contained browser timing game for metaverse embeds.",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "start": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

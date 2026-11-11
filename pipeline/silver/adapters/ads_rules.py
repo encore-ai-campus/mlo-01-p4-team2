@@ -38,6 +38,9 @@ CONTRACTS = {  # (종류, 판) → (페이로드 최상위 키, 대상 키, 업�
                                  "ad_group_id", "changed_at"),
     ("ad.segment_changed", 1): (frozenset({"changed_at", "code", "is_active", "media_id", "name", "segment_id", "segment_version_id", "version"}),
                                 "segment_id", "changed_at"),
+    # 광고 카테고리·과정 가중치의 판 하나(ACW-1·ACW-3, 기획 63 §4·§5) — 원천 ID 는 "<ad_group_id>/<version>"(페이로드 필드가 아님)
+    ("ad.ad_group_profile_changed", 1): (frozenset({"ad_group_id", "category", "changed_at", "version", "weight_aio", "weight_mlo", "weight_skn"}),
+                                         "ad_group_id", "changed_at"),
 }
 _UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")  # contracts.UUID_RE 와 같은 모양(fullmatch)
 

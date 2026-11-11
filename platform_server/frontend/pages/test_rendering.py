@@ -65,6 +65,24 @@ class MapRenderingTests(SimpleTestCase):
             self.assertIn('id="boothEmbeddedSection"', after)
             self.assertIn('"canZoom": true', after)
 
+    def test_pinned_theme_revision_changes_when_its_loader_changes(self):
+        import shutil
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'dist').mkdir()
+            for folder in ('accounts/templates', 'learning/templates'):
+                shutil.copytree(project_settings.BASE_DIR / folder, root / folder)
+            shutil.copy2(project_settings.BASE_DIR / 'dist/index.html', root / 'dist/index.html')
+            script = root / 'dist/pepero-theme.js'
+            context = {'user': {'is_authenticated': True, 'is_staff': False}, 'nickname': 'viewer',
+                       'view_config': {}, 'presence_config': {}, 'session_policy_config': {}, 'csrf_token': 'token'}
+            script.write_text('old image loader')
+            before, _ = render_document({'template': 'index.html', 'context': context}, root)
+            script.write_text('new image loader with pairing garden')
+            after, _ = render_document({'template': 'index.html', 'context': context}, root)
+            pattern = r'src="pepero-theme\.js\?v=([^"]+)"'
+            self.assertNotEqual(re.search(pattern, before).group(1), re.search(pattern, after).group(1))
+
     def test_ad_modules_load_only_when_the_backend_enables_ads(self):
         for enabled in (False, True):
             context = {'user': {'is_authenticated': True, 'is_staff': False}, 'nickname': 'viewer',

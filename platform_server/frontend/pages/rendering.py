@@ -70,7 +70,8 @@ def render_document(data, root, debug=True):
         def version(match):
             asset = match.group('asset')
             return f'{match.group("attribute")}="{asset}?v={asset_version(root, "dist/" + asset)}"'
-        html = re.sub(r'(?P<attribute>src|href)="(?P<asset>[\w.-]+\.(?:js|css))"', version, html)
+        # Pinned URLs must also change when a map or its image loader changes.
+        html = re.sub(r'(?P<attribute>src|href)="(?P<asset>[\w.-]+\.(?:js|css))(?:\?[^"#]*)?"', version, html)
         html = html.replace('<head>', f'<head>\n  <base href="{escape(static("campus/"))}">', 1)
         html = html.replace('href="./"', 'href="/"', 1)
         html = html.replace('</head>', f'<link rel="stylesheet" href="{escape(static("accounts/auth.css"))}">\n</head>', 1)

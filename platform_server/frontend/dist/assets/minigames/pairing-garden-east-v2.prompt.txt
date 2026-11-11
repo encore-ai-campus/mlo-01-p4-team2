@@ -1,0 +1,5 @@
+Built-in image_gen, transparent background, precise-object-edit.
+Source: pairing-garden-east-v1.png; upright intermediate exec-8802c5cc-8df7-4cb5-b21b-d99b78b8d9bc.png.
+Final generated source: C:/Users/Playdata/.codex/generated_images/01a13395-7a76-7563-a7c0-8ba621e88aaa/exec-dd2ea437-72c2-4cd1-b278-d0ff43f374fd.png
+Keep six cards (3x2), heart crest, two face-up hearts, gold/cream/walnut cabinet, blush ribbons, roses, leaves and chocolates. Draw a perfectly upright card panel with vertical structural posts and a substantial deep lower cabinet. Change camera yaw in 3D toward the left side, with front edges rising up-right and the depth side receding up-left. Orthographic game sprite, no bitmap skew, no leaning posts or backward-tilted board. Reference the long office wall viewing angle. Only a standalone transparent sprite; no floor, wall, map, UI, lettering or broad cast shadow.
+Final processing: alpha trim, 700px height, WebP quality 90 with alpha quality 100. No bitmap shear, warp or rotation. Original v1 preserved. Runtime uses native aspect ratio and no pairing-specific affine compression.

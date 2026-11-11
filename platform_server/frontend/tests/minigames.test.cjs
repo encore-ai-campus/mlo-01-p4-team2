@@ -116,7 +116,9 @@ test('typing draws only beginner problems and each problem remains completable',
 test('stations face the long office wall with reachable east-facing interaction points',()=>{
  const world=require('../tools/build-event-map.cjs').build().campus;
  const games=require('../maps/minigames.json');
- assert.equal(games[1].y-games[0].y-games[0].h,86);
+ const ordered=[...games].sort((a,b)=>a.y-b.y);
+ assert.equal(ordered[1].y-ordered[0].y,125);
+ assert.equal(ordered[2].y-ordered[1].y,125);
  assert.ok(!world.objects.some(o=>o.id==='reference-campus-109'));
  assert.ok(!world.objects.some(o=>o.id==='reference-campus-108'));
  assert.ok(world.objects.some(o=>o.id==='reference-campus-110'));

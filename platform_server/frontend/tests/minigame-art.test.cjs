@@ -13,7 +13,7 @@ test('an unavailable minigame image permits the renderer fallback instead of hid
 });
 test('pairing garden loads its own image and paints that image when ready',()=>{
  const art=fixture(),img=art.art['pairing-garden-east'];
- assert.equal(img.src,'assets/minigames/pairing-garden-east-v1.png');
+ assert.equal(img.src,'assets/minigames/pairing-garden-east-v2.webp');
  Object.assign(img,{complete:true,naturalWidth:606,naturalHeight:640});
  let painted;
  const g={save(){},restore(){},translate(){},transform(){},drawImage(image){painted=image;}};

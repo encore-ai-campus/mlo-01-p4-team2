@@ -374,3 +374,9 @@ Docker의 호스트 경로를 사용하는 검증 환경에서는 테스트 DB �
 - `GET /api/community/notices/`는 공지 목록과 읽음 여부를 8개 단위로 반환하고, `GET /api/community/notices/?summary=1`은 미확인 수만 반환함. 별도 테이블이나 마이그레이션은 추가하지 않음.
 - 관련 파일: `backend/community/views.py`, `backend/community/urls.py`, `backend/community/test_notices.py`, `frontend/dist/notice-notifications.js`, `frontend/dist/notice-notifications.css`, `frontend/dist/community.js`, `frontend/dist/campus.js`, `frontend/dist/campus-brand.css`, `frontend/dist/index.html`.
 - 원본 변경에서 프런트 검사 198개, JS 구문 검사, 변경 Python 파일 컴파일, `git diff --check`가 통과함. 공지 백엔드 테스트는 격리된 PostgreSQL 테스트 DB가 없어 실행하지 못했음. 이 P4 이식본은 별도 재검증함.
+
+## 2026-11-05 미니게임 단말 배치·페어링 정원 에셋 조정
+
+- 직원실의 페어링 정원·타이머·타이핑 단말을 y=90, 215, 340에 125 단위 간격으로 배치함.
+- 페어링 정원을 수직 기둥과 하부장이 있는 새 에셋으로 바꾸고 벽 접촉과 그림자 위치를 맞춤.
+- 게임 상호작용과 충돌 범위는 유지하고 프런트·서버 맵 데이터를 함께 갱신함.

@@ -8,7 +8,7 @@
   for (const key of ['monument','cart','gifts','stall','workbench','flowerbox','hero','gate','pedestal','cafe','refill-chest','recipe-note','timer-station-east','typing-station-east','pairing-garden-east']) {
     const image = new Image(); image.decoding = 'async';
     image.onload = () => window.dispatchEvent(new CustomEvent('campus-seasonal-assets-ready',{detail:{key}}));
-    image.src = key==='pairing-garden-east'?'assets/minigames/pairing-garden-east-v1.png':['timer-station-east','typing-station-east'].includes(key)?`assets/minigames/${key}-v1.webp`:`assets/seasonal/pepero/${['monument','cart','gifts','refill-chest','recipe-note'].includes(key)?'':'reference/'}${key}.png`; art[key] = image;
+    image.src = key==='pairing-garden-east'?'assets/minigames/pairing-garden-east-v2.webp':['timer-station-east','typing-station-east'].includes(key)?`assets/minigames/${key}-v1.webp`:`assets/seasonal/pepero/${['monument','cart','gifts','refill-chest','recipe-note'].includes(key)?'':'reference/'}${key}.png`; art[key] = image;
   }
   function drawAsset(g,image,q,w,h) {
     if (!image.complete || !image.naturalWidth) return;
@@ -16,12 +16,14 @@
     g.save();g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
     g.drawImage(image,q.x-sw/2,q.y-sh*.88,sw,sh);g.restore();
   }
-  // Align both cabinet ground axes to the map axes while preserving upright verticals.
+  // Align the front edge to the wall while preserving upright verticals.
   function artProjection(o,p,base=0){
     if(!o.artPlaneSlopes)return {scaleX:1,shearY:0};
     const [negative,positive]=o.artPlaneSlopes,a=p(0,0,base),b=p(0,1,base);
     const slope=Math.abs((b.y-a.y)/(b.x-a.x)),tilt=Number.isFinite(slope)&&slope>0?slope:.58;
-    return {scaleX:(positive-negative)/(2*tilt),shearY:-(positive+negative)/2};
+    // Wider props retain their front edge along the wall without flattening the cabinet.
+    const scaleX=(positive-negative)/(2*tilt)*(o.artDepthScale||1);
+    return {scaleX,shearY:-negative-tilt*scaleX};
   }
   // Draw names after the world geometry so walls cannot cover the game labels.
   function paintGameLabel(o,{g,p},base=0){

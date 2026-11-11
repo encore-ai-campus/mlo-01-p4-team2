@@ -5,7 +5,7 @@ from uuid import UUID
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 from django.db import transaction
-from django.db.models import Max, F, OuterRef, Subquery
+from django.db.models import F, OuterRef, Subquery
 from django.utils import timezone
 
 from campus.motion import geometry, mission_geometry
@@ -17,7 +17,7 @@ CAMPAIGN_ID = UUID("f50d87cd-4f59-5750-b06b-dfd532576846")
 GREETING_ID = UUID("7b8b6d9b-84c1-53e9-bb0f-32b1c767c610")
 POKING_ID = UUID("4804de8c-261b-5eb8-b648-db7ab2b5279d")
 PYTHON_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd106")
-ALL_SUBJECTS_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd105")
+FRAGILE_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd105")
 CS_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd107")
 SQL_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd111")
 TIMER_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd108")
@@ -32,7 +32,7 @@ ACHIEVEMENT_IMAGES = {
     SQL_ID: "/static/campus/assets/achievements/sql-intermediate.png",
     TIMER_ID: "/static/campus/assets/achievements/timer.png",
     TYPING_ID: "/static/campus/assets/achievements/code-typing.png",
-    ALL_SUBJECTS_ID: "/static/campus/assets/achievements/all-subjects.png",
+    FRAGILE_ID: "/static/campus/assets/achievements/all-subjects.png",
     CS_ID: "/static/campus/assets/achievements/cs-intermediate.png",
     RECIPE_ID: "/static/campus/assets/achievements/secret-recipe.png",
     AD_ID: "/static/campus/assets/achievements/ad-impression.png",
@@ -102,23 +102,24 @@ def achievement_snapshot(user):
 
 @transaction.atomic
 def complete_achievement(user, event_id, completed_at, *, started_at=None, session_uuid=None):
-    # Lock the shared definition before INSERT takes a foreign-key lock on it.
-    EventDefinition.objects.select_for_update().get(pk=event_id)
+    # Every entry point locks the account before the shared egg definition.
+    get_user_model().objects.select_for_update().get(pk=user.pk)
+    definition = EventDefinition.objects.select_for_update().get(pk=event_id)
+    if definition.event_type != 'EASTER_EGG':
+        raise ValueError('이스터에그 정의를 확인해 주세요.')
+    completed = EventProgress.objects.filter(status=EventProgress.Status.COMPLETED)
+    if (completed.filter(event=definition).exists()
+            or completed.filter(user=user, event__event_type='EASTER_EGG').exists()):
+        return False
     progress, _ = EventProgress.objects.get_or_create(
-        user=user, event_id=event_id,
+        user=user, event=definition,
         defaults={"started_at": started_at} if started_at is not None else {},
     )
-    if progress.status == EventProgress.Status.COMPLETED:
-        return False
-    first_discovery = not EventProgress.objects.filter(
-        event_id=event_id, status=EventProgress.Status.COMPLETED).exists()
-    progress.completion_order = (EventProgress.objects.filter(event_id=event_id).aggregate(
-        last=Max("completion_order"))["last"] or 0) + 1
+    progress.completion_order = 1
     progress.status, progress.completed_at = EventProgress.Status.COMPLETED, completed_at
     progress.session = active_platform_session(user, session_uuid) if session_uuid is not None else None
     progress.save(update_fields=["status", "completed_at", "completion_order", "session"])
-    if first_discovery:
-        transaction.on_commit(publish_discoveries, robust=True)
+    transaction.on_commit(publish_discoveries, robust=True)
     return True
 
 
@@ -186,22 +187,27 @@ def record_manager_action(user, manager_id, action, session_uuid=None):
         return {"achievements": achievement_snapshot(user), "newly_completed": newly_completed}
 
 
+def record_guide_talk(user, remaining, session_uuid=None):
+    with transaction.atomic():
+        get_user_model().objects.select_for_update().get(pk=user.pk)
+        newly_completed = []
+        if type(remaining) is int and remaining == 1:
+            from .game_services import require_open
+            require_open()
+            if complete_achievement(user, FRAGILE_ID, timezone.now(), session_uuid=session_uuid):
+                newly_completed.append(str(FRAGILE_ID))
+        return {"achievements": achievement_snapshot(user), "newly_completed": newly_completed}
+
+
 def record_learning_completion(user, lesson, session_uuid=None):
     if (lesson.user_id != user.pk or lesson.completed_at is None or lesson.total_questions != 10
             or lesson.correct_count < 7 or lesson.subject not in ("python", "sql", "cs")):
         return None
-    from learning.models import LearningSession
     with transaction.atomic():
         get_user_model().objects.select_for_update().get(pk=user.pk)
         event_ids = []
         if lesson.difficulty in ("intermediate", "advanced"):
             event_ids.append({"python": PYTHON_ID, "sql": SQL_ID, "cs": CS_ID}[lesson.subject])
-        passed_subjects = set(LearningSession.objects.filter(
-            user=user, completed_at__isnull=False, total_questions=10, correct_count__gte=7,
-            subject__in=("python", "sql", "cs"),
-        ).values_list("subject", flat=True).distinct())
-        if passed_subjects == {"python", "sql", "cs"}:
-            event_ids.append(ALL_SUBJECTS_ID)
         newly_completed = []
         for event_id in event_ids:
             if complete_achievement(user, event_id, timezone.now(), started_at=lesson.started_at, session_uuid=session_uuid):

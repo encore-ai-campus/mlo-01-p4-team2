@@ -92,34 +92,30 @@ class RecipeStoryTests(TestCase):
         with self.assertRaises(LearningError):
             act(self.user, [])
 
-    def test_both_toppings_finish_with_one_badge_and_replay_preserves_timestamps(self):
-        for user, topping in ((self.user, 'thanks'), (self.other, 'promise')):
+    def test_both_toppings_finish_but_only_first_account_receives_the_badge(self):
+        for index, (user, topping) in enumerate(((self.user, 'thanks'), (self.other, 'promise'))):
             with self.subTest(topping=topping):
                 ready(user, topping)
-                self.assertFalse(recipe.status(user)['secretCompleted'])
-                self.assertFalse(EventProgress.objects.filter(user=user, event_id=RECIPE_ID).exists())
                 main_before = list(EventProgress.objects.filter(user=user).values())
                 first = act(user, 'finish')
-                self.assertEqual(first['newly_completed'], [str(RECIPE_ID)])
-                self.assertTrue(first['state']['secretCompleted'])
-                self.assertTrue(first['state']['hasNote'])
+                self.assertEqual(first['newly_completed'], [str(RECIPE_ID)] if index == 0 else [])
+                self.assertTrue(first['state']['secretCompleted']);self.assertTrue(first['state']['hasNote'])
                 progress = StoryProgress.objects.get(user=user, event_key=recipe.EVENT_KEY)
+                finished_at = progress.completed_at
                 record = progress.records.get(key='finish')
-                award = EventProgress.objects.get(user=user, event_id=RECIPE_ID)
-                self.assertEqual(award.completed_at, progress.completed_at)
                 self.assertEqual(record.payload, {'objectId': recipe.GUIDE_ID, 'topping': topping})
                 for action, data in (('recognize', {}), ('start', {}), ('topping', {'topping': topping}), ('finish', {})):
                     replay = act(user, action, **data)
                     self.assertEqual(replay['state'], first['state'])
-                    if action == 'finish':
-                        self.assertEqual(replay['newly_completed'], [])
-                progress.refresh_from_db();award.refresh_from_db()
-                self.assertEqual(award.completed_at, progress.completed_at)
+                    if action == 'finish':self.assertEqual(replay['newly_completed'], [])
+                progress.refresh_from_db()
+                self.assertEqual(progress.completed_at, finished_at)
                 self.assertEqual(progress.records.get(key='finish').created_at, record.created_at)
                 self.assertEqual(progress.records.filter(key='finish').count(), 1)
-                self.assertEqual(EventProgress.objects.filter(user=user, event_id=RECIPE_ID).count(), 1)
+                self.assertEqual(EventProgress.objects.filter(user=user, event_id=RECIPE_ID).count(), 1 if index == 0 else 0)
+                if index == 0:self.assertEqual(EventProgress.objects.get(user=user, event_id=RECIPE_ID).completed_at, finished_at)
                 self.assertEqual(list(EventProgress.objects.filter(user=user).exclude(event_id=RECIPE_ID).values()), main_before)
-                self.assertTrue(next(a for a in achievement_snapshot(user) if a['event_uuid'] == str(RECIPE_ID))['achieved'])
+                self.assertEqual(next(a for a in achievement_snapshot(user) if a['event_uuid'] == str(RECIPE_ID))['achieved'], index == 0)
 
     def test_chosen_topping_cannot_change_and_deferral_cannot_undo_started_recipe(self):
         ready(self.user, 'thanks')

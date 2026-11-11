@@ -23,14 +23,15 @@ class AchievementOrderTests(TestCase):
         self.bob = get_user_model().objects.create_user(username='order-bob')
         self.now = timezone.now()
 
-    def test_per_achievement_order_and_duplicate_keep_first_completion(self):
+    def test_each_egg_and_account_has_one_completion_and_duplicates_keep_first_receipt(self):
         self.assertTrue(complete_achievement(self.alice, AD_ID, self.now))
-        self.assertTrue(complete_achievement(self.bob, AD_ID, self.now))
+        self.assertFalse(complete_achievement(self.bob, AD_ID, self.now))
         self.assertTrue(complete_achievement(self.bob, RECIPE_ID, self.now))
+        self.assertFalse(complete_achievement(self.alice, RECIPE_ID, self.now))
         self.assertFalse(complete_achievement(self.alice, AD_ID, self.now + timedelta(seconds=5)))
         row = EventProgress.objects.get(user=self.alice, event_id=AD_ID)
         self.assertEqual((row.completion_order, row.completed_at), (1, self.now))
-        self.assertEqual(EventProgress.objects.get(user=self.bob, event_id=AD_ID).completion_order, 2)
+        self.assertFalse(EventProgress.objects.filter(user=self.bob, event_id=AD_ID).exists())
         self.assertEqual(EventProgress.objects.get(user=self.bob, event_id=RECIPE_ID).completion_order, 1)
         badge = next(r for r in achievement_snapshot(self.alice) if r['event_uuid'] == str(AD_ID))
         self.assertEqual(badge['completion_order'], 1)
@@ -59,7 +60,7 @@ class AchievementOrderTests(TestCase):
 
 
 class ConcurrentAchievementOrderTests(TransactionTestCase):
-    def test_two_accounts_get_distinct_orders_and_both_receive_achievement(self):
+    def test_two_accounts_get_one_winner_and_one_order(self):
         if connection.vendor != 'postgresql':
             self.skipTest('PostgreSQL row locks are required.')
         seed_definitions()
@@ -77,6 +78,6 @@ class ConcurrentAchievementOrderTests(TransactionTestCase):
 
         with ThreadPoolExecutor(max_workers=2) as pool:
             futures = [pool.submit(finish, user_id) for user_id in users]
-            self.assertEqual([future.result(timeout=10) for future in futures], [True, True])
+            self.assertEqual(sum(future.result(timeout=10) for future in futures), 1)
         self.assertEqual(list(EventProgress.objects.filter(event_id=AD_ID).order_by(
-            'completion_order').values_list('completion_order', flat=True)), [1, 2])
+            'completion_order').values_list('completion_order', flat=True)), [1])

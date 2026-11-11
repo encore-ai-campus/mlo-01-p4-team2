@@ -137,7 +137,7 @@ class EventProgressSessionTests(TestCase):
 
 
 class ConcurrentEventProgressSessionTests(TransactionTestCase):
-    def test_simultaneous_accounts_keep_distinct_ranks_and_their_own_sessions(self):
+    def test_simultaneous_accounts_keep_only_the_winners_session_and_rank(self):
         seed_definitions()
         users = [get_user_model().objects.create_user(username='session-race-' + str(i)) for i in range(2)]
         sessions = [login_session(user) for user in users]
@@ -147,11 +147,11 @@ class ConcurrentEventProgressSessionTests(TransactionTestCase):
             try:
                 barrier.wait(timeout=8)
                 return complete_achievement(user, AD_ID, timezone.now(), session_uuid=session.pk)
-            finally:
-                connections.close_all()
+            finally:connections.close_all()
         with ThreadPoolExecutor(max_workers=2) as pool:
-            results = [pool.submit(complete, user, session) for user, session in zip(users, sessions)]
-            self.assertTrue(all(result.result(timeout=15) for result in results))
-        self.assertEqual(set(EventProgress.objects.filter(event_id=AD_ID).values_list('completion_order', flat=True)), {1, 2})
-        for user, session in zip(users, sessions):
-            self.assertEqual(EventProgress.objects.get(user=user, event_id=AD_ID).session_id, session.pk)
+            pending = [pool.submit(complete, user, session) for user, session in zip(users, sessions)]
+            outcomes = [result.result(timeout=15) for result in pending]
+        self.assertEqual(sum(outcomes), 1)
+        row = EventProgress.objects.get(event_id=AD_ID)
+        winner = outcomes.index(True)
+        self.assertEqual((row.user_id, row.session_id, row.completion_order), (users[winner].pk, sessions[winner].pk, 1))

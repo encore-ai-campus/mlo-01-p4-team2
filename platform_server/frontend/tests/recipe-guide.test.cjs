@@ -5,12 +5,13 @@ const start=source.indexOf('guide(){run('),end=source.indexOf(',paint(o,h,base)'
 assert.ok(start>=0&&end>start);
 const plain=value=>JSON.parse(JSON.stringify(value));
 function fixture(serverState,hasNote=false,saved={}){
- const scenes=[],calls=[],writes=[],requests=[],events=[];let pending,reads=0;
+ const scenes=[],calls=[],writes=[],requests=[],events=[],trace=[];let pending,reads=0,guideTalks=0,greeting={};
  const progress={hasNote,noteDelivered:false,deferred:false,secretStarted:false,secretCompleted:false,topping:null,...saved};
  const dialog={open:true,close(){this.open=false;}};
  const c=vm.createContext({state:{completed:true,stage:6},dialog,
-  window:{dispatchEvent:event=>events.push(event)},CustomEvent:class{constructor(type,{detail}){this.type=type;this.detail=detail;}},
+  window:{dispatchEvent:event=>{events.push(event);trace.push(event.type);}},CustomEvent:class{constructor(type,{detail}){this.type=type;this.detail=detail;}},
   run:fn=>{pending=fn();},
+  stop(){},greetGuide:async()=>{guideTalks++;return greeting;},
   refresh:async()=>{reads++;c.state={...serverState};},
   api:async(data,route,base)=>{
    requests.push(plain({data,route,base}));
@@ -25,7 +26,7 @@ function fixture(serverState,hasNote=false,saved={}){
    return {state:{...progress}};
   },
   investigate:async()=>calls.push('investigate'),confession:async()=>calls.push('confession'),
-  story:(title,chapter,lines,actions=[])=>{dialog.open=true;scenes.push({title,chapter,lines,actions});},
+  story:(title,chapter,lines,actions=[])=>{dialog.open=true;trace.push('dialogue');scenes.push({title,chapter,lines,actions});},
   kline:(text,extra={})=>({speaker:'꾸왕이',text,...extra}),pline:text=>({speaker:'나',text}),
   guidance:()=>`현재 미션 ${c.state.stage}`,ticket:async target=>{assert.ok(['recipe-guide','final-guide'].includes(target));return 'nearby-proof';},
   act:async action=>{writes.push(action);assert.equal(action,'deliver');serverState={completed:true,stage:6};c.state={...serverState};},
@@ -33,8 +34,8 @@ function fixture(serverState,hasNote=false,saved={}){
  const helperStart=source.indexOf('async function recipeAct('),helperEnd=source.indexOf('function workshopStory(',helperStart);
  vm.runInContext(source.slice(helperStart,helperEnd),c);
  vm.runInContext('globalThis.guide={'+source.slice(start,end)+'}.guide;',c);
- return {scenes,calls,writes,requests,events,dialog,progress,setNote(value){progress.hasNote=value;},get reads(){return reads;},
-  async open(){c.guide();await pending;},
+ return {scenes,calls,writes,requests,events,trace,dialog,progress,setGreeting(value){greeting=value;},setNote(value){progress.hasNote=value;},get reads(){return reads;},
+  async open(){const before=guideTalks;c.guide();await pending;assert.equal(guideTalks,before+1);},
   async choose(label){const item=scenes.at(-1).actions.find(a=>a[0]===label);assert.ok(item,'Missing choice: '+label);await item[1]();},
  };
 }
@@ -109,5 +110,15 @@ test('saved checkpoints restore unfinished making, selected topping and the comp
  for(const [saved,title] of [[{secretStarted:true},'함께 완성하기'],[{secretStarted:true,topping:'thanks'},'히든 대사 · 고마움'],[{secretStarted:true,topping:'promise'},'히든 대사 · 약속'],[{secretCompleted:true},'완료 후 다시 대화']]){
   const f=fixture({completed:true,stage:6},true,saved);await f.open();assert.equal(f.scenes.at(-1).title,title);
   assert.deepEqual(f.events,[]);
+ }
+});
+
+test('confirmed guide achievements are announced after the NPC dialogue opens',async()=>{
+ for(const state of [{completed:false,stage:2},{completed:true,stage:6}]){
+  const f=fixture(state);f.dialog.open=false;
+  f.setGreeting({achievements:[{event_uuid:'fragile',name:'부서지기 직전',achieved:true}],newly_completed:['fragile']});
+  await f.open();
+  assert.deepEqual(f.trace,['dialogue','campus:achievements','campus:achievement-earned']);
+  assert.equal(f.events[1].detail.newly_completed[0],'fragile');
  }
 });

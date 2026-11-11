@@ -7,7 +7,7 @@ const rows=(earned=false)=>[
  {event_uuid:'sql',name:'데이터의 비밀문',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/sql-intermediate.png'},
  {event_uuid:'timer',name:'찰나의 기적',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/timer.png'},
  {event_uuid:'typing',name:'손가락에 불났다',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/code-typing.png'},
- {event_uuid:'all',name:'삼각지대 탈출',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/all-subjects.png'},
+ {event_uuid:'all',name:'부서지기 직전',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/all-subjects.png'},
  {event_uuid:'cs',name:'컴퓨터의 속마음',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/cs-intermediate.png'},
  {event_uuid:'recipe',name:'꾸왕이의 비밀 레시피',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/secret-recipe.png'}];
 const plain=value=>JSON.parse(JSON.stringify(value));
@@ -46,11 +46,11 @@ test('loading and request failure never invent unearned achievements; retry read
 test('the nine implemented achievements render, preserving names and original image URLs across earned states',async()=>{
  const f=fixture();await f.respond([...rows(),{name:'기타 업적'}]);
  const list=f.get('achievementsList');
- assert.deepEqual(list.children.map(row=>row.children[1].textContent),['수상한 친화력','참을성 테스트','뱀을 길들이는 자','데이터의 비밀문','찰나의 기적','손가락에 불났다','삼각지대 탈출','컴퓨터의 속마음','꾸왕이의 비밀 레시피']);
+ assert.deepEqual(list.children.map(row=>row.children[1].textContent),['수상한 친화력','참을성 테스트','뱀을 길들이는 자','데이터의 비밀문','찰나의 기적','손가락에 불났다','부서지기 직전','컴퓨터의 속마음','꾸왕이의 비밀 레시피']);
  assert.deepEqual(list.children.map(row=>row.dataset.achieved),Array(9).fill('false'));
  const image=list.children[0].children[0].src;
  f.update(rows(true));assert.equal(list.children[0].dataset.achieved,'true');assert.equal(list.children[0].children[0].src,image);
- assert.equal(list.children[0].children[1].textContent,'수상한 친화력');assert.equal(list.children[0].children[2].textContent,'나도 발견 완료');
+ assert.equal(list.children[0].children[1].textContent,'수상한 친화력');assert.equal(list.children[0].children[2].textContent,'나의 달성 완료');
  const css=fs.readFileSync(path.join(__dirname,'../dist/achievements.css'),'utf8');
  assert.match(css,/\[data-discovered="false"\] img\{filter:brightness\(0\)\}/);assert.match(css,/data-achieved="true"/);
 });
@@ -133,7 +133,7 @@ test('both game achievements use supplied art, turn from silhouettes to earned, 
 test('CS and three-subject achievements queue both earned notices once',async()=>{
  const f=fixture();await f.respond();const data=rows();
  for(const row of data.slice(6,8)){row.achieved=true;row.completed_at='2026-11-04T00:00:00Z';}
- f.update(data);f.runTimer(0);assert.equal(f.get('achievementNoticeName').textContent,'삼각지대 탈출');
+ f.update(data);f.runTimer(0);assert.equal(f.get('achievementNoticeName').textContent,'부서지기 직전');
  f.get('achievementNoticeClose').handlers.click();assert.equal(f.get('achievementNoticeName').textContent,'컴퓨터의 속마음');
  f.runTimer(6000);f.earned(['all','cs']);assert.equal(f.timers.size,0);
  assert.ok(f.get('achievementsList').children.slice(6,8).every(r=>r.dataset.achieved==='true'));
@@ -162,8 +162,22 @@ test('server-wide discovery reveals art without granting personal progress or re
  let row=f.get('achievementsList').children[0];
  assert.equal(row.dataset.discovered,'true');assert.equal(row.dataset.achieved,'false');
  assert.equal(row.children[3].textContent,'최초 발견 · 최초 탐정');
- assert.equal(row.children[2].textContent,'나의 기록 · 조사 중');
+ assert.equal(row.children[2].textContent,'달성 마감');
  assert.equal(f.timers.size,0);
  // An older personal snapshot cannot hide an already confirmed global discovery.
  f.update(rows(false));row=f.get('achievementsList').children[0];assert.equal(row.dataset.discovered,'true');
+});
+
+test('a discovered egg closes for other accounts while unclaimed eggs remain available',async()=>{
+ const f=fixture(),data=rows();data[0].discovered=true;data[0].first_discoverer={nickname:'최초 참여자',completed_at:'2026-11-05T00:00:00Z'};
+ await f.respond(data);
+ const list=f.get('achievementsList');
+ assert.equal(list.children[0].children[2].textContent,'달성 마감');
+ assert.equal(list.children[1].children[2].textContent,'도전 가능');
+});
+test('an account with one completed egg cannot collect any remaining egg',async()=>{
+ const f=fixture();await f.respond(rows(true));
+ const list=f.get('achievementsList');
+ assert.equal(list.children[0].children[2].textContent,'나의 달성 완료');
+ assert.ok(list.children.slice(1).every(row=>row.children[2].textContent==='추가 달성 불가 · 계정당 1개'));
 });

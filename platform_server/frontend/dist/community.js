@@ -6,7 +6,13 @@
     const originalTitle = $('boardTitle').textContent, originalEyebrow = $('boardEyebrow').textContent;
     let active = false, busy = false, mode = 'list', category = 'all', search = '', page = 1;
     let meta = null, post = null, editingPost = null, editingComment = null, replyingTo = null, editorBaseline = '';
-    let commentPage = 1, generation = 0, controller = null;
+    let commentPage = 1, generation = 0, controller = null, pendingRead = null;
+    function readUuid() {
+      if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+      const bytes = crypto.getRandomValues(new Uint8Array(16));
+      bytes[6] = (bytes[6] & 15) | 64; bytes[8] = (bytes[8] & 63) | 128;
+      return [...bytes].map((n, i) => ([4, 6, 8, 10].includes(i) ? '-' : '') + n.toString(16).padStart(2, '0')).join('');
+    }
     const node = (tag, className, text) => {
       const item = document.createElement(tag);
       if (className) item.className = className;
@@ -190,10 +196,11 @@
       renderComments(comments); main.scrollTop = 0; $('communityPostTitle').focus({preventScroll: true});
     }
     async function openPost(id) {
-      const load = beginLoad();
+      if (!pendingRead || pendingRead.id !== id) pendingRead = {id, uuid: readUuid()};
+      const read = pendingRead, load = beginLoad();
       try {
-        const [data, comments] = await Promise.all([api(`posts/${id}/`, {signal: load.signal}), api(`posts/${id}/comments/`, {signal: load.signal})]);
-        if (!current(load)) return; renderDetail(data.post, comments); status();
+        const [data, comments] = await Promise.all([api(`posts/${id}/?read_uuid=${read.uuid}`, {signal: load.signal}), api(`posts/${id}/comments/`, {signal: load.signal})]);
+        if (!current(load)) return; if (pendingRead === read) pendingRead = null; renderDetail(data.post, comments); status();
       } catch (error) { if (current(load)) report(error); }
       finally { finishLoad(load); }
     }

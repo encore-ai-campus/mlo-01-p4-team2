@@ -1,3 +1,5 @@
+from tests.factories import create_profile
+from eventing.catalog import class_group_uuid
 from config.testing import PresentationTestCase
 from io import StringIO
 from pathlib import Path
@@ -13,7 +15,7 @@ class CampusLearningIntegrationTests(PresentationTestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = get_user_model().objects.create_user(username='campus-learning-integration')
-        Profile.objects.create(user=cls.user, nickname='학습 확인', avatar='male-1', cohort='mlo-1', setup_complete=True)
+        create_profile(user=cls.user, nickname='학습 확인', avatar='male-1', cohort_id=class_group_uuid('mlo-1'), setup_complete=True)
 
     def test_map_includes_versioned_learning_panels_and_keeps_latest_features(self):
         self.client.force_login(self.user)

@@ -1,3 +1,4 @@
+from tests.factories import create_profile
 from config.testing import PresentationTestCase
 import asyncio
 from datetime import timedelta
@@ -20,7 +21,7 @@ from . import tests as socket_tests
 class PositionStorageTests(PresentationTestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(username="position-user", password="Location!4820")
-        self.profile = Profile.objects.create(user=self.user, nickname="복원", avatar="female-1")
+        self.profile = create_profile(user=self.user, nickname="복원", avatar="female-1")
         self.position = {"floor": "rooftop", "x": 2310.25, "y": 1510.875, "dir": "left"}
 
     def test_missing_or_invalid_saved_position_defaults_to_entrance(self):
@@ -28,8 +29,8 @@ class PositionStorageTests(PresentationTestCase):
         for changes in [{"x": True}, {"y": float("nan")}, {"x": 10 ** 350},
                         {"y": 1801}, {"floor": "basement"}, {"floor": []}, {"dir": {}}]:
             self.assertIsNone(validate_position({**self.position, **changes}))
-        self.profile.last_position = {**self.position, "floor": "old-roof"}
-        self.profile.save()
+        self.profile.position.last_position = {**self.position, "floor": "old-roof"}
+        self.profile.position.save()
         self.assertEqual(get_position(get_user_model().objects.get(pk=self.user.pk)), DEFAULT_POSITION)
 
     def test_latest_movement_wins_even_when_an_old_tab_saves_later(self):
@@ -37,14 +38,14 @@ class PositionStorageTests(PresentationTestCase):
         self.assertTrue(save_position(self.user, self.position))
         self.assertFalse(save_position(self.user, DEFAULT_POSITION, old))
         self.profile.refresh_from_db()
-        self.assertEqual(self.profile.last_position, self.position)
+        self.assertEqual(self.profile.position.last_position, self.position)
         self.assertEqual(self.profile.avatar, "female-1")
         self.assertEqual(self.profile.nickname, "복원")
 
     def test_exit_position_resumes_inside_entrance(self):
         save_position(self.user, {"floor": "campus", "x": 1998.75, "y": 980, "dir": "down"})
         self.profile.refresh_from_db()
-        self.assertEqual(self.profile.last_position, DEFAULT_POSITION)
+        self.assertEqual(self.profile.position.last_position, DEFAULT_POSITION)
 
     @override_settings(CAMPUS_TEST_LEGACY_MOVEMENT=False)
     def test_logout_uses_server_snapshot_and_ignores_posted_coordinates(self):
@@ -54,7 +55,7 @@ class PositionStorageTests(PresentationTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertNotIn(SESSION_KEY, self.client.session)
         self.profile.refresh_from_db()
-        self.assertEqual(self.profile.last_position, self.position)
+        self.assertEqual(self.profile.position.last_position, self.position)
         self.assertEqual(self.client.post("/accounts/login/", {"username": self.user.username, "password": "Location!4820"}).status_code, 302)
         html = self.client.get("/").content.decode()
         config = json.loads(re.search(r'<script id="campusPresenceConfig" type="application/json">(.*?)</script>', html).group(1))
@@ -68,20 +69,20 @@ class PositionStorageTests(PresentationTestCase):
             self.assertEqual(self.client.post("/accounts/logout/", {"last_position": raw}).status_code, 302)
             self.assertNotIn(SESSION_KEY, self.client.session)
             self.profile.refresh_from_db()
-            self.assertEqual(self.profile.last_position, self.position)
+            self.assertEqual(self.profile.position.last_position, self.position)
 
     def test_logout_save_still_requires_csrf_and_cannot_change_another_account(self):
         other = get_user_model().objects.create_user(username="other-position")
-        other_profile = Profile.objects.create(user=other, nickname="다른 조원")
+        other_profile = create_profile(user=other, nickname="다른 조원")
         client = Client(enforce_csrf_checks=True)
         client.force_login(self.user)
         self.assertEqual(client.post("/accounts/logout/", {"last_position": json.dumps(self.position)}).status_code, 403)
         self.profile.refresh_from_db()
-        self.assertIsNone(self.profile.last_position)
+        self.assertIsNone(self.profile.position.last_position)
         self.client.force_login(self.user)
-        self.client.post("/accounts/logout/", {"last_position": json.dumps({**self.position, "user_id": other.pk})})
+        self.client.post("/accounts/logout/", {"last_position": json.dumps({**self.position, "user_id": str(other.pk)})})
         other_profile.refresh_from_db()
-        self.assertIsNone(other_profile.last_position)
+        self.assertIsNone(other_profile.position.last_position)
 
     def test_nickname_change_preserves_saved_position_and_fixed_avatar(self):
         save_position(self.user, self.position)
@@ -89,7 +90,7 @@ class PositionStorageTests(PresentationTestCase):
         self.client.post("/accounts/nickname/", {"nickname": "새 닉네임"})
         self.assertEqual(self.client.post("/accounts/avatar/", {"avatar": "male-2"}).status_code, 404)
         self.profile.refresh_from_db()
-        self.assertEqual(self.profile.last_position, self.position)
+        self.assertEqual(self.profile.position.last_position, self.position)
         self.assertEqual(self.profile.avatar, "female-1")
 
     def test_nickname_form_does_not_overwrite_a_concurrent_checkpoint(self):
@@ -106,7 +107,7 @@ class PositionStorageTests(PresentationTestCase):
         self.assertEqual(response.status_code, 302)
         self.profile.refresh_from_db()
         self.assertEqual(self.profile.nickname, "새 닉네임")
-        self.assertEqual(self.profile.last_position, self.position)
+        self.assertEqual(self.profile.position.last_position, self.position)
 
 
 # These storage compatibility tests send coordinates through the legacy protocol.
@@ -120,7 +121,7 @@ class PositionSocketTests(TransactionTestCase):
     movement = socket_tests.CampusSocketTests.movement
 
     async def snapshot(self):
-        return await database_sync_to_async(lambda: Profile.objects.get(user=self.alice).last_position)()
+        return await database_sync_to_async(lambda: Profile.objects.get(user=self.alice).position.last_position)()
 
     async def test_last_frame_bypasses_throttle_and_survives_a_fresh_room(self):
         async with self.connections(self.a) as (a,):

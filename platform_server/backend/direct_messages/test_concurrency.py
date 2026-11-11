@@ -1,4 +1,6 @@
-"""Exercise opposite first sends using real, independent MySQL transactions."""
+from tests.factories import create_profile
+from eventing.catalog import class_group_uuid
+"""Exercise opposite first sends using real, independent database transactions."""
 import json
 import threading
 import unittest
@@ -18,7 +20,7 @@ from .models import Conversation, Message
 class SimultaneousFirstSendTests(TransactionTestCase):
     def test_opposite_first_sends_keep_both_messages_in_one_conversation(self):
         users = [get_user_model().objects.create_user(username='dm-concurrent-'+str(i)) for i in range(2)]
-        profiles = [Profile.objects.create(user=user,nickname='동시전송'+str(i),cohort='mlo-1',setup_complete=True) for i,user in enumerate(users)]
+        profiles = [create_profile(user=user,nickname='동시전송'+str(i),cohort_id=class_group_uuid('mlo-1'),setup_complete=True) for i,user in enumerate(users)]
         clients = [Client() for _ in users]
         for client,user in zip(clients,users):
             client.force_login(user)

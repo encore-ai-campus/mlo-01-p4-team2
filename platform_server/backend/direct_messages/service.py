@@ -26,8 +26,8 @@ def unread(user):
 
 def identity(user):
     profile = getattr(user,'campus_profile',None)
-    return {'id':str(profile.user_uuid) if profile else None,'nickname':get_nickname(user),
-            'avatar':get_avatar(user),'cohort':profile.cohort if profile else ''}
+    return {'id':str(profile.user_id) if profile else None,'nickname':get_nickname(user),
+            'avatar':get_avatar(user),'cohort':profile.cohort.code if profile else ''}
 
 
 def configuration(user):

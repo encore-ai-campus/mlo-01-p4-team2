@@ -1,3 +1,4 @@
+from tests.factories import create_profile
 from config.testing import PresentationTestCase
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
@@ -10,7 +11,7 @@ from django.test import Client, TestCase, TransactionTestCase
 from django.utils import timezone
 
 from campus import session_registry
-from eventing.models import EventOutbox, PlatformSession
+from eventing.models import PlatformSession
 from .models import ActiveLogin, Profile
 from .session_policy import check_session
 
@@ -20,7 +21,7 @@ class SingleLoginTests(PresentationTestCase):
     def setUpTestData(cls):
         cls.password = "Login!River4820"
         cls.user = get_user_model().objects.create_user(username="single-login", password=cls.password)
-        Profile.objects.create(user=cls.user, nickname="단일 접속")
+        create_profile(user=cls.user, nickname="단일 접속")
 
     def log_in(self, client=None):
         client = client or Client()
@@ -41,9 +42,6 @@ class SingleLoginTests(PresentationTestCase):
         self.assertEqual(new.get("/").status_code, 200)
         self.assertEqual(PlatformSession.objects.filter(user=self.user, ended_at__isnull=True).count(), 1)
         self.assertEqual(PlatformSession.objects.filter(user=self.user, end_reason="SESSION_EXPIRED").count(), 1)
-        endings = EventOutbox.objects.filter(event_type="session_ended")
-        self.assertEqual(endings.count(), 1)
-        self.assertEqual(endings.get().payload_json["raw_data"]["end_reason"], "SESSION_EXPIRED")
 
     def test_shared_cookie_tabs_and_different_accounts_are_unaffected(self):
         first, key = self.log_in()
@@ -68,12 +66,12 @@ class SingleLoginTests(PresentationTestCase):
         new, key = self.log_in()
         profile = Profile.objects.get(user=self.user)
         position = {"floor": "rooftop", "x": 1800, "y": 1500, "dir": "left"}
-        profile.last_position = position
-        profile.last_position_at = timezone.now()
-        profile.save(update_fields=["last_position", "last_position_at"])
+        profile.position.last_position = position
+        profile.position.last_position_at = timezone.now()
+        profile.position.save(update_fields=["last_position", "last_position_at"])
         old.post("/accounts/logout/", {"last_position": '{"floor":"campus","x":1200,"y":500,"dir":"up"}'})
         profile.refresh_from_db()
-        self.assertEqual(profile.last_position, position)
+        self.assertEqual(profile.position.last_position, position)
         self.assertTrue(check_session(key)["authenticated"])
         self.assertEqual(new.get("/").status_code, 200)
 
@@ -85,7 +83,7 @@ class SingleLoginTests(PresentationTestCase):
         session_registry.update(player, position, timezone.now())
         self.addCleanup(session_registry.unregister, player)
         self.log_in()
-        self.assertEqual(Profile.objects.get(user=self.user).last_position, position)
+        self.assertEqual(Profile.objects.get(user=self.user).position.last_position, position)
 
     def test_superseded_legacy_key_cannot_reclaim_after_latest_logout(self):
         old = Client()
@@ -124,7 +122,7 @@ class ConcurrentLoginTests(TransactionTestCase):
         if connection.vendor == 'sqlite' and 'mode=memory' in str(connection.settings_dict['NAME']):
             self.skipTest('Run this threaded login regression with a file-backed SQLite test DB.')
         user = get_user_model().objects.create_user(username="concurrent-login", password="Concurrent!4820")
-        Profile.objects.create(user=user, nickname="동시 로그인")
+        create_profile(user=user, nickname="동시 로그인")
         ready = Barrier(2)
 
         def browser_login():

@@ -16,7 +16,7 @@ from django.utils import timezone
 
 from accounts.models import Profile
 from direct_messages.live import user_group
-from eventing.models import ChatMessage, EventOutbox, PlatformSession
+from eventing.models import ChatMessage, PlatformSession
 from . import chat, consumers, tests as movement_tests
 from .chat_tokens import issue_actor_token, verify_actor_token
 from .motion import MotionController
@@ -181,13 +181,9 @@ class SplitSocketTests(TransactionTestCase):
             @database_sync_to_async
             def stored():
                 saved = ChatMessage.objects.get(pk=message['id'])
-                event = EventOutbox.objects.get(event_type='chat_sent')
-                return saved.body, event.raw_data
-            body, event = await stored()
+                return saved.body
+            body = await stored()
             self.assertEqual(body, message['text'])
-            self.assertEqual(event['message_uuid'], message['id'])
-            self.assertNotIn('text', event)
-            self.assertNotIn('nickname', event)
 
     async def test_missing_tampered_expired_wrong_user_and_wrong_session_tokens_are_rejected(self):
         async with self.connections(self.a, self.b) as (a, b):

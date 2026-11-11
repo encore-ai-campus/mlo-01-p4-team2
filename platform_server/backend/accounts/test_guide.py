@@ -1,15 +1,16 @@
+from tests.factories import create_profile
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 
 from .models import Profile
 from .session_policy import start_login
-from eventing.models import EventOutbox
+
 
 
 class FirstVisitGuideTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(username='guide-owner')
-        self.profile = Profile.objects.create(user=self.user, nickname='안내 사용자')
+        self.profile = create_profile(user=self.user, nickname='안내 사용자')
         self.sign_in(self.client, self.user)
 
     def sign_in(self, client, user):
@@ -38,7 +39,7 @@ class FirstVisitGuideTests(TestCase):
 
     def test_cannot_complete_other_accounts(self):
         other = get_user_model().objects.create_user(username='other-guide-user')
-        profile = Profile.objects.create(user=other, nickname='다른 사용자')
+        profile = create_profile(user=other, nickname='다른 사용자')
         self.client.post('/api/accounts/guide/complete/', {'user_id': other.pk})
         profile.refresh_from_db()
         self.assertFalse(profile.guide_completed)
@@ -65,10 +66,8 @@ class FirstVisitGuideTests(TestCase):
 
     def test_repeated_completion_is_safe_and_emits_no_events(self):
         self.client.get('/')
-        before = EventOutbox.objects.count()
         for unused in range(2):
             response = self.client.post('/api/accounts/guide/complete/')
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json(), {'guideCompleted': True})
             self.assertIn('no-store', response['Cache-Control'])
-        self.assertEqual(EventOutbox.objects.count(), before)

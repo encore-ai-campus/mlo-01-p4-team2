@@ -1,8 +1,9 @@
-"""Operational catalog, sessions, short-lived chat and Kafka transactional outbox."""
+"""Operational catalog, sessions, chat and append-only content requests."""
 import uuid
 
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 from config.fields import LosslessJSONField
 
 
@@ -87,18 +88,17 @@ class ChatMessage(models.Model):
         indexes = [models.Index(fields=["expires_at"], name="eventing_chat_expiry")]
 
 
-class EventOutbox(models.Model):
-    event_uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    event_type = models.CharField(max_length=64)
-    topic = models.CharField(max_length=64)
-    message_key = models.UUIDField()
-    raw_data = LosslessJSONField()
-    occurred_at = models.DateTimeField()
-    payload_json = LosslessJSONField(null=True, blank=True)
-    retry_count = models.PositiveIntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
-    published_at = models.DateTimeField(null=True, blank=True)
+class ContentOpenRequestLog(models.Model):
+    open_request_uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, db_column="user_uuid", on_delete=models.PROTECT)
+    platform_session = models.ForeignKey(PlatformSession, db_column="session_uuid", on_delete=models.PROTECT)
+    content = models.ForeignKey(ContentItem, db_column="content_uuid", on_delete=models.PROTECT)
+    class_group = models.ForeignKey(ClassGroup, db_column="class_group_uuid", on_delete=models.PROTECT)
+    category = models.ForeignKey(ContentCategory, db_column="category_uuid", on_delete=models.PROTECT)
+    zone = models.ForeignKey(MapZone, db_column="zone_uuid", null=True, on_delete=models.PROTECT)
+    domain = models.CharField(max_length=16, choices=ContentCategory.Domain.choices)
+    content_kind = models.CharField(max_length=24, choices=ContentItem.ContentKind.choices)
+    occurred_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        ordering = ["created_at", "event_uuid"]
-        indexes = [models.Index(fields=["published_at", "created_at"], name="eventing_outbox_pending")]
+        db_table = "content_open_request_log"

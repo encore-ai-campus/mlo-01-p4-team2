@@ -68,7 +68,7 @@ class SessionSocketTests(TransactionTestCase):
                     self.assertEqual((await ws.receive_output())["code"], 4401)
                 for _ in range(1):
                     self.assertEqual((await observer.receive_json_from())["type"], "leave")
-                position = await database_sync_to_async(lambda: Profile.objects.get(user=self.alice).last_position)()
+                position = await database_sync_to_async(lambda: Profile.objects.get(user=self.alice).position.last_position)()
                 self.assertEqual(position, {"floor": "rooftop", "x": 2200.5, "y": 1510.75, "dir": "left"})
                 self.assertFalse(await database_sync_to_async(Session.objects.filter(pk=key).exists)())
 
@@ -89,7 +89,7 @@ class SessionSocketTests(TransactionTestCase):
                 await ws.send_json_to(self.movement(floor="rooftop", x=1900, y=500))
                 self.assertEqual(await ws.receive_json_from(), {"type": "session_expired", "reason": "maximum"})
                 self.assertEqual((await ws.receive_output())["code"], 4401)
-                position = await database_sync_to_async(lambda: Profile.objects.get(user=self.alice).last_position)()
+                position = await database_sync_to_async(lambda: Profile.objects.get(user=self.alice).position.last_position)()
                 self.assertEqual(position["x"], 1740)
 
     async def test_a_server_close_leaves_its_code_and_policy_reason(self):

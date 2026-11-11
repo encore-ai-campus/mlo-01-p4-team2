@@ -1,3 +1,4 @@
+from tests.factories import create_profile
 import json
 
 from django.conf import settings
@@ -16,7 +17,7 @@ class CommunityTests(TestCase):
         self.reader = User.objects.create_user(username="community_reader", password="Campus!4820")
         self.admin = User.objects.create_user(username="community_admin", password="Campus!4820", is_staff=True)
         for user, name in [(self.author, "작성자"), (self.reader, "다른 조원"), (self.admin, "관리자")]:
-            Profile.objects.create(user=user, nickname=name)
+            create_profile(user=user, nickname=name)
         self.client.force_login(self.author)
         self.other = Client()
         self.other.force_login(self.reader)
@@ -35,13 +36,13 @@ class CommunityTests(TestCase):
     def test_anonymous_cannot_read_community(self):
         client = Client()
         item = self.make_post()
-        for url in [self.url("metadata"), self.url("posts"), self.url("post-detail", item.pk), self.url("comments", item.pk)]:
+        for url in [self.url("metadata"), self.url("posts"), self.url("post-detail", item.id), self.url("comments", item.id)]:
             self.assertEqual(client.get(url).status_code, 401)
 
     def test_anonymous_cannot_create_change_or_delete(self):
         self.assertEqual(self.send("post", self.url("posts"), {"title": "x"}, Client()).status_code, 401)
         item = self.make_post()
-        self.assertEqual(self.send("delete", self.url("post-detail", item.pk), client=Client()).status_code, 401)
+        self.assertEqual(self.send("delete", self.url("post-detail", item.id), client=Client()).status_code, 401)
 
     def test_incomplete_profile_cannot_access_community(self):
         Profile.objects.filter(user=self.author).update(setup_complete=False)
@@ -62,11 +63,11 @@ class CommunityTests(TestCase):
 
     def test_create_and_read_post_use_server_identity_and_plain_text(self):
         body = '<script>alert("x")</script>\n코드: print("안녕")\nhttps://example.com/'
-        result = self.send("post", self.url("posts"), {"category": "it", "title": "IT 소식", "body": body, "author_id": self.reader.pk}).json()["post"]
-        self.assertEqual(result["author"]["id"], self.author.pk)
+        result = self.send("post", self.url("posts"), {"category": "it", "title": "IT 소식", "body": body, "author_id": str(self.reader.pk)}).json()["post"]
+        self.assertEqual(result["author"]["id"], str(self.author.pk))
         self.assertEqual(result["author"]["nickname"], "작성자")
         self.assertEqual(self.client.get(self.url("post-detail", result["id"])).json()["post"]["body"], body)
-        self.assertEqual(Post.objects.get(pk=result["id"]).author, self.author)
+        self.assertEqual(Post.objects.get(id=result["id"]).author, self.author)
 
     def test_all_posts_and_each_category_can_be_browsed(self):
         for value in Post.Category.values:
@@ -85,7 +86,7 @@ class CommunityTests(TestCase):
         self.assertEqual(self.client.get(self.url("posts"), {"q": "포트폴리오", "category": "career"}).json()["pagination"]["total"], 1)
 
     def test_newest_first_and_paginated(self):
-        ids = [self.make_post(title=str(i)).pk for i in range(25)]
+        ids = [self.make_post(title=str(i)).id for i in range(25)]
         first = self.client.get(self.url("posts")).json()
         self.assertEqual(len(first["posts"]), 12)
         self.assertEqual(first["posts"][0]["id"], ids[-1])
@@ -122,7 +123,7 @@ class CommunityTests(TestCase):
 
     def test_author_can_edit_own_post_with_version(self):
         item = self.make_post()
-        result = self.send("patch", self.url("post-detail", item.pk), {"title": "수정 제목", "category": "study", "version": item.updated_at.isoformat()})
+        result = self.send("patch", self.url("post-detail", item.id), {"title": "수정 제목", "category": "study", "version": item.updated_at.isoformat()})
         self.assertEqual(result.status_code, 200)
         item.refresh_from_db()
         self.assertEqual(item.title, "수정 제목")
@@ -132,7 +133,7 @@ class CommunityTests(TestCase):
     def test_stale_post_edits_do_not_overwrite_new_changes(self):
         item = self.make_post()
         old = item.updated_at.isoformat()
-        url = self.url("post-detail", item.pk)
+        url = self.url("post-detail", item.id)
         self.assertEqual(self.send("patch", url, {"title": "최신 제목", "version": old}).status_code, 200)
         self.assertEqual(self.send("patch", url, {"title": "오래된 제목", "version": old}).status_code, 409)
         item.refresh_from_db()
@@ -140,7 +141,7 @@ class CommunityTests(TestCase):
 
     def test_other_users_cannot_edit_or_delete_post(self):
         item = self.make_post()
-        url = self.url("post-detail", item.pk)
+        url = self.url("post-detail", item.id)
         visible = self.other.get(url).json()["post"]
         self.assertFalse(visible["canEdit"])
         self.assertFalse(visible["canDelete"])
@@ -149,7 +150,7 @@ class CommunityTests(TestCase):
 
     def test_admin_can_moderate_posts_without_changing_author(self):
         item = self.make_post()
-        url = self.url("post-detail", item.pk)
+        url = self.url("post-detail", item.id)
         self.assertEqual(self.send("patch", url, {"title": "관리자 수정", "version": item.updated_at.isoformat()}, self.staff).status_code, 200)
         item.refresh_from_db()
         self.assertEqual(item.author, self.author)
@@ -161,52 +162,52 @@ class CommunityTests(TestCase):
 
     def test_normal_user_cannot_move_post_to_notices(self):
         item = self.make_post()
-        self.assertEqual(self.send("patch", self.url("post-detail", item.pk), {"category": "notice", "version": item.updated_at.isoformat()}).status_code, 403)
+        self.assertEqual(self.send("patch", self.url("post-detail", item.id), {"category": "notice", "version": item.updated_at.isoformat()}).status_code, 403)
 
     def test_removed_staff_role_cannot_edit_existing_notice(self):
         item = self.make_post(author=self.author, category="notice")
-        self.assertFalse(self.client.get(self.url("post-detail", item.pk)).json()["post"]["canEdit"])
-        self.assertEqual(self.send("patch", self.url("post-detail", item.pk), {"category": "free", "version": item.updated_at.isoformat()}).status_code, 403)
+        self.assertFalse(self.client.get(self.url("post-detail", item.id)).json()["post"]["canEdit"])
+        self.assertEqual(self.send("patch", self.url("post-detail", item.id), {"category": "free", "version": item.updated_at.isoformat()}).status_code, 403)
 
     def test_deleting_post_preserves_records_but_hides_post_and_comments(self):
         item = self.make_post()
         Comment.objects.create(post=item, author=self.reader, body="답변")
-        self.assertEqual(self.send("delete", self.url("post-detail", item.pk)).status_code, 200)
+        self.assertEqual(self.send("delete", self.url("post-detail", item.id)).status_code, 200)
         item.refresh_from_db()
         self.assertIsNotNone(item.deleted_at)
         self.assertTrue(Comment.objects.filter(post=item).exists())
-        self.assertEqual(self.client.get(self.url("post-detail", item.pk)).status_code, 404)
-        self.assertEqual(self.client.get(self.url("comments", item.pk)).status_code, 404)
+        self.assertEqual(self.client.get(self.url("post-detail", item.id)).status_code, 404)
+        self.assertEqual(self.client.get(self.url("comments", item.id)).status_code, 404)
         self.assertEqual(self.client.get(self.url("posts")).json()["posts"], [])
 
     def test_comments_use_authenticated_author_and_update_counts(self):
         item = self.make_post()
-        result = self.send("post", self.url("comments", item.pk), {"body": "코드 피드백\nhttps://example.com", "author_id": self.author.pk}, self.other)
+        result = self.send("post", self.url("comments", item.id), {"body": "코드 피드백\nhttps://example.com", "author_id": str(self.author.pk)}, self.other)
         self.assertEqual(result.status_code, 201)
-        self.assertEqual(result.json()["comment"]["author"]["id"], self.reader.pk)
-        self.assertEqual(self.client.get(self.url("post-detail", item.pk)).json()["post"]["commentCount"], 1)
+        self.assertEqual(result.json()["comment"]["author"]["id"], str(self.reader.pk))
+        self.assertEqual(self.client.get(self.url("post-detail", item.id)).json()["post"]["commentCount"], 1)
         self.assertEqual(self.client.get(self.url("posts")).json()["posts"][0]["commentCount"], 1)
 
     def test_comments_can_be_read_in_order_and_paginated(self):
         item = self.make_post()
         for i in range(31):
             Comment.objects.create(post=item, author=self.author, body=str(i))
-        result = self.client.get(self.url("comments", item.pk)).json()
+        result = self.client.get(self.url("comments", item.id)).json()
         self.assertEqual(len(result["comments"]), 30)
         self.assertEqual(result["comments"][0]["body"], "0")
-        last = self.client.get(self.url("comments", item.pk), {"page": "100000"}).json()
+        last = self.client.get(self.url("comments", item.id), {"page": "100000"}).json()
         self.assertEqual(last["comments"][0]["body"], "30")
 
     def test_blank_and_long_comments_rejected(self):
         item = self.make_post()
         for body in [" ", "a" * 2001, []]:
-            self.assertEqual(self.send("post", self.url("comments", item.pk), {"body": body}).status_code, 400)
+            self.assertEqual(self.send("post", self.url("comments", item.id), {"body": body}).status_code, 400)
         self.assertFalse(Comment.objects.exists())
 
     def test_own_comment_can_be_edited_and_deleted(self):
         item = self.make_post()
         comment = Comment.objects.create(post=item, author=self.author, body="원래 댓글")
-        url = self.url("comment-detail", comment.pk)
+        url = self.url("comment-detail", comment.id)
         result = self.send("patch", url, {"body": "수정 댓글", "version": comment.updated_at.isoformat()})
         self.assertEqual(result.status_code, 200)
         self.assertEqual(result.json()["comment"]["body"], "수정 댓글")
@@ -216,21 +217,21 @@ class CommunityTests(TestCase):
         item = self.make_post()
         comment = Comment.objects.create(post=item, author=self.author, body="원래 댓글")
         old = comment.updated_at.isoformat()
-        url = self.url("comment-detail", comment.pk)
+        url = self.url("comment-detail", comment.id)
         self.assertEqual(self.send("patch", url, {"body": "새 댓글", "version": old}).status_code, 200)
         self.assertEqual(self.send("patch", url, {"body": "덮어쓰기", "version": old}).status_code, 409)
 
     def test_other_users_cannot_edit_or_delete_comment(self):
         item = self.make_post()
         comment = Comment.objects.create(post=item, author=self.author, body="댓글")
-        url = self.url("comment-detail", comment.pk)
+        url = self.url("comment-detail", comment.id)
         self.assertEqual(self.send("patch", url, {"body": "바꾸기", "version": comment.updated_at.isoformat()}, self.other).status_code, 403)
         self.assertEqual(self.send("delete", url, client=self.other).status_code, 403)
 
     def test_admin_can_moderate_comments(self):
         item = self.make_post()
         comment = Comment.objects.create(post=item, author=self.author, body="댓글")
-        url = self.url("comment-detail", comment.pk)
+        url = self.url("comment-detail", comment.id)
         self.assertEqual(self.send("patch", url, {"body": "관리자 수정", "version": comment.updated_at.isoformat()}, self.staff).status_code, 200)
         self.assertEqual(self.send("delete", url, client=self.staff).status_code, 200)
 
@@ -256,8 +257,8 @@ class CommunityTests(TestCase):
         item = self.make_post()
         Comment.objects.create(post=item, author=self.author, body="댓글")
         Profile.objects.filter(user=self.author).update(nickname="새 닉네임")
-        self.assertEqual(self.client.get(self.url("post-detail", item.pk)).json()["post"]["author"]["nickname"], "새 닉네임")
-        self.assertEqual(self.client.get(self.url("comments", item.pk)).json()["comments"][0]["author"]["nickname"], "새 닉네임")
+        self.assertEqual(self.client.get(self.url("post-detail", item.id)).json()["post"]["author"]["nickname"], "새 닉네임")
+        self.assertEqual(self.client.get(self.url("comments", item.id)).json()["comments"][0]["author"]["nickname"], "새 닉네임")
 
     def test_unsupported_methods_have_json_errors(self):
         response = self.send("delete", self.url("posts"))

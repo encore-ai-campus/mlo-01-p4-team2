@@ -21,7 +21,7 @@ chmod 600 deploy/onprem/.env
 ```
 
 - 두 PC에서 같은 검증 커밋을 사용한다. 커밋 번호를 배포 기록에 남긴다.
-- Redis·외부 MySQL은 실행 전에 준비한다. 앱 실행기는 DB를 자동으로 변경하지 않는다.
+- Redis·외부 PostgreSQL은 실행 전에 준비한다. 앱 실행기는 DB를 자동으로 변경하지 않는다.
 - 새 실행기가 별도 Nginx를 실행한다. 패키지 기본 Nginx 서버를 사용하지 않으면 중복 시작하지 않는다.
 - 이 변경은 기존 `run-split.py`와 `deploy/service-split`을 보존한다.
 
@@ -35,11 +35,10 @@ chmod 600 deploy/onprem/.env
 | `FRONTEND_SECRET_KEY` | 개발 기본값을 사용하지 않는 별도 값 |
 | `DJANGO_ALLOWED_HOSTS`, `FRONTEND_ALLOWED_HOSTS` | 공개 도메인·필요한 내부 Host |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | 실제 공개 Origin. 예: `https://platform.example.com` |
-| `MYSQL_*` | 기존 외부 MySQL 또는 Router 주소·계정·DB |
+| `POSTGRES_*` | PostgreSQL 주소·계정·DB. 이전 절차는 [실행 가이드](../../RUN_GUIDE.md) 참고 |
 | `CAMPUS_MOVEMENT_REDIS_URL` | 모든 프로세스에서 같은 이동 Redis 지정 |
 | `CAMPUS_SERVICE_REDIS_URL` | 모든 프로세스에서 같은 서비스 Redis 지정 |
 | `CAMPUS_DATA_DIR` | 해당 WSL의 영속 데이터 경로 |
-| `KAFKA_BOOTSTRAP_SERVERS` | 기존 사용 시 지정. 미사용이면 빈 값 |
 
 - 자기 PC의 Redis는 loopback으로 연결할 수 있다.
 - 다른 PC의 Redis는 상대 PC의 사설 연결 주소를 사용한다. 두 주소를 모두 `127.0.0.1`로 복사하지 않는다.

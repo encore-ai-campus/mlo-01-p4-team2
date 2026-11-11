@@ -8,8 +8,7 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from accounts.models import Profile
-from eventing.events import enqueue_event, validate_raw_data, raw_identity
-from eventing.models import EventOutbox, PlatformSession
+from eventing.models import PlatformSession
 from learning import services
 from learning.models import Question, QuestionChoice, LearningSession, SessionQuestion, UserAnswer, PointWallet, PointLedger
 from learning.point_integration import ensure_wallet, wallet_balance
@@ -57,38 +56,22 @@ class LearningPointEventTests(TestCase):
                         self.assertEqual(response['points']['granted_points'], amount)
                         self.assertEqual(response['points']['balance_after'], total)
                         ledger = PointLedger.objects.get(answer=result)
-                        quiz = EventOutbox.objects.get(event_type='quiz_answered', raw_data__attempt_uuid=str(result.attempt_uuid))
-                        point = EventOutbox.objects.get(event_type='point_granted', raw_data__attempt_uuid=str(result.attempt_uuid))
-                        self.assertEqual(quiz.payload_json['raw_manifest']['schema_version'], '1.1')
-                        self.assertEqual(point.payload_json['raw_manifest']['schema_version'], '1.0')
-                        self.assertEqual(quiz.raw_data['question_type'], kind.upper())
-                        self.assertEqual(quiz.raw_data['question_uuid'], str(item.question.question_uuid))
-                        self.assertEqual(quiz.raw_data['choice_uuid'], str(choice.choice_uuid) if choice else None)
-                        self.assertEqual(point.raw_data['ledger_uuid'], str(ledger.pk))
-                        self.assertEqual(point.raw_data['balance_after'], total)
-                        self.assertEqual(str(quiz.message_key), str(Profile.objects.get(user=self.user).user_uuid))
-                        self.assertNotIn('submitted_answer', quiz.raw_data)
-                        self.assertNotIn('submission_request_uuid', quiz.raw_data)
         self.assertEqual(wallet_balance(self.user), 600)
         self.assertEqual(PointLedger.objects.count(), 12)
-        self.assertEqual(EventOutbox.objects.filter(topic='raw.points').count(), 12)
 
-    def test_wrong_then_retry_has_two_quiz_logs_and_only_one_grant(self):
+    def test_wrong_then_retry_has_two_answers_and_only_one_grant(self):
         wrong = self.submit(answer='wrong')
         self.assertEqual(services.answer_payload(wrong)['points']['status'], 'not_eligible')
         self.assertEqual(wallet_balance(self.user), 0)
         result = self.submit()
         self.assertEqual(result.attempt_no, 2)
         self.assertEqual(wallet_balance(self.user), 20)
-        self.assertEqual(EventOutbox.objects.filter(event_type='quiz_answered').count(), 2)
-        self.assertEqual(EventOutbox.objects.filter(event_type='point_granted').count(), 1)
         self.assertEqual(PointLedger.objects.count(), 1)
 
     def test_retry_after_completion_returns_original_receipt_without_repaying(self):
         key = uuid.uuid4()
         result = self.submit(request_id=key)
         frozen = services.answer_payload(result)
-        frozen_events = list(EventOutbox.objects.values_list('event_uuid', 'payload_json'))
         services.complete_session(self.user, self.item.session_id)
         self.submit(one_question_lesson(self.user, difficulty='advanced'))
         with override_settings(LEARNING_POINTS_BY_DIFFICULTY={'beginner': 999}):
@@ -97,8 +80,6 @@ class LearningPointEventTests(TestCase):
         self.assertEqual(wallet_balance(self.user), 100)
         self.assertEqual(UserAnswer.objects.count(), 2)
         self.assertEqual(PointLedger.objects.count(), 2)
-        for identifier, payload in frozen_events:
-            self.assertEqual(EventOutbox.objects.get(pk=identifier).payload_json, payload)
 
     def test_changed_body_with_same_request_id_is_conflict(self):
         key = uuid.uuid4()
@@ -124,21 +105,11 @@ class LearningPointEventTests(TestCase):
         self.assertEqual(wallet_balance(self.user), 0)
         self.assertEqual(UserAnswer.objects.count(), 0)
         self.assertEqual(PointLedger.objects.count(), 0)
-        self.assertFalse(EventOutbox.objects.filter(event_type__in=['quiz_answered', 'point_granted']).exists())
         self.item.session.refresh_from_db()
         self.assertEqual(self.item.session.correct_count, 0)
 
-    def test_outbox_failure_rolls_back_answer_wallet_ledger_and_score(self):
-        def enqueue(event_type, *args, **kwargs):
-            if event_type == 'point_granted':
-                raise RuntimeError('simulated outbox failure')
-            return enqueue_event(event_type, *args, **kwargs)
-        with patch('learning.services.enqueue_event', side_effect=enqueue):
-            with self.assertRaises(RuntimeError):
-                self.submit()
-        self.assert_rolled_back()
 
-    def test_ledger_failure_rolls_back_wallet_and_quiz_event(self):
+    def test_ledger_failure_rolls_back_wallet_and_answer(self):
         with patch.object(PointLedger.objects, 'create', side_effect=IntegrityError('simulated grant failure')):
             with self.assertRaises(IntegrityError):
                 self.submit()
@@ -181,8 +152,6 @@ class LearningPointEventTests(TestCase):
         active = self.client.session['platform_session_uuid']
         result = UserAnswer.objects.get()
         self.assertEqual(str(result.platform_session_id), active)
-        for row in EventOutbox.objects.filter(event_type__in=['quiz_answered', 'point_granted']):
-            self.assertEqual(row.raw_data['session_uuid'], active)
 
     def test_expired_or_foreign_login_cannot_award_points(self):
         self.login.ended_at = timezone.now()
@@ -199,35 +168,24 @@ class LearningPointEventTests(TestCase):
                 response = self.post('/api/learning/content-open/', {'subject': subject, 'question_type': kind})
                 self.assertEqual(response.status_code, 201)
                 content_id = response.json()['content_uuid']
-                row = EventOutbox.objects.get(event_type='content_open_requested', raw_data__content_uuid=content_id)
-                self.assertEqual(row.raw_data['domain'], 'LEARNING')
-                self.assertEqual(row.raw_data['content_kind'], 'QUIZ')
-                self.assertEqual(row.raw_data['action'], 'OPEN_REQUESTED')
-                self.assertIsNotNone(row.raw_data['zone_uuid'])
         self.assertEqual(self.client.get('/api/learning/wallet/').json(), {'balance': 0})
-        self.assertFalse(EventOutbox.objects.filter(event_type='quiz_answered').exists())
 
-    def test_wallet_query_does_not_pay_old_answers_or_emit_events(self):
+    def test_wallet_query_does_not_pay_old_answers_or_create_ledger(self):
         UserAnswer.objects.create(session_question=self.item, submitted_answer='append', is_correct=True)
-        before = EventOutbox.objects.count()
         self.client.force_login(self.user)
         self.client.get('/api/learning/csrf/')
-        before = EventOutbox.objects.count()
         for _ in range(2):
             self.assertEqual(self.client.get('/api/learning/wallet/').json()['balance'], 0)
             result = self.client.get(f'/api/learning/sessions/{self.item.session_id}/').json()
             self.assertEqual(result['points_summary']['granted_total'], 0)
             self.assertEqual(result['points_summary']['unpaid_legacy_count'], 1)
-        self.assertEqual(EventOutbox.objects.count(), before)
         self.assertFalse(PointLedger.objects.exists())
 
     def test_zero_reward_setting_does_not_emit_a_zero_delta_grant(self):
         with override_settings(LEARNING_POINTS_BY_DIFFICULTY={'beginner': 0}):
             result = self.submit()
         self.assertEqual(services.answer_payload(result)['points']['status'], 'no_reward')
-        self.assertEqual(EventOutbox.objects.filter(event_type='quiz_answered').count(), 1)
         self.assertFalse(PointLedger.objects.exists())
-        self.assertFalse(EventOutbox.objects.filter(event_type='point_granted').exists())
 
     def test_signup_creates_exactly_one_zero_balance_wallet(self):
         response = self.client.post('/accounts/signup/', {'username': 'new-point-user', 'cohort': 'mlo-1',
@@ -238,16 +196,3 @@ class LearningPointEventTests(TestCase):
         ensure_wallet(profile.user)
         self.assertEqual(PointWallet.objects.filter(profile=profile).count(), 1)
         self.assertFalse(PointLedger.objects.exists())
-
-    def test_numeric_and_question_type_contracts_are_strict(self):
-        identity = raw_identity(self.user, self.login.pk)
-        quiz = {**identity, 'attempt_uuid': str(uuid.uuid4()), 'question_uuid': str(uuid.uuid4()),
-                'content_uuid': str(uuid.uuid4()), 'question_type': 'FILL_BLANK', 'choice_uuid': None, 'is_correct': False}
-        validate_raw_data('quiz_answered', quiz)
-        for changed in [{'is_correct': 1}, {'choice_uuid': str(uuid.uuid4())}, {'question_type': 'MULTIPLE_CHOICE'}]:
-            with self.assertRaises(ValueError):
-                validate_raw_data('quiz_answered', {**quiz, **changed})
-        grant = {**identity, 'ledger_uuid': str(uuid.uuid4()), 'attempt_uuid': str(uuid.uuid4()), 'delta': 20, 'balance_after': 20}
-        for changed in [{'delta': 0}, {'delta': True}, {'delta': 1.5}, {'balance_after': -1}, {'balance_after': 2**63}]:
-            with self.assertRaises(ValueError):
-                validate_raw_data('point_granted', {**grant, **changed})

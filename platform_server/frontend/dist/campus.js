@@ -277,7 +277,7 @@
   function cancelMenuRequest(){lunchWheel?.cancel();menuRequest?.abort();menuRequest=null;menuVersion++;$('boardMenuImage').onload=$('boardMenuImage').onerror=null;$('boardMenuImage').removeAttribute('src');}
   function showBoardChoices(){if(communityUI.canLeave())boardDialog.close();}
   async function showMenuPhoto(){
-    communityUI.hide();boardDialog.dataset.view='menu';window.CampusMealComments?.open();$('boardTitle').textContent='구내식당 · 식단톡';
+    communityUI.hide();boardDialog.dataset.view='menu';$('boardTitle').textContent='구내식당 · 식단';
     cancelMenuRequest();const version=menuVersion;menuRequest=new AbortController();
     $('boardChoices').hidden=true;$('boardDescription').hidden=true;$('boardSelection').hidden=true;$('boardMenuView').hidden=false;$('boardMenuView').setAttribute('aria-busy','true');
     $('boardMenuImage').hidden=true;$('boardMenuOpen').hidden=true;$('boardMenuOpen').removeAttribute('href');$('boardMenuUpdated').textContent='';$('boardMenuStatus').textContent='식단 사진을 불러오는 중이에요.';$('closeBoardDialog').focus({preventScroll:true});

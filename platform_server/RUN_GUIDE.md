@@ -1,6 +1,6 @@
 # 프론트·백엔드 실행 가이드
 
-기준일: 2026-10-15. 대상 저장소의 `dev`를 받은 뒤, 저장소 루트에서 플랫폼 폴더로 이동함.
+기준일: 2026-11-03. 대상 저장소의 `dev`를 받은 뒤, 저장소 루트에서 플랫폼 폴더로 이동함.
 
 ```powershell
 cd platform_server
@@ -45,18 +45,66 @@ python manage.py runserver 0.0.0.0:8004
 
 각 폴더의 `requirements.txt`로 개별 가상환경을 만들어도 됨. 프론트에는 DB 설정·마이그레이션이 필요 없음. 프론트와 백엔드 각각 자신의 `config` 모듈을 사용하므로 명령은 해당 폴더에서 실행함. 루트 `manage.py`는 백엔드 호환 명령, 루트 `run-campus.py`는 백엔드 단독 실행 명령임.
 
-## 기존 DB와 실행 데이터 사용
+## PostgreSQL 설정과 데이터 이전
 
-실제 DB는 저장소에 포함하지 않음. 새로 클론하면 빈 DB에 마이그레이션만 적용하며 실제 계정 정보는 복사되지 않음.
+`backend/.env.example`을 `backend/.env`로 복사하고 PostgreSQL 연결 정보를 입력한다.
+새 DB를 미리 만든다. 아래 값은 예시다.
 
-기존 서버를 종료하고 **db.sqlite3 및 var 폴더를 백업한 뒤** 아래 두 방법 중 하나를 사용함.
+```dotenv
+DATABASE_ENGINE=postgresql
+POSTGRES_DB=playdata_platform_new
+POSTGRES_USER=platform_user
+POSTGRES_PASSWORD=실제_비밀번호
+POSTGRES_HOST=127.0.0.1
+POSTGRES_PORT=5432
+```
 
-- 기존 `db.sqlite3`와 `var`를 `backend/`로 복사하고 백엔드에서 마이그레이션함. 덮어쓰기 전에 대상 데이터도 보존해야 함.
-- 백엔드 `.env`의 `CAMPUS_DATA_DIR`를 기존 데이터 폴더의 절대 경로로 지정함. 기존 파일을 옮기지 않고 사용 가능함. 서로 다른 버전의 서버가 같은 DB를 동시에 사용하지 않도록 함.
+빈 DB에서는 아래 명령으로 테이블을 만든다.
 
-`CAMPUS_DATA_DIR` 아래의 `db.sqlite3`, `var/board-menu`, 세션 정리 상태를 사용함. 원래 루트에 DB가 있고 루트 실행기를 사용하면 그 루트를 데이터 폴더로 자동 지정해 기존 데이터를 이어 사용함. `CAMPUS_DATA_DIR`를 명시하면 그 값을 우선함.
+```powershell
+python backend/manage.py migrate --noinput
+```
 
-마이그레이션은 기존 문제·답안·기준정보 ID를 보존하고 필요한 UUID·학습 기준정보·포인트 지갑/원장을 추가함. 기존 사용자 지갑은 0P에서 시작하고 과거 답안은 소급 지급하지 않음. `seed_learning_questions`는 빈 개발 환경에만 필요한 기본 문제 등록 명령이며 운영 중 수정한 문제를 자동으로 재등록하지 않음.
+기존 DB를 사용한다면 **원본을 백업하고 모든 쓰기를 중단한 뒤**, 새 PostgreSQL DB로 이전한다.
+UUID 계정으로 바뀌므로 기존 DB에서 `migrate`를 바로 실행하면 안 된다.
+
+1. 새 코드의 `backend/.env`를 기존 DB에 연결한다. SQLite는 `CAMPUS_DATA_DIR`, MySQL은 기존 `MYSQL_*`를 지정한다.
+2. MySQL 원본이면 `python -m pip install -r backend/requirements-legacy-export.txt`로 이전용 드라이버를 설치한다.
+3. 원본 DB를 읽기만 하는 명령을 실행한다.
+
+```powershell
+python backend/manage.py export_platform_data --output ../platform-source-private.json
+```
+
+4. `backend/.env`를 새 PostgreSQL DB에 연결하고 마이그레이션한다.
+5. 먼저 이전을 검증한다. `--apply`가 없으면 입력한 행을 모두 되돌린다.
+
+```powershell
+python backend/manage.py migrate --noinput
+python backend/manage.py import_platform_data --file ../platform-source-private.json
+python backend/manage.py import_platform_data --file ../platform-source-private.json --apply
+```
+
+6. 새 DB에서 로그인·게시판·학습·포인트·위치 복원을 확인한 뒤 서버를 전환한다.
+
+기존 `accounts_profile.user_uuid`를 새 `auth_user.id`로 사용한다.
+프로필 없는 계정은 UUID를 새로 만들고, 해당 계정의 FK도 함께 옮긴다.
+비밀번호 해시, 권한, 시각, 게시글 번호, 댓글 연결, 포인트 기록을 보존한다.
+쪽지 참여자 두 명은 새 UUID 순서로 정렬한다.
+
+기존 로그인 세션은 옮기지 않는다. 모든 사용자는 다시 로그인해야 한다.
+미종료 접속 이력은 이전 시점에 `SESSION_EXPIRED`로 종료한다.
+Outbox·식단 댓글·기존 세션은 원본 내보내기 파일에만 보존한다.
+미전송 Outbox는 새 서버가 발행하지 않는다. CDC 전환 전에 기존 기록의 처리 기준을 정해야 한다.
+
+원본 파일에는 비밀번호 해시와 사용자 정보가 포함된다. Git에 추가하지 않는다.
+파일은 덮어쓰지 않으며, 생성 권한은 소유자 읽기·쓰기만 허용한다.
+행이 많은 운영 DB의 처리 시간과 메모리는 별도로 측정해야 한다.
+MySQL의 문자 비교 규칙은 자동 복제되지 않는다. 실제 계정의 대소문자·한글 로그인도 전환 전에 확인한다.
+
+`CAMPUS_DATA_DIR`는 식단 이미지와 세션 정리 상태 등 파일의 경로다.
+PostgreSQL 설정에서는 이 경로의 `db.sqlite3`를 사용하지 않는다.
+식단 이미지 파일과 비공개 설정도 별도로 보존한다.
 
 ## 환경 변수
 
@@ -74,17 +122,14 @@ python manage.py runserver 0.0.0.0:8004
 | 백엔드 | `DJANGO_CSRF_TRUSTED_ORIGINS` | HTTPS 프론트 등 신뢰할 공개 origin |
 | 백엔드 | `DJANGO_DEBUG`, `DJANGO_SECRET_KEY` | 개발/배포 설정 |
 | 백엔드 | `CAMPUS_DATA_DIR` | 기본 backend 폴더 |
-| 백엔드 | `DATABASE_ENGINE` | 로컬 기본 sqlite; AWS 운영 mysql |
-| 백엔드 | `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_HOST`, `MYSQL_PORT` | 팀 운영 DB 연결 시 설정 |
+| 백엔드 | `DATABASE_ENGINE` | 기본 `postgresql`. SQLite·MySQL은 원본 내보내기용 |
+| 백엔드 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT` | 새 PostgreSQL 연결 정보 |
 | 백엔드 | `CAMPUS_LOGIN_MAX_AGE_SECONDS` | 28800: 최대 8시간 |
 | 백엔드 | `CAMPUS_LOGIN_IDLE_TIMEOUT_SECONDS` | 1800: 비활동 30분 |
 | 백엔드 | `CAMPUS_LOGIN_WARNING_SECONDS` | 60: 만료 직전 안내 |
 | 백엔드 | `CAMPUS_SESSION_ACTIVITY_WRITE_INTERVAL_SECONDS` | 15: 활동 시간 저장 간격 |
 | 백엔드 | `CAMPUS_SESSION_CLEANUP_ENABLED`, `CAMPUS_SESSION_CLEANUP_TIME` | 기본 켬·한국 시간 04:00; 만료 세션 하루 한 번 정리 |
 | 백엔드 | `LEARNING_POINTS_BEGINNER`, `LEARNING_POINTS_INTERMEDIATE`, `LEARNING_POINTS_ADVANCED` | 정답별 20·50·80P; 변경 후 재시작 |
-| 백엔드 | `KAFKA_BOOTSTRAP_SERVERS` 및 인증 변수 | 비어 있으면 DB Outbox 보관만 수행 |
-| 백엔드 | `CAMPUS_OUTBOX_IDLE_POLL_SECONDS` | 기본 5초: 빈 Outbox의 최대 조회 간격; 같은 프로세스의 커밋은 즉시 알림 |
-| 백엔드 | `CAMPUS_OUTBOX_CONNECTION_MAX_AGE_SECONDS` | 기본 60초: MySQL 발행기 스레드 하나의 연결 재사용 수명; 0이면 재사용 끔 |
 
 HTTP 중계는 로그인 쿠키·CSRF·Origin·원래 Host를 백엔드에 전달함. 프론트가 인증을 다시 판단하지 않음. 백엔드 포트는 프론트 및 신뢰할 인프라에서만 접근하도록 배포함. 공개 HTTPS 환경은 두 서비스 앞의 프록시와 호스트·CSRF·쿠키 설정을 함께 맞춰야 함.
 
@@ -94,17 +139,37 @@ HTTPS를 종료하는 Nginx는 `X-Forwarded-Proto`를 실제 외부 프로토콜
 
 같은 LAN의 사용자는 `http://서버PC의사설IP:8004/`로 접속함. 프론트 bind가 `0.0.0.0`이고 두 서비스의 허용 호스트에 해당 IP가 있어야 함. 필요할 때만 Windows 관리자 권한으로 `allow-lan.cmd`를 실행하면 **프론트 TCP 8004**에 현재 LAN 접속 규칙을 적용함. 포트를 바꾸면 `configure-lan.py --port 변경포트`로 맞춤. 백엔드 9003을 사용자에게 직접 공유하지 않음.
 
-## 학습·포인트·Kafka
+## 변경한 테이블과 저장 흐름
 
-답안·성적·지갑·원장·Outbox·재시도 응답을 같은 트랜잭션에 저장함. 동일 사용자의 동일 `submission_request_uuid` 재시도는 이전 응답을 돌려주며 중복 지급하지 않음. 빈칸은 `choice_uuid=null`, 객관식은 실제 선택지 UUID를 기록함.
+| 항목 | 현재 동작 |
+|---|---|
+| 계정 | `auth_user.id`와 계정 참조 FK는 UUID |
+| 프로필 | `user_id` 하나가 계정 FK와 프로필 PK를 겸함 |
+| 기수 | `accounts_profile.cohort`가 `ClassGroup` UUID를 참조함. 코드는 유지 |
+| 가입 시각 | `auth_user.date_joined` 사용. 프로필 시각 컬럼은 추가하지 않음 |
+| 위치 | `accounts_position`의 사용자별 한 행을 갱신함 |
+| 게시글·댓글 | `post_uuid`·`comment_uuid`가 PK. 숫자 `id`는 UNIQUE 번호로 유지 |
+| 댓글의 게시글 연결 | 물리 컬럼 `post_uuid`가 게시글 UUID를 참조함 |
+| 게시글 읽기 | `community_post_read_log`에 기록. 같은 `read_uuid` 재시도는 한 번 저장 |
+| 콘텐츠 열기 | 허용한 요청마다 `content_open_request_log`에 새 행 추가 |
+| 식단 댓글 | 테이블·API·화면 제거. 식단 이미지 조회는 유지 |
+| Outbox | 모델·테이블·발행기·정리 작업 제거 |
 
-이동 중 약 5초마다 `position_dirty`인 사용자의 최신 위치를 저장하고, 이전 저장 위치와 층 또는 x/y가 다를 때 `movement_observed` Outbox도 저장함. 방향 변경만 있으면 복원용 방향을 저장하며 Kafka 이벤트를 생성하지 않음. 정지 중에는 새 위치 기록을 만들지 않고, 종료·층 전환·로그아웃·만료는 마지막 변경 위치를 즉시 저장함. 전송 재시도는 동일 이벤트 UUID를 사용함.
+새 계정 UUID는 자동 발급한다. 서버 코드에서 `create_user(id=uuid값, ...)`로 직접 지정할 수도 있다.
+로그인 입력은 기존 `username`과 비밀번호를 사용한다.
+`Profile.user_uuid`는 기존 연동용 읽기 속성만 남겼다. DB 컬럼은 없다.
 
-브로커에 `raw.account`, `raw.chat`, `raw.board`, `raw.comment`, `raw.content_usage`, `raw.movement`, `raw.points`가 필요함. `quiz_answered`는 **1.1**, 나머지는 **1.0**임. 수신 서비스가 빈칸 답안·포인트 토픽을 지원하는지 확인한 뒤 Kafka 발행을 켬. 이 PR은 플랫폼 발행 측을 연결하며 팀원이 관리하는 기존 수신 파이프라인을 덮어쓰지 않음. 세부 계약은 [KAFKA_TOPICS.md](KAFKA_TOPICS.md) 참고.
+답안·성적·지갑·원장·재시도 응답은 같은 트랜잭션에 저장한다.
+같은 사용자의 `submission_request_uuid` 재시도는 이전 응답을 돌려주며 중복 지급하지 않는다.
+`answer_id`, `attempt_uuid`, `submission_request_uuid`는 그대로 유지한다.
 
-`run-campus.py`와 `manage.py runserver` 모두 실제 서비스 프로세스에서 Outbox 발행기를 시작함. 다른 ASGI 실행기로 운영 배포하면 `eventing.publisher.start_outbox_publisher()`의 구동·종료 수명주기를 별도로 연결해야 함. 이 가이드는 제공된 개발 실행기를 기준으로 함. 브로커 장애 시 DB Outbox 대기를 유지하며, 대기량·DB 디스크 공간을 운영에서 관찰해야 함.
+위치 저장 간격과 층 전환·종료 시 즉시 저장하는 동작을 유지한다.
+JSON 좌표는 PostgreSQL `json`으로 저장해 숫자 표현을 보존한다.
+관리자의 수정·삭제 행위자를 추적하는 컬럼은 추가하지 않았다.
+모든 업무 행에 접속 UUID를 추가하는 작업도 포함하지 않았다.
 
-빈 Outbox 조회는 0.25초부터 최대 `CAMPUS_OUTBOX_IDLE_POLL_SECONDS`까지 늘어남. `transaction.on_commit()` 알림은 저장 성공 후에만 발행기를 깨우며, 다른 프로세스에서 작성한 이벤트는 최대 조회 간격 안에 발견함. MySQL 연결 옵션은 발행기 스레드의 복사본에만 적용함. HTTP·WebSocket은 `CONN_MAX_AGE=0`을 유지하고, 발행기의 연결 수명 초과·DB 오류·종료 시 연결을 정리함. Kafka ACK 후 완료 표시와 실패 시 같은 UUID 재전송 규칙은 유지함.
+플랫폼은 Kafka로 직접 발행하지 않는다. PostgreSQL CDC 연결과 수집 범위 확장은 다음 단계다.
+[기존 Kafka 계약](KAFKA_TOPICS.md)은 과거 Outbox 동작을 보관한 문서다.
 
 ## 추가 기능 이용
 
@@ -118,7 +183,9 @@ HTTPS를 종료하는 Nginx는 `X-Forwarded-Proto`를 실제 외부 프로토콜
 - 학습교실 진입 방향키를 계속 누르고 있어도 바로 퇴장하지 않음. 키를 놓고 다시 입력하거나 2초 뒤 나가기 버튼을 사용함. 개인 교실 사용자는 공용 지도·유리문 충돌에서 제외함.
 - 유튜브 부스 중앙에서 상호작용하면 YouTube 홈페이지를 별도 팝업으로 열고, 차단되면 부스의 **YouTube 열기** 링크로 다시 시도함.
 
-## AWS 운영 반영
+## 운영 반영 전 확인
+
+먼저 새 PostgreSQL DB에서 이전을 검증한다. 아래 MySQL 기록은 2026-10-15 당시의 이력이다.
 
 프론트 `playdata-frontend`, 백엔드 `playdata-backend` 서비스를 사용함. 소스 반영 전 DB와 변경 파일을 백업하고 추가 마이그레이션·정적 파일 수집·서비스 재시작을 수행함. 실패 시 기존 소스와 설정으로 복구할 수 있도록 백업을 유지함.
 
@@ -134,13 +201,15 @@ HTTPS를 종료하는 Nginx는 `X-Forwarded-Proto`를 실제 외부 프로토콜
 
 ## 검증
 
-실제 운영 DB를 사용하지 않는 별도 파일 SQLite 테스트 설정을 제공함. 파일 DB로 동시 제출·원장·Outbox·마이그레이션을 검증함.
+격리한 PostgreSQL 연결 정보를 설정하고 테스트한다. 테스트 계정에는 테스트 DB 생성·삭제 권한이 필요하다.
+`test_<POSTGRES_DB>`라는 임시 DB를 만들므로, 실제 사용자 DB를 테스트 설정에 사용하지 않는다.
 
 ```powershell
 cd backend
 python manage.py check
 python manage.py makemigrations --check --dry-run
-python manage.py test --settings=config.kafka_test_settings --noinput
+python manage.py test tests accounts community direct_messages learning eventing --settings=config.postgres_test_settings --noinput
+python manage.py test campus --settings=config.postgres_test_settings --noinput
 ```
 
 새 터미널 또는 루트에서 프론트 폴더로 이동해 렌더링과 HTTP 중계를 검증함.
@@ -155,7 +224,8 @@ node learning/tests/test-kafka-ui.cjs
 
 JavaScript 검증에는 Node.js가 필요함. 마지막 학습 UI 검증은 Playwright와 Chrome을 사용하고 API 응답을 대체해 실제 사용자 데이터에 영향을 주지 않음. 실제 두 서비스의 브라우저 확인은 별도 데이터 폴더·포트로 수행해야 함. 테스트 설정의 좌표 수신 호환 모드는 기존 회귀 검증용이며, 운영 서버는 키 입력 기반 서버 판정을 사용함.
 
-AWS MySQL 저장·복제와 Kafka 발행 측을 확인함. 수신 측 처리·MongoDB 및 운영 광고 서비스 연결은 해당 팀 환경에서 별도 검증이 필요함.
+현재 이전 검증은 합성 데이터를 사용한 격리 PostgreSQL 기준이다. 실제 운영 데이터 이전과 CDC 통합은 아직 검증하지 않았다.
+변경 전 `event` 브랜치에도 기존 캠퍼스 회귀 실패가 있다. 전체 회귀 통과와 실제 배포 검증을 구분해야 한다.
 
 
 ### 2026-10-15 이용 안내·맵 UI 갱신

@@ -1,3 +1,5 @@
+from tests.factories import create_profile
+from eventing.catalog import class_group_uuid
 from unittest.mock import patch
 from channels.testing import WebsocketCommunicator
 from django.conf import settings
@@ -13,7 +15,7 @@ class RefillSocketTests(TransactionTestCase):
         self.box=next(o for o in world('campus').objects.values() if o.get('action')=='pepero_refill')
         x,y=self.box['interactionPoint']
         user=get_user_model().objects.create_user(username='refill-socket-check')
-        Profile.objects.create(user=user,nickname='리필검증',cohort='mlo-1',setup_complete=True,
+        create_profile(user=user,nickname='리필검증',cohort_id=class_group_uuid('mlo-1'),setup_complete=True,
                                last_position={'floor':'campus','x':x,'y':y,'dir':'right'})
         client=Client();client.force_login(user)
         self.cookie=f'{settings.SESSION_COOKIE_NAME}={client.cookies[settings.SESSION_COOKIE_NAME].value}'

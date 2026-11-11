@@ -25,7 +25,7 @@ from . import cluster, session_registry, poke, socket_db
 from campus_control.service import async_state as freeze_state
 from .interest import InterestView, SpatialIndex
 from .motion import CLASSROOM_TRANSITION_DELAY, MotionController, ControlError, geometry, world
-from .positions import DIRECTIONS, FLOOR_BOUNDS, flush_movement_event, get_position, movement_event_due_at, save_position, validate_position
+from .positions import DIRECTIONS, FLOOR_BOUNDS, get_position, save_position, validate_position
 from .chat_tokens import issue_actor_token
 
 
@@ -239,7 +239,6 @@ class CampusConsumer(AsyncWebsocketConsumer):
         self.policy_status = None
         self.last_activity_write = -math.inf
         self.position_dirty = False
-        self.movement_event_due_at = None
         self.pending_floor_transfer = None
         self.seen_by_peers = None  # 다른 사람에게 마지막으로 보낸 내 상태(바뀐 것이 있을 때만 다시 보낸다)
         self.control_key = None  # 마지막으로 보낸 control_state 의 바탕(같으면 다시 보내지 않는다)
@@ -279,7 +278,6 @@ class CampusConsumer(AsyncWebsocketConsumer):
         self.position_changed_at = None
         identity = await socket_db.run(get_identity, self.user)
         position = await socket_db.run(get_position, self.user)
-        self.movement_event_due_at = await socket_db.run(movement_event_due_at, self.user)
         live = await socket_db.run(cluster.stored_position, self.session_key, self.user.pk) if cluster.enabled() else None
         if live and validate_position(live[0]):
             # 같은 세션이 다른 프로세스에서 막 끊겼다(그 프로세스가 죽은 경우 등): DB 체크포인트(5초)보다 새 위치로 이어 붙는다(계획 M3)
@@ -704,7 +702,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
         state = {**self.state, **self.controller.pose, "moving": False}
         observed_at = timezone.now()
         transfer = self.pending_floor_transfer
-        self.movement_event_due_at = await socket_db.run(
+        await socket_db.run(
             self.store_position_now, state, observed_at, transfer[0] if transfer else None,
             require_session=True)
         self.state.update(state)
@@ -990,7 +988,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
             raise ControlError("로그인 상태를 확인한 뒤 다시 시도해 주세요.")
         if user is not None:
             if position is None:
-                flush_movement_event(user)
+                return None
             elif transfer_from:
                 saved = record_floor_transfer(
                     user, self.platform_session_uuid, transfer_from, position["floor"], position, observed_at
@@ -999,7 +997,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
                 saved = save_position(user, position, observed_at, session_uuid=self.platform_session_uuid)
             if require_session and not saved:
                 raise ControlError("마지막 위치를 저장하지 못했어요. 다시 시도해 주세요.")
-            return movement_event_due_at(user)
+            return None
 
     async def checkpoint(self, force=False, wait=True):
         """최신 위치 하나를 저장한다(5초마다, 층 이동·종료는 바로). 쓰기는 따로 돌리고 `wait` 일 때만 끝까지 기다린다(계획 3단계).
@@ -1012,8 +1010,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
                 return  # 저장 중이다: 끝난 뒤 다음 기회(다음 틱·세션 확인)에 다시 본다
             await saving
         force = force or self.pending_floor_transfer is not None
-        sample_due = self.movement_event_due_at is not None and timezone.now() >= self.movement_event_due_at
-        if not self.position_dirty and not sample_due:
+        if not self.position_dirty and self.pending_floor_transfer is None:
             return
         if not force and time.monotonic() - self.last_checkpoint < self.position_interval:
             return
@@ -1026,7 +1023,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
     async def write_position(self, state, observed_at, transfer):
         try:
             started = time.monotonic()
-            self.movement_event_due_at = await self.store_position(state, observed_at, transfer[0] if transfer else None)
+            await self.store_position(state, observed_at, transfer[0] if transfer else None)
             note_slow_db("position save", started)
         except DatabaseError:
             logging.getLogger(__name__).exception("Could not save the campus position")

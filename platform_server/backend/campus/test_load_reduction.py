@@ -1,3 +1,5 @@
+from tests.factories import create_profile
+from eventing.catalog import class_group_uuid
 """부하 줄이기(계획 docs/metaverse-optimization-plan.md).
 
 - 1a·1b: 가만히 있는 사람은 메시지를 만들지 않는다. 움직임은 지금처럼 전달한다: 이동 중 위치는 0.1초 간격,
@@ -36,7 +38,7 @@ class IdleTrafficTests(TransactionTestCase):
 
     def login(self, name):
         user = get_user_model().objects.create_user(username=name)
-        Profile.objects.create(user=user, nickname=name, cohort='mlo-1', setup_complete=True)
+        create_profile(user=user, nickname=name, cohort_id=class_group_uuid('mlo-1'), setup_complete=True)
         client = Client()
         client.force_login(user)
         return f'{settings.SESSION_COOKIE_NAME}={client.cookies[settings.SESSION_COOKIE_NAME].value}'.encode()

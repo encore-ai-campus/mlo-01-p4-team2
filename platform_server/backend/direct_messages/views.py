@@ -64,7 +64,7 @@ def status(request):
 def recipients(request):
     query=request.GET.get('q','').strip()[:40]
     if not query:return JsonResponse({'recipients':[]})
-    matches=Profile.objects.select_related('user').filter(user__is_active=True,setup_complete=True,nickname__icontains=query).exclude(user=request.user).order_by('nickname','user_uuid')[:20]
+    matches=Profile.objects.select_related('user').filter(user__is_active=True,setup_complete=True,nickname__icontains=query).exclude(user=request.user).order_by('nickname','user_id')[:20]
     return JsonResponse({'recipients':[service.identity(p.user) for p in matches]})
 
 
@@ -72,7 +72,7 @@ def recipients(request):
 def counselors(request):
     profiles = Profile.objects.select_related('user').filter(
         user__is_active=True, user__is_staff=True, setup_complete=True,
-    ).exclude(user=request.user).order_by('nickname', 'user_uuid')[:50]
+    ).exclude(user=request.user).order_by('nickname', 'user_id')[:50]
     return JsonResponse({'counselors': [service.identity(profile.user) for profile in profiles]})
 
 
@@ -107,7 +107,7 @@ def send(request):
         body=body.strip()
         if any(ord(c)<32 and c not in '\n\t' for c in body):raise ValueError('메시지에 사용할 수 없는 문자가 있습니다.')
     except (ValueError,TypeError,AttributeError) as exc:return error(str(exc) or '요청 내용을 확인해 주세요.')
-    profile=Profile.objects.select_related('user').filter(user_uuid=recipient_id,user__is_active=True,setup_complete=True).first()
+    profile=Profile.objects.select_related('user').filter(user_id=recipient_id,user__is_active=True,setup_complete=True).first()
     if profile is None:return error('받는 사람을 찾을 수 없습니다.',404)
     recipient=profile.user
     if recipient.pk==request.user.pk:return error('다른 사람을 선택해 주세요.')

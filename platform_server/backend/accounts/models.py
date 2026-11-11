@@ -9,24 +9,32 @@ from .cohorts import COHORT_CHOICES, course_for_cohort
 
 
 class Profile(models.Model):
-    user_uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="campus_profile"
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, primary_key=True, related_name="campus_profile"
     )
     nickname = models.CharField(max_length=20)
     avatar = models.CharField(max_length=8, choices=AVATAR_CHOICES, default=DEFAULT_AVATAR)
-    cohort = models.CharField(max_length=6, choices=COHORT_CHOICES, blank=True, default="")
+    cohort = models.ForeignKey("eventing.ClassGroup", on_delete=models.PROTECT, db_column="cohort",
+                               default=uuid.UUID("31a2cc4c-ddd8-4c6a-bcd0-846dbe774f32"))
     # Existing accounts keep their current identity; signup explicitly starts incomplete.
     setup_complete = models.BooleanField(default=True)
     guide_completed = models.BooleanField(default=False)
-    last_position = LosslessJSONField(null=True, blank=True)
-    last_position_at = models.DateTimeField(null=True, blank=True)
-    last_movement_event_at = models.DateTimeField(null=True, blank=True)
-    movement_event_pending = LosslessJSONField(null=True, blank=True)
 
     @property
     def course(self):
-        return course_for_cohort(self.cohort)
+        return course_for_cohort(self.cohort.code)
+
+    @property
+    def user_uuid(self):
+        # Existing integrations use this attribute; it is no longer a DB column.
+        return self.user_id
+
+
+class Position(models.Model):
+    profile = models.OneToOneField(Profile, primary_key=True, db_column="user_uuid",
+                                   related_name="position", on_delete=models.CASCADE)
+    last_position = LosslessJSONField(null=True, blank=True)
+    last_position_at = models.DateTimeField(null=True, blank=True)
 
 
 class ActiveLogin(models.Model):

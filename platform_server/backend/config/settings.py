@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "direct_messages.apps.DirectMessagesConfig",
     "daphne",
     "django.contrib.auth",
+    "identity",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.staticfiles",
@@ -79,11 +80,19 @@ if CAMPUS_SERVICE_REDIS_URL != CAMPUS_MOVEMENT_REDIS_URL:
     CHANNEL_LAYERS["service"] = {"BACKEND": "channels_redis.pubsub.RedisPubSubChannelLayer",
                                  "CONFIG": {"hosts": [CAMPUS_SERVICE_REDIS_URL], "prefix": "campus.service"}}
 
-DATABASE_ENGINE = os.environ.get("DATABASE_ENGINE", "sqlite").strip().lower()
-MYSQL_POOL_SIZE = int(os.environ.get("MYSQL_POOL_SIZE", "0"))
-if MYSQL_POOL_SIZE < 0:
-    raise ValueError("MYSQL_POOL_SIZE must be zero or positive")
-if DATABASE_ENGINE == "mysql":
+DATABASE_ENGINE = os.environ.get("DATABASE_ENGINE", "postgresql").strip().lower()
+if DATABASE_ENGINE in {"postgresql", "postgres", "pgsql"}:
+    DATABASES = {"default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.environ.get("POSTGRES_DB", "platform"),
+        "USER": os.environ.get("POSTGRES_USER", "platform"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
+        "HOST": os.environ.get("POSTGRES_HOST", "127.0.0.1"),
+        "PORT": os.environ.get("POSTGRES_PORT", "5432"),
+        "CONN_MAX_AGE": 0,
+        "OPTIONS": {"connect_timeout": 5},
+    }}
+elif DATABASE_ENGINE == "mysql":
     DATABASES = {"default": {
         "ENGINE": "django.db.backends.mysql",
         "NAME": os.environ.get("MYSQL_DATABASE", ""),
@@ -96,15 +105,12 @@ if DATABASE_ENGINE == "mysql":
     }}
     if not DATABASES["default"]["NAME"] or not DATABASES["default"]["USER"]:
         raise ValueError("MYSQL_DATABASE and MYSQL_USER are required when DATABASE_ENGINE=mysql")
-    if MYSQL_POOL_SIZE:
-        DATABASES["default"].update(ENGINE="config.dbpool", POOL_OPTIONS={
-            "POOL_SIZE": MYSQL_POOL_SIZE, "MAX_OVERFLOW": 0, "TIMEOUT": 2,
-            "RECYCLE": 300, "PRE_PING": True,
-        })
 elif DATABASE_ENGINE == "sqlite":
     DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": DATA_DIR / "db.sqlite3"}}
 else:
-    raise ValueError("DATABASE_ENGINE must be sqlite or mysql")
+    raise ValueError("DATABASE_ENGINE must be postgresql, sqlite or mysql")
+AUTH_USER_MODEL = "identity.User"
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -145,22 +151,6 @@ BOARD_MENU_SOURCE_URL = "https://pf.kakao.com/_xfWxfCxj"
 BOARD_MENU_STORAGE_ROOT = DATA_DIR / "var" / "board-menu"
 BOARD_MENU_UPDATE_TIME = "10:00"
 BOARD_MENU_TIME_ZONE = "Asia/Seoul"
-
-# Raw events are kept in the transactional outbox until a Kafka broker is configured.
-KAFKA_BOOTSTRAP_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "").strip()
-KAFKA_SECURITY_PROTOCOL = os.environ.get("KAFKA_SECURITY_PROTOCOL", "").strip()
-KAFKA_SASL_MECHANISM = os.environ.get("KAFKA_SASL_MECHANISM", "").strip()
-KAFKA_SASL_USERNAME = os.environ.get("KAFKA_SASL_USERNAME", "")
-KAFKA_SASL_PASSWORD = os.environ.get("KAFKA_SASL_PASSWORD", "")
-CAMPUS_RAW_SOURCE = os.environ.get("CAMPUS_RAW_SOURCE", "platform_server_1").strip() or "platform_server_1"
-CAMPUS_OUTBOX_PUBLISH_RATE_PER_SECOND = 100
-CAMPUS_MOVEMENT_EVENT_INTERVAL_SECONDS = 30
-CAMPUS_OUTBOX_CLEANUP_TIME = "08:30"
-CAMPUS_OUTBOX_CLEANUP_STATE = DATA_DIR / "var" / "outbox-cleanup.json"
-CAMPUS_OUTBOX_IDLE_POLL_SECONDS = float(os.environ.get("CAMPUS_OUTBOX_IDLE_POLL_SECONDS", "0.25"))
-CAMPUS_OUTBOX_CONNECTION_MAX_AGE_SECONDS = int(os.environ.get("CAMPUS_OUTBOX_CONNECTION_MAX_AGE_SECONDS", "60"))
-if not 0 < CAMPUS_OUTBOX_IDLE_POLL_SECONDS < float("inf") or CAMPUS_OUTBOX_CONNECTION_MAX_AGE_SECONDS < 0:
-    raise ValueError("Outbox polling must be positive and connection lifetime must be non-negative")
 
 # Actual per-correct-answer rewards; shared by multiple-choice and fill-blank.
 LEARNING_POINTS_BY_DIFFICULTY = {

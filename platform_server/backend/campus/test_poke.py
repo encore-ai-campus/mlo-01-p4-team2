@@ -1,3 +1,6 @@
+from tests.factories import create_profile
+from eventing.catalog import class_group_uuid
+from accounts.models import Position
 """Pokes obey authoritative geometry, session checks, and transient room scope."""
 import asyncio
 import math
@@ -11,7 +14,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client, SimpleTestCase, TransactionTestCase, override_settings
 
 from accounts.models import Profile
-from eventing.models import EventOutbox
+
 from . import consumers, poke
 from .motion import ControlError, MotionController, World, world
 
@@ -183,7 +186,7 @@ class PokeSocketTests(TransactionTestCase):
                              and active_world.clear({"x": x, "y": y}, {"x": x + delta, "y": y - delta}))
         for index, (x, y) in enumerate([first, second]):
             user = get_user_model().objects.create_user(username=f"poke-{index}")
-            Profile.objects.create(user=user, nickname=f"찌르기 {index}", cohort="mlo-1", setup_complete=True,
+            create_profile(user=user, nickname=f"찌르기 {index}", cohort_id=class_group_uuid("mlo-1"), setup_complete=True,
                                    last_position={"floor": "campus", "x": x, "y": y, "dir": "right"})
             client = Client()
             client.force_login(user)
@@ -210,7 +213,7 @@ class PokeSocketTests(TransactionTestCase):
 
     @database_sync_to_async
     def movement_count(self):
-        return EventOutbox.objects.filter(event_type="movement_observed").count()
+        return Position.objects.filter(last_position_at__isnull=False).count()
 
     async def test_two_authenticated_clients_share_the_same_effect_and_cooldown(self):
         left, right = [self.socket(client) for client in self.clients]

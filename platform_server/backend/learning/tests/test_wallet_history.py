@@ -9,7 +9,6 @@ from django.urls import resolve
 from django.utils import timezone
 
 from eventing.events import get_profile
-from eventing.models import EventOutbox
 from learning import views
 from learning.models import LearningSession, PointLedger, PointWallet, Question, SessionQuestion, UserAnswer
 
@@ -56,21 +55,21 @@ class WalletHistoryTests(TestCase):
         self.assertIsNone(data['next_cursor'])
 
     def test_empty_history_is_read_only_and_does_not_create_wallet_or_events(self):
-        counts = [model.objects.count() for model in (PointWallet, PointLedger, UserAnswer, EventOutbox)]
+        counts = [model.objects.count() for model in (PointWallet, PointLedger, UserAnswer)]
         response, data = self.request()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(data, {'items': [], 'next_cursor': None})
-        self.assertEqual([model.objects.count() for model in (PointWallet, PointLedger, UserAnswer, EventOutbox)], counts)
+        self.assertEqual([model.objects.count() for model in (PointWallet, PointLedger, UserAnswer)], counts)
 
     def test_existing_history_reads_do_not_award_more_points(self):
         ledger = self.grant(self.user)
         wallet = PointWallet.objects.create(profile=ledger.profile, balance=ledger.delta)
-        counts = [model.objects.count() for model in (PointLedger, UserAnswer, EventOutbox)]
+        counts = [model.objects.count() for model in (PointLedger, UserAnswer)]
         self.request()
         self.request()
         wallet.refresh_from_db()
         self.assertEqual(wallet.balance, ledger.delta)
-        self.assertEqual([model.objects.count() for model in (PointLedger, UserAnswer, EventOutbox)], counts)
+        self.assertEqual([model.objects.count() for model in (PointLedger, UserAnswer)], counts)
 
     def test_cursor_paging_handles_equal_timestamps_without_duplicates(self):
         timestamp = timezone.now() - timedelta(hours=1)

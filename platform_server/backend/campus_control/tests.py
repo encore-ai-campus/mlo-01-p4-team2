@@ -112,14 +112,14 @@ class FreezeSocketTests(SimpleTestCase):
 
 class FreezeLiveTests(TransactionTestCase):
     def setUp(self):
-        from accounts.models import Profile
+        from tests.factories import create_profile
         from accounts.session_policy import start_login
         from campus import consumers
         consumers.room = consumers.CampusRoom()
         service.invalidate()
         self.user=get_user_model().objects.create_user(username='freeze-live')
         self.staff=get_user_model().objects.create_user(username='freeze-live-admin',is_staff=True)
-        Profile.objects.create(user=self.user,nickname='Freeze Test',cohort='mlo-1',setup_complete=True,
+        create_profile(user=self.user,nickname='Freeze Test',cohort='mlo-1',setup_complete=True,
                                last_position={'floor':'campus','x':2000,'y':900,'dir':'right'})
         self.client.force_login(self.user)
         session=self.client.session;start_login(session,self.user);session.save()

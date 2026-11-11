@@ -1,3 +1,4 @@
+from accounts.models import Position
 """Held pokes repeat locally, with bounded server hits and nearby-only state changes."""
 import asyncio
 import json
@@ -10,7 +11,7 @@ from channels.db import database_sync_to_async
 from channels.layers import get_channel_layer
 from django.contrib.sessions.models import Session
 from django.test import SimpleTestCase, TransactionTestCase, override_settings
-from eventing.models import EventOutbox
+
 
 from . import consumers, poke
 from .motion import MotionController
@@ -177,7 +178,7 @@ class ContinuousPokeSocketTests(TransactionTestCase):
     packets = PokeSocketTests.packets
     @database_sync_to_async
     def movement_count(self):
-        return EventOutbox.objects.filter(event_type='movement_observed').count()
+        return Position.objects.filter(last_position_at__isnull=False).count()
 
     async def hold(self, socket, active=True):
         await socket.send_json_to({"type": "input", "keys": [], "poking": active,

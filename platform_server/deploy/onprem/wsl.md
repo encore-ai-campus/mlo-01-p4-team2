@@ -84,7 +84,7 @@ PC 1·PC 2 모두 같은 이동 Redis와 서비스 Redis에 연결해야 한다.
 | 같은 WSL의 Front → 뒤 Nginx → Backend | `127.0.0.1` |
 | 다른 PC의 Backend·jobs → Redis | 상대 PC의 사설 주소·Redis 포트만 |
 | 후속 외부 연결 프로그램 → Front·정적 파일 | [입구 명세](ingress.md)의 포트만 |
-| 두 PC → 외부 MySQL | 기존 클러스터 또는 Router의 허용 주소·포트 |
+| 두 PC → 외부 PostgreSQL | PostgreSQL 서버의 허용 주소·포트 |
 
 Redis는 [설정 예시](redis.conf.example)를 참고한다.
 인증·보호 모드·사설 바인딩을 유지하고, 상대 PC의 주소만 방화벽으로 허용한다.
@@ -98,7 +98,7 @@ Redis는 [설정 예시](redis.conf.example)를 참고한다.
 - `systemctl status redis-server playdata-platform@movement` 확인. PC 2는 `service` 사용.
 - 같은 WSL에서 Front `/health/` 응답 확인.
 - 두 PC에서 이동·서비스 Redis 인증 접속 확인.
-- 외부 MySQL 연결과 실제 인증 HTTP 요청 확인.
+- 외부 PostgreSQL 연결과 실제 인증 HTTP 요청 확인.
 - 이동·채팅 연결과 정적 파일 응답 확인.
 
 WSL·Windows·방화벽·두 PC의 실제 네트워크는 이 작업 환경에서 검증하지 않았다.

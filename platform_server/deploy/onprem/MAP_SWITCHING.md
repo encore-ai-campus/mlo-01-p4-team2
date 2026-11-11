@@ -9,11 +9,11 @@
 
 ## 운영 데이터 유지
 
-- 두 맵은 같은 운영 MySQL DB를 사용한다. 각 역할의 `MYSQL_DATABASE`는 같게 유지하고, `MYSQL_HOST`는 같은 DB로 연결되는 실제 MySQL/Router 주소를 지정한다.
+- 두 맵은 같은 PostgreSQL DB를 사용한다. 각 역할의 `POSTGRES_DB`는 같게 유지하고, `POSTGRES_HOST`는 같은 DB로 연결되는 실제 PostgreSQL 주소를 지정한다.
 - 각 역할의 운영 환경 파일은 `/etc/playdata/movement.env`, `/etc/playdata/service.env`처럼 checkout 밖에 보관하고 재사용한다. 비밀키·허용 호스트·공개 Origin·DB 계정은 유지한다.
 - Redis 이동·서비스 설정과 jobs의 단일 실행 정책을 유지한다. 기존맵과 이벤트맵 프로세스가 동시에 같은 Redis 상태를 공유하지 않도록 기존 역할을 모두 종료한 후 전환한다.
 - 파일 저장 데이터는 각 PC에서 checkout 밖의 고정 `CAMPUS_DATA_DIR`로 유지하는 것을 권장한다. 이벤트 브랜치에 운영 `.env`, SQLite, 로그를 복사하지 않는다.
-- 이벤트 스토리·이용 일시정지 추가 버전에는 `event_story.0001_initial`, `campus_control.0001_initial` 마이그레이션과 테이블 4개가 추가된다. 전환 전에 운영 DB를 백업하고 같은 서비스 DB에 마이그레이션을 적용한다. 기존맵 코드로 돌아갈 때 추가 테이블·기록을 삭제하거나 DB를 과거 백업으로 덮어쓰지 않는다. 운영 MySQL에서의 적용·복귀는 별도 검증한다.
+- 이벤트 스토리·이용 일시정지 추가 버전에는 `event_story.0001_initial`, `campus_control.0001_initial` 마이그레이션과 테이블 4개가 추가된다. 전환 전에 운영 DB를 백업하고 같은 서비스 DB에 마이그레이션을 적용한다. 기존맵 코드로 돌아갈 때 추가 테이블·기록을 삭제하거나 DB를 과거 백업으로 덮어쓰지 않는다. 운영 PostgreSQL에서의 적용·복귀는 별도 검증한다.
 
 ## 전환 순서
 

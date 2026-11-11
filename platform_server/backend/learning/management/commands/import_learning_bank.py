@@ -92,6 +92,11 @@ class Command(BaseCommand):
                     cur.execute("SELECT GET_LOCK('learning_bank_import_v1',0)")
                     acquired=cur.fetchone()[0]==1
                     if not acquired:raise CommandError('다른 문제은행 반영 작업이 진행 중입니다.')
+            elif connection.vendor == 'postgresql':
+                with connection.cursor() as cur:
+                    cur.execute("SELECT pg_try_advisory_lock(781024381)")
+                    acquired = cur.fetchone()[0]
+                    if not acquired: raise CommandError('다른 문제은행 반영 작업이 진행 중입니다.')
             pending=plan(rows)
             result={'mode':'dry-run','new_questions':len(pending),'skipped':len(rows)-len(pending),'target_active':2400}
             if options['apply']:
@@ -102,4 +107,8 @@ class Command(BaseCommand):
             self.stdout.write(json.dumps(result,ensure_ascii=True))
         finally:
             if acquired:
-                with connection.cursor() as cur:cur.execute("SELECT RELEASE_LOCK('learning_bank_import_v1')")
+                with connection.cursor() as cur:
+                    if connection.vendor == 'postgresql':
+                        cur.execute("SELECT pg_advisory_unlock(781024381)")
+                    else:
+                        cur.execute("SELECT RELEASE_LOCK('learning_bank_import_v1')")

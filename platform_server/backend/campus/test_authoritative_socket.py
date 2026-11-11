@@ -1,3 +1,5 @@
+from tests.factories import create_profile
+from eventing.catalog import class_group_uuid
 import asyncio
 from unittest.mock import patch
 
@@ -9,8 +11,8 @@ from django.contrib.sessions.models import Session
 from django.db import DatabaseError
 from django.test import Client, TransactionTestCase, override_settings
 
-from accounts.models import Profile
-from eventing.models import EventOutbox
+from accounts.models import Profile, Position
+
 from . import consumers
 from .positions import DEFAULT_POSITION
 
@@ -19,7 +21,7 @@ from .positions import DEFAULT_POSITION
 class AuthoritativeSocketTests(TransactionTestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(username='server-input')
-        Profile.objects.create(user=self.user, nickname='입력 검증', cohort='mlo-1', setup_complete=True)
+        create_profile(user=self.user, nickname='입력 검증', cohort_id=class_group_uuid('mlo-1'), setup_complete=True)
         client = Client()
         client.force_login(self.user)
         self.client = client
@@ -43,8 +45,8 @@ class AuthoritativeSocketTests(TransactionTestCase):
 
     @database_sync_to_async
     def stored(self):
-        return (Profile.objects.get(user_id=self.user.pk).last_position,
-                list(EventOutbox.objects.filter(event_type='movement_observed').values_list('raw_data', flat=True)))
+        return (Profile.objects.get(user_id=self.user.pk).position.last_position,
+                Profile.objects.get(user_id=self.user.pk).position.last_position_at)
 
     async def test_production_socket_rejects_coordinates_and_uses_server_default_spawn(self):
         socket = self.socket()
@@ -59,9 +61,9 @@ class AuthoritativeSocketTests(TransactionTestCase):
             self.assertEqual(self.room.players[welcome['selfId']]['x'], DEFAULT_POSITION['x'])
         finally:
             await socket.disconnect()
-        self.assertEqual((await self.stored())[1], [])
+        self.assertIsNone((await self.stored())[0])
 
-    async def test_keyboard_moves_on_the_server_and_disconnect_flushes_one_latest_outbox(self):
+    async def test_keyboard_moves_on_the_server_and_disconnect_saves_latest_position(self):
         socket = self.socket()
         try:
             self.assertTrue((await socket.connect())[0])
@@ -74,10 +76,9 @@ class AuthoritativeSocketTests(TransactionTestCase):
             await self.packet(socket, 'pong')
         finally:
             await socket.disconnect()
-        position, events = await self.stored()
+        position, observed_at = await self.stored()
         self.assertNotEqual((position['x'], position['y']), (DEFAULT_POSITION['x'], DEFAULT_POSITION['y']))
-        self.assertEqual(len(events), 1)
-        self.assertEqual((events[0]['x'], events[0]['y']), (position['x'], position['y']))
+        self.assertIsNotNone(observed_at)
 
     async def test_invalid_keys_are_rejected_without_disconnect_or_movement(self):
         socket = self.socket()
@@ -90,7 +91,7 @@ class AuthoritativeSocketTests(TransactionTestCase):
             await self.packet(socket, 'pong')
         finally:
             await socket.disconnect()
-        self.assertEqual((await self.stored())[1], [])
+        self.assertIsNone((await self.stored())[0])
 
     async def test_logout_ack_follows_db_save_and_http_does_not_read_redis_position(self):
         socket = self.socket()
@@ -140,7 +141,7 @@ class AuthoritativeSocketTests(TransactionTestCase):
             await self.packet(socket, 'welcome')
             await socket.send_json_to({'type': 'control', 'requestId': 'first', 'action': 'prepare_logout'})
             self.assertEqual((await self.packet(socket, 'control_result'))['result'], {'saved': True})
-            position, events = await self.stored()
+            position, observed_at = await self.stored()
             await socket.send_json_to({'type': 'input', 'keys': ['w']})
             await socket.send_json_to({'type': 'control', 'requestId': 'move', 'action': 'navigate',
                                        'data': {'x': 1500, 'y': 900}})
@@ -150,7 +151,7 @@ class AuthoritativeSocketTests(TransactionTestCase):
                 response = await self.packet(socket, 'control_result')
             self.assertEqual(response['result'], {'saved': True})
             await asyncio.sleep(.1)
-            self.assertEqual(await self.stored(), (position, events))
+            self.assertEqual(await self.stored(), (position, observed_at))
         finally:
             await socket.disconnect()
 
@@ -191,7 +192,7 @@ class AuthoritativeSocketTests(TransactionTestCase):
         from .motion import world
 
         x, y = world('campus').objects['campus-roof-stairs']['interactionPoint']
-        await database_sync_to_async(Profile.objects.filter(user_id=self.user.pk).update)(
+        await database_sync_to_async(Position.objects.filter(profile_id=self.user.pk).update)(
             last_position={"floor": "campus", "x": x, "y": y, "dir": "down"})
         socket = self.socket()
         try:

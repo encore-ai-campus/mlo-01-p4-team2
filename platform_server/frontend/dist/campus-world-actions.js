@@ -9,7 +9,8 @@
     button.addEventListener('keydown',event=>{if(['Enter',' ','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))event.stopPropagation();});
     return button;
   }
-  const guide=action('world-kkuwang','메타버스 가이드 꾸왕이에요. 클릭하여 이용안내 열기','assets/guide-kkuwang-refined-v3.png');
+  const guideArt=window.CAMPUS_SEASON==='pepero'?'assets/guide-kkuwang-detective-v1.png':'assets/guide-kkuwang-refined-v3.png';
+  const guide=action('world-kkuwang','메타버스 가이드 꾸왕이에요. 클릭하여 이용안내 열기',guideArt);
   // Render the guide at the display's actual pixel density; avoid repeated CSS crop/resampling.
   const guideImage=guide.querySelector('img');
   const guideCanvas=document.createElement('canvas');guideCanvas.className='world-guide-sprite';guideCanvas.setAttribute('aria-hidden','true');
@@ -34,9 +35,8 @@
   }
   window.CampusGuideSprite={draw(context){if(!guideBounds)return;const scale=Math.min(38/guideBounds.w,40/guideBounds.h),w=guideBounds.w*scale,h=guideBounds.h*scale;context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';context.drawImage(guideImage,guideBounds.x,guideBounds.y,guideBounds.w,guideBounds.h,-w/2,-h,w,h);}};
   guideImage.addEventListener('load',paintGuide);if(guideImage.complete)paintGuide();window.addEventListener('resize',paintGuide);
-  const balloon=document.createElement('span');balloon.className='world-guide-balloon';balloon.textContent='메타버스 가이드 꾸왕이에요';
-  const link=document.createElement('strong');link.textContent='클릭하기 →';balloon.append(link);guide.append(balloon);
-  guide.addEventListener('click',()=>{if(!window.CampusApp?.floor||window.CampusGuide?.blocking)return;window.CampusGuide?.open();});
+  const label=document.createElement('span');label.className='world-guide-label';label.textContent='안내가이드 꾸왕이';guide.append(label);
+  guide.addEventListener('click',()=>{if(!window.CampusApp?.floor||window.CampusGuide?.blocking||window.CampusStory?.blocking)return;if(window.CampusStory)window.CampusStory.guide();else window.CampusGuide?.open();});
   const wheel=action('world-lunch-wheel','점심추천 돌림판 열기','assets/lunch-wheel-stand.svg');
   const caption=document.createElement('span');caption.textContent='점심추천 돌림판';wheel.append(caption);
   wheel.addEventListener('click',()=>window.dispatchEvent(new CustomEvent('campus:open-service',{detail:'lunch'})));

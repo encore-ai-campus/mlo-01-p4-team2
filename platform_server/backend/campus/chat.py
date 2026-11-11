@@ -106,6 +106,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             await self.receive_chat(data)
 
     async def receive_chat(self, data):
+        from campus_control.service import async_state
+        pause = await async_state()
+        if pause["paused"]:
+            await self.chat_error(pause["message"])
+            return
         text = data.get("text")
         if not isinstance(text, str):
             await self.chat_error("메시지를 입력해 주세요.")

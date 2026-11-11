@@ -95,7 +95,7 @@ class PeperoGameTests(SimpleTestCase):
         for floor in ['campus', 'rooftop']:
             w = world(floor)
             boxes = [o for o in w.objects.values() if o.get('action')=='pepero_refill']
-            self.assertEqual(len(boxes), 3 if floor == 'campus' else 2)
+            self.assertEqual(len(boxes), 2 if floor == 'campus' else 2)
             for box in boxes:
                 self.c.controller.world = w
                 x, y = box['interactionPoint']
@@ -105,7 +105,7 @@ class PeperoGameTests(SimpleTestCase):
                     self.assertEqual(result['remaining'], 10)
                     self.c.send_control_state.assert_awaited()
                     self.assertEqual(self.c.state['peperoRemaining'],10)
-                self.assertEqual(box['interactionRadius'], 60)
+                self.assertEqual(box['interactionRadius'], 120)
                 self.c.controller.pose.update(x=x, y=y+50)
                 self.assertTrue(w.walkable(x, y+50))
                 self.assertEqual(self.c.controller.hints()['nearbyId'], box['id'])

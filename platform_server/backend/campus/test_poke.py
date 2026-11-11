@@ -60,6 +60,18 @@ class PokeGeometryTests(SimpleTestCase):
         targets = [self.target(192, 150, "far"), self.target(179, 150, "near")]
         self.assertEqual(poke.find_target(self.pose, targets, self.world), "near")
 
+    def test_guide_is_hittable_without_ignoring_other_walls(self):
+        guide = {"id": "guide", "type": "guide-npc", "action": "guide",
+                 "footprint": {"x": 180, "y": 140, "w": 20, "h": 20}}
+        body = {"x": 180, "y": 140, "w": 20, "h": 20, "pad": 0, "objectId": "guide"}
+        active = World({**self.data, "objects": [guide], "colliders": [body]})
+        targets = poke.world_targets(active)
+        self.assertFalse(targets[0]["guarding"])
+        self.assertEqual(poke.find_target(self.pose, targets, active), "guide")
+        wall = {"x": 165, "y": 125, "w": 3, "h": 50, "pad": 0}
+        blocked = World({**active.data, "colliders": [body, wall]})
+        self.assertIsNone(poke.find_target(self.pose, targets, blocked))
+
     def test_wall_blocks_a_poke(self):
         blocked = World({**self.data, "colliders": [{"x": 165, "y": 125, "w": 3, "h": 50, "pad": 0}]})
         self.assertIsNone(poke.find_target(self.pose, [self.target(190, 150)], blocked))

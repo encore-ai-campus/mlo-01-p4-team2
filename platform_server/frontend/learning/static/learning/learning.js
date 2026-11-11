@@ -355,6 +355,7 @@
     showBalance(points?.wallet_balance);
     $('score-ring').style.setProperty('--score-angle', `${Math.max(0, Math.min(100, data.final_accuracy)) * 3.6}deg`);
     showScreen('result', 'result-title');
+    window.dispatchEvent(new CustomEvent('campus:learning-result',{detail:{sessionId:data.session_id,passed:data.passed}}));
   }
 
   function nextQuestion() {

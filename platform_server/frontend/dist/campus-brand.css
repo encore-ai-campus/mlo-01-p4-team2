@@ -204,3 +204,6 @@
 /* Wider chat, clamped to the available map viewport. */
 .map-shell .chat-panel {width:min(480px,calc(100% - 40px))}
 @media(max-width:700px){.map-shell .chat-panel {width:min(420px,calc(100% - 24px))}}
+
+/* Compact guide name beneath the NPC instead of an overhead speech balloon. */
+.world-guide-label {position:absolute;top:calc(100% + 5px);left:50%;transform:translateX(-50%);white-space:nowrap;font-size:11px;font-weight:700;line-height:1.4;color:#355d50;background:#fffdf8eb;border:1px solid #dfd8c9;border-radius:5px;padding:2px 6px;pointer-events:none;}

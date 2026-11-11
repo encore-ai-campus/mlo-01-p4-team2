@@ -46,7 +46,8 @@
       }catch(error){window.CampusApp?.toast(error.message);}
     }
     document.addEventListener('keydown',event=>{
-      if(!dialog.open||window.CampusSession?.ending||window.CampusLearning?.blocking||(event.isComposing&&!window.CampusKeyboard.isGameKey(event))||event.target.closest?.('input,textarea,select,[contenteditable="true"]'))return;
+      if(window.CampusFreeze?.blocking)return;
+      if(!dialog.open||window.CampusSession?.ending||(window.CampusLearning?.blocking||window.CampusStory?.blocking)||(event.isComposing&&!window.CampusKeyboard.isGameKey(event))||event.target.closest?.('input,textarea,select,[contenteditable="true"]'))return;
       const key=window.CampusKeyboard.key(event);
       if(suppressedKeys.has(key)){event.preventDefault();return;}
       if(movementKeys.has(key)||key==='shift'||key==='control'){event.preventDefault();keys.add(key);}
@@ -67,7 +68,7 @@
     }
     function tick(t,dt){
       if(!dialog.open||!actor)return;
-      if(window.CampusLearning?.blocking||window.CampusSession?.ending)keys.clear();
+      if(window.CampusFreeze?.blocking||(window.CampusLearning?.blocking||window.CampusStory?.blocking)||window.CampusSession?.ending)keys.clear();
       getControl().setInput([...keys]);
       if(keys.has('control'))actor.guarding=true;
       const blend=1-Math.exp(-dt*18);
@@ -81,8 +82,10 @@
       ctx.save();ctx.translate(camera.x,camera.y);ctx.scale(zoom,zoom);
       renderer.draw(ctx,{camera,actors:[actor,...map.data.residents],t,nearby:null,viewportWidth:width,viewportHeight:height,floorOverlay:paintAreaGuide});
       window.CampusClassroomAssets?.paintWallCorners(ctx,P);ctx.restore();
+      window.CampusStory?.updateClassroom({actor,width,height,project:(x,y)=>{const q=P.project(x,y);return {x:q.x*zoom+camera.x,y:q.y*zoom+camera.y};}});
     }
-    return {applyState,focus,tick,get actor(){return actor;},get subject(){return subject;},get residents(){return map?.data.residents||[];},get inputKeys(){return [...keys];},get blocking(){return dialog.open;}};
+    function freeze(){for(const key of keys)suppressedKeys.add(key);keys.clear();getControl().setInput([]);if(actor){actor.moving=false;actor.running=false;actor.guarding=false;for(const key of Object.keys(actor))if(key.startsWith('_campus')||key.startsWith('_pepero'))delete actor[key];}}
+    return {applyState,focus,tick,freeze,get actor(){return actor;},get subject(){return subject;},get residents(){return map?.data.residents||[];},get inputKeys(){return [...keys];},get blocking(){return dialog.open;}};
   }
   window.CampusClassroom={create};
 })();

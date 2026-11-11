@@ -22,6 +22,7 @@ from accounts.models import get_identity, needs_profile_setup
 from accounts.session_policy import check_session
 from eventing.events import ensure_platform_session, record_floor_transfer, touch_platform_session
 from . import cluster, session_registry, poke, socket_db
+from campus_control.service import async_state as freeze_state
 from .interest import InterestView, SpatialIndex
 from .motion import CLASSROOM_TRANSITION_DELAY, MotionController, ControlError, geometry, world
 from .positions import DIRECTIONS, FLOOR_BOUNDS, flush_movement_event, get_position, movement_event_due_at, save_position, validate_position
@@ -373,6 +374,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
             await self.tell_local({"type": "join", "player": self.state.copy()})
             await room.cluster.joined(self)
         await self.send_packet({"type": "pepero_status", "remaining": self.pepero_remaining})
+        await self.sync_freeze()
         self.guard_task = asyncio.create_task(self.check_session_loop())
         if self.server_control:
             await self.send_control_state()
@@ -406,6 +408,15 @@ class CampusConsumer(AsyncWebsocketConsumer):
             await self.close(code=1007)
             return
         if not isinstance(data, dict):
+            return
+        pause = await self.sync_freeze()
+        action_request = data.get("type") in {"input", "move", "control"}
+        permitted = data.get("type") == "control" and data.get("action") == "prepare_logout"
+        stale = pause['revision'] > 0 and data.get('freezeRevision') != pause['revision']
+        if action_request and not permitted and (pause['paused'] or stale):
+            if data.get('type') == 'control':
+                await self.send_packet({'type': 'control_result', 'requestId': data.get('requestId'),
+                                        'error': pause['message'] if pause['paused'] else '이용 상태가 바뀌었어요. 키를 놓고 다시 시도해 주세요.'})
             return
         if self.logout_prepared and data.get("type") in {"input", "move"}:
             return
@@ -560,6 +571,25 @@ class CampusConsumer(AsyncWebsocketConsumer):
                     or (c.interior and (c.interior["actor"]["moving"] or now - c.last_classroom_transition < CLASSROOM_TRANSITION_DELAY))
                     or self.poke_requested or self.poke_started is not None)
 
+    async def sync_freeze(self):
+        state = await freeze_state()
+        signature = (state['revision'], state['paused'], state.get('unavailable', False))
+        if getattr(self, 'freeze_signature', None) != signature:
+            self.freeze_signature = signature
+            c = self.controller
+            if c:
+                c.keys.clear(); c.route = []; c.last_input = -math.inf
+                c.pending_transfer = None; c.classroom_exit_armed = False
+                c.ignore_current_portal()
+                c.pose.update(moving=False, running=False, guarding=False)
+                if c.interior:
+                    c.interior['actor'].update(moving=False, running=False, guarding=False)
+            self.poke_requested = False
+            self.poke_input_scope = None
+            await self.stop_poke()
+            await self.send_packet({'type': 'campus_freeze', **state})
+        return state
+
     async def motion_loop(self):
         previous, resting = time.monotonic(), False
         try:
@@ -578,13 +608,15 @@ class CampusConsumer(AsyncWebsocketConsumer):
                 async with self.control_lock:
                     if self.player_id not in room.players or self.logout_prepared:
                         return
-                    events = self.controller.tick(seconds, now)
+                    pause = await self.sync_freeze()
+                    events = [] if pause['paused'] else self.controller.tick(seconds, now)
                     moved = self.pose_changed()
                     if moved:
                         await self.receive_movement({**self.controller.pose, "color": self.state["color"]}, authoritative=True)
                     if self.controller.interior and self.controller.interior["actor"]["moving"]:
                         await self.touch_activity(wait=False)
-                    await self.tick_poke()
+                    if not pause['paused']:
+                        await self.tick_poke()
                     sent = await self.send_control_state(only_changes=True)
                     for event in events:
                         await self.send_packet({"type": "control_event", "event": event})
@@ -623,6 +655,11 @@ class CampusConsumer(AsyncWebsocketConsumer):
                     result = await self.receive_jump(arguments)
                     await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
                     await self.touch_activity(wait=False)
+                    return
+                if action == "story_access":
+                    from event_story.access import issue
+                    result = issue(self.scope["user"].pk, self.controller, arguments)
+                    await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
                     return
                 if action == "pepero_refill":
                     result = await self.refill_pepero(arguments)

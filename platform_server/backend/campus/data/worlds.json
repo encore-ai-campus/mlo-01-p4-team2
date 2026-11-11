@@ -913,10 +913,10 @@
           "type": "wall-sign",
           "confirmTransfer": false,
           "footprint": {
-            "x": 827,
-            "y": 558.5,
-            "w": 235.5,
-            "h": 3
+            "x": 797,
+            "y": 632.25,
+            "w": 3,
+            "h": 235.5
           }
         },
         {
@@ -996,10 +996,10 @@
           "type": "wall-sign",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1132.5,
-            "y": 558.5,
-            "w": 235.5,
-            "h": 3
+            "x": 1102.5,
+            "y": 632.25,
+            "w": 3,
+            "h": 235.5
           }
         },
         {
@@ -1079,10 +1079,10 @@
           "type": "wall-sign",
           "confirmTransfer": false,
           "footprint": {
-            "x": 1438,
-            "y": 558.5,
-            "w": 235.5,
-            "h": 3
+            "x": 1408,
+            "y": 632.25,
+            "w": 3,
+            "h": 235.5
           }
         },
         {
@@ -1144,24 +1144,6 @@
             "y": 931.5,
             "w": 275.5,
             "h": 4
-          }
-        },
-        {
-          "id": "hidden-recipe-note",
-          "type": "pepero-art",
-          "name": "초콜릿 묻은 레시피 쪽지",
-          "action": "recipe-note",
-          "confirmTransfer": false,
-          "interactionPoint": [
-            1552,
-            747
-          ],
-          "interactionRadius": 50,
-          "footprint": {
-            "x": 1540,
-            "y": 720,
-            "w": 24,
-            "h": 18
           }
         },
         {
@@ -4258,6 +4240,24 @@
             "y": 1005,
             "w": 360,
             "h": 6
+          }
+        },
+        {
+          "id": "hidden-recipe-note",
+          "type": "pepero-art",
+          "name": "초콜릿 묻은 레시피 쪽지",
+          "action": "recipe-note",
+          "confirmTransfer": false,
+          "interactionPoint": [
+            950,
+            1660
+          ],
+          "interactionRadius": 50,
+          "footprint": {
+            "x": 938,
+            "y": 1681,
+            "w": 24,
+            "h": 18
           }
         }
       ],

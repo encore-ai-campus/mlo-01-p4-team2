@@ -1,13 +1,14 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from threading import Barrier
+from types import SimpleNamespace
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from django.contrib.auth import get_user_model
 from django.core import signing
 from django.db import close_old_connections, connection, connections
-from django.test import TestCase, TransactionTestCase, override_settings
+from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings
 
 from campus.motion import ControlError, MotionController, world
 from event_story import access, main, recipe
@@ -157,20 +158,23 @@ class RecipeNoteTests(TestCase):
         self.assertEqual(self.client.post('/accounts/login/', credentials).status_code, 302)
         self.assertEqual(self.client.get('/api/event-story/recipe/status/').json(), first.json()['state'])
 
+class RecipeNoteAccessTests(SimpleTestCase):
     def test_note_is_walkable_reachable_and_only_nearby_players_get_tickets(self):
-        active = world('campus')
+        self.user = SimpleNamespace(pk='recipe-proximity-test')
+        active = world('rooftop')
+        self.assertNotIn(recipe.NOTE_ID, world('campus').objects)
         note = active.objects[recipe.NOTE_ID]
         x, y = note['interactionPoint']
         self.assertTrue(active.walkable(x, y))
         footprint = note['footprint']
         self.assertTrue(active.walkable(footprint['x'] + footprint['w'] / 2, footprint['y'] + footprint['h'] / 2))
         self.assertFalse(any(row.get('objectId') == recipe.NOTE_ID for row in active.data['colliders']))
-        self.assertTrue(active.route({'x': 1555.75, 'y': 589.5}, {'x': x, 'y': y}))
-        controller = MotionController({'floor': 'campus', 'x': x, 'y': y, 'dir': 'up'})
+        self.assertTrue(active.route({'x': 820, 'y': 1560}, {'x': x, 'y': y}))
+        controller = MotionController({'floor': 'rooftop', 'x': x, 'y': y, 'dir': 'up'})
         self.assertEqual(controller.hints()['nearbyId'], recipe.NOTE_ID)
         proof = access.issue(self.user.pk, controller, {'target': 'recipe-note'})
         access.verify(self.user, proof['ticket'], 'recipe-note')
-        for floor, xx, yy in (('campus', x + 100, y), ('rooftop', x, y)):
+        for floor, xx, yy in (('rooftop', x + 100, y), ('campus', x, y), ('campus', 1552, 747)):
             far = MotionController({'floor': floor, 'x': xx, 'y': yy, 'dir': 'up'})
             with self.assertRaises(ControlError):
                 access.issue(self.user.pk, far, {'target': 'recipe-note'})

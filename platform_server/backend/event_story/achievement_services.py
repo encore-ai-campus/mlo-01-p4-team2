@@ -43,9 +43,9 @@ ACHIEVEMENT_IMAGES = {
 def manager_ids():
     ids = [obj.get("managerId", obj.get("id")) for world in [*geometry()["worlds"].values(), *mission_geometry()["rooms"].values()]
            for obj in world["objects"] if obj.get("action") == "manager_greet"]
-    if (len(ids) != 7 or any(not isinstance(value, str) or not value.startswith("manager-")
-                             or len(value) > 64 for value in ids) or len(set(ids)) != 7):
-        raise ImproperlyConfigured("The generated world must contain seven distinct manager_greet NPCs.")
+    if (len(ids) != 6 or any(not isinstance(value, str) or not value.startswith("manager-")
+                             or len(value) > 64 for value in ids) or len(set(ids)) != len(ids)):
+        raise ImproperlyConfigured("The generated world must contain six distinct manager_greet NPCs.")
     return frozenset(ids)
 
 
@@ -137,8 +137,8 @@ def record_manager_action(user, manager_id, action):
         interactions = ManagerInteraction.objects.filter(
             user=user, campaign_id=CAMPAIGN_ID, manager_id__in=required,
         )
-        ready = (interactions.filter(greeted_at__isnull=False).count() == 7 if action == "greet"
-                 else interactions.filter(poke_count__gte=11).count() == 7)
+        ready = (interactions.filter(greeted_at__isnull=False).count() == len(required) if action == "greet"
+                 else interactions.filter(poke_count__gte=11).count() == len(required))
         newly_completed = []
         if ready:
             if complete_achievement(user, event_id, now, started_at=now):

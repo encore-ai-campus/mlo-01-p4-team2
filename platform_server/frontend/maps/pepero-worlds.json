@@ -1929,10 +1929,10 @@
         {
           "id": "sql-exterior-sign",
           "type": "wall-sign",
-          "x": 827.0,
-          "y": 558.5,
-          "w": 235.5,
-          "h": 3,
+          "x": 797.0,
+          "y": 632.25,
+          "w": 3,
+          "h": 235.5,
           "roomId": "class2",
           "solid": false,
           "text": "SQL 학습교실",
@@ -2072,10 +2072,10 @@
         {
           "id": "cs-exterior-sign",
           "type": "wall-sign",
-          "x": 1132.5,
-          "y": 558.5,
-          "w": 235.5,
-          "h": 3,
+          "x": 1102.5,
+          "y": 632.25,
+          "w": 3,
+          "h": 235.5,
           "roomId": "class-cs",
           "solid": false,
           "text": "CS 학습교실",
@@ -2215,10 +2215,10 @@
         {
           "id": "python-exterior-sign",
           "type": "wall-sign",
-          "x": 1438.0,
-          "y": 558.5,
-          "w": 235.5,
-          "h": 3,
+          "x": 1408.0,
+          "y": 632.25,
+          "w": 3,
+          "h": 235.5,
           "roomId": "class1",
           "solid": false,
           "text": "Python 학습교실",
@@ -2342,29 +2342,6 @@
           "renderHeight": 95,
           "axis": "x",
           "height": 62
-        },
-        {
-          "id": "hidden-recipe-note",
-          "type": "pepero-art",
-          "name": "초콜릿 묻은 레시피 쪽지",
-          "action": "recipe-note",
-          "x": 1540,
-          "y": 720,
-          "w": 24,
-          "h": 18,
-          "roomId": "class1",
-          "solid": false,
-          "interactionPoint": [
-            1552,
-            747
-          ],
-          "interactionRadius": 50,
-          "description": "Python 학습교실의 두 작업대 사이에 초콜릿이 묻은 레시피 쪽지가 놓여 있습니다.",
-          "seasonalArt": "recipe-note",
-          "artWidth": 42,
-          "artHeight": 33,
-          "artAnchor": 0.6,
-          "renderHeight": 36
         }
       ],
       "entrance": {
@@ -6141,6 +6118,29 @@
           "solid": false,
           "renderHeight": 135,
           "axis": "x"
+        },
+        {
+          "id": "hidden-recipe-note",
+          "type": "pepero-art",
+          "name": "초콜릿 묻은 레시피 쪽지",
+          "action": "recipe-note",
+          "x": 938,
+          "y": 1681,
+          "w": 24,
+          "h": 18,
+          "roomId": "roof-plaza",
+          "solid": false,
+          "interactionPoint": [
+            950,
+            1660
+          ],
+          "interactionRadius": 50,
+          "description": "옥상 아래쪽 화단 사이에 초콜릿이 묻은 레시피 쪽지가 놓여 있습니다.",
+          "seasonalArt": "recipe-note",
+          "artWidth": 42,
+          "artHeight": 33,
+          "artAnchor": 0.6,
+          "renderHeight": 36
         }
       ],
       "walls": [

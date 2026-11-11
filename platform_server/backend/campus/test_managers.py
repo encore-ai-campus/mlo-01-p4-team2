@@ -45,6 +45,18 @@ class ManagerControlTests(SimpleTestCase):
         self.assertFalse(self.room.lock.locked())
         return self.snapshot
 
+    def test_removed_manager_is_absent_from_server_geometry_and_achievement_requirements(self):
+        from event_story.achievement_services import manager_ids, mission_geometry
+        from .motion import geometry
+
+        self.assertEqual(len(manager_ids()), 6)
+        self.assertNotIn('manager-yuhyeong', manager_ids())
+        for world in [*geometry()['worlds'].values(), *mission_geometry()['rooms'].values()]:
+            self.assertFalse(any(obj.get('managerId', obj.get('id')) == 'manager-yuhyeong'
+                                 for obj in world['objects']))
+            self.assertFalse(any(collider.get('objectId') == 'manager-yuhyeong'
+                                 for collider in world['colliders']))
+
     async def test_greeting_uses_server_target_and_exact_dialogue(self):
         result = await self.consumer.greet_manager({'objectId': 'manager-suhyeon'})
         self.assertEqual(result['dialogue'], '이곳에는 숨겨진 이스터에그가 많다던데...')
@@ -62,7 +74,7 @@ class ManagerControlTests(SimpleTestCase):
         self.assertEqual(self.db.await_args.args[-2:],("manager-yeongseok","poke"))
 
     async def test_distant_foreign_floor_and_invalid_targets_are_rejected(self):
-        for target in ['manager-yebin', 'manager-yeongseok', 'not-a-manager', None, []]:
+        for target in ['manager-yuhyeong', 'manager-yebin', 'manager-yeongseok', 'not-a-manager', None, []]:
             with self.subTest(target=target), self.assertRaises(ControlError):
                 await self.consumer.greet_manager({'objectId': target})
         self.db.assert_not_awaited()

@@ -504,8 +504,9 @@
           line(p(sx,sy,base+2),p(sx+v.x,sy+v.y,base+2),'#516b68',1.2);
         }
       } else if(type==='wall-sign') {
-        verticalPanel(x,y,w,22,base+9,'#897355','x');
-        verticalPanel(x+3,y,w-6,18,base+11,'#f3eddd','x',o.text,'#28554e',o.id==='python-classroom-wall-sign'?'python':o.id==='sql-classroom-wall-sign'?'sql':null);
+        const axis=w>=h?'x':'y',span=Math.max(w,h);
+        verticalPanel(x,y,span,22,base+9,'#897355',axis);
+        verticalPanel(x+(axis==='x'?3:0),y+(axis==='y'?3:0),span-6,18,base+11,'#f3eddd',axis,o.text,'#28554e',o.id==='python-classroom-wall-sign'?'python':o.id==='sql-classroom-wall-sign'?'sql':null);
       } else if(type==='board'||type==='tv') {
         const axis=w>h?'x':'y',span=Math.max(w,h),sx=axis==='x'?x:x+w*.5,sy=axis==='x'?y+h*.65:y;
         if(type==='tv'){box(x+w*.3,y+h*.3,w*.4,h*.4,base,3,'#708983','#556c65','#40554e');}

@@ -140,7 +140,7 @@ class RecipeStoryTests(TestCase):
         self.assertTrue(world('campus').walkable(1250, 185))
         proof = access.issue(self.user.pk, near, {'target': 'recipe-guide'})
         access.verify(self.user, proof['ticket'], 'recipe-guide')
-        for floor, x, y in (('campus', 1552, 747), ('rooftop', 1250, 185)):
+        for floor, x, y in (('rooftop', 950, 1660), ('rooftop', 1250, 185)):
             far = MotionController({'floor': floor, 'x': x, 'y': y, 'dir': 'up'})
             with self.assertRaises(ControlError):
                 access.issue(self.user.pk, far, {'target': 'recipe-guide'})

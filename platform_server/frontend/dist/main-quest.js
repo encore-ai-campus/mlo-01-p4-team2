@@ -36,14 +36,14 @@ const pline=text=>({speaker:'나',role:'사라진 선물을 찾는 탐정',perso
 async function recipeNote(){
 const saved=await api(null,'recipe/status/','/api/event-story/');
 if(saved.hasNote){recipeHolding();return;}
-story('책상 사이에 숨은 쪽지','SECRET RECIPE · 발견',[
-{...pline('책상 사이에 종이 끝이 살짝 보인다. 초콜릿이 묻은 작은 발자국... 어디서 본 것 같은데?'),role:'숨은 쪽지 발견'},
+story('화단 사이에 숨은 쪽지','SECRET RECIPE · 발견',[
+{...pline('화단 사이에 종이 끝이 살짝 보인다. 초콜릿이 묻은 작은 발자국... 어디서 본 것 같은데?'),role:'숨은 쪽지 발견'},
 {...pline('「특별한 빼빼로 한 개를 만드는 법」\n그런데 재료는 두 사람 분량이다. 맨 아래 한 줄은 초콜릿 자국에 가려 읽을 수 없다.'),role:'숨겨진 오브젝트'}
 ],[['접힌 쪽지를 챙긴다',async()=>{
 try{await api({action:'acquire',ticket:await ticket('recipe-note')},'recipe/action/','/api/event-story/');}
 catch(error){
 if(error.code!=='main_quest_required')throw error;
-story('책상 사이에 숨은 쪽지','SECRET RECIPE · 발견',[{...pline('메인 미션을 완료해야 주울 것 같이 생겼습니다.'),role:'숨겨진 오브젝트'}],[['확인',()=>dialog.close()]]);return;
+story('화단 사이에 숨은 쪽지','SECRET RECIPE · 발견',[{...pline('메인 미션을 완료해야 주울 수 있을 것 같습니다.'),role:'숨겨진 오브젝트'}],[['확인',()=>dialog.close()]]);return;
 }
 story('아이템 획득','SECRET RECIPE · 획득',[pline('「초콜릿 묻은 레시피 쪽지」를 챙겼다.'),pline('이 작은 발도장의 주인은... 안내가이드 꾸왕이 아닐까?')],[['꾸왕이에게 가져간다',()=>{dialog.close();window.CampusApp?.toast?.('18층 꾸왕이에게 쪽지를 가져가 보세요.');}],['아직은 더 둘러본다',recipeHolding]]);
 }],['일단 그대로 둔다',()=>story('나중에 다시 조사 가능','SECRET RECIPE · 발견',[{...pline('누군가 잃어버린 레시피일지도 모른다. 위치를 기억해 두자.'),role:'나중에 다시 조사 가능'}],[['확인',()=>dialog.close()]])]]);
@@ -67,7 +67,7 @@ const next=key=>()=>recipeDialogue(key,saved,proof);
 const advance=(action,key,extra={})=>async()=>{const result=await recipeAct(action,proof,extra);recipeDialogue(result.state.secretCompleted?'repeat':key,result.state,proof);};
 const screens={
 recognize:['아이템 전용 대화',[
- kline('어... 그 종이! 혹시 책상 사이에서 찾았어?',{role:'쪽지를 알아본 꾸왕이'}),
+ kline('어... 그 종이! 혹시 화단 사이에서 찾았어?',{role:'쪽지를 알아본 꾸왕이'}),
  kline('초콜릿 발자국까지 그대로네. 돋보기로 봐도... 분명 내 거야.',{role:'쪽지를 알아본 꾸왕이'})
 ],[['이야기를 듣는다',next('confess')]]],
 confess:['숨겨진 이야기',[kline('사실 몰래 연습하던 레시피야. 누군가에게 고맙다고 말하려고 특별한 한 개를 만들고 싶었거든. 그런데 자꾸 실패해서... 쪽지도 숨겨 버렸어.',{emotion:'shy'})],[['한 개인데 재료는 왜 두 사람 분량이야?',next('whyTwo')],['누구에게 주려고 했는데?',next('recipient')]]],

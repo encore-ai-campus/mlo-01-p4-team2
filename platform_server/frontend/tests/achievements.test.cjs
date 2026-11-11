@@ -50,9 +50,9 @@ test('the nine implemented achievements render, preserving names and original im
  assert.deepEqual(list.children.map(row=>row.dataset.achieved),Array(9).fill('false'));
  const image=list.children[0].children[0].src;
  f.update(rows(true));assert.equal(list.children[0].dataset.achieved,'true');assert.equal(list.children[0].children[0].src,image);
- assert.equal(list.children[0].children[1].textContent,'수상한 친화력');assert.equal(list.children[0].children[2].textContent,'획득');
+ assert.equal(list.children[0].children[1].textContent,'수상한 친화력');assert.equal(list.children[0].children[2].textContent,'나도 발견 완료');
  const css=fs.readFileSync(path.join(__dirname,'../dist/achievements.css'),'utf8');
- assert.match(css,/\[data-achieved="false"\] img\{filter:brightness\(0\)\}/);assert.doesNotMatch(css,/grayscale|opacity:/);
+ assert.match(css,/\[data-discovered="false"\] img\{filter:brightness\(0\)\}/);assert.match(css,/data-achieved="true"/);
 });
 test('a personal socket update wins over an older HTTP response',async()=>{
  const f=fixture();f.update(rows(true));await f.respond(rows(false));
@@ -154,4 +154,16 @@ test('term pairing renders the supplied badge and announces its first completion
  f.update([...rows(),card]);assert.equal(f.get('achievementsList').children.length,10);
  f.update([...rows(),{...card,achieved:true,completed_at:'2026-11-04T00:00:00Z',completion_order:1}]);f.runTimer(0);
  assert.equal(f.get('achievementNoticeName').textContent,'기억력 도둑');assert.match(f.get('achievementNoticeImage').src,/term-match.png$/);
+});
+
+test('server-wide discovery reveals art without granting personal progress or reward notice',async()=>{
+ const f=fixture();await f.respond();
+ f.listeners.get('campus:achievement-discoveries')({detail:[{event_uuid:'greeting',discovered:true,first_discoverer:{nickname:'최초 탐정'}}]});
+ let row=f.get('achievementsList').children[0];
+ assert.equal(row.dataset.discovered,'true');assert.equal(row.dataset.achieved,'false');
+ assert.equal(row.children[3].textContent,'최초 발견 · 최초 탐정');
+ assert.equal(row.children[2].textContent,'나의 기록 · 조사 중');
+ assert.equal(f.timers.size,0);
+ // An older personal snapshot cannot hide an already confirmed global discovery.
+ f.update(rows(false));row=f.get('achievementsList').children[0];assert.equal(row.dataset.discovered,'true');
 });

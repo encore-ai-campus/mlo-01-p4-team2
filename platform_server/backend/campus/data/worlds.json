@@ -4201,7 +4201,7 @@
         {
           "id": "hidden-recipe-note",
           "type": "pepero-art",
-          "name": "초콜릿 묻은 레시피 쪽지",
+          "name": "숨겨진 흔적 조사하기",
           "action": "recipe-note",
           "confirmTransfer": false,
           "interactionPoint": [

@@ -300,6 +300,8 @@ class CampusConsumer(AsyncWebsocketConsumer):
         async with room.lock:
             await self.channel_layer.group_add(room.group, self.channel_name)
             await self.channel_layer.group_add(self.session_group, self.channel_name)
+            from event_story.achievement_services import DISCOVERY_GROUP
+            await self.channel_layer.group_add(DISCOVERY_GROUP, self.channel_name)
             # Subscribe before the final check so a login replacing this key
             # during the handshake cannot leave an unnoticed stale socket.
             if await self.current_identity() is None:
@@ -817,6 +819,10 @@ class CampusConsumer(AsyncWebsocketConsumer):
         if result["newly_completed"]:
             await self.send_packet({"type": "achievement_update", **result})
 
+    async def achievement_discoveries(self, event):
+        if await self.current_identity() is not None:
+            await self.send_packet({"type": "achievement_discoveries", "discoveries": event["discoveries"]})
+
     async def achievement_update(self, event):
         if await self.current_identity() is not None:
             await self.send_packet({'type': 'achievement_update', **event['result']})
@@ -1221,6 +1227,8 @@ class CampusConsumer(AsyncWebsocketConsumer):
         await self.close(code=4401)
 
     async def disconnect(self, close_code):
+        from event_story.achievement_services import DISCOVERY_GROUP
+        await self.channel_layer.group_discard(DISCOVERY_GROUP, self.channel_name)
         if self.motion_task:
             self.motion_task.cancel()
             with suppress(asyncio.CancelledError):

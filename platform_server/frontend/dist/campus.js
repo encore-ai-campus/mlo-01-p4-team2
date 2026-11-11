@@ -24,7 +24,7 @@
   let menuRequest=null,menuVersion=0;
   let directMessages=null;
   let achievements=null,minigames=null,managerGreetingPending=false;
-  const isDialogOpen=(includeClassroom=true,includeTyping=true)=>window.CampusFreeze?.blocking||window.CampusNotices?.blocking||window.CampusStory?.blocking||logoutPending||managerGreetingPending||minigames?.blocking||achievements?.blocking||directMessages?.blocking||(includeClassroom&&classroom.blocking)||window.CampusLearning?.blocking||window.CampusGuide?.blocking||window.CampusSession?.ending||floorTransition.blocking||$('lunchDialog').open||dialog.open||boardDialog.open||exitDialog.open||transferDialog.open||$('settingsDialog').open||(includeTyping&&social.isTyping)||boothUI.blocking;
+  const isDialogOpen=(includeClassroom=true,includeTyping=true)=>window.CampusFreeze?.blocking||window.CampusNotices?.blocking||window.CampusStory?.blocking||window.CampusRecipeDiscovery?.blocking||logoutPending||managerGreetingPending||minigames?.blocking||achievements?.blocking||directMessages?.blocking||(includeClassroom&&classroom.blocking)||window.CampusLearning?.blocking||window.CampusGuide?.blocking||window.CampusSession?.ending||floorTransition.blocking||$('lunchDialog').open||dialog.open||boardDialog.open||exitDialog.open||transferDialog.open||$('settingsDialog').open||(includeTyping&&social.isTyping)||boothUI.blocking;
   const renderers=new Map();
   const displayRefresh=new Map();
   let renderer=window.CampusIsometric.create({data:D}), P=renderer.projection, scene=renderer.scene;
@@ -151,7 +151,7 @@
     focusPlayer();
     const r=D.rooms.find(room=>room.id===serverHints.roomId);if(r&&r.id!==lastRoom){lastRoom=r.id;spaceGuide.setRoom(r.id);$('currentRoom').textContent=r.name;for(const b of document.querySelectorAll('[data-room]')){b.classList.toggle('active',b.dataset.room===r.id);b.setAttribute('aria-current',b.dataset.room===r.id?'location':'false');}}
     nearby=D.objects.find(object=>object.id===serverHints.nearbyId&&object.id!=='roof-ad-board')||null;
-    $('interactionPrompt').hidden=!nearby;if(nearby){$('interactionPrompt').querySelector('span').textContent=nearby.name;$('interactionPrompt').querySelector('button').textContent=nearby.action==='pepero_refill'?'리필':nearby.type==='sliding-door'?'열기 / 닫기':'보기';}
+    $('interactionPrompt').hidden=!nearby;if(nearby){$('interactionPrompt').querySelector('span').textContent=nearby.name;$('interactionPrompt').querySelector('button').textContent=nearby.action==='recipe-note'?'조사하기':nearby.action==='pepero_refill'?'리필':nearby.type==='sliding-door'?'열기 / 닫기':'보기';}
     render(t);requestAnimationFrame(update);
   }
   function toast(message){$('toast').textContent=message;$('toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').hidden=true,2800);}

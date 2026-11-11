@@ -5,7 +5,7 @@ from uuid import UUID
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 from django.db import transaction
-from django.db.models import Max
+from django.db.models import Max, F, OuterRef, Subquery
 from django.utils import timezone
 
 from campus.motion import geometry, mission_geometry
@@ -50,6 +50,37 @@ def manager_ids():
     return frozenset(ids)
 
 
+DISCOVERY_GROUP = "event.achievement.discoveries"
+
+
+def discovery_snapshot():
+    """Public discovery metadata only; personal progress never enters this group."""
+    from accounts.models import get_nickname
+    first = EventProgress.objects.filter(
+        event_id=OuterRef("pk"), status=EventProgress.Status.COMPLETED,
+    ).order_by(F("completion_order").asc(nulls_last=True),
+               F("completed_at").asc(nulls_last=True), "pk").values("pk")[:1]
+    first_ids = EventDefinition.objects.filter(pk__in=ACHIEVEMENT_IMAGES).annotate(
+        first=Subquery(first)).values_list("first", flat=True)
+    winners = {row.event_id: row for row in EventProgress.objects.filter(
+        pk__in=first_ids).select_related("user", "user__campus_profile")}
+    return [{"event_uuid": str(event_id), "discovered": event_id in winners,
+             "first_discoverer": {"nickname": get_nickname(winners[event_id].user),
+                 "completed_at": winners[event_id].completed_at.isoformat()
+                 if winners[event_id].completed_at else None} if event_id in winners else None}
+            for event_id in ACHIEVEMENT_IMAGES]
+
+
+def publish_discoveries():
+    from asgiref.sync import async_to_sync
+    from channels.layers import get_channel_layer
+    layer = get_channel_layer()
+    if layer is not None:
+        async_to_sync(layer.group_send)(DISCOVERY_GROUP, {
+            "type": "achievement_discoveries", "discoveries": discovery_snapshot(),
+        })
+
+
 def achievement_snapshot(user):
     definitions = EventDefinition.objects.in_bulk(ACHIEVEMENT_IMAGES)
     if len(definitions) != len(ACHIEVEMENT_IMAGES):
@@ -57,8 +88,9 @@ def achievement_snapshot(user):
     progress = {row.event_id: row for row in EventProgress.objects.filter(
         user=user, event_id__in=ACHIEVEMENT_IMAGES,
     )}
+    discoveries = {row["event_uuid"]: row for row in discovery_snapshot()}
     return [
-        {"event_uuid": str(event_id), "name": definitions[event_id].event_name,
+        {**discoveries[str(event_id)], "event_uuid": str(event_id), "name": definitions[event_id].event_name,
          "achieved": event_id in progress and progress[event_id].status == EventProgress.Status.COMPLETED,
          "completed_at": progress[event_id].completed_at.isoformat()
          if event_id in progress and progress[event_id].completed_at else None,
@@ -78,11 +110,15 @@ def complete_achievement(user, event_id, completed_at, *, started_at=None, sessi
     )
     if progress.status == EventProgress.Status.COMPLETED:
         return False
+    first_discovery = not EventProgress.objects.filter(
+        event_id=event_id, status=EventProgress.Status.COMPLETED).exists()
     progress.completion_order = (EventProgress.objects.filter(event_id=event_id).aggregate(
         last=Max("completion_order"))["last"] or 0) + 1
     progress.status, progress.completed_at = EventProgress.Status.COMPLETED, completed_at
     progress.session = active_platform_session(user, session_uuid) if session_uuid is not None else None
     progress.save(update_fields=["status", "completed_at", "completion_order", "session"])
+    if first_discovery:
+        transaction.on_commit(publish_discoveries, robust=True)
     return True
 
 

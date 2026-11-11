@@ -6,6 +6,17 @@
     const $=id=>document.getElementById(id),button=$('achievementsOpen'),dialog=$('achievementsDialog');
     const list=$('achievementsList'),status=$('achievementsStatus'),retry=$('achievementsRetry');
     let items=null,pending=null,version=0;
+    const discoveries=new Map();
+    function rememberDiscoveries(rows){
+      if(!Array.isArray(rows))return;
+      for(const row of rows){
+        if(typeof row?.event_uuid==='string'&&row.discovered===true&&typeof row.first_discoverer?.nickname==='string')
+          discoveries.set(row.event_uuid,row.first_discoverer);
+      }
+    }
+    window.addEventListener('campus:achievement-discoveries',event=>{
+      rememberDiscoveries(event.detail);if(items)render();
+    });
     const notice=$('achievementNotice'),noticeQueue=[],announced=new Set();
     let noticeActive=false,noticeTimer=null;
     function showNotice(){
@@ -49,7 +60,7 @@
         return {...item,image_url:image.href};
       });
       const newly=items?next.filter(row=>row.achieved&&items.some(old=>old.event_uuid===row.event_uuid&&!old.achieved)).map(row=>row.event_uuid):[];
-      items=next;version++;render();enqueueNotices(newly);
+      rememberDiscoveries(next);items=next;version++;render();enqueueNotices(newly);
     }
     function render(){
       list.replaceChildren();list.hidden=items===null;
@@ -57,16 +68,20 @@
       for(const item of items){
         const row=document.createElement('li'),image=document.createElement('img'),name=document.createElement('strong'),state=document.createElement('span');
         row.className='achievement-item';row.dataset.achieved=String(item.achieved);
+        const first=discoveries.get(item.event_uuid);
+        row.dataset.discovered=String(Boolean(first)||item.achieved);
+        const discovery=document.createElement('small');discovery.className='first-discoverer';
+        discovery.textContent=first?'최초 발견 · '+first.nickname:'최초 발견자를 기다리는 중';
         image.src=item.image_url;image.alt='';image.width=144;image.height=144;image.loading='lazy';
-        name.textContent=item.name;state.textContent=item.achieved?'획득':'미획득';
-        row.append(image,name,state);list.append(row);
+        name.textContent=item.name;state.textContent=item.achieved?'나도 발견 완료':'나의 기록 · 조사 중';
+        row.append(image,name,state,discovery);list.append(row);
       }
       status.textContent='';retry.hidden=true;dialog.removeAttribute('aria-busy');
     }
     function refresh(){
       if(pending)return pending;
       const started=version,controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
-      status.textContent='업적을 불러오는 중이에요.';retry.hidden=true;dialog.setAttribute('aria-busy','true');
+      status.textContent='수사 기록을 불러오는 중이에요.';retry.hidden=true;dialog.setAttribute('aria-busy','true');
       pending=(async()=>{
         try{
           const response=await fetch('/api/event-story/achievements/',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'},signal:controller.signal});
@@ -74,7 +89,7 @@
           const data=await response.json();
           if(version===started)accept(data.achievements);
         }catch{
-          if(version===started){status.textContent='업적을 불러오지 못했어요. 다시 시도해 주세요.';retry.hidden=false;}
+          if(version===started){status.textContent='수사 기록을 불러오지 못했어요. 다시 시도해 주세요.';retry.hidden=false;}
         }finally{clearTimeout(timer);pending=null;dialog.removeAttribute('aria-busy');}
       })();
       return pending;

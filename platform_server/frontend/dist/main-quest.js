@@ -33,22 +33,30 @@ function story(title,chapter,lines,actions=[],setting='campus'){stop();window.Ca
 const kline=(text,extra={})=>({speaker:'탐정 꾸왕이',role:'오늘의 사건 의뢰인',text,...extra});
 const mline=text=>({speaker:'영석 매니저님',role:'ROOM 01 · 증거 분석 담당',person:'manager',text});
 const pline=text=>({speaker:'나',role:'사라진 선물을 찾는 탐정',person:'player',text});
-async function recipeNote(){
+async function recipeNote(replay=false){
 const saved=await api(null,'recipe/status/','/api/event-story/');
-if(saved.hasNote){recipeHolding();return;}
-story('화단 사이에 숨은 쪽지','SECRET RECIPE · 발견',[
-{...pline('화단 사이에 종이 끝이 살짝 보인다. 초콜릿이 묻은 작은 발자국... 어디서 본 것 같은데?'),role:'숨은 쪽지 발견'},
-{...pline('「특별한 빼빼로 한 개를 만드는 법」\n그런데 재료는 두 사람 분량이다. 맨 아래 한 줄은 초콜릿 자국에 가려 읽을 수 없다.'),role:'숨겨진 오브젝트'}
-],[['접힌 쪽지를 챙긴다',async()=>{
+if(saved.hasNote&&!replay){recipeHolding();return;}
+if(dialog.open)dialog.close();
+stop();if(window.CampusRecipeDiscovery&&!await window.CampusRecipeDiscovery.play())return;
+recipeScene('화단 사이에 숨은 쪽지','SECRET RECIPE · 발견',[
+{...pline('어? 이게 뭐지? 반짝이던 곳에 이런 쪽지가 있었네.'),role:'뜻밖의 발견'},
+{...pline('비밀 레시피…? 「특별한 빼빼로 한 개를 만드는 법」이라고 적혀 있어. 초콜릿 발도장도 찍혀 있고… 꾸왕이한테 가져가 봐야겠다.'),role:'쪽지의 주인은 누구일까?'}
+],[[saved.hasNote?'다시 보기 마치기':'접힌 쪽지를 챙긴다',async()=>{
+if(saved.hasNote){dialog.close();return;}
 try{await api({action:'acquire',ticket:await ticket('recipe-note')},'recipe/action/','/api/event-story/');}
 catch(error){
 if(error.code!=='main_quest_required')throw error;
-story('화단 사이에 숨은 쪽지','SECRET RECIPE · 발견',[{...pline('메인 미션을 완료해야 주울 수 있을 것 같습니다.'),role:'숨겨진 오브젝트'}],[['확인',()=>dialog.close()]]);return;
+recipeScene('화단 사이에 숨은 쪽지','SECRET RECIPE · 발견',[recipeItem('메인 미션을 완료해야 주울 수 있을 것 같습니다.','아직 남아 있는 사건')],[['확인',()=>dialog.close()]]);return;
 }
-story('아이템 획득','SECRET RECIPE · 획득',[pline('「초콜릿 묻은 레시피 쪽지」를 챙겼다.'),pline('이 작은 발도장의 주인은... 안내가이드 꾸왕이 아닐까?')],[['꾸왕이에게 가져간다',()=>{dialog.close();window.CampusApp?.toast?.('18층 꾸왕이에게 쪽지를 가져가 보세요.');}],['아직은 더 둘러본다',recipeHolding]]);
-}],['일단 그대로 둔다',()=>story('나중에 다시 조사 가능','SECRET RECIPE · 발견',[{...pline('누군가 잃어버린 레시피일지도 모른다. 위치를 기억해 두자.'),role:'나중에 다시 조사 가능'}],[['확인',()=>dialog.close()]])]]);
+recipeScene('아이템 획득','SECRET RECIPE · 획득',[
+{...pline('쪽지를 챙겼다. 재료는 두 사람 분량인데, 마지막 문장은 초콜릿 자국에 가려져 있네. 꾸왕이는 무슨 뜻인지 알겠지?'),role:'비밀 레시피 획득'},
+{...pline('18층 게시판 앞에 있는 꾸왕이에게 물어보자.'),role:'꾸왕이에게 가져가기'}
+],[['꾸왕이에게 가져간다',()=>{dialog.close();window.CampusApp?.toast?.('18층 게시판 앞 꾸왕이에게 레시피 쪽지를 보여 주세요.');}],['아직은 더 둘러본다',recipeHolding]]);
+}],...(saved.hasNote?[['쪽지 보관 상태로 돌아가기',recipeHolding]]:[['일단 그대로 둔다',()=>recipeScene('나중에 다시 조사 가능','SECRET RECIPE · 발견',[recipeItem('누군가 잃어버린 레시피일지도 모른다. 쪽지를 잎 아래에 그대로 두었다. 다시 조사할 수 있도록 금빛이 반짝이던 위치를 기억해 두자.','발견한 위치 기억하기')],[['확인',()=>dialog.close()]])]])]);
 }
-function recipeHolding(){story('쪽지 보관 중','SECRET RECIPE · 보관',[{...pline('쪽지를 잘 접어 챙겼다. 꾸왕이를 만났을 때 물어볼 수 있겠다.'),role:'쪽지 보관 중'}],[['확인',()=>dialog.close()]]);}
+function recipeItem(text,role='숨겨진 레시피'){return {...pline(text),person:'item',art:'assets/seasonal/pepero/secret-recipe-pixel-v1.webp',role};}
+function recipeScene(title,chapter,lines,actions){story(title,chapter,lines,actions,'rooftop');}
+function recipeHolding(){recipeScene('쪽지 보관 중','SECRET RECIPE · 보관',[recipeItem('쪽지를 잘 접어 챙겼다. 금빛 아래에서 찾은 이 레시피를 18층 게시판 앞의 꾸왕이에게 보여 주자.','초콜릿 묻은 레시피 쪽지')],[['발견 연출 다시 보기',()=>recipeNote(true)],['확인',()=>dialog.close()]]);}
 async function recipeAct(action,proof,extra={}){
 const result=await api({action,ticket:proof,...extra},'recipe/action/','/api/event-story/');
 if(Array.isArray(result.achievements))window.dispatchEvent(new CustomEvent('campus:achievements',{detail:result.achievements}));
@@ -67,10 +75,11 @@ const next=key=>()=>recipeDialogue(key,saved,proof);
 const advance=(action,key,extra={})=>async()=>{const result=await recipeAct(action,proof,extra);recipeDialogue(result.state.secretCompleted?'repeat':key,result.state,proof);};
 const screens={
 recognize:['아이템 전용 대화',[
- kline('어... 그 종이! 혹시 화단 사이에서 찾았어?',{role:'쪽지를 알아본 꾸왕이'}),
- kline('초콜릿 발자국까지 그대로네. 돋보기로 봐도... 분명 내 거야.',{role:'쪽지를 알아본 꾸왕이'})
+ pline('옥상에서 반짝이는 곳을 조사하다가 이걸 찾았어. 비밀 레시피라는데… 이 발도장, 꾸왕이 네 거 아니야?'),
+ kline('어… 그 쪽지! 화단 깊숙이 숨겨 둔 건데… 어떻게 찾아냈어?',{role:'쪽지를 알아본 꾸왕이'}),
+ kline('초콜릿 발도장까지 그대로네. 맞아, 내가 쓰던 레시피야. 다른 사람한테는 보여 준 적 없는데…',{role:'쪽지를 알아본 꾸왕이'})
 ],[['이야기를 듣는다',next('confess')]]],
-confess:['숨겨진 이야기',[kline('사실 몰래 연습하던 레시피야. 누군가에게 고맙다고 말하려고 특별한 한 개를 만들고 싶었거든. 그런데 자꾸 실패해서... 쪽지도 숨겨 버렸어.',{emotion:'shy'})],[['한 개인데 재료는 왜 두 사람 분량이야?',next('whyTwo')],['누구에게 주려고 했는데?',next('recipient')]]],
+confess:['숨겨진 이야기',[kline('사실 몰래 연습하던 레시피야. 누군가에게 고맙다고 말하려고 특별한 한 개를 만들고 싶었거든. 그런데 자꾸 실패해서… 남에게 보이기 부끄러워 화단의 잎 아래에 쪽지를 숨겨 버렸어.',{emotion:'shy'})],[['한 개인데 재료는 왜 두 사람 분량이야?',next('whyTwo')],['누구에게 주려고 했는데?',next('recipient')]]],
 recipient:['선택 대사 · 마음',[kline('매번 내 이야기를 끝까지 들어주는 사람에게. ...지금도 이렇게 내 앞에 서서 들어주고 있잖아.',{emotion:'shy'})],[['이야기를 계속 듣는다',next('whyTwo')]]],
 whyTwo:['레시피의 빈칸',[kline('그게 이 레시피의 비밀이야. 제일 아래 문장은... 「마지막 한 개는, 혼자 만들지 않기.」\n완벽하게 만들려다 그 문장을 잊고 있었어.')],[['이야기를 계속 듣는다',next('invitation')]]],
 invitation:['루트 선택',[kline('쪽지를 돌려줘서 고마워. 이번에는 숨기지 않을게.\n혹시 괜찮다면... 마지막 한 개를 나랑 같이 완성해 줄래?')],[['좋아. 이번에는 같이 만들자.',advance('start','share')],['지금은 하던 일부터 마저 할게.',advance('defer','defer')]]],

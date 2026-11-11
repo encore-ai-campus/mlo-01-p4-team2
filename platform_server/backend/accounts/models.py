@@ -35,6 +35,9 @@ class Position(models.Model):
                                    related_name="position", on_delete=models.CASCADE)
     last_position = LosslessJSONField(null=True, blank=True)
     last_position_at = models.DateTimeField(null=True, blank=True)
+    # Movement events are sampled: at most one outbox row per interval from the newest unsent position.
+    last_movement_event_at = models.DateTimeField(null=True, blank=True)
+    movement_event_pending = LosslessJSONField(null=True, blank=True)
 
 
 class ActiveLogin(models.Model):

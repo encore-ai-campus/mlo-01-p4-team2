@@ -26,7 +26,7 @@ from . import cluster, session_registry, poke, socket_db
 from campus_control.service import async_state as freeze_state
 from .interest import InterestView, SpatialIndex
 from .motion import CLASSROOM_TRANSITION_DELAY, MotionController, ControlError, World, geometry, world
-from .positions import DIRECTIONS, FLOOR_BOUNDS, get_position, save_position, validate_position
+from .positions import DIRECTIONS, FLOOR_BOUNDS, flush_movement_event, get_position, movement_event_due_at, save_position, validate_position
 from .chat_tokens import issue_actor_token
 from .socket_lifecycle import CleanupWebsocketConsumer
 
@@ -243,6 +243,7 @@ class CampusConsumer(CleanupWebsocketConsumer):
         self.last_activity_write = -math.inf
         self.position_dirty = False
         self.pending_floor_transfer = None
+        self.movement_event_due_at = None
         self.seen_by_peers = None  # 다른 사람에게 마지막으로 보낸 내 상태(바뀐 것이 있을 때만 다시 보낸다)
         self.control_key = None  # 마지막으로 보낸 control_state 의 바탕(같으면 다시 보내지 않는다)
         self.wake = asyncio.Event()  # 쉬고 있는 이동 틱을 깨운다(입력·명령·문 변경)
@@ -281,6 +282,7 @@ class CampusConsumer(CleanupWebsocketConsumer):
         self.position_changed_at = None
         identity = await socket_db.run(get_identity, self.user)
         position = await socket_db.run(get_position, self.user)
+        self.movement_event_due_at = await socket_db.run(movement_event_due_at, self.user)
         live = await socket_db.run(cluster.stored_position, self.session_key, self.user.pk) if cluster.enabled() else None
         if live and validate_position(live[0]):
             # 같은 세션이 다른 프로세스에서 막 끊겼다(그 프로세스가 죽은 경우 등): DB 체크포인트(5초)보다 새 위치로 이어 붙는다(계획 M3)
@@ -735,7 +737,7 @@ class CampusConsumer(CleanupWebsocketConsumer):
         state = {**self.state, **self.controller.pose, "moving": False}
         observed_at = timezone.now()
         transfer = self.pending_floor_transfer
-        await socket_db.run(
+        self.movement_event_due_at = await socket_db.run(
             self.store_position_now, state, observed_at, transfer[0] if transfer else None,
             require_session=True)
         self.state.update(state)
@@ -1164,12 +1166,16 @@ class CampusConsumer(CleanupWebsocketConsumer):
         return await socket_db.run(self.store_position_now, position, observed_at, transfer_from)
 
     def store_position_now(self, position, observed_at, transfer_from=None, *, require_session=False):
+        policy_status = self.policy_status
         user = self.session_user()
+        if position is None:
+            # 대기 표본만 내는 저장은 세션 정책 상태를 바꾸지 않는다: 끊을 때의 정리 저장이 close 로그 사유(계획 0c)를 덮지 않게
+            self.policy_status = policy_status
         if require_session and user is None:
             raise ControlError("로그인 상태를 확인한 뒤 다시 시도해 주세요.")
         if user is not None:
             if position is None:
-                return None
+                flush_movement_event(user)
             elif transfer_from:
                 saved = record_floor_transfer(
                     user, self.platform_session_uuid, transfer_from, position["floor"], position, observed_at
@@ -1178,7 +1184,7 @@ class CampusConsumer(CleanupWebsocketConsumer):
                 saved = save_position(user, position, observed_at, session_uuid=self.platform_session_uuid)
             if require_session and not saved:
                 raise ControlError("마지막 위치를 저장하지 못했어요. 다시 시도해 주세요.")
-            return None
+            return movement_event_due_at(user)
 
     async def checkpoint(self, force=False, wait=True):
         """최신 위치 하나를 저장한다(5초마다, 층 이동·종료는 바로). 쓰기는 따로 돌리고 `wait` 일 때만 끝까지 기다린다(계획 3단계).
@@ -1191,7 +1197,8 @@ class CampusConsumer(CleanupWebsocketConsumer):
                 return  # 저장 중이다: 끝난 뒤 다음 기회(다음 틱·세션 확인)에 다시 본다
             await asyncio.shield(saving)
         force = force or self.pending_floor_transfer is not None
-        if not self.position_dirty and self.pending_floor_transfer is None:
+        sample_due = self.movement_event_due_at is not None and timezone.now() >= self.movement_event_due_at
+        if not self.position_dirty and self.pending_floor_transfer is None and not sample_due:
             return
         if not force and time.monotonic() - self.last_checkpoint < self.position_interval:
             return
@@ -1204,7 +1211,7 @@ class CampusConsumer(CleanupWebsocketConsumer):
     async def write_position(self, state, observed_at, transfer):
         try:
             started = time.monotonic()
-            await self.store_position(state, observed_at, transfer[0] if transfer else None)
+            self.movement_event_due_at = await self.store_position(state, observed_at, transfer[0] if transfer else None)
             note_slow_db("position save", started)
         except DatabaseError:
             logging.getLogger(__name__).exception("Could not save the campus position")

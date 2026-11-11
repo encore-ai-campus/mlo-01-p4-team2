@@ -12,7 +12,7 @@ from django.utils import timezone
 from .models import Subject, Difficulty, QuestionType, Question, LearningSession, SessionQuestion, UserAnswer
 from .content_catalog import get_learning_content
 from .point_integration import ensure_wallet, grant_answer_points
-from eventing.events import record_content_open
+from eventing.events import enqueue_event, record_content_open
 from eventing.models import ContentItem, PlatformSession
 
 MAX_ATTEMPTS = 3
@@ -239,7 +239,18 @@ def submit_answer(user, session_id, order, answer, submission_request_uuid=None,
     # do not change the score; avoid a full-session rescan and model validation.
     if result.is_correct:
         LearningSession.objects.filter(pk=session.pk).update(correct_count=F('correct_count') + 1)
+    enqueue_event('quiz_answered', user, login_session.pk, {
+        'attempt_uuid': str(result.attempt_uuid), 'question_uuid': str(question.question_uuid),
+        'content_uuid': str(content.pk), 'question_type': question.question_type.upper(),
+        'choice_uuid': str(selected_choice.choice_uuid) if selected_choice else None,
+        'is_correct': result.is_correct,
+    }, occurred_at=result.answered_at)
     points, ledger = grant_answer_points(result)
+    if ledger is not None:
+        enqueue_event('point_granted', user, login_session.pk, {
+            'ledger_uuid': str(ledger.pk), 'attempt_uuid': str(result.attempt_uuid),
+            'delta': ledger.delta, 'balance_after': ledger.balance_after,
+        }, occurred_at=ledger.granted_at)
     result.response_snapshot = answer_payload(result, points=points)
     UserAnswer.objects.filter(pk=result.pk).update(response_snapshot=result.response_snapshot)
     return result

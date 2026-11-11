@@ -22,9 +22,9 @@ from masters import api as masters
 from . import transitions as tr
 from .changes import record_change
 from .errors import LimitExceeded, NotSuspended, ReviewPending
-from .models import AdGroup, AdGroupCreative, AdGroupSegment, AdGroupSlot, Bid, Campaign, CampaignStatus, ChangeTarget, Creative, CreativeImage, ReviewRequest, ReviewStatus
+from .models import AdGroup, AdGroupCreative, AdGroupProfile, AdGroupSegment, AdGroupSlot, Bid, Campaign, CampaignStatus, ChangeTarget, Creative, CreativeImage, ReviewRequest, ReviewStatus
 from .types import (
-    AdGroupEffects, AdGroupView, AdvertiserUsage, BidView, CampaignView, CandidateFacts, CreatedAd, CreativeUse, CreativeView, MonitoredCampaign, OwnedCreative,
+    AdGroupEffects, AdGroupProfileView, AdGroupView, AdvertiserUsage, BidView, CampaignView, CandidateFacts, CreatedAd, CreativeUse, CreativeView, MonitoredCampaign, OwnedCreative,
     ReviewQueueItem, ReviewRequestView, SlotEffect, SuspensionView,
 )
 
@@ -150,6 +150,28 @@ def bid_stream(to_documents):
     """입찰 버전을 만든 시각(`created_at`) 창으로 읽는 흐름(구간 manifest 의 원본 구간). `to_documents(views)` 가 창 하나의 `BidView` 를 문서로 바꾼다.
     ponytail: created_at 색인이 없어 창마다 표를 다 훑는다 — 광고주가 손으로 늘리는 작은 표라 그대로 둔다. 추천 적용(계획 docs/plans/00 §8.3)으로 입찰 버전을 자동으로 쓰기 시작할 때 (created_at) 색인."""
     return events.table_stream(Bid.objects.all(), "created_at", lambda rows: to_documents([_bid_view(b) for b in rows]))
+
+
+def _record_profile_event(p):
+    """광고 카테고리·가중치 판 하나의 이벤트(`ad.ad_group_profile_changed`) — 표의 줄과 **같은 트랜잭션**에서. 값만 넘긴다(계획 docs/plans/00 D1)."""
+    events.record_ad_group_profile_changed(now=p.changed_at, ad_group_id=p.ad_group_id, version=p.version, category=p.category,
+                                           weight_mlo=p.weight_mlo, weight_aio=p.weight_aio, weight_skn=p.weight_skn, changed_at=p.changed_at)
+
+
+def _profile_view(p):
+    return AdGroupProfileView(ad_group_id=p.ad_group_id, version=p.version, category=p.category, weight_mlo=p.weight_mlo, weight_aio=p.weight_aio,
+                              weight_skn=p.weight_skn, changed_at=p.changed_at)
+
+
+def profile_rows():
+    """광고 카테고리·가중치의 지금 판 전부(`AdGroupProfileView`) — 이벤트 누락 점검·기대 이벤트용 읽기. 지금 줄만 있어 판 하나씩이다(값을 바꾸는 경로가 생기면 판 표가 원천이 된다)."""
+    return (_profile_view(p) for p in AdGroupProfile.objects.iterator(chunk_size=2000))
+
+
+def profile_stream(to_documents):
+    """지금 판을 바뀐 시각(`changed_at`) 창으로 읽는 흐름(구간 manifest 의 원본 구간).
+    ponytail: changed_at 색인이 없어 창마다 표를 다 훑는다 — 광고 수만큼인 작은 표라 그대로 둔다(입찰 흐름과 같다). 값을 바꾸는 경로가 판 표를 더할 때 그 표에 (changed_at) 색인."""
+    return events.table_stream(AdGroupProfile.objects.all(), "changed_at", lambda rows: to_documents([_profile_view(p) for p in rows]))
 
 
 def _current_bid(ad_group):
@@ -570,6 +592,7 @@ def create_ad_group(user, campaign_id, name, slot_ids, bid_amount=None, now=None
         if AdGroup.objects.filter(campaign__owner=user).count() >= settings.MAX_AD_GROUPS_PER_ADVERTISER:
             raise LimitExceeded("광고 개수 상한에 도달했습니다.")
         group = AdGroup.objects.create(campaign=c, name=name, created_at=now, updated_at=now)
+        _record_profile_event(AdGroupProfile.objects.create(ad_group=group, created_at=now, changed_at=now))  # 분류 전·가중치 0·판 1(모델 기본값, 설계 §10 "광고 카테고리·과정 가중치")
         AdGroupSlot.objects.bulk_create([AdGroupSlot(ad_group=group, slot_id=s) for s in ids])
         bid = Bid.objects.create(ad_group=group, bid_version=1, amount=bid_amount, created_by=user.pk, created_at=now) if bid_amount is not None else None
         if bid is not None:

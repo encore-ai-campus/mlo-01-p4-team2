@@ -1,4 +1,4 @@
-"""이벤트 outbox(설계 §6.3, DRD P3). 결정·접수·판정·과금과 정책·입찰·캠페인·광고그룹 변경이 저장되는 **같은 트랜잭션**에서 한 줄씩 쓰고, 중계(`relay_events`)가 MongoDB 로 옮긴 뒤 `sent_at` 을 채운다."""
+"""이벤트 outbox(설계 §6.3, DRD P3). 결정·접수·판정·과금과 정책·입찰·캠페인·광고그룹 변경·대상 그룹 판·광고 카테고리가 저장되는 **같은 트랜잭션**에서 한 줄씩 쓰고, 중계(`relay_events`)가 MongoDB 로 옮긴 뒤 `sent_at` 을 채운다."""
 from django.db import models
 from django.utils import timezone
 
@@ -10,7 +10,7 @@ class EventOutbox(models.Model):
     event_id = models.UUIDField(primary_key=True, editable=False)
     event_name = models.CharField(max_length=64)  # 예: ad.decision. Kafka 메시지의 after.event_name 으로 그대로 실린다
     schema_version = models.PositiveSmallIntegerField()
-    aggregate_id = models.UUIDField()  # 대상 키 = 종류별: 결정·접수·판정·과금은 decision_id, 정책은 slot_id, 입찰·광고그룹 변경은 ad_group_id, 캠페인 변경은 campaign_id(계획 docs/plans/00 §5.1). Kafka에는 after.aggregate_id로 실린다. Kafka 메시지 키는 event_id(설계 §10 C2)
+    aggregate_id = models.UUIDField()  # 대상 키 = 종류별: 결정·접수·판정·과금은 decision_id, 정책은 slot_id, 입찰·광고그룹 변경·광고 카테고리는 ad_group_id, 캠페인 변경은 campaign_id, 대상 그룹 판은 segment_id(계획 docs/plans/00 §5.1). Kafka에는 after.aggregate_id로 실린다. Kafka 메시지 키는 event_id(설계 §10 C2)
     payload = models.JSONField()
     created_at = models.DateTimeField(default=timezone.now)  # 이벤트의 produced_at: outbox 에 쓴 시각
     sent_at = models.DateTimeField(null=True, blank=True)  # 비어 있으면 아직 안 보냈다. 중계는 "마지막 번호 이후"가 아니라 이 열이 빈 행을 보낸다(늦게 커밋된 행을 건너뛰지 않으려고)

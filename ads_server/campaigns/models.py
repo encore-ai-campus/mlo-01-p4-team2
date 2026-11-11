@@ -1,9 +1,10 @@
-"""광고주가 소유하는 운영 데이터: 캠페인·광고그룹·소재·입찰·재검토 요청(설계 §4.5~4.6)과 캠페인·광고그룹의 변경 로그."""
+"""광고주가 소유하는 운영 데이터: 캠페인·광고그룹·소재·입찰·재검토 요청(설계 §4.5~4.6)과 캠페인·광고그룹의 변경 로그, 광고 카테고리·과정 가중치(지금 상태)."""
 import uuid
 
 from django.conf import settings
 from django.db import models
 from django.db.models import F, Q
+from django.db.models.lookups import LessThanOrEqual
 from django.utils import timezone
 
 from foundation.api import MAX_AMOUNT, AppendOnlyModel
@@ -89,6 +90,34 @@ class AdGroupSegment(models.Model):
     class Meta:
         db_table = "campaigns_ad_group_segment"
         constraints = [models.UniqueConstraint(fields=["ad_group", "segment"], name="campaigns_ad_group_segment_unique")]
+
+
+CATEGORY_MAX = 2**8 - 1  # 범주 8개(설계 §10 "광고 카테고리·과정 가중치"의 비트 표). 범주를 앞(높은 비트)에 이어 붙이면 올리고 마이그레이션으로 CHECK 를 넓힌다
+
+
+class AdGroupProfile(models.Model):
+    """광고 하나의 카테고리(비트)와 과정별 노출 가중치 — 지금 상태 한 줄(설계 §10 "광고 카테고리·과정 가중치", DRD O12). 광고를 만들 때 같은 트랜잭션에서
+    분류 전·가중치 0 으로 생기고, 판마다 `ad.ad_group_profile_changed` 하나(이력은 outbox). 가중치는 지금 광고 선택에 쓰지 않는다. 0005 전에 만든 광고에는 줄이 없다.
+    바꾼 사람 열은 두지 않는다(사용자 결정)."""
+
+    profile_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
+    ad_group = models.OneToOneField(AdGroup, on_delete=models.PROTECT, related_name="profile")
+    category = models.IntegerField(null=True, blank=True)  # NULL = 분류 전, 0 = 기타(분류했지만 정의된 범주 없음)
+    weight_mlo = models.SmallIntegerField(default=0)  # 과정 순서는 어디서나 MLO → AIO → SKN
+    weight_aio = models.SmallIntegerField(default=0)
+    weight_skn = models.SmallIntegerField(default=0)
+    version = models.PositiveIntegerField(default=1)  # 만들 때 1, 바뀔 때마다 +1 — 이벤트 ID 와 순서
+    created_at = models.DateTimeField()
+    changed_at = models.DateTimeField()
+
+    class Meta:
+        db_table = "campaigns_ad_group_profile"
+        constraints = [  # PostgreSQL 은 이름 순으로 검사한다 — weight_range 가 weight_sum 보다 먼저라 넘치는 값이 합의 smallint 넘침이 아니라 범위 위반으로 막힌다
+            models.CheckConstraint(condition=Q(category__isnull=True) | Q(category__gte=0, category__lte=CATEGORY_MAX), name="campaigns_ad_group_profile_category_range"),
+            models.CheckConstraint(condition=Q(weight_mlo__gte=0, weight_mlo__lte=100, weight_aio__gte=0, weight_aio__lte=100, weight_skn__gte=0, weight_skn__lte=100),
+                                   name="campaigns_ad_group_profile_weight_range"),
+            models.CheckConstraint(condition=LessThanOrEqual(F("weight_mlo") + F("weight_aio") + F("weight_skn"), 100), name="campaigns_ad_group_profile_weight_sum"),
+        ]
 
 
 class Creative(models.Model):

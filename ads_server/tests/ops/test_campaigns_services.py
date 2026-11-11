@@ -10,7 +10,7 @@ from django.test.utils import CaptureQueriesContext
 from assets.api import ImageRejected, asset_exists
 from campaigns import api
 from campaigns.changes import record_change
-from campaigns.models import AdGroup, AdGroupSegment, Bid, ChangeLog, Creative
+from campaigns.models import AdGroup, AdGroupProfile, AdGroupSegment, Bid, ChangeLog, Creative
 from events.api import OutsideTransaction, event_id_for
 from events.models import EventOutbox
 from foundation.errors import Conflict, Forbidden, InvalidRequest, StaleVersion
@@ -731,6 +731,7 @@ class CreateAdTests(Cases, TestCase):
 
     def assertNothingCreated(self):
         self.assertEqual((AdGroup.objects.count(), Bid.objects.count(), Creative.objects.count()), (0, 0, 0))
+        self.assertEqual((AdGroupProfile.objects.count(), EventOutbox.objects.filter(event_name="ad.ad_group_profile_changed").count()), (0, 0))  # 카테고리 줄과 그 이벤트도 함께 되돌려진다
         self.assertFalse(AuditLog.objects.filter(action__in=["ad_group.created", "creative.created"]).exists())
 
     def case_creates_the_ad_group_and_its_creative_in_one_go(self):
@@ -740,6 +741,22 @@ class CreateAdTests(Cases, TestCase):
         self.assertEqual((ad.ad_group.campaign_id, ad.ad_group.creative_id), (ad.campaign.campaign_id, ad.creative.creative_id))  # 연결하고 선택했다
         self.assertEqual(ad.ad_group.current_bid.amount, 300)
         self.assertEqual(sorted(AuditLog.objects.filter(actor_id=self.adv.pk).values_list("action", flat=True)), ["ad_group.created", "campaign.created", "creative.created"])
+
+    def case_a_new_ad_starts_unclassified_with_zero_weights_and_one_profile_event(self):
+        """광고를 만들면 같은 트랜잭션에서 카테고리·가중치 줄 하나(분류 전·0·0·0·판 1)와 그 이벤트 하나(설계 §10 "광고 카테고리·과정 가중치").
+        이벤트는 판의 상태 전체 일곱 키이고 줄 ID 는 싣지 않는다. 바꾼 사람은 표에도 이벤트에도 없다. 이벤트 ID 는 (광고, 판) 원천 ID 에서 만든다."""
+        ad = self.create()
+        p = AdGroupProfile.objects.get()
+        self.assertEqual((p.ad_group_id, p.category, p.weight_mlo, p.weight_aio, p.weight_skn, p.version, p.created_at, p.changed_at),
+                         (ad.ad_group.ad_group_id, None, 0, 0, 0, 1, NOW, NOW))
+        self.assertNotIn("changed_by", {f.name for f in AdGroupProfile._meta.get_fields()})  # 바꾼 사람 열은 두지 않는다(사용자 결정)
+        row = EventOutbox.objects.get(event_name="ad.ad_group_profile_changed")
+        gid = ad.ad_group.ad_group_id
+        self.assertEqual((row.event_id, row.aggregate_id, row.schema_version, row.created_at),
+                         (event_id_for("ad.ad_group_profile_changed", f"{gid}/1"), gid, 1, NOW))
+        self.assertEqual(row.payload, {  # jsonb 는 키 순서를 지키지 않는다 — 빌더의 키 순서는 case_payload_shapes 가 본다
+            "ad_group_id": str(gid), "version": 1, "category": None, "weight_mlo": 0, "weight_aio": 0, "weight_skn": 0, "changed_at": NOW.isoformat(),
+        })
 
     def case_a_rejected_image_leaves_no_ad_group(self):
         with self.assertRaises(ImageRejected):

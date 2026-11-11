@@ -98,14 +98,14 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.assertEqual({kind for kind, scanned in stats.items() if scanned}, set(backfill.SOURCE_KINDS.values()))  # 세계에 종류마다 한 줄 이상 — 실제로 훑었다(기본값 0 이 아니다)
 
     def case_kinds_that_are_not_backfilled_are_counted_as_excluded_and_the_rest_is_written(self):
-        """정책·입찰·캠페인·광고그룹·대상 그룹 변경 이벤트는 백필하지 않는다(계획 docs/plans/00 D8). 누락 목록에 섞여 있어도 목록 전체를 거부하지 않고 `excluded` 로 센 뒤 나머지를 쓴다 — 실패로 끝나지 않는다."""
+        """정책·입찰·캠페인·광고그룹·대상 그룹 변경·광고 카테고리 판 이벤트는 백필하지 않는다(계획 docs/plans/00 D8). 누락 목록에 섞여 있어도(광고 카테고리는 원천 ID 가 문자열이어도) 목록 전체를 거부하지 않고 `excluded` 로 센 뒤 나머지를 쓴다 — 실패로 끝나지 않는다."""
         EventOutbox.objects.all().delete()
         ok, text = self.run_backfill(self.gaps_manifest(), "--apply")
         self.assertTrue(ok, text)
         rows, manifest = self.result_rows()
         self.assertEqual(sorted(r["event_name"] for r in rows if r["outcome"] == "excluded"),
-                         ["ad.ad_group_changed"] * 2 + ["ad.bid_added", "ad.bid_policy_changed", "ad.campaign_changed", "ad.segment_changed"])  # 광고그룹은 생성·소재 선택 둘
-        self.assertEqual((manifest["checkpoint"]["counts"]["excluded"], manifest["checkpoint"]["counts"]["written"], manifest["checkpoint"]["counts"]["unresolved"]), (6, 4, 0))
+                         ["ad.ad_group_changed"] * 2 + ["ad.ad_group_profile_changed", "ad.bid_added", "ad.bid_policy_changed", "ad.campaign_changed", "ad.segment_changed"])  # 광고그룹은 생성·소재 선택 둘
+        self.assertEqual((manifest["checkpoint"]["counts"]["excluded"], manifest["checkpoint"]["counts"]["written"], manifest["checkpoint"]["counts"]["unresolved"]), (7, 4, 0))
         self.assertFalse(EventOutbox.objects.filter(event_name__in=backfill.NOT_BACKFILLED).exists())  # 만들지 않았다
         self.assertEqual(snapshot(outbox()), self.live)  # 나머지 넷은 라이브와 같다
 
@@ -211,6 +211,16 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.assertFalse(ok)
         self.assertIn("다시 계산한 값과 다르다", text)
         self.assertEqual(outbox().count(), 0)
+        from campaigns.models import AdGroupProfile
+
+        source = f"{AdGroupProfile.objects.get().ad_group_id}/1"  # 광고 카테고리 판의 원천 ID 는 (광고, 판) 문자열 — 그래도 이벤트 ID 를 다시 계산해 대조한다
+        profile = {"kind": "missing_event", "event_name": "ad.ad_group_profile_changed", "source_kind": "ad_group_profile", "source_id": source, "event_id": str(uuid.uuid4())}
+        ok, text = self.run_backfill(self.forged_manifest([profile], name="forged_profile"), "--apply", out="res_profile")
+        self.assertFalse(ok)
+        self.assertIn("다시 계산한 값과 다르다", text)
+        ok, text = self.run_backfill(self.forged_manifest([self.line(any_id, source_id=source)], name="forged_string"), "--apply", out="res_string")
+        self.assertFalse(ok)
+        self.assertIn("형식이 올바르지 않다", text)  # 문자열 원천 ID 는 광고 카테고리 판에서만 받는다
 
     def case_a_mismatched_event_name_and_source_kind_is_refused(self):
         self.wipe()

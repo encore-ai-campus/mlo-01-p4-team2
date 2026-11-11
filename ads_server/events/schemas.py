@@ -16,9 +16,10 @@ BID_ADDED = "ad.bid_added"
 CAMPAIGN_CHANGED = "ad.campaign_changed"
 AD_GROUP_CHANGED = "ad.ad_group_changed"
 SEGMENT_CHANGED = "ad.segment_changed"
+AD_GROUP_PROFILE_CHANGED = "ad.ad_group_profile_changed"
 SCHEMA_VERSIONS = {  # 지금 만드는 판. ad.decision 2: selected.pricing_unit → charge_shares(6-10c), 3: 대상 그룹 넷(TG-S3)
     DECISION: 3, REACTION_RECEIVED: 1, REACTION: 1, CHARGE: 1,
-    BID_POLICY_CHANGED: 1, BID_ADDED: 1, CAMPAIGN_CHANGED: 1, AD_GROUP_CHANGED: 1, SEGMENT_CHANGED: 1,
+    BID_POLICY_CHANGED: 1, BID_ADDED: 1, CAMPAIGN_CHANGED: 1, AD_GROUP_CHANGED: 1, SEGMENT_CHANGED: 1, AD_GROUP_PROFILE_CHANGED: 1,
 }
 DECISION_BEFORE_SEGMENTS = 2  # 대상 그룹 규칙 이전 결정(`segment_rule` 없음)의 판 — 원본 재구성·백필이 그 행을 이 판으로 만든다(DRD §5.6 v3, 행마다 판)
 
@@ -34,8 +35,15 @@ _NAMESPACE = uuid.uuid5(uuid.NAMESPACE_DNS, "events.ads-server")
 
 
 def event_id_of(event_name, source_id):
-    """원천 행의 ID(결정·수신함·원장 항목)와 이벤트 종류에서 결정적으로 만든 이벤트 ID. 재처리·재전송에도 같은 값이다."""
+    """원천 행의 ID(결정·수신함·원장 항목 등)와 이벤트 종류에서 결정적으로 만든 이벤트 ID. 재처리·재전송에도 같은 값이다.
+    광고 카테고리는 판 행이 따로 없어 원천 ID 가 (광고, 판) 문자열이다(`profile_source_id`)."""
     return uuid.uuid5(_NAMESPACE, f"{event_name}/{source_id}")
+
+
+def profile_source_id(ad_group_id, version):
+    """`ad.ad_group_profile_changed` 의 원천 ID. 지금 상태 한 줄만 있어 (광고, 판)을 이은 문자열이다 — UUID 가 아니다(설계 §10 "광고 카테고리·과정 가중치").
+    값을 바꾸는 경로가 판 표를 더해도 이 형식을 그대로 쓴다 — 바꾸면 이미 나간 이벤트의 ID 와 다시 만든 ID 가 갈린다."""
+    return f"{ad_group_id}/{version}"
 
 
 def _id(value):
@@ -160,4 +168,13 @@ def segment_changed_payload(*, segment_id, segment_version_id, version, media_id
     return {
         "segment_id": _id(segment_id), "segment_version_id": _id(segment_version_id), "version": version, "media_id": _id(media_id),
         "code": code, "name": name, "is_active": is_active, "changed_at": _iso(changed_at),
+    }
+
+
+def ad_group_profile_changed_payload(*, ad_group_id, version, category, weight_mlo, weight_aio, weight_skn, changed_at):
+    """광고 카테고리·과정 가중치의 판 하나(그 판의 상태 전체, 과정 순서 MLO → AIO → SKN). `category` 는 정수 또는 `None`(분류 전).
+    바꾼 사람은 없다(표에도 두지 않는다 — 사용자 결정)."""
+    return {
+        "ad_group_id": _id(ad_group_id), "version": version, "category": category,
+        "weight_mlo": weight_mlo, "weight_aio": weight_aio, "weight_skn": weight_skn, "changed_at": _iso(changed_at),
     }

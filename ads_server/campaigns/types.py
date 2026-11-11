@@ -49,6 +49,18 @@ class BidView:
 
 
 @dataclass(frozen=True)
+class AdGroupProfileView:
+    """광고 카테고리·과정 가중치의 지금 판(DRD O12) — `ad.ad_group_profile_changed` 의 원천."""
+    ad_group_id: uuid.UUID
+    version: int
+    category: int | None
+    weight_mlo: int
+    weight_aio: int
+    weight_skn: int
+    changed_at: datetime
+
+
+@dataclass(frozen=True)
 class AdGroupView:
     ad_group_id: uuid.UUID
     campaign_id: uuid.UUID

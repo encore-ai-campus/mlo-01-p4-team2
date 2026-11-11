@@ -2,9 +2,10 @@ import uuid
 from datetime import timedelta
 
 from django.db import IntegrityError, transaction
+from django.db.models import ProtectedError
 from django.test import TestCase, tag
 
-from campaigns.models import AdGroup, Bid, Campaign, ReviewRequest
+from campaigns.models import AdGroup, AdGroupProfile, Bid, Campaign, ReviewRequest
 from foundation.models import AppendOnlyError
 from tests.support.factories import DAY, NOW, make_advertiser
 from tests.support.cases import Cases
@@ -75,6 +76,30 @@ class BidAndAdGroupModelTests(Cases, TestCase):
         with self.assertRaises(AppendOnlyError):
             Bid.objects.bulk_create([self.bid(pk=row.pk, amount=999)], update_conflicts=True, update_fields=["amount"], unique_fields=["bid_id"])
         self.assertEqual(Bid.objects.get(pk=row.pk).amount, 30)
+
+    def case_profile_values_are_bounded_in_db(self):
+        """카테고리 NULL 또는 0~255, 가중치 각 0~100, 세 가중치 합 ≤ 100 은 DB 가 막는다(설계 §10 "광고 카테고리·과정 가중치", DRD O12).
+        PostgreSQL 은 CHECK 를 이름 순으로 보므로 합이 smallint 를 넘는 값도 합 CHECK 의 넘침(DataError)이 아니라 범위 CHECK 위반이다. 광고 하나에 한 줄이다."""
+        def profile(**kw):
+            return AdGroupProfile.objects.create(**{"ad_group": self.group, "created_at": NOW, "changed_at": NOW, **kw})
+
+        for kw in (dict(), dict(category=0), dict(category=255, weight_mlo=34, weight_aio=33, weight_skn=33), dict(weight_mlo=100), dict(weight_skn=100)):
+            with transaction.atomic():
+                profile(**kw).delete()  # 지금 상태 한 줄 — 추가 전용이 아니다
+        bad = {"category_range": [dict(category=-1), dict(category=256)],
+               "weight_range": [dict(weight_mlo=30000, weight_aio=30000),  # 처음에 — 합 CHECK 가 먼저 검사되면(이름 순이 바뀌면) 여기서 넘침 오류(DataError)가 난다
+                                dict(weight_mlo=-1), dict(weight_mlo=101), dict(weight_aio=-1), dict(weight_aio=101), dict(weight_skn=-1), dict(weight_skn=101)],
+               "weight_sum": [dict(weight_mlo=50, weight_aio=50, weight_skn=1)]}
+        for name, cases in bad.items():
+            for kw in cases:
+                with self.subTest(kw), self.assertRaises(IntegrityError) as e, transaction.atomic():
+                    profile(**kw)
+                self.assertIn(f"campaigns_ad_group_profile_{name}", str(e.exception))
+        profile()
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            profile()  # 같은 광고에 둘째 줄
+        with self.assertRaises(ProtectedError):
+            self.group.delete()
 
     def test_bid_and_ad_group_model(self):
         self.run_cases()

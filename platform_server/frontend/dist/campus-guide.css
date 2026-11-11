@@ -32,3 +32,19 @@
 
 .campus-guide-version { margin-left: 10px; font-size: 11px; font-weight: 500; color: #71877b; white-space: nowrap; }
 @media(max-width:580px){.campus-guide-version{margin-left:0;font-size:10px}.campus-guide-brand{flex-wrap:wrap;gap:6px}}
+
+/* Current event guide: warm paper and readable multi-step navigation. */
+.campus-guide{border-color:#d9bc89;background:#fff9ef;color:#503944}
+.campus-guide-header{border-color:#ead8ba;background:#fff5e4}
+.campus-guide-category{background:#f3e4c9;color:#805736}
+.campus-guide-text{color:#775f60}
+.campus-guide-items li::marker{color:#946544}
+.campus-guide-keys span{background:#f3e4d2;border-color:#e4cda7;color:#76523d}
+.campus-guide-image-wrap{background:#efe2ce;border-color:#ddc5a1}
+.campus-guide-footer{background:#f9eedc;border-color:#ead8ba}
+.campus-guide-next{background:#67414b;border-color:#67414b}.campus-guide-next:hover{background:#50313b}
+.campus-guide-dot[aria-current=step]::after{background:#996449}
+.campus-guide-steps{flex-wrap:wrap;max-width:280px;justify-content:center;row-gap:0}
+.campus-guide-progress{flex-wrap:wrap;row-gap:0}
+.campus-guide-image-dialog{background:#fff9ef;border-color:#d9bc89}
+.campus-guide-large-wrap{background:#efe2ce}

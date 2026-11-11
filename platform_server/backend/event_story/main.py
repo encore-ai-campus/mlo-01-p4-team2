@@ -167,11 +167,12 @@ def prepare_status(user):
 
 
 def status(user):
-    completed=set(EventProgress.objects.filter(user=user,status='COMPLETED').values_list('event_id',flat=True))
+    from .main_achievement import from_completion as main_badge
+    completed=dict(EventProgress.objects.filter(user=user,status='COMPLETED').values_list('event_id','completed_at'))
     steps=[dict(name=name,complete=uid(code) in completed) for code,name in STAGES]
     current=next((i+1 for i,x in enumerate(steps) if not x['complete']),len(STAGES)+1)
     mine,top3=_ranking(user,0,3)
-    return dict(room1Briefed=room1_briefed(user),window=window(),steps=steps,stage=current,started=steps[0]['complete'],completed=steps[-1]['complete'],games={code:uid(code) in completed for code,_ in GAMES},locked=LOCKED,canPractice=bool(user.is_staff and settings.DEBUG and settings.EVENT_STORY_PREVIEW),ranking=dict(myRank=mine,top3=top3))
+    return dict(mainAchievement=main_badge(user,completed.get(uid('6'))),room1Briefed=room1_briefed(user),window=window(),steps=steps,stage=current,started=steps[0]['complete'],completed=steps[-1]['complete'],games={code:uid(code) in completed for code,_ in GAMES},locked=LOCKED,canPractice=bool(user.is_staff and settings.DEBUG and settings.EVENT_STORY_PREVIEW),ranking=dict(myRank=mine,top3=top3))
 
 def _ranking(user,offset,limit):
     from accounts.models import get_nickname

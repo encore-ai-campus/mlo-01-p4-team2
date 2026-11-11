@@ -383,6 +383,11 @@ details.choose[open] summary { margin-bottom: 14px; }
 .choice { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
 .choice p { display: grid; margin: 0; font-size: 12px; font-weight: 700; }
 .choice img.thumb { width: 72px; height: 40px; }
+/* 구성별 소재(좁은 옆 칸): 고르기 상자·저장은 이름·권장 비율 아래 줄 — 긴 이미지 이름이 이름 칸을 눌러 글이 겹치지 않게 */
+.slot-creatives .choice { grid-template-columns: 72px minmax(0, 1fr); }
+.slot-creatives .choice form { grid-column: 1 / -1; }
+.slot-creatives .choice select { flex: 1; min-width: 0; }
+.slot-creatives .choice button { flex: none; }
 .aside-cards > .notice { margin: 0; }
 .upload form { margin-top: 14px; padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
 

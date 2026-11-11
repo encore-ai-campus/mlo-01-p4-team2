@@ -5994,7 +5994,7 @@
         {
           "id": "hidden-recipe-note",
           "type": "pepero-art",
-          "name": "초콜릿 묻은 레시피 쪽지",
+          "name": "숨겨진 흔적 조사하기",
           "action": "recipe-note",
           "x": 938,
           "y": 1681,
@@ -6007,12 +6007,12 @@
             1660
           ],
           "interactionRadius": 50,
-          "description": "옥상 아래쪽 화단 사이에 초콜릿이 묻은 레시피 쪽지가 놓여 있습니다.",
+          "description": "화단의 잎 사이에서 작은 금빛이 희미하게 반짝입니다.",
           "seasonalArt": "recipe-note",
-          "artWidth": 42,
-          "artHeight": 33,
+          "artWidth": 72,
+          "artHeight": 84,
           "artAnchor": 0.6,
-          "renderHeight": 36
+          "renderHeight": 80
         }
       ],
       "walls": [

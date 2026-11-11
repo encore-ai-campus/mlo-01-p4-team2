@@ -1176,7 +1176,8 @@
     function setDisplayImage(id,image){const s=sprites.find(s=>s.o.id===id&&(s.o.type==='plaza-display'||s.o.type==='wall-poster'));if(!s)return false;const depth=s.depth;displayImages.set(id,image);Object.assign(s,cacheSprite(s.o,()=>furniture(s.o,groundHeight(s.o.x+s.o.w/2,s.o.y+s.o.h/2))));s.depth=depth;repaintScene();return true;}
     function drawActor(ctx,actor,t,zoom,labelText,self) {
       const q=projectActor(actor);ctx.save();ctx.translate(q.x,q.y);
-      const jumpHeight=window.CampusJump?.height(actor,t)||0,jumpScale=window.CampusJump?.squash(actor,t)||1;
+      const surprise=window.CampusRecipeDiscovery?.pose(actor,t);
+      const jumpHeight=(window.CampusJump?.height(actor,t)||0)+(surprise?.height||0),jumpScale=(window.CampusJump?.squash(actor,t)||1)*(surprise?.scale||1);
       ctx.fillStyle=jumpHeight?'#304d4028':'#304d4038';ctx.beginPath();ctx.ellipse(0,1,7-jumpHeight*.025,2.8-jumpHeight*.008,0,0,Math.PI*2);ctx.fill();
       if(actor.guideNpc){window.CampusGuideSprite?.draw(ctx);ctx.restore();return;}
       ctx.translate(0,-jumpHeight);ctx.scale(1/jumpScale,jumpScale);
@@ -1247,7 +1248,8 @@
       const entities=placeActors(visible,drawnActors);
       for(const e of entities){
         if(e.actor){drawActor(ctx,e.actor,t,camera.zoom);continue;}
-        drawSprite(ctx,e);
+        if(peperoSeason&&e.o.action==='recipe-note')window.CampusSeasonal.paintRecipeGlimmer(e.o,{g:ctx,p},groundHeight(e.o.x+e.o.w/2,e.o.y+e.o.h/2),t);
+        else drawSprite(ctx,e);
         if(e.o.type==='guard-sandbag'){
           const target=window.CampusPoke?.targets(D.id).find(a=>a.id===e.o.id);
           if(target){const q=projectGround(target.x,target.y);ctx.save();ctx.translate(q.x,q.y-12);window.CampusPoke.guard(ctx,target,t);ctx.restore();}

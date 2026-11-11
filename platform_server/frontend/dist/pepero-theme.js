@@ -5,10 +5,10 @@
   if(window.CAMPUS_SEASON!=='pepero')return;
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const art = {};
-  for (const key of ['monument','cart','gifts','stall','workbench','flowerbox','hero','gate','pedestal','cafe','refill-chest','recipe-note','timer-station-east','typing-station-east','pairing-garden-east']) {
+  for (const key of ['monument','cart','gifts','stall','workbench','flowerbox','hero','gate','pedestal','cafe','refill-chest','timer-station-east','typing-station-east','pairing-garden-east']) {
     const image = new Image(); image.decoding = 'async';
     image.onload = () => window.dispatchEvent(new CustomEvent('campus-seasonal-assets-ready',{detail:{key}}));
-    image.src = key==='pairing-garden-east'?'assets/minigames/pairing-garden-east-v1.png':['timer-station-east','typing-station-east'].includes(key)?`assets/minigames/${key}-v1.webp`:`assets/seasonal/pepero/${['monument','cart','gifts','refill-chest','recipe-note'].includes(key)?'':'reference/'}${key}.png`; art[key] = image;
+    image.src = key==='pairing-garden-east'?'assets/minigames/pairing-garden-east-v2.webp':['timer-station-east','typing-station-east'].includes(key)?`assets/minigames/${key}-v1.webp`:`assets/seasonal/pepero/${['monument','cart','gifts','refill-chest'].includes(key)?'':'reference/'}${key}.png`; art[key] = image;
   }
   function drawAsset(g,image,q,w,h) {
     if (!image.complete || !image.naturalWidth) return;
@@ -16,12 +16,14 @@
     g.save();g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
     g.drawImage(image,q.x-sw/2,q.y-sh*.88,sw,sh);g.restore();
   }
-  // Align both cabinet ground axes to the map axes while preserving upright verticals.
+  // Align the front edge to the wall while preserving upright verticals.
   function artProjection(o,p,base=0){
     if(!o.artPlaneSlopes)return {scaleX:1,shearY:0};
     const [negative,positive]=o.artPlaneSlopes,a=p(0,0,base),b=p(0,1,base);
     const slope=Math.abs((b.y-a.y)/(b.x-a.x)),tilt=Number.isFinite(slope)&&slope>0?slope:.58;
-    return {scaleX:(positive-negative)/(2*tilt),shearY:-(positive+negative)/2};
+    // Wider props retain their front edge along the wall without flattening the cabinet.
+    const scaleX=(positive-negative)/(2*tilt)*(o.artDepthScale||1);
+    return {scaleX,shearY:-negative-tilt*scaleX};
   }
   // Draw names after the world geometry so walls cannot cover the game labels.
   function paintGameLabel(o,{g,p},base=0){
@@ -39,8 +41,26 @@
     g.bezierCurveTo(-1.8,-.3,-.7,-1.5,0,-.65);g.bezierCurveTo(.7,-1.5,1.8,-.3,0,.75);
     g.fillStyle=color;g.fill();g.restore();
   }
+  function paintRecipeGlimmer(o,{g,p},base=0,t=0){
+    const sec=motion.matches?1.9:t/1000,phase=sec*Math.PI*2/4.6;
+    const pulse=.45+.55*(.5+.5*Math.sin(phase-.8)),q=p(o.x+o.w/2,o.y+o.h/2,base+20);
+    g.save();g.translate(q.x,q.y+Math.cos(phase)*3);g.rotate(Math.sin(phase)*.035);
+    const aura=g.createRadialGradient(0,0,0,0,0,28);aura.addColorStop(0,'#ffe8a02b');aura.addColorStop(.45,'#eab63c10');aura.addColorStop(1,'#c7952d00');
+    g.globalAlpha=pulse;g.fillStyle=aura;g.beginPath();g.arc(0,0,28,0,Math.PI*2);g.fill();
+    g.save();g.scale(.32,.32);g.beginPath();g.moveTo(9,-64);
+    g.bezierCurveTo(3,-28,6,-12,35,-3);g.bezierCurveTo(10,0,4,7,-9,58);
+    g.bezierCurveTo(-4,20,-3,8,-33,3);g.bezierCurveTo(-8,-3,-2,-12,9,-64);g.closePath();
+    g.shadowColor='#ffe17b';g.shadowBlur=14;g.fillStyle='#fff8b8';g.strokeStyle='#ffdc69';g.lineWidth=2.5;g.fill();g.stroke();g.restore();
+    g.shadowColor='#fff2ad';g.shadowBlur=5;
+    for(let i=0;i<5;i++){
+      const f=(sec/4.6+i*.213)%1;g.globalAlpha=Math.sin(f*Math.PI)*.6;
+      g.fillStyle='#ffe3a0';g.beginPath();g.arc(Math.sin(i*2.4)*18+f*5,18-f*34,.5+(i%2)*.25,0,Math.PI*2);g.fill();
+    }
+    g.restore();
+  }
   function paint(o,{g,p,box,line,ellipse,poly,verticalPanel},base=0) {
     if(window.CAMPUS_SEASON!=='pepero')return false;
+    if(o.action==='recipe-note'){paintRecipeGlimmer(o,{g,p},base,0);return true;}
     if(o.seasonalArt){
       const image=art[o.seasonalArt];if(!image?.complete||!image.naturalWidth)return o.action!=='minigame';
       const q=p(o.x+o.w/2+(o.artGroundOffsetX||0),o.y+o.h/2,base),s=Math.min(o.artWidth/image.naturalWidth,o.artHeight/image.naturalHeight),w=image.naturalWidth*s,h=image.naturalHeight*s;
@@ -285,5 +305,5 @@
     }
     ctx.restore();
   }
-  window.CampusSeasonal={paint,paintGameLabel,paintFloor,drawAtmosphere,artProjection,art};
+  window.CampusSeasonal={paintRecipeGlimmer,paint,paintGameLabel,paintFloor,drawAtmosphere,artProjection,art};
 })();

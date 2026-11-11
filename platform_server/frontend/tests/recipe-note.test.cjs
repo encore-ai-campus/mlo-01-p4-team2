@@ -8,11 +8,11 @@ function section(start,end){const a=script.indexOf(start),b=script.indexOf(end,a
 function fixture({hasNote=false,completed=false,failure=null}={}){
  const requests=[],commands=[],scenes=[],errors=[];
  const dialog={open:true,querySelector:()=>({append:node=>errors.push(node.textContent)}),close(){this.open=false;}};
- const context=vm.createContext({busy:false,dialog,AbortSignal,
+ const context=vm.createContext({busy:false,dialog,AbortSignal,stop(){},
   document:{cookie:'campus_csrftoken=token',createElement:()=>({setAttribute(){}})},
   window:{CampusApp:{presence:{command:async(action,data)=>{commands.push({action,...data});return {ticket:'nearby-proof'};}}}},
   pline:text=>({speaker:'나',person:'player',text}),
-  story:(title,chapter,lines,actions)=>scenes.push({title,lines,actions}),
+  story:(title,chapter,lines,actions)=>{dialog.open=true;scenes.push({title,lines,actions});},
   info:(title,copy,actions=[])=>scenes.push({title,copy,actions}),
   fetch:async(url,options)=>{
    const data=options.body?JSON.parse(options.body):null;requests.push({url,data,options});
@@ -29,9 +29,9 @@ function fixture({hasNote=false,completed=false,failure=null}={}){
 }
 test('discovery keeps its original text regardless of main mission completion',async()=>{
  const pending=fixture();await pending.context.recipeNote();
- assert.equal(pending.scenes[0].lines[0].text,'화단 사이에 종이 끝이 살짝 보인다. 초콜릿이 묻은 작은 발자국... 어디서 본 것 같은데?');
+ assert.equal(pending.scenes[0].lines[0].person,'player');assert.equal(pending.scenes[0].lines[0].text,'어? 이게 뭐지? 반짝이던 곳에 이런 쪽지가 있었네.');
  const completed=fixture({completed:true});await completed.context.recipeNote();
- assert.equal(completed.scenes[0].lines[0].text,'화단 사이에 종이 끝이 살짝 보인다. 초콜릿이 묻은 작은 발자국... 어디서 본 것 같은데?');
+ assert.equal(completed.scenes[0].lines[0].text,'어? 이게 뭐지? 반짝이던 곳에 이런 쪽지가 있었네.');
 });
 test('inspection and leaving only read status and create no pickup request',async()=>{
  const f=fixture();await f.context.recipeNote();
@@ -40,7 +40,7 @@ test('inspection and leaving only read status and create no pickup request',asyn
  await f.scenes[0].actions[1][1]();assert.equal(f.dialog.open,true);
  const leave=f.scenes.at(-1);
  assert.equal(leave.title,'나중에 다시 조사 가능');
- assert.equal(leave.lines[0].text,'누군가 잃어버린 레시피일지도 모른다. 위치를 기억해 두자.');
+ assert.equal(leave.lines[0].text,'누군가 잃어버린 레시피일지도 모른다. 쪽지를 잎 아래에 그대로 두었다. 다시 조사할 수 있도록 금빛이 반짝이던 위치를 기억해 두자.');
  assert.deepEqual(plain(leave.actions.map(a=>a[0])),['확인']);
  assert.equal(f.commands.length,0);assert.equal(f.requests.length,1);
  await leave.actions[0][1]();assert.equal(f.dialog.open,false);
@@ -100,12 +100,30 @@ test('note uses the supplied sprite in the rooftop flowerbed gap without blockin
  assert.equal(exported.colliders.some(c=>c.objectId===note.id),false);
  const c=vm.createContext({window:{CAMPUS_SEASON:'pepero',dispatchEvent(){}},matchMedia:()=>({matches:true}),Image:class{},CustomEvent:class{}});
  vm.runInContext(fs.readFileSync(path.join(root,'dist/pepero-theme.js'),'utf8'),c);
- const image=c.window.CampusSeasonal.art['recipe-note'];
- assert.equal(image.src,'assets/seasonal/pepero/recipe-note.png');
- Object.assign(image,{complete:true,naturalWidth:196,naturalHeight:150});
- const drawn=[];const g={save(){},restore(){},translate(){},drawImage(...args){drawn.push(args);}};
+ assert.equal(c.window.CampusSeasonal.art['recipe-note'],undefined,'physical note is not loaded for the map');
+ const drawn=[],positions=[],gradient={addColorStop(){}};
+ const g={save(){},restore(){},translate(...v){positions.push(v)},rotate(){},scale(){},beginPath(){},moveTo(){},bezierCurveTo(){},closePath(){},arc(){},fill(){drawn.push('light')},stroke(){},createRadialGradient(){return gradient}};
  assert.equal(c.window.CampusSeasonal.paint(note,{g,p:()=>({x:100,y:100})}),true);
- assert.equal(drawn[0][0],image);assert.ok(drawn[0][3]<=note.artWidth&&drawn[0][4]<=note.artHeight);
+ assert.ok(drawn.length>0);
+ c.window.CampusSeasonal.paintRecipeGlimmer(note,{g,p:()=>({x:100,y:100})},0,1000);
+ assert.equal(typeof c.window.CampusSeasonal.paintRecipeGlimmer,'function');
  assert.match(script,/handles\(o\)\{return o\.action==='recipe-note'/);
  assert.match(script,/open\(o\)\{if\(o\.action==='recipe-note'\)\{run\(recipeNote\)/);
+});
+
+test('discovery waits for the personal cinematic and cancellation never opens dialogue or writes progress',async()=>{
+ const f=fixture();let finish;f.context.window.CampusRecipeDiscovery={play:()=>new Promise(r=>finish=r)};
+ const pending=f.context.recipeNote();await new Promise(r=>setImmediate(r));assert.equal(f.scenes.length,0);finish(false);await pending;
+ assert.equal(f.scenes.length,0);assert.equal(f.requests.length,1);assert.equal(f.commands.length,0);
+});
+
+test('an existing owner can replay the discovery without acquiring again or changing completion',async()=>{
+ const f=fixture({hasNote:true,completed:true});let plays=0;
+ f.context.window.CampusRecipeDiscovery={play:async()=>{assert.equal(f.dialog.open,false,'the holding dialog must close before the map reaction');plays++;return true;}};
+ await f.context.recipeNote();assert.equal(f.scenes.at(-1).title,'쪽지 보관 중');
+ await f.scenes.at(-1).actions.find(a=>a[0]==='발견 연출 다시 보기')[1]();
+ assert.equal(plays,1);assert.equal(f.scenes.at(-1).lines[0].text,'어? 이게 뭐지? 반짝이던 곳에 이런 쪽지가 있었네.');
+ assert.equal(f.scenes.at(-1).actions[0][0],'다시 보기 마치기');
+ await f.scenes.at(-1).actions[0][1]();assert.equal(f.dialog.open,false);
+ assert.equal(f.requests.filter(r=>r.data).length,0);assert.equal(f.commands.length,0);
 });

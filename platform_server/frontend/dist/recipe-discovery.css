@@ -1,0 +1,11 @@
+.recipe-discovery-mark{position:absolute;z-index:12;transform:translate(-50%,-100%);width:32px;height:40px;display:grid;place-items:center;border:2px solid #895426;border-radius:12px 12px 12px 2px;background:#fff4bd;color:#8c4921;font:900 28px/1 system-ui;box-shadow:0 3px 0 #51361b55,0 0 22px #ffe2918c;pointer-events:none;animation:recipe-surprise-pop .65s ease-out}
+.recipe-discovery-mark[hidden]{display:none}
+@keyframes recipe-surprise-pop{0%{opacity:0;transform:translate(-50%,-70%) scale(.45)}25%{opacity:1;transform:translate(-50%,-115%) scale(1.14)}55%,100%{opacity:1;transform:translate(-50%,-100%) scale(1)}}
+.recipe-item-reveal{padding:36px;border:0;overflow:visible;background:transparent;color:#fff2cc;text-align:center;max-width:90vw;box-shadow:none}
+.recipe-item-reveal::backdrop{background:#15251fd9;backdrop-filter:blur(4px)}
+.recipe-item-reveal img{display:block;margin:0 auto;width:230px;height:250px;max-width:65vw;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 0 25px #ffdc7770);animation:recipe-item-appear .55s ease-out}
+.recipe-item-reveal::before{content:'';position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse,#ffe8a52e,transparent 68%);transform:scale(1.4)}
+.recipe-item-reveal button{margin-top:24px;min-height:40px;padding:8px 22px;background:#ffffff0c;border:1px solid #caba8666;border-radius:6px;color:#eadcba;cursor:pointer;font:13px system-ui}
+.recipe-item-reveal button:focus-visible{outline:2px solid #ffe29b;outline-offset:4px}
+@keyframes recipe-item-appear{from{opacity:0;transform:translateY(20px) scale(.85)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.recipe-discovery-mark,.recipe-item-reveal img{animation:none}}

@@ -1155,11 +1155,11 @@
           "confirmTransfer": false,
           "interactionPoint": [
             2293.5,
-            217
+            252
           ],
           "footprint": {
             "x": 2211.5,
-            "y": 180,
+            "y": 215,
             "w": 54,
             "h": 74
           }
@@ -1191,11 +1191,11 @@
           "confirmTransfer": false,
           "interactionPoint": [
             2293.5,
-            97
+            127
           ],
           "footprint": {
             "x": 2211.5,
-            "y": 60,
+            "y": 90,
             "w": 54,
             "h": 74
           }
@@ -2595,7 +2595,7 @@
         },
         {
           "x": 2211.5,
-          "y": 180,
+          "y": 215,
           "w": 54,
           "h": 74,
           "pad": 0,
@@ -2611,7 +2611,7 @@
         },
         {
           "x": 2211.5,
-          "y": 60,
+          "y": 90,
           "w": 54,
           "h": 74,
           "pad": 0,
@@ -4201,7 +4201,7 @@
         {
           "id": "hidden-recipe-note",
           "type": "pepero-art",
-          "name": "초콜릿 묻은 레시피 쪽지",
+          "name": "숨겨진 흔적 조사하기",
           "action": "recipe-note",
           "confirmTransfer": false,
           "interactionPoint": [

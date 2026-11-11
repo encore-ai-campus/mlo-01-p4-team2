@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="avatars.css">
   <link rel="stylesheet" href="social.css">
   <link rel="stylesheet" href="point-wallet.css">
-  <link rel="stylesheet" href="achievements.css">
+  <link rel="stylesheet" href="achievements.css?v=20261105-event48-v2">
   <link rel="stylesheet" href="minigames.css">
   <link rel="stylesheet" href="poke.css">
   <link rel="stylesheet" href="board-shortcut.css">
@@ -29,7 +29,8 @@
   <link rel="stylesheet" href="notice-notifications.css?v=20261105-notices-v1">
   <link rel="stylesheet" href="pepero-theme.css">
   <link rel="stylesheet" href="story.css">
-  <link rel="stylesheet" href="quest-dialogue.css?v=20261104-rpg-v1">
+  <link rel="stylesheet" href="quest-dialogue.css?v=20261105-event48-v2">
+  <link rel="stylesheet" href="recipe-discovery.css?v=20261105-event48-v2">
   <link rel="stylesheet" href="quest-topping.css?v=20261104-event34-v1">
   <link rel="stylesheet" href="main-quest.css?v=20261104-overhead-v1">
   <link rel="preload" href="assets/fonts/PressStart2P-Regular.ttf" as="font" type="font/ttf" crossorigin>
@@ -56,7 +57,7 @@
         <div class="map-status-tools">
           <div id="presenceStatus" class="presence-status" role="status" aria-live="polite" hidden></div>
           <div class="map-view-tools">
-            <button id="achievementsOpen" type="button" aria-haspopup="dialog" aria-controls="achievementsDialog">업적</button>
+            <button id="achievementsOpen" type="button" aria-haspopup="dialog" aria-controls="achievementsDialog">꾸왕이의 수사수첩</button>
             <button id="privateMessagesOpen" type="button" aria-haspopup="dialog" aria-controls="privateMessagesDialog" hidden>쪽지함 <span id="dmBadge" hidden>0</span></button>
             <div class="map-controls" hidden><button id="zoomIn" aria-label="지도 확대" disabled>+</button><span id="zoomLabel">150%</span><button id="zoomOut" aria-label="지도 축소" disabled>−</button></div>
             <div class="map-wallet-anchor">
@@ -168,7 +169,7 @@
   <dialog id="detailDialog" aria-labelledby="detailTitle"><div class="dialog-top"><div><span id="detailEyebrow" class="eyebrow">SPACE GUIDE</span><h2 id="detailTitle"></h2></div><button id="closeDialog" class="close-button" aria-label="안내 닫기">×</button></div><img id="detailImage" alt="" hidden><div class="dialog-content"><p id="detailText"></p><div id="detailTags" class="detail-tags"></div><div class="dialog-actions"><button id="detailClose" class="btn quiet">닫기</button></div></div></dialog>
   <aside id="achievementNotice" popover="manual" role="status" aria-live="polite" aria-atomic="true" hidden>
     <img id="achievementNoticeImage" width="80" height="80" alt="">
-    <div><span>업적 달성!</span><strong id="achievementNoticeName"></strong></div>
+    <div><span>수사수첩에 새 기록!</span><strong id="achievementNoticeName"></strong></div>
     <button id="achievementNoticeClose" type="button" aria-label="업적 달성 알림 닫기">×</button>
   </aside>
   <dialog id="minigameDialog" aria-labelledby="minigameTitle">
@@ -177,9 +178,10 @@
     <button id="minigameRetry" type="button" hidden>저장 다시 시도</button>
     <div id="minigameFrame"></div>
   </dialog>
-  <dialog id="achievementsDialog" aria-labelledby="achievementsTitle" aria-describedby="achievementsStatus">
-    <div class="dialog-top"><h2 id="achievementsTitle">업적</h2><button id="achievementsClose" type="button" class="close-button" aria-label="업적 닫기">×</button></div>
-    <div class="achievements-content"><p id="achievementsStatus" role="status" aria-live="polite">업적을 불러오는 중이에요.</p><ul id="achievementsList" aria-label="업적 목록" hidden></ul><button id="achievementsRetry" type="button" hidden>다시 불러오기</button></div>
+  <dialog id="achievementsDialog" aria-labelledby="achievementsTitle" aria-describedby="notebookHint achievementsStatus">
+    <div class="notebook-cover" aria-hidden="true"><span>KKUWANG'S CASE NOTES</span><b>수사수첩</b><i>꾸왕이</i></div>
+    <div class="dialog-top"><div><span class="notebook-eyebrow">꾸왕이 탐정 사무소 · 비공개 기록</span><h2 id="achievementsTitle">꾸왕이의 수사수첩</h2></div><button id="achievementsClose" type="button" class="close-button" aria-label="수사수첩 닫기">×</button></div>
+    <div class="achievements-content"><p id="notebookHint">누군가 처음 발견하면 모두의 수첩에 색이 돌아옵니다. 이름을 단서 삼아 나만의 기록도 채워보세요.</p><p id="achievementsStatus" role="status" aria-live="polite">수사 기록을 불러오는 중이에요.</p><ul id="achievementsList" aria-label="이스터에그 수사 기록" hidden></ul><button id="achievementsRetry" type="button" hidden>다시 불러오기</button><p class="notebook-footnote">최초 발견자는 서버 전체에 기록됩니다. 나의 달성은 따로 기록됩니다.<span>— 탐정 꾸왕이</span></p></div>
   </dialog>
   <dialog id="lunchDialog" class="lunch-dialog" aria-labelledby="lunchDialogTitle">
     <div class="dialog-top"><div><span class="eyebrow">TODAY’S LUNCH</span><h2 id="lunchDialogTitle">점심추천 돌림판</h2></div><button id="lunchDialogClose" type="button" class="close-button" aria-label="점메추 닫기">×</button></div>
@@ -345,13 +347,13 @@
   </dialog>
   <!-- learning-panels -->
   <script src="booth-panel.js"></script>
-  <script src="event-map.js?v=20261105-event42-v1"></script>
+  <script src="event-map.js?v=20261105-event48-v2"></script>
   <script src="stair-motion.js"></script>
   <script src="avatars.js"></script>
   <script src="session-policy.js"></script>
   <script src="keyboard.js"></script>
   <script src="campus-freeze.js"></script>
-  <script src="presence.js"></script>
+  <script src="presence.js?v=20261105-event48-v2"></script>
   <script src="pepero-swing.js"></script>
   <script src="poke.js?v=20261104-coating-fast-v1"></script>
   <script src="jump.js"></script>
@@ -359,15 +361,15 @@
   <script src="community.js?v=20261105-notices-v1"></script>
   <script src="rooftop-city.js"></script>
   <script src="campus-background.js"></script>
-  <script src="pepero-theme.js?v=20261105-event42-v1"></script>
+  <script src="pepero-theme.js?v=20261105-event48-v2"></script>
   <script src="booth-assets.js"></script>
-  <script src="isometric.js?v=20261105-event42-v1"></script>
+  <script src="isometric.js?v=20261105-event48-v2"></script>
   <script src="floor-transition-portal.js"></script>
   <script src="floor-transition.js"></script>
   <script src="lunch-wheel.js"></script>
   <script src="point-wallet.js"></script>
-  <script src="achievements.js"></script>
-  <script src="minigames.js?v=20261105-typing-limit-v1"></script>
+  <script src="achievements.js?v=20261105-event48-v2"></script>
+  <script src="minigames.js?v=20261105-typing-english-v1"></script>
   <!-- learning-assets -->
   <script src="campus-guide.js"></script>
   <script src="campus-space-guide.js"></script>
@@ -381,10 +383,11 @@
   <script src="messages.js"></script>
   <script src="campus-world-actions.js"></script>
   <script src="mission-room-map.js?v=20261105-event42-v1"></script>
-  <script src="quest-dialogue.js?v=20261104-rpg-v1"></script>
+  <script src="quest-dialogue.js?v=20261105-event48-v2"></script>
   <script src="quest-topping.js?v=20261104-event34-v1"></script>
-  <script src="main-quest.js?v=20261105-manager-dialogue-v1"></script>
-  <script src="campus.js?v=20261105-manager-dialogue-v2"></script>
+  <script src="recipe-discovery.js?v=20261105-event48-v2"></script>
+  <script src="main-quest.js?v=20261105-event48-v3"></script>
+  <script src="campus.js?v=20261105-event48-v3"></script>
   <script src="campus-snb.js?v=20261104-snb-click-v1"></script>
   <script src="notice-notifications.js?v=20261105-notices-v1" defer></script>
   <button type="button" id="noticeNotificationsOpen" class="notice-launcher" aria-label="공지사항 알림" title="공지사항 알림" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 32 32" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 12a8 8 0 0 1 16 0c0 9 3 9 3 11H5c0-2 3-2 3-11Z"/><path d="M12 27a4 4 0 0 0 8 0M16 2v2"/></svg><span id="noticeUnreadBadge" class="notice-unread-badge" hidden></span></button>

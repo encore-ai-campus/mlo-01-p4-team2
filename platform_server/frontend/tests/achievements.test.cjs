@@ -6,7 +6,9 @@ const rows=(earned=false)=>[
  {event_uuid:'python',name:'뱀을 길들이는 자',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/python-intermediate.png'},
  {event_uuid:'sql',name:'데이터의 비밀문',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/sql-intermediate.png'},
  {event_uuid:'timer',name:'찰나의 기적',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/timer.png'},
- {event_uuid:'typing',name:'손가락에 불났다',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/code-typing.png'}];
+ {event_uuid:'typing',name:'손가락에 불났다',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/code-typing.png'},
+ {event_uuid:'all',name:'삼각지대 탈출',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/all-subjects.png'},
+ {event_uuid:'cs',name:'컴퓨터의 속마음',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/cs-intermediate.png'}];
 const plain=value=>JSON.parse(JSON.stringify(value));
 function fixture(){
  const elements=new Map(),listeners=new Map(),requests=[],timers=new Map();let opens=0,closes=0,blocked=false;
@@ -38,13 +40,13 @@ test('loading and request failure never invent unearned achievements; retry read
  assert.equal(f.get('achievementsList').children.length,0);assert.equal(f.get('achievementsRetry').hidden,false);
  assert.match(f.get('achievementsStatus').textContent,/불러오지 못/);
  f.get('achievementsRetry').handlers.click();await f.respond();
- assert.equal(f.get('achievementsList').children.length,6);assert.equal(f.get('achievementsRetry').hidden,true);assert.equal(f.timers.size,0);
+ assert.equal(f.get('achievementsList').children.length,8);assert.equal(f.get('achievementsRetry').hidden,true);assert.equal(f.timers.size,0);
 });
-test('the six implemented achievements render, preserving names and original image URLs across earned states',async()=>{
+test('the eight implemented achievements render, preserving names and original image URLs across earned states',async()=>{
  const f=fixture();await f.respond([...rows(),{name:'기타 업적'}]);
  const list=f.get('achievementsList');
- assert.deepEqual(list.children.map(row=>row.children[1].textContent),['수상한 친화력','참을성 테스트','뱀을 길들이는 자','데이터의 비밀문','찰나의 기적','손가락에 불났다']);
- assert.deepEqual(list.children.map(row=>row.dataset.achieved),['false','false','false','false','false','false']);
+ assert.deepEqual(list.children.map(row=>row.children[1].textContent),['수상한 친화력','참을성 테스트','뱀을 길들이는 자','데이터의 비밀문','찰나의 기적','손가락에 불났다','삼각지대 탈출','컴퓨터의 속마음']);
+ assert.deepEqual(list.children.map(row=>row.dataset.achieved),Array(8).fill('false'));
  const image=list.children[0].children[0].src;
  f.update(rows(true));assert.equal(list.children[0].dataset.achieved,'true');assert.equal(list.children[0].children[0].src,image);
  assert.equal(list.children[0].children[1].textContent,'수상한 친화력');assert.equal(list.children[0].children[2].textContent,'획득');
@@ -115,7 +117,7 @@ test('learning badges use the same silhouette and completion notice flow',async(
 
 test('both game achievements use supplied art, turn from silhouettes to earned, and queue notices',async()=>{
  const f=fixture();await f.respond();
- const data=rows();for(const row of data.slice(4)){row.achieved=true;row.completed_at='2026-11-04T00:00:00Z';}
+ const data=rows();for(const row of data.slice(4,6)){row.achieved=true;row.completed_at='2026-11-04T00:00:00Z';}
  f.update(data);f.runTimer(0);
  assert.equal(f.get('achievementNoticeName').textContent,'찰나의 기적');
  assert.match(f.get('achievementNoticeImage').src,/timer.png$/);
@@ -125,4 +127,13 @@ test('both game achievements use supplied art, turn from silhouettes to earned, 
  assert.equal(f.get('achievementsList').children[4].dataset.achieved,'true');
  assert.equal(f.get('achievementsList').children[5].dataset.achieved,'true');
  f.runTimer(6000);f.earned(['timer','typing']);assert.equal(f.timers.size,0);
+});
+
+test('CS and three-subject achievements queue both earned notices once',async()=>{
+ const f=fixture();await f.respond();const data=rows();
+ for(const row of data.slice(6)){row.achieved=true;row.completed_at='2026-11-04T00:00:00Z';}
+ f.update(data);f.runTimer(0);assert.equal(f.get('achievementNoticeName').textContent,'삼각지대 탈출');
+ f.get('achievementNoticeClose').handlers.click();assert.equal(f.get('achievementNoticeName').textContent,'컴퓨터의 속마음');
+ f.runTimer(6000);f.earned(['all','cs']);assert.equal(f.timers.size,0);
+ assert.ok(f.get('achievementsList').children.slice(6).every(r=>r.dataset.achieved==='true'));
 });

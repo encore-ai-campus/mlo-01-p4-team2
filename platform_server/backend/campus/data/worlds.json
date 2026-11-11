@@ -1165,14 +1165,14 @@
           "gameCode": "timer",
           "confirmTransfer": false,
           "interactionPoint": [
-            2317,
-            262
+            2293.5,
+            217
           ],
           "footprint": {
-            "x": 2280,
+            "x": 2211.5,
             "y": 180,
-            "w": 74,
-            "h": 54
+            "w": 54,
+            "h": 74
           }
         },
         {
@@ -1183,14 +1183,14 @@
           "gameCode": "typing",
           "confirmTransfer": false,
           "interactionPoint": [
-            2317,
-            422
+            2293.5,
+            377
           ],
           "footprint": {
-            "x": 2280,
+            "x": 2211.5,
             "y": 340,
-            "w": 74,
-            "h": 54
+            "w": 54,
+            "h": 74
           }
         }
       ],
@@ -2613,18 +2613,18 @@
           "objectId": "python-exterior-bench-1"
         },
         {
-          "x": 2280,
+          "x": 2211.5,
           "y": 180,
-          "w": 74,
-          "h": 54,
+          "w": 54,
+          "h": 74,
           "pad": 0,
           "objectId": "minigame-timer"
         },
         {
-          "x": 2280,
+          "x": 2211.5,
           "y": 340,
-          "w": 74,
-          "h": 54,
+          "w": 54,
+          "h": 74,
           "pad": 0,
           "objectId": "minigame-typing"
         }

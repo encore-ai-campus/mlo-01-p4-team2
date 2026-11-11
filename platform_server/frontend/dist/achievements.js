@@ -1,7 +1,7 @@
 /* Achievement state comes only from the authenticated API and personal socket. */
 (() => {
   'use strict';
-  const names=['수상한 친화력','참을성 테스트','뱀을 길들이는 자','데이터의 비밀문','찰나의 기적','손가락에 불났다'];
+  const names=['수상한 친화력','참을성 테스트','뱀을 길들이는 자','데이터의 비밀문','찰나의 기적','손가락에 불났다','삼각지대 탈출','컴퓨터의 속마음'];
   function create({isBlocked=()=>false,onOpen=()=>{},onClose=()=>{}}={}){
     const $=id=>document.getElementById(id),button=$('achievementsOpen'),dialog=$('achievementsDialog');
     const list=$('achievementsList'),status=$('achievementsStatus'),retry=$('achievementsRetry');

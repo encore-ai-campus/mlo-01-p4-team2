@@ -9,6 +9,8 @@ class MinigameControlTests(SimpleTestCase):
     def setUp(self):
         self.consumer = c = consumers.CampusConsumer()
         c.controller = MotionController({"floor": "campus", "x": 2317, "y": 262, "dir": "down"})
+        point=c.controller.world.objects['minigame-timer']['interactionPoint']
+        c.controller.pose.update(x=point[0],y=point[1])
         self.db = AsyncMock(return_value={"play_uuid": "play", "game_code": "timer"})
         patcher = patch.object(consumers.socket_db, "run", self.db)
         patcher.start()

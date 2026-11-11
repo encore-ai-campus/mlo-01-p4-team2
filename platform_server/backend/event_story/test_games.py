@@ -152,7 +152,7 @@ class GamePlayTests(TestCase):
                 self.assertEqual(row.completed_at, first_time)
                 if not existed:
                     self.assertEqual(row.completed_at.isoformat(), result["ended_at"])
-                self.assertEqual(len(result["achievements"]), 6)
+                self.assertEqual(len(result["achievements"]), 8)
         self.assertEqual(EventProgress.objects.filter(user=self.user).count(), 2)
         self.assertTrue(all(not row["achieved"] for row in achievement_snapshot(self.other)))
 

@@ -975,7 +975,7 @@
       }
       // Generated art needs bounds independent of its small ground footprint.
       if(o.seasonalArt||o.type==='pepero-monument'||o.type==='pepero-cart'||o.type==='pepero-gift-art'){
-        const q=projectGround(o.x+o.w/2,o.y+o.h/2),w=o.artWidth,h=o.artHeight;
+        const q=projectGround(o.x+o.w/2+(o.artGroundOffsetX||0),o.y+o.h/2),w=o.artWidth,h=o.artHeight;
         b.x=Math.floor(q.x-w/2-5);b.y=Math.floor(q.y-h-5);b.w=Math.ceil(w+10);b.h=Math.ceil(h*1.2+10);
       }
       const canvas=makeCanvas(b.w*2,b.h*2);g=canvas.getContext('2d',{willReadFrequently:Boolean(o.name)});g.scale(2,2);g.translate(-b.x,-b.y);paint();
@@ -1106,8 +1106,10 @@
       labels.push({value:r.name,x,y,z:groundHeight(x,y)+48,size:r.id.startsWith('festival')?18:r.id.startsWith('lounge')?17:isClass?14:12});
     }
     function drawLabels(ctx,actors=[]){
-      if(peperoSeason)return;
-      if(peperoSeason)return;
+      if(peperoSeason){
+        for(const o of D.objects.filter(o=>o.action==='minigame'))window.CampusSeasonal?.paintGameLabel?.(o,{g:ctx,p},groundHeight(o.x+o.w/2,o.y+o.h/2));
+        return;
+      }
       for(const room of D.rooms.filter(room=>room.id==='consult-b'||room.id==='consult-a')){
         const q=p(room.x+1,room.y+room.h*.55,groundHeight(room.x,room.y)+21);
         ctx.save();ctx.translate(q.x,q.y);ctx.transform(1,-P.tilt,0,1,0,0);

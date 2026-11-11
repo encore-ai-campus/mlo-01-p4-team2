@@ -885,7 +885,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
                 targets = [player for player_id, player in self.everyone() if player_id != self.player_id and player["floor"] == pose["floor"]] + poke.world_targets(active_world)
             target_id = poke.find_target(pose, targets, active_world, direction)
             blocked = bool(target_id and next((target for target in targets if target.get("id") == target_id), {}).get("guarding"))
-            manager_id = active_world.objects.get(target_id, {}).get("managerId",target_id) if not blocked and active_world.objects.get(target_id, {}).get("action") == "manager_greet" else None
+            manager_id = active_world.objects.get(target_id, {}).get("managerId",target_id) if self.pepero_remaining > 0 and not blocked and active_world.objects.get(target_id, {}).get("action") == "manager_greet" else None
             pepero_effect = await self.spend_pepero(target_id, blocked)
             packet = {**pepero_effect, "remaining": self.pepero_remaining, "type": "poke", "id": uuid4().hex, "actorId": self.player_id,
                       "targetId": target_id, "dir": direction, "floor": self.controller.pose["floor"],
@@ -980,7 +980,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
             target_id = poke.find_target(pose, targets, active_world, direction)
             if target_id is not None:
                 blocked=bool(next((target for target in targets if target.get("id")==target_id),{}).get("guarding"))
-                manager_id = active_world.objects.get(target_id, {}).get("managerId",target_id) if not blocked and active_world.objects.get(target_id, {}).get("action") == "manager_greet" else None
+                manager_id = active_world.objects.get(target_id, {}).get("managerId",target_id) if self.pepero_remaining > 0 and not blocked and active_world.objects.get(target_id, {}).get("action") == "manager_greet" else None
                 pepero_effect = await self.spend_pepero(target_id, blocked)
                 await self.send_poke_to(audience, {
                     **pepero_effect, "remaining": self.pepero_remaining, "type": "poke_hit", "id": uuid4().hex, "actorId": self.player_id,

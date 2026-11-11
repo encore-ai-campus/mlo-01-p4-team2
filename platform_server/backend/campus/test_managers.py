@@ -25,7 +25,7 @@ class ManagerControlTests(SimpleTestCase):
                                          'y': 818, 'dir': 'up-left'})
         c.controller.poke_direction = 'up-left'
         c.state = {'id': c.player_id, **c.controller.pose}
-        c.pepero_remaining = 0
+        c.pepero_remaining = 10
         c.last_poke = -math.inf
         c.poke_requested = True
         c.poke_started = c.poke_scope = c.poke_stream_id = c.poke_direction = None
@@ -76,12 +76,31 @@ class ManagerControlTests(SimpleTestCase):
             await self.consumer.greet_manager({'objectId': 'manager-suhyeon'})
         self.db.assert_not_awaited()
 
-    async def test_single_poke_records_a_real_manager_hit_without_inventory(self):
+    async def test_single_poke_records_the_last_biscuit_hit(self):
+        self.consumer.pepero_remaining = 1
         result = await self.consumer.receive_poke({'context': 'world', 'floor': 'campus'})
         self.assertTrue(result['hit'])
         self.db.assert_awaited_once_with(self.consumer.manager_action_now, 'manager-suhyeon', 'poke')
         with self.assertRaises(ControlError):
             await self.consumer.receive_poke({'context': 'world', 'floor': 'campus'})
+        self.assertEqual(self.db.await_count, 1)
+        self.assertEqual(self.consumer.pepero_remaining, 0)
+
+    async def test_empty_hand_does_not_count_single_or_held_pokes(self):
+        self.consumer.pepero_remaining = 0
+        result = await self.consumer.receive_poke({'context':'world','floor':'campus'})
+        self.assertTrue(result['hit'])
+        self.consumer.last_poke -= poke.COOLDOWN
+        await self.consumer.tick_poke()
+        self.db.assert_not_awaited()
+
+    async def test_held_poke_counts_the_last_biscuit_only_once(self):
+        self.consumer.pepero_remaining = 1
+        await self.consumer.tick_poke()
+        self.assertEqual(self.consumer.pepero_remaining, 0)
+        self.assertEqual(self.db.await_count, 1)
+        self.consumer.last_poke -= poke.COOLDOWN
+        await self.consumer.tick_poke()
         self.assertEqual(self.db.await_count, 1)
 
     async def test_held_poke_records_each_valid_hit_and_obeys_cooldown(self):
@@ -127,7 +146,8 @@ class ManagerControlTests(SimpleTestCase):
         await self.consumer.tick_poke()
         self.consumer.session_expired.assert_awaited_once()
         self.assertFalse(self.consumer.poke_requested)
-        self.consumer.send_packet.assert_not_awaited()
+        self.assertFalse(any(call.args[0].get('type') == 'achievement_update'
+                             for call in self.consumer.send_packet.await_args_list))
 
     def test_managers_are_normal_targets_and_sandbags_still_guard(self):
         targets = poke.world_targets(self.consumer.controller.world)

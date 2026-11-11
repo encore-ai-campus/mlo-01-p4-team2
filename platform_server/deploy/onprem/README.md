@@ -84,6 +84,9 @@ PC 2에서 화면·HTTP·채팅 역할을 실행한다.
 
 - 서비스 시작 시 `collectstatic`으로 전체 파일을 수집한다.
 - Front·Backend는 같은 가상환경의 Python으로 실행한다.
+- 이동·서비스 Backend는 각각4개다. PostgreSQL 풀은 프로세스별 최소1·최대10개다.
+- WS는 입구에서 내부 Nginx로 직접 전달한다. [연결 명세](ingress.md)와 입구 템플릿을 함께 적용한다.
+- Front 연결 대기열은 기본128개다. `--frontend-backlog`로 변경하며, 실제 상한은 OS 설정도 제한한다.
 - Backend는 loopback에서만 수신한다. Front·Nginx의 기본 바인딩도 loopback이다.
 - 사설 주소로 바인딩하면 Front는 해당 PC의 Nginx 사설 주소로 연결한다.
 - 다른 입구 장비가 연결하면 `--bind`에 사설 주소를 지정하고 방화벽을 제한한다.

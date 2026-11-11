@@ -14,6 +14,11 @@ from .test_sockets import UpstreamSocket
                    BACKEND_URL='http://127.0.0.1:8000',
                    MOVEMENT_BACKEND_URL='http://127.0.0.1:8001')
 class FrontRoleRoutingTests(SimpleTestCase):
+    def setUp(self):
+        from .http_pool import close_backend_pool
+        close_backend_pool()
+        self.addCleanup(close_backend_pool)
+
     async def test_movement_http_exposes_only_health_without_calling_backend(self):
         with patch('pages.views.call_backend') as backend:
             client = HttpCommunicator(movement_application, 'GET', '/health/',
@@ -54,7 +59,7 @@ class FrontRoleRoutingTests(SimpleTestCase):
         self.assertEqual(forwarded['headers']['Origin'], 'https://app.example.com')
         self.assertEqual(forwarded['headers']['X-Forwarded-Proto'], 'https')
         self.assertEqual(forwarded['headers']['X-CSRFToken'], 'csrf-token')
-        connection.close.assert_called_once()
+        connection.close.assert_not_called()
 
     async def test_each_role_bridges_its_own_socket_with_authentication_and_query(self):
         for application, route, destination in (

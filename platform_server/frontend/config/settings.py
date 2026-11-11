@@ -36,6 +36,12 @@ for name, server_url in (('BACKEND_URL', BACKEND_URL), ('MOVEMENT_BACKEND_URL', 
     if parsed_backend.scheme not in {'http', 'https'} or not parsed_backend.hostname or parsed_backend.username or parsed_backend.password or parsed_backend.path not in {'', '/'} or parsed_backend.query or parsed_backend.fragment:
         raise ValueError(f'{name} must be a plain HTTP(S) server address')
 BACKEND_TIMEOUT = float(os.environ.get('BACKEND_TIMEOUT', '30'))
+BACKEND_HTTP_KEEPALIVE = os.environ.get('BACKEND_HTTP_KEEPALIVE', '1') == '1'
+BACKEND_HTTP_POOL_MAXSIZE = int(os.environ.get('BACKEND_HTTP_POOL_MAXSIZE', '100'))
+BACKEND_HTTP_IDLE_TIMEOUT = float(os.environ.get('BACKEND_HTTP_IDLE_TIMEOUT', '20'))
+if BACKEND_TIMEOUT <= 0 or BACKEND_HTTP_POOL_MAXSIZE <= 0 or BACKEND_HTTP_IDLE_TIMEOUT <= 0:
+    raise ValueError('HTTP timeout, pool size and idle timeout must be positive')
+
 
 # The trusted edge proxy must overwrite this header and restrict direct app access.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

@@ -25,11 +25,13 @@
       figure.hidden = chosen !== null && !chosen.has(figure.dataset.slot);
       if (!figure.hidden) shown += 1;
     });
-    section.querySelector("[data-frames-empty]").hidden = shown > 0 && Boolean(section.dataset.drawn);
+    section.querySelector("[data-frames-empty]").hidden = shown > 0 && Boolean(section.dataset.any);
   };
 
+  // src = 모든 구성에 그릴 이미지(고른 파일·광고 만들기의 소재). 없으면 구성마다 자기 소재(data-src — 구성별 소재), 그것도 없으면 처음 이미지(data-source)
   const draw = (section, src) => {
     section.dataset.drawn = src || "";
+    let any = false;
     section.querySelectorAll("figure.frame").forEach((figure) => {
       const box = figure.querySelector(".frame-box"), out = figure.querySelector(".frame-note");
       const { fit, width, height } = figure.dataset;
@@ -42,11 +44,14 @@
       }
       img.hidden = true;
       out.textContent = "";
-      if (!fit || !src) return;  // 표시 정보가 없는 구성은 이름과 안내만
+      const shown = src || figure.dataset.src || section.dataset.source;
+      if (shown) any = true;
+      if (!fit || !shown) return;  // 표시 정보가 없는 구성은 이름과 안내만
       img.onload = () => { img.hidden = false; out.textContent = note(fit, img.naturalWidth, img.naturalHeight, Number(width), Number(height)); };
       img.onerror = () => { img.hidden = true; };  // 그림이 아닌 파일(서버가 거절 사유를 알린다)
-      img.src = src;
+      img.src = shown;
     });
+    section.dataset.any = any ? "1" : "";
     refresh(section);
   };
 
@@ -55,14 +60,14 @@
     if (input) {
       input.addEventListener("change", () => {
         const file = input.files[0];
-        if (!file) { draw(section, section.dataset.source); return; }
+        if (!file) { draw(section); return; }
         const reader = new FileReader();
         reader.onload = () => draw(section, reader.result);
         reader.readAsDataURL(file);
       });
     }
     if (section.dataset.pick) document.addEventListener("change", (e) => { if (e.target.name === section.dataset.pick) refresh(section); });
-    draw(section, section.dataset.source);
+    draw(section);
   });
 
   // 광고 만들기가 고른 소재(등록된 소재·새로 올리기)가 바뀔 때 부른다(ad_create.js). 같은 이미지면 다시 그리지 않는다

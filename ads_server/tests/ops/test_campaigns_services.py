@@ -13,7 +13,7 @@ from campaigns.changes import record_change
 from campaigns.models import AdGroup, AdGroupSegment, Bid, ChangeLog, Creative
 from events.api import OutsideTransaction, event_id_for
 from events.models import EventOutbox
-from foundation.errors import Forbidden, InvalidRequest, StaleVersion
+from foundation.errors import Conflict, Forbidden, InvalidRequest, StaleVersion
 from foundation.models import AuditLog
 from masters import api as masters
 from tests.support import image_factory
@@ -330,6 +330,117 @@ class CampaignServiceTests(Cases, TestCase):
         new = api.replace_creative_image(self.w.adv, cid, png_file((9, 9, 9)), now=NOW)
         self.assertNotEqual(new.image_name, old)
         self.assertTrue(asset_exists(old) and asset_exists(new.image_name))  # 과거 결정이 참조할 수 있어 지우지 않는다
+
+    # 구성별 노출 소재(설계 §10 "구성별 노출 소재", SCR-1): 광고(광고그룹)의 구성마다 나갈 소재를 따로 고른다. 없는 구성은 기본 소재(선택 소재).
+    # 시험 수 상한(설계 §10 "시험 구성" ① 운영용 ≤ 300) 안에서 이 클래스의 경우로 둔다 — 준비는 경우마다 slot_creative_world() 로
+    def slot_creative_world(self):
+        """이 광고에 구성 둘(World 의 구성 + other), 옆 광고(입찰 없음 — 후보가 아니다)와 그 기본 소재 '가로'(wide)."""
+        self.gid = self.w.group.ad_group_id
+        self.other = make_slot(self.w.admin)
+        api.update_ad_group(self.w.adv, self.gid, {"slot_ids": [self.w.slot.slot_id, self.other.slot_id]}, now=NOW)
+        self.side = api.create_ad_group(self.w.adv, self.w.campaign.campaign_id, "옆", [self.other.slot_id], now=NOW)  # 입찰 없음 — 후보가 아니다
+        self.wide = api.create_creative(self.w.adv, self.side.ad_group_id, "가로", "https://wide.example/landing", png_file((9, 9, 9)), now=NOW)  # 옆 광고의 기본 소재
+
+    def pick(self, slot, creative, at=1):
+        return api.select_slot_creative(self.w.adv, self.gid, slot.slot_id, creative and creative.creative_id, now=NOW + at * SEC)
+
+    def shown(self, slot):
+        [f] = api.candidate_facts_for_slot(slot.slot_id)
+        return (f.creative_id, f.title, f.redirect_url, f.image_name)
+
+    def case_each_slot_shows_its_own_creative_and_clearing_returns_to_the_default(self):
+        self.slot_creative_world()
+        w = self.w
+        base = (w.creative.creative_id, w.creative.title, w.creative.redirect_url, w.creative.image_name)
+        self.assertEqual((self.shown(w.slot), self.shown(self.other)), (base, base))
+        view = self.pick(self.other, self.wide)
+        self.assertEqual((view.creative_id, view.slot_creative_ids, view.updated_at),
+                         (w.creative.creative_id, ((self.other.slot_id, self.wide.creative_id),), NOW + SEC))  # 기본 소재는 그대로, 광고 변경 시각은 오른다
+        with self.assertNumQueries(1):  # 후보 조회는 그대로 한 번(①)
+            facts = api.candidate_facts_for_slot(self.other.slot_id)
+        self.assertEqual([(f.ad_group_id, f.creative_id, f.title, f.redirect_url, f.image_name) for f in facts],
+                         [(self.gid, self.wide.creative_id, "가로", self.wide.redirect_url, self.wide.image_name)])
+        self.assertEqual(self.shown(w.slot), base)  # 지정하지 않은 구성은 기본 소재
+        self.assertIn(self.wide.creative_id, [c.creative_id for c in api.list_creatives(w.adv, self.gid)])  # 고르면 연결도 함께(O9)
+        self.assertEqual(api.get_ad_group(w.adv, self.gid), view)
+        self.assertEqual([g for g in api.list_ad_groups(w.adv, w.campaign.campaign_id) if g.ad_group_id == self.gid], [view])  # 목록도 같은 값
+        cleared = self.pick(self.other, None, at=2)
+        self.assertEqual((cleared.creative_id, cleared.slot_creative_ids, self.shown(self.other)), (w.creative.creative_id, (), base))
+
+    def case_a_change_is_one_log_row_one_event_and_one_audit_and_a_repeat_writes_nothing(self):
+        self.slot_creative_world()
+        self.pick(self.other, self.wide)
+        self.pick(self.other, self.wide, at=2)  # 그대로 — 아무것도 쓰지 않는다
+        self.pick(self.other, None, at=3)
+        rows = list(ChangeLog.objects.filter(target_id=self.gid, change_type="SLOT_CREATIVE_SELECTED").order_by("changed_at"))
+        s, c = str(self.other.slot_id), str(self.wide.creative_id)
+        self.assertEqual([(r.changed_at, r.previous_value, r.new_value) for r in rows], [
+            (NOW + SEC, {"slot_id": s, "creative_id": None}, {"slot_id": s, "creative_id": c}),
+            (NOW + 3 * SEC, {"slot_id": s, "creative_id": c}, {"slot_id": s, "creative_id": None}),  # 지움 = 기본 소재로
+        ])
+        for r in rows:
+            e = EventOutbox.objects.get(pk=event_id_for("ad.ad_group_changed", r.change_id))
+            self.assertEqual((e.payload["change_type"], e.payload["previous_value"], e.payload["new_value"]), ("SLOT_CREATIVE_SELECTED", r.previous_value, r.new_value))
+        audits = AuditLog.objects.filter(action="ad_group.slot_creative_selected").order_by("created_at")
+        self.assertEqual([(a.target_id, a.detail) for a in audits], [(str(self.gid), {"slot_id": s, "creative_id": c}), (str(self.gid), {"slot_id": s, "creative_id": None})])
+        self.assertEqual(api.get_ad_group(self.w.adv, self.gid).updated_at, NOW + 3 * SEC)
+
+    def case_slot_creative_refusals_change_nothing(self):
+        self.slot_creative_world()
+        w, stranger = self.w, World()
+        gone = api.create_creative(w.adv, self.side.ad_group_id, "지운 것", "https://gone.example/", png_file((8, 8, 8)), now=NOW)
+        api.archive_creative(w.adv, gone.creative_id, now=NOW)
+        call = lambda gid, slot_id, creative_id: api.select_slot_creative(w.adv, gid, slot_id, creative_id, now=NOW + SEC)  # noqa: E731
+        for args in ((self.gid, self.other.slot_id, stranger.creative.creative_id), (self.gid, self.other.slot_id, gone.creative_id),
+                     (self.gid, self.other.slot_id, "not-a-uuid"), (stranger.group.ad_group_id, stranger.slot.slot_id, None)):
+            with self.assertRaises(Http404, msg=args):  # 남의 소재·지운 소재·형식이 틀린 소재·남의 광고
+                call(*args)
+        for slot_id in (stranger.slot.slot_id, "not-a-uuid", None):
+            with self.assertRaises(InvalidRequest, msg=slot_id) as caught:  # 이 광고의 구성이 아니다
+                call(self.gid, slot_id, self.wide.creative_id)
+            self.assertEqual(caught.exception.errors[0]["pointer"], "/slot_id")
+        with self.assertRaises(Forbidden):
+            api.select_slot_creative(w.admin, self.gid, self.other.slot_id, None, now=NOW)
+        api.end_campaign(w.adv, w.campaign.campaign_id, now=NOW + SEC)
+        with self.assertRaises(api.CampaignEnded):
+            call(self.gid, self.other.slot_id, self.wide.creative_id)
+        self.assertEqual(api.get_ad_group(w.adv, self.gid).slot_creative_ids, ())
+        self.assertFalse(ChangeLog.objects.filter(change_type="SLOT_CREATIVE_SELECTED").exists())
+        self.assertNotIn(self.wide.creative_id, [c.creative_id for c in api.list_creatives(w.adv, self.gid)])  # 연결도 생기지 않았다
+
+    def case_a_creative_used_by_a_slot_counts_as_in_use(self):
+        """④: 구성별로만 쓰는 소재도 "쓰는 소재"다 — 보관 불가, 소재 목록 "사용 중", 운영 모니터링 "선택됨". 구성을 빼면 지정도 사라진다."""
+        self.slot_creative_world()
+        w = self.w
+        only = api.create_creative(w.adv, self.side.ad_group_id, "구성 전용", "https://only.example/", png_file((7, 7, 7)), now=NOW)  # 옆 광고는 다른 기본 소재
+        self.assertTrue(next(o for o in api.list_owned_creatives(w.adv, now=NOW) if o.creative.creative_id == only.creative_id).deletable)
+        self.pick(self.other, only)
+        self.pick(w.slot, only, at=2)
+        owned = next(o for o in api.list_owned_creatives(w.adv, now=NOW) if o.creative.creative_id == only.creative_id)
+        self.assertEqual(([(u.ad_group_id, u.selected) for u in owned.uses], owned.in_use), ([(self.side.ad_group_id, False), (self.gid, True)], 1))
+        rows = api.monitoring_list(w.admin, now=NOW + 3 * SEC)
+        [row] = [r for r in rows[0:rows.count()] if r.campaign.campaign_id == w.campaign.campaign_id]
+        self.assertIn(only.creative_id, row.selected_creative_ids)
+        with self.assertRaises(Conflict):
+            api.archive_creative(w.adv, only.creative_id, now=NOW + 3 * SEC)
+        view = api.update_ad_group(w.adv, self.gid, {"slot_ids": [w.slot.slot_id]}, now=NOW + 4 * SEC)  # 남은 구성은 지정을 지킨다
+        self.assertEqual(view.slot_creative_ids, ((w.slot.slot_id, only.creative_id),))
+        api.update_ad_group(w.adv, self.gid, {"slot_ids": [w.slot.slot_id, self.other.slot_id]}, now=NOW + 5 * SEC)  # 다시 넣은 구성은 기본 소재로
+        self.assertEqual(api.get_ad_group(w.adv, self.gid).slot_creative_ids, ((w.slot.slot_id, only.creative_id),))
+        self.pick(w.slot, None, at=6)
+        api.archive_creative(w.adv, only.creative_id, now=NOW + 7 * SEC)  # 아무도 쓰지 않으면 보관된다
+
+    def case_without_a_default_only_the_chosen_slot_carries_the_ad(self):
+        """⑥: 기본 소재가 없어도 구성 지정이 있으면 그 구성의 후보다. 고르기는 기본 소재를 정하지 않는다."""
+        w = World(with_creative=False)
+        other = make_slot(w.admin)
+        api.update_ad_group(w.adv, w.group.ad_group_id, {"slot_ids": [w.slot.slot_id, other.slot_id]}, now=NOW)
+        side = api.create_ad_group(w.adv, w.campaign.campaign_id, "옆", [other.slot_id], now=NOW)
+        c = api.create_creative(w.adv, side.ad_group_id, "구성 전용", "https://only.example/", png_file(), now=NOW)
+        view = api.select_slot_creative(w.adv, w.group.ad_group_id, other.slot_id, c.creative_id, now=NOW)
+        self.assertIsNone(view.creative_id)
+        self.assertEqual([(f.ad_group_id, f.creative_id) for f in api.candidate_facts_for_slot(other.slot_id)], [(w.group.ad_group_id, c.creative_id)])
+        self.assertEqual(api.candidate_facts_for_slot(w.slot.slot_id), [])
 
     def test_campaign_service(self):
         self.run_cases()

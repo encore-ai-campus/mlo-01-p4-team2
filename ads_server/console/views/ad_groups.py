@@ -93,6 +93,15 @@ def ad_group_creative_select(request, ad_group_id):
 
 
 @require_POST
+def ad_group_slot_creative(request, ad_group_id):
+    """"구성별 소재"(설계 §10 "구성별 노출 소재"): 이 구성에서 나갈 소재를 고른다 — 빈 값이면 기본 소재로 돌아간다(다음 결정부터).
+    남의 이미지·보관한 이미지는 서비스가 404, 이 광고의 구성이 아니면 400."""
+    run_action(request, campaigns.select_slot_creative, request.user, ad_group_id, request.POST.get("slot_id"), request.POST.get("creative_id") or None,
+               success="이 구성에 나갈 이미지를 바꿨습니다. 다음 결정부터 적용됩니다.")
+    return redirect("ad_group_detail", ad_group_id=ad_group_id)
+
+
+@require_POST
 def ad_group_enabled(request, ad_group_id):
     enabled = request.POST.get("enabled") == "1"
     run_action(request, campaigns.update_ad_group, request.user, ad_group_id, {"enabled": enabled}, success="광고를 켰습니다." if enabled else "광고를 껐습니다.")

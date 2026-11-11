@@ -2,7 +2,7 @@
 
 > Status: **정식 문서**. 광고 서버만 다룬다. **지금 구조만 적는다** — 언제·왜 바뀌었는지는 §11 문서 이력에 있다.
 > 관련 문서: [ads-server-design.md](ads-server-design.md) (설계), [threat-model.md](threat-model.md) (위협 모델), [contracts/](contracts/) (OpenAPI 계약)
-> 기준: 2026-10-14(저장소는 2026-10-31 PostgreSQL 전환 0.55, 이벤트는 2026-11-01 Outbox 확장 0.56, 요청 제한 버킷은 2026-11-01 0.57, C1 1.5.0 은 2026-11-02 0.58, 구간 대조 보완은 2026-11-02 0.59, 소재 보관 문구는 2026-11-02 0.60, 사용자 관리 감사는 2026-11-02 0.61, manifest 입력 검증은 2026-11-02 0.62, 처리 대기열 색인은 2026-11-02 0.63, Kafka 확장 경로는 2026-11-02 0.64, 파이프라인 장애 복구 결정(구현 전, [예약])은 2026-11-03 0.65, Kafka 메시지 키 `event_id`·`op` `c`·`r`는 2026-11-04 0.66, `hop_pipeline` 중복·충돌·INSERT 아닌 행·쌍 실패 조건은 2026-11-04 0.67, 구간 규칙 원본 파일은 2026-11-04 0.68, 대사 범위 `since` 구현은 2026-11-04 0.69, outbox → 파이프라인 대조 구현은 2026-11-04 0.70, 창 확정·알려진 예외 구현은 2026-11-04 0.71, 파이프라인 manifest 잡·받기·창 대사 구현은 2026-11-05 0.72, C2 운영 경로 = Debezium CDC → Kafka → Bronze는 2026-11-05 0.73, 대상 그룹 타기팅(결정만, 구현 전 [예약])은 2026-11-08 0.74, 대상 그룹 카탈로그 구현(TG-S1)은 2026-11-08 0.75, 광고그룹의 대상 그룹 구현(TG-S2)은 2026-11-08 0.76, 결정의 대상 그룹 구현(TG-S3)은 2026-11-08 0.77, 일괄 구성 화면 끄기(TG-S4)는 2026-11-08 0.78, 코드·운영 사실과의 정합은 2026-11-09 0.79, 운영 배치 정합(DSG-2)은 2026-11-09 0.80, 예산 일 KST 자정(BD-1)은 2026-11-10 0.81, 소재 이미지의 다른 출처 읽기(ASC-1)는 2026-11-10 0.82, 구성 표시 정보(SDI-1)는 2026-11-11 0.83) · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
+> 기준: 2026-10-14(저장소는 2026-10-31 PostgreSQL 전환 0.55, 이벤트는 2026-11-01 Outbox 확장 0.56, 요청 제한 버킷은 2026-11-01 0.57, C1 1.5.0 은 2026-11-02 0.58, 구간 대조 보완은 2026-11-02 0.59, 소재 보관 문구는 2026-11-02 0.60, 사용자 관리 감사는 2026-11-02 0.61, manifest 입력 검증은 2026-11-02 0.62, 처리 대기열 색인은 2026-11-02 0.63, Kafka 확장 경로는 2026-11-02 0.64, 파이프라인 장애 복구 결정(구현 전, [예약])은 2026-11-03 0.65, Kafka 메시지 키 `event_id`·`op` `c`·`r`는 2026-11-04 0.66, `hop_pipeline` 중복·충돌·INSERT 아닌 행·쌍 실패 조건은 2026-11-04 0.67, 구간 규칙 원본 파일은 2026-11-04 0.68, 대사 범위 `since` 구현은 2026-11-04 0.69, outbox → 파이프라인 대조 구현은 2026-11-04 0.70, 창 확정·알려진 예외 구현은 2026-11-04 0.71, 파이프라인 manifest 잡·받기·창 대사 구현은 2026-11-05 0.72, C2 운영 경로 = Debezium CDC → Kafka → Bronze는 2026-11-05 0.73, 대상 그룹 타기팅(결정만, 구현 전 [예약])은 2026-11-08 0.74, 대상 그룹 카탈로그 구현(TG-S1)은 2026-11-08 0.75, 광고그룹의 대상 그룹 구현(TG-S2)은 2026-11-08 0.76, 결정의 대상 그룹 구현(TG-S3)은 2026-11-08 0.77, 일괄 구성 화면 끄기(TG-S4)는 2026-11-08 0.78, 코드·운영 사실과의 정합은 2026-11-09 0.79, 운영 배치 정합(DSG-2)은 2026-11-09 0.80, 예산 일 KST 자정(BD-1)은 2026-11-10 0.81, 소재 이미지의 다른 출처 읽기(ASC-1)는 2026-11-10 0.82, 구성 표시 정보(SDI-1)는 2026-11-11 0.83, 구성별 노출 소재(SCR-1)는 2026-11-11 0.84) · 코드 `ads_server/`(백 서버)·`ads_frontend/`(프론트 서버, 저장 데이터 없음)
 > 근거: 설계서 `docs/legacy/ads-server/ads-server-design.md`, 계약 `contracts/serving.openapi.yaml`(C1·C3), `contracts/console.openapi.yaml`(C6), 실제 모델 코드(`*/models.py`)
 > 표기: **[예약]** 계약에 자리만 있고 아직 코드 없음 · **[제안]** 이 문서가 처음 제안함(동의 필요) · **[열림]** 정하지 못함. 표기가 없으면 코드에 있다
 
@@ -192,6 +192,7 @@ erDiagram
     campaigns_campaign ||--o{ campaigns_ad_group : "campaign"
     campaigns_campaign ||--o{ campaigns_review_request : "campaign"
     campaigns_ad_group ||--o{ campaigns_ad_group_slot : "ad_group"
+    campaigns_creative |o--o{ campaigns_ad_group_slot : "구성별 소재"
     campaigns_ad_group ||--o{ campaigns_ad_group_creative : "ad_group (연결)"
     campaigns_creative ||--o{ campaigns_ad_group_creative : "creative (연결)"
     campaigns_creative |o--o{ campaigns_ad_group : "선택한 소재"
@@ -307,6 +308,7 @@ erDiagram
         uuid ad_group_slot_id PK
         uuid ad_group_id FK
         uuid slot_id FK "UK(ad_group, slot)"
+        uuid creative_id FK "NULL 가능, 구성별 소재"
     }
     campaigns_ad_group_segment {
         uuid ad_group_segment_id PK
@@ -651,8 +653,9 @@ M7을 만들 때(판 1)와 이름·보관 상태가 바뀔 때마다 그때 상�
 | `ad_group_slot_id` | UUID | N | PK | |
 | `ad_group_id` | UUID | N | FK→O2 `CASCADE`, UNIQUE(ad_group, slot) | |
 | `slot_id` | UUID | N | FK→M2 `PROTECT` | 활성 슬롯·활성 매체일 때만 저장 |
+| `creative_id` | UUID | Y | FK→O4 `PROTECT` | 이 구성에서 나갈 소재(설계서 §10 "구성별 노출 소재"). NULL = 광고의 선택 소재(O2 `creative_id`)를 쓴다. 광고주 자신의 보관하지 않은 소재만, 고를 때 O9로 연결한다 |
 
-슬롯 목록을 바꾸면 이 연결 행이 교체된다(이력 없음). 과거 어느 슬롯에 나갔는지는 **결정(R1)의 `slot_id`가 기록**한다.
+슬롯 목록을 바꾸면 빠진 구성의 연결 행만 지우고 새 구성의 행을 더한다 — 남는 구성의 `creative_id`는 그대로다. 과거 어느 슬롯에 어느 소재로 나갔는지는 **결정(R1)의 `slot_id`·`creative_id`가 기록**하고, 구성별 소재를 바꾼 이력은 O10 `SLOT_CREATIVE_SELECTED`다.
 
 #### O11. 광고그룹-대상 그룹 `campaigns_ad_group_segment`
 
@@ -739,7 +742,7 @@ M7을 만들 때(판 1)와 이름·보관 상태가 바뀔 때마다 그때 상�
 | `target_type` | 문자 16 | N | `campaign`·`ad_group`, 색인 `campaigns_chg_type_at_idx (target_type, changed_at)` | 색인은 구간 manifest·누락 점검이 종류·창마다 읽는다 |
 | `target_id` | UUID | N | FK 아님 | 캠페인 ID 또는 광고그룹 ID(이력 행은 값으로 가리킨다) |
 | `campaign_id` | UUID | N | FK 아님 | 늘 채운다(광고그룹 행은 소속 캠페인) |
-| `change_type` | 문자 32 | N | `CHECK campaigns_change_log_kind` — 대상에 맞는 값만 | 캠페인: `CREATED`·`STATUS_CHANGED`·`BUDGET_CHANGED`·`PERIOD_CHANGED` / 광고그룹: `CREATED`·`ENABLED_CHANGED`·`SLOTS_CHANGED`·`CREATIVE_SELECTED`·`SEGMENTS_CHANGED` |
+| `change_type` | 문자 32 | N | `CHECK campaigns_change_log_kind` — 대상에 맞는 값만 | 캠페인: `CREATED`·`STATUS_CHANGED`·`BUDGET_CHANGED`·`PERIOD_CHANGED` / 광고그룹: `CREATED`·`ENABLED_CHANGED`·`SLOTS_CHANGED`·`CREATIVE_SELECTED`·`SEGMENTS_CHANGED`·`SLOT_CREATIVE_SELECTED`(이전·새 값 `{slot_id, creative_id}` — 지움은 `creative_id: null`) |
 | `previous_value` | JSON | Y | `CHECK campaigns_change_log_previous_unless_created` — `CREATED` 만 NULL | 바뀐 업무 필드만(이름은 싣지 않는다). 형식은 `events.change_value`: UUID 문자열, 시각 UTC ISO(마이크로초), UUID 목록은 정렬한 문자열 목록 |
 | `new_value` | JSON | N | | 같은 규칙. `CREATED` 는 캠페인 `status`·`daily_budget`·`starts_at`·`ends_at`, 광고그룹 `enabled`·`slot_ids`·`creative_id`(늘 `null` — 소재는 뒤이어 `CREATIVE_SELECTED`)·`segment_ids`(정렬한 UUID 목록, 빈 목록 = 전체 대상) |
 | `changed_at` | 시각 | N | | 변경 시각 = 이벤트의 `produced_at`. 한 요청의 여러 줄은 같은 값 — 순서는 `change_id` |
@@ -1142,6 +1145,7 @@ sequenceDiagram
 | 광고의 대상 그룹 바꾸기 | O11 교체, O2 `updated_at`, O10 `SEGMENTS_CHANGED` + P3 `ad.ad_group_changed`(값이 바뀔 때만) | `ad_group.updated`(보낸 칸 이름) |
 | 소재 등록(목록에만) | (A1 잠금) 파일 저장 + O4 + O7 | `creative.created` |
 | 소재 연결·선택 | O9(처음이면) + O2 `creative_id` | `creative.linked` |
+| 구성별 소재 고르기·지우기 | (캠페인 → 광고그룹 → 소재 잠금) O9(처음이면) + O3 `creative_id` + O2 `updated_at` + O10 `SLOT_CREATIVE_SELECTED` + P3 `ad.ad_group_changed`(값이 바뀔 때만) | `ad_group.slot_creative_selected`(구성·소재 ID) |
 | 소재 수정·이미지 교체·보관 | O4(이미지 교체는 A1 잠금 + O7 + 파일) | `creative.updated`·`creative.image_replaced`·`creative.archived` |
 | 입찰 변경 | O5 새 버전 | `bid.added` |
 | 관리자 정책 변경 | M3 새 버전 | `masters.policy_added`(이전 값 포함) |
@@ -1479,6 +1483,7 @@ C6(콘솔 JSON API)의 응답 중 서비스가 직접 주지 않는 값은 콘�
 
 | 버전 | 날짜 | 내용 |
 |---|---|---|
+| 0.84 | 2026-11-11 | 구성별 노출 소재(SCR-1, 사용자 결정 (가) — 설계서 §10 "구성별 노출 소재"): O3 `creative_id`(NULL 가능, FK→O4 `PROTECT`, 마이그레이션 `campaigns/0004` — 추가형, 기존 행 NULL), O10 광고그룹 `change_type`에 `SLOT_CREATIVE_SELECTED`(CHECK `campaigns_change_log_kind` 다시 만듦), ERD, 감사 `ad_group.slot_creative_selected`. 결정·이벤트 스키마·C1은 그대로(새 `change_type` 값 하나) |
 | 0.83 | 2026-11-11 | 구성 표시 정보(SDI-1, 사용자 결정 (가) — 설계서 §10 "구성 표시 정보"): M2 `display_width`·`display_height`·`display_fit`(NULL 가능, `CHECK` 셋 — 방식 값, 비율 둘 다·범위·방식 필수, 늘림·자름은 비율 필수, 마이그레이션 `masters/0004` — 추가형, 기존 행은 NULL), ERD, 감사 `masters.slot_display_changed`. 결정·이벤트·C1은 그대로 |
 | 0.82 | 2026-11-10 | 소재 이미지의 다른 출처 읽기(ASC-1, 사용자 결정 (가) — C3 계약 1.7.0): §5.4 C3 헤더 줄(200·304 `Access-Control-Allow-Origin: *`, 304의 CORP, 404에는 없음), §5.1 계약 목록 C1·C3 줄의 계약 판. 데이터 모양은 그대로 |
 | 0.81 | 2026-11-10 | 예산 일 경계를 KST 자정으로(BD-1, 사용자 결정 — 설정 `BUDGET_DAY_OFFSET_HOURS` 기본값 0 → 9, 서버·저장 시각은 UTC 그대로): §4 예산 일 줄, §10.2 §7-1 닫음과 그 전 `ad.charge` `budget_day` 의 뜻. 데이터 모양은 그대로 |

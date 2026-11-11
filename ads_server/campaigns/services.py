@@ -9,7 +9,7 @@ from urllib.parse import urlsplit
 from django.conf import settings
 from django.contrib.postgres.expressions import ArraySubquery
 from django.db import IntegrityError, transaction
-from django.db.models import Count, OuterRef, Q, Subquery
+from django.db.models import Count, Exists, OuterRef, Q, Subquery
 from django.db.models.functions import Coalesce, Greatest
 from django.utils import timezone
 
@@ -156,13 +156,18 @@ def _current_bid(ad_group):
     return Bid.objects.filter(ad_group=ad_group).order_by("-bid_version").first()
 
 
-def _ad_group_view(g, bid=None, slot_ids=None, segment_ids=None):
-    """`slot_ids`·`segment_ids`: 이미 읽은 게재 위치·대상 그룹(목록이 한 번에 읽는다). 없으면 그 그룹의 것을 읽는다."""
-    slot_ids = tuple(sorted(g.slot_links.values_list("slot_id", flat=True) if slot_ids is None else slot_ids, key=str))
+def _ad_group_view(g, bid=None, slot_ids=None, segment_ids=None, slot_creatives=None):
+    """`slot_ids`·`segment_ids`·`slot_creatives`({slot_id: creative_id}): 이미 읽은 게재 위치·대상 그룹·구성별 소재(목록이 한 번에 읽는다).
+    `slot_ids` 가 없으면 그 그룹의 구성 연결을 한 번 읽어 구성별 소재도 함께 얻는다."""
+    if slot_ids is None:
+        links = list(g.slot_links.values_list("slot_id", "creative_id"))
+        slot_ids, slot_creatives = [s for s, _ in links], {s: c for s, c in links if c is not None}
+    slot_ids = tuple(sorted(slot_ids, key=str))
     segment_ids = tuple(sorted(g.segment_links.values_list("segment_id", flat=True) if segment_ids is None else segment_ids, key=str))
     return AdGroupView(
         ad_group_id=g.ad_group_id, campaign_id=g.campaign_id, name=g.name, enabled=g.enabled, creative_id=g.creative_id,
         slot_ids=slot_ids, current_bid=_bid_view(bid) if bid else None, created_at=g.created_at, updated_at=g.updated_at, segment_ids=segment_ids,
+        slot_creative_ids=tuple(sorted((slot_creatives or {}).items(), key=lambda pair: str(pair[0]))),
     )
 
 
@@ -458,10 +463,12 @@ def _creatives_by_campaign(campaign_ids):
     """캠페인별로 그 광고그룹들에 **연결된** 소재 `{campaign_id: [CreativeView]}`(만든 순서, 같은 소재는 한 번)와 그중 광고그룹이 **선택한** 소재 ID
     `{campaign_id: {creative_id}}`. 선택하지 않은 연결도 보인다 — 언제든 선택될 수 있어 운영자가 이동 주소를 확인해야 한다. 질의 한 번."""
     found, seen, selected = {}, set(), {}
-    links = AdGroupCreative.objects.select_related("creative", "ad_group").filter(ad_group__campaign_id__in=campaign_ids).order_by("creative__created_at", "creative_id")
+    in_slot = AdGroupSlot.objects.filter(ad_group=OuterRef("ad_group"), creative=OuterRef("creative"))  # 구성별 지정도 "선택됨"(설계 §10 "구성별 노출 소재" ④) — 같은 질의
+    links = (AdGroupCreative.objects.select_related("creative", "ad_group").filter(ad_group__campaign_id__in=campaign_ids).annotate(in_slot=Exists(in_slot))
+             .order_by("creative__created_at", "creative_id"))
     for link in links:
         key = (link.ad_group.campaign_id, link.creative_id)
-        if link.ad_group.creative_id == link.creative_id:
+        if link.ad_group.creative_id == link.creative_id or link.in_slot:
             selected.setdefault(link.ad_group.campaign_id, set()).add(link.creative_id)
         if key not in seen:
             seen.add(key)
@@ -584,13 +591,15 @@ def list_ad_groups(user, campaign_id):
     c = _campaign(user, campaign_id)
     latest = Bid.objects.filter(ad_group=OuterRef("pk")).order_by("-bid_version").values("bid_id")[:1]
     groups = list(AdGroup.objects.filter(campaign=c).annotate(current_bid_id=Subquery(latest)).order_by("created_at"))
-    slots, segments = {}, {}
-    for group_id, slot_id in AdGroupSlot.objects.filter(ad_group__in=groups).values_list("ad_group_id", "slot_id"):
+    slots, segments, slot_creatives = {}, {}, {}
+    for group_id, slot_id, creative_id in AdGroupSlot.objects.filter(ad_group__in=groups).values_list("ad_group_id", "slot_id", "creative_id"):
         slots.setdefault(group_id, []).append(slot_id)
+        if creative_id is not None:
+            slot_creatives.setdefault(group_id, {})[slot_id] = creative_id
     for group_id, segment_id in AdGroupSegment.objects.filter(ad_group__in=groups).values_list("ad_group_id", "segment_id"):
         segments.setdefault(group_id, []).append(segment_id)
     bids = Bid.objects.in_bulk([g.current_bid_id for g in groups if g.current_bid_id is not None])
-    return [_ad_group_view(g, bids.get(g.current_bid_id), slots.get(g.pk, ()), segments.get(g.pk, ())) for g in groups]
+    return [_ad_group_view(g, bids.get(g.current_bid_id), slots.get(g.pk, ()), segments.get(g.pk, ()), slot_creatives.get(g.pk)) for g in groups]
 
 
 AD_GROUP_FIELDS = {"name", "enabled", "slot_ids", "segment_ids"}  # 소재 선택은 연결 하나로(`link_creative(select=True)`, 6-13e)
@@ -774,6 +783,45 @@ def link_creative(user, ad_group_id, creative_id, now=None, select=False):
     return _ad_group_view(g, _current_bid(g))
 
 
+def select_slot_creative(user, ad_group_id, slot_id, creative_id, now=None):
+    """구성별 노출 소재(설계 §10 "구성별 노출 소재"): 이 광고그룹의 한 구성에서 나갈 소재를 고른다. `creative_id=None` 이면 지정을 지워 선택 소재(기본)로 돌아간다.
+    고르는 소재는 내 것·보관하지 않은 것(아니면 404)이고, 아직 연결되지 않았으면 같은 트랜잭션에서 연결한다(이미지 공개 판정·운영 모니터링이 연결을 본다).
+    그 구성이 이 광고그룹의 구성이 아니면 400, 끝난 캠페인은 409. 바꿀 값이 분명한 동작이라 본 시각은 대조하지 않는다(기본 소재 선택과 같다).
+    잠금 순서: 캠페인 → 광고그룹 → 소재(보관과 소재 행에서 줄을 선다 — 쓰는 소재는 보관되지 않고, 보관된 소재는 고를 수 없다). 값이 바뀌면 광고그룹 변경 시각과 변경 로그."""
+    require_advertiser(user)
+    now = _now(now)
+    try:
+        slot_id = parse_uuid(slot_id, "게재 위치")
+    except errors.NotFound:
+        raise _problem("/slot_id", "구성 ID 형식이 올바르지 않습니다.")
+    with transaction.atomic():
+        g = _locked_group(user, ad_group_id, now)
+        link = AdGroupSlot.objects.select_for_update().filter(ad_group=g, slot_id=slot_id).first()
+        if link is None:
+            raise _problem("/slot_id", "이 광고의 구성이 아닙니다.")
+        chosen = None
+        if creative_id is not None:
+            c = _locked_creative(user, creative_id)
+            if not AdGroupCreative.objects.filter(ad_group=g, creative=c).exists():
+                AdGroupCreative.objects.create(ad_group=g, creative=c, linked_at=now)
+            chosen = c.creative_id
+        before = link.creative_id
+        if before != chosen:
+            AdGroupSlot.objects.filter(pk=link.pk).update(creative_id=chosen)
+            AdGroup.objects.filter(pk=g.pk).update(updated_at=now)
+            g.updated_at = now
+            _record_ad_group_change(g, "SLOT_CREATIVE_SELECTED", {"slot_id": slot_id, "creative_id": before}, {"slot_id": slot_id, "creative_id": chosen}, now)
+            _audit(user, "ad_group.slot_creative_selected", ("campaigns.ad_group", g.ad_group_id),
+                   {"slot_id": str(slot_id), "creative_id": None if chosen is None else str(chosen)})
+    return _ad_group_view(g, _current_bid(g))
+
+
+def _in_use_by_open_ad_groups(creative, now):
+    """끝나지 않은 캠페인(일시 중지·중단 포함)의 광고그룹이 이 소재를 **쓰는가** — 선택 소재(기본)로든 구성별 지정으로든(설계 §10 "구성별 노출 소재" ④)."""
+    still_open = ~Q(campaign__status=CampaignStatus.ENDED) & (Q(campaign__ends_at__isnull=True) | Q(campaign__ends_at__gt=now))
+    return AdGroup.objects.filter(still_open).filter(Q(creative=creative) | Q(slot_links__creative=creative)).exists()
+
+
 def archive_creative(user, creative_id, now=None):
     """소재 보관 — 화면의 "삭제"(6-9c, 설계 §10 "소재 목록"). 끝나지 않은 캠페인(일시 중지·중단 포함)의 광고그룹이 **선택한** 소재는 409다.
     선택을 바꿔 연결만 남은 소재는 보관할 수 있다(6-24 사용자 결정 — 보관은 숨기기라 서빙·이미지 공개·이미 나간 결정에 영향이 없고, 보관된 소재는
@@ -784,10 +832,8 @@ def archive_creative(user, creative_id, now=None):
     now = _now(now)
     with transaction.atomic():
         c = _locked_creative(user, creative_id)
-        in_use = (AdGroup.objects.filter(creative=c).exclude(campaign__status=CampaignStatus.ENDED)
-                  .filter(Q(campaign__ends_at__isnull=True) | Q(campaign__ends_at__gt=now)).exists())
-        if in_use:
-            raise errors.Conflict("끝나지 않은 캠페인의 광고에서 쓰고 있는(선택한) 소재는 삭제할 수 없습니다. 광고에서 다른 소재를 고른 뒤 삭제하세요.")
+        if _in_use_by_open_ad_groups(c, now):
+            raise errors.Conflict("끝나지 않은 캠페인의 광고에서 쓰고 있는(선택한) 소재는 삭제할 수 없습니다. 광고에서 다른 소재를 고른 뒤 삭제하세요(구성별 소재도).")
         c.archived_at = now
         c.save(update_fields=["archived_at"])
         _audit(user, "creative.archived", ("campaigns.creative", c.creative_id))
@@ -800,11 +846,13 @@ def list_owned_creatives(user, now=None):
     now = _now(now)
     creatives = list(Creative.objects.filter(owner=user, archived_at__isnull=True).order_by("created_at", "creative_id"))
     uses = {}
-    links = AdGroupCreative.objects.select_related("ad_group", "ad_group__campaign").filter(creative__in=creatives).order_by("linked_at", "link_id")
+    in_slot = AdGroupSlot.objects.filter(ad_group=OuterRef("ad_group"), creative=OuterRef("creative"))  # 구성별 지정도 "선택"(설계 §10 "구성별 노출 소재" ④) — 같은 질의
+    links = (AdGroupCreative.objects.select_related("ad_group", "ad_group__campaign").filter(creative__in=creatives).annotate(in_slot=Exists(in_slot))
+             .order_by("linked_at", "link_id"))
     for link in links:
         g, c = link.ad_group, link.ad_group.campaign
         ended = c.status == CampaignStatus.ENDED or is_expired(c.ends_at, now)
-        uses.setdefault(link.creative_id, []).append(CreativeUse(g.ad_group_id, g.name, c.campaign_id, c.name, not ended, g.creative_id == link.creative_id))
+        uses.setdefault(link.creative_id, []).append(CreativeUse(g.ad_group_id, g.name, c.campaign_id, c.name, not ended, g.creative_id == link.creative_id or link.in_slot))
     return [OwnedCreative(_creative_view(c), tuple(uses.get(c.creative_id, ()))) for c in creatives]
 
 
@@ -957,16 +1005,22 @@ def candidate_facts_for_slot(slot_id):
     slot_id = parse_uuid(slot_id, "게재 위치")
     latest = Bid.objects.filter(ad_group=OuterRef("pk")).order_by("-bid_version")
     targets = AdGroupSegment.objects.filter(ad_group=OuterRef("pk")).order_by("segment_id").values("segment_id")
+    # 소재 = 그 구성의 지정(O3 creative), 없으면 광고그룹이 **선택한** 것(6-9c) — 설계 §10 "구성별 노출 소재" ①. 구성 연결 조인은 filter 의 것을 그대로 쓴다(질의 한 번)
     rows = (
         AdGroup.objects.filter(
-            enabled=True, creative__isnull=False, campaign__status=CampaignStatus.ACTIVE, campaign__owner__is_active=True, slot_links__slot_id=slot_id,
+            Q(creative__isnull=False) | Q(slot_links__creative__isnull=False),
+            enabled=True, campaign__status=CampaignStatus.ACTIVE, campaign__owner__is_active=True, slot_links__slot_id=slot_id,
         )
-        .select_related("campaign", "creative")  # 소재는 광고그룹이 **선택한** 것(6-9c)
+        .select_related("campaign")
         .annotate(
             bid_id=Subquery(latest.values("bid_id")[:1]),
             bid_version=Subquery(latest.values("bid_version")[:1]),
             bid_amount=Subquery(latest.values("amount")[:1]),
             target_segment_ids=ArraySubquery(targets),
+            shown_creative_id=Coalesce("slot_links__creative_id", "creative_id"),
+            shown_title=Coalesce("slot_links__creative__title", "creative__title"),
+            shown_redirect_url=Coalesce("slot_links__creative__redirect_url", "creative__redirect_url"),
+            shown_image_name=Coalesce("slot_links__creative__image_name", "creative__image_name"),
         )
         .filter(bid_version__isnull=False)
         .order_by("ad_group_id")
@@ -974,11 +1028,11 @@ def candidate_facts_for_slot(slot_id):
     return [
         CandidateFacts(
             owner_id=g.campaign.owner_id, campaign_id=g.campaign_id, ad_group_id=g.ad_group_id,
-            creative_id=g.creative_id, slot_id=slot_id,
+            creative_id=g.shown_creative_id, slot_id=slot_id,
             bid_id=g.bid_id, bid_amount=g.bid_amount, bid_version=g.bid_version,
             campaign_status=g.campaign.status, ad_group_enabled=g.enabled,
             period_start=g.campaign.starts_at, period_end=g.campaign.ends_at,
-            daily_budget=g.campaign.daily_budget, title=g.creative.title, redirect_url=g.creative.redirect_url, image_name=g.creative.image_name,
+            daily_budget=g.campaign.daily_budget, title=g.shown_title, redirect_url=g.shown_redirect_url, image_name=g.shown_image_name,
             target_segment_ids=tuple(g.target_segment_ids),
         )
         for g in rows

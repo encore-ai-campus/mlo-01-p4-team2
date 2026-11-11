@@ -16,6 +16,7 @@ CONSOLE = [  # 백엔드 console/urls.py
     ("advertiser/ad-groups/<str:ad_group_id>/enabled", "ad_group_enabled"),
     ("advertiser/ad-groups/<str:ad_group_id>/creatives", "ad_group_creative_upload"),
     ("advertiser/ad-groups/<str:ad_group_id>/creatives/select", "ad_group_creative_select"),
+    ("advertiser/ad-groups/<str:ad_group_id>/slot-creative", "ad_group_slot_creative"),
     ("advertiser/creatives/", "creative_list"),
     ("advertiser/creatives/<str:creative_id>/", "creative_detail"),
     ("advertiser/creatives/<str:creative_id>/archive", "creative_archive"),

@@ -272,6 +272,49 @@ class ImageSectionTests(Cases, AdGroupPageBase):
         self.assertContains(r, "종료된 캠페인은 수정할 수 없습니다")
         self.assertEqual(self.group().creative_id, self.crid)
 
+    def case_each_slot_can_show_its_own_image(self):
+        """구성별 노출 소재(설계 §10 "구성별 노출 소재" ⑤): 구성마다 '기본 소재' 또는 내 이미지(지운 것 제외)를 고르고, 틀은 구성마다 그 구성의 소재로 그린다."""
+        other = make_slot(self.w.admin)
+        campaigns.update_ad_group(self.w.adv, self.gid, {"slot_ids": [self.w.slot.slot_id, other.slot_id]})
+        mine = campaigns.create_creative(self.w.adv, None, "가로 이미지", "https://example.com/2", png_file((9, 9, 9)))
+        gone = campaigns.create_creative(self.w.adv, None, "지운 이미지", "https://example.com/3", png_file((8, 8, 8)))
+        campaigns.archive_creative(self.w.adv, gone.creative_id)
+        post = lambda slot_id, creative_id: self.client.post(reverse("ad_group_slot_creative", args=[self.gid]), {"slot_id": slot_id, "creative_id": creative_id}, follow=True)  # noqa: E731
+        section = lambda html: html.split('aria-labelledby="slot-creatives-title"', 1)[1].split("</section>", 1)[0]  # noqa: E731
+
+        before = section(self.html())
+        self.assertEqual(sorted(re.findall(r'name="slot_id" value="([^"]+)"', before)), sorted([str(self.w.slot.slot_id), str(other.slot_id)]))
+        self.assertEqual(re.findall(r'<option value="([^"]*)"', before), ["", str(self.crid), str(mine.creative_id)] * 2)  # 지운 이미지는 없다
+        self.assertEqual(before.count('<option value="" selected>기본 소재</option>'), 2)
+
+        r = post(str(other.slot_id), str(mine.creative_id))
+        self.assertRedirects(r, self.detail)
+        self.assertContains(r, "이 구성에 나갈 이미지를 바꿨습니다.")
+        self.assertEqual((self.group().creative_id, self.group().slot_creative_ids), (self.crid, ((other.slot_id, mine.creative_id),)))
+        html = r.content.decode()
+        self.assertIn(f'<option value="{mine.creative_id}" selected>가로 이미지</option>', section(html))
+        self.assertIn(f'<figure class="frame" data-slot="{other.slot_id}" data-src="{reverse("creative_image_file", args=[mine.creative_id])}">', html)
+        self.assertIn(f'<figure class="frame" data-slot="{self.w.slot.slot_id}">', html)  # 지정하지 않은 구성은 처음 이미지(data-source = 기본 소재)
+
+        r = post(str(World(ends_in=None).slot.slot_id), str(mine.creative_id))
+        self.assertContains(r, "이 광고의 구성이 아닙니다.")
+        self.assertRedirects(post(str(other.slot_id), ""), self.detail)  # 빈 값 = 기본 소재로
+        self.assertEqual(self.group().slot_creative_ids, ())
+
+    def case_an_archived_image_shows_only_where_it_is_still_chosen(self):
+        """끝난 캠페인에서는 구성별로 쓰던 이미지도 지울 수 있다 — 화면은 그 이미지를 그 구성의 선택으로만 보이고, 다른 구성에서는 고를 수 없다."""
+        other = make_slot(self.w.admin)
+        campaigns.update_ad_group(self.w.adv, self.gid, {"slot_ids": [self.w.slot.slot_id, other.slot_id]})
+        mine = campaigns.create_creative(self.w.adv, None, "가로 이미지", "https://example.com/2", png_file((9, 9, 9)))
+        campaigns.select_slot_creative(self.w.adv, self.gid, other.slot_id, mine.creative_id)
+        campaigns.end_campaign(self.w.adv, self.w.campaign.campaign_id)
+        campaigns.archive_creative(self.w.adv, mine.creative_id)
+        section = self.html().split('aria-labelledby="slot-creatives-title"', 1)[1].split("</section>", 1)[0]
+        rows = dict(re.findall(r'name="slot_id" value="([^"]+)">\s*<select[^>]*>(.*?)</select>', section, re.S))
+        self.assertEqual(re.findall(r'<option value="([^"]*)"', rows[str(other.slot_id)]), ["", str(mine.creative_id), str(self.crid)])  # 지운 채 지정된 것은 맨 앞(기본 소재와 같다)
+        self.assertIn(f'<option value="{mine.creative_id}" selected>가로 이미지</option>', rows[str(other.slot_id)])
+        self.assertEqual(re.findall(r'<option value="([^"]*)"', rows[str(self.w.slot.slot_id)]), ["", str(self.crid)])  # 지운 이미지는 새로 고를 수 없다
+
     def test_image_section(self):
         self.run_cases()
 
@@ -284,7 +327,8 @@ class IsolationTests(AdGroupPageBase):
         posts = (("ad_group_bid", gid, {"amount": 1, "expected_version": 1}), ("ad_group_name", gid, {"name": "x"}),
                  ("ad_group_slots", gid, {"slot_ids": [str(other.slot.slot_id)]}), ("ad_group_enabled", gid, {"enabled": "0"}),
                  ("creative_edit", crid, {}), ("creative_image", crid, {"image": png_file()}),
-                 ("ad_group_creative_upload", gid, {"new-title": "남의 화면", "new-redirect_url": "https://example.com/x", "new-image": png_file()}))
+                 ("ad_group_creative_upload", gid, {"new-title": "남의 화면", "new-redirect_url": "https://example.com/x", "new-image": png_file()}),
+                 ("ad_group_slot_creative", gid, {"slot_id": str(other.slot.slot_id), "creative_id": ""}))
         for name, target, data in posts:
             self.assertEqual(self.client.post(reverse(name, args=[target]), data).status_code, 404, name)
         self.assertEqual(self.client.get(reverse("creative_image_file", args=[crid])).status_code, 404)
@@ -294,8 +338,11 @@ class IsolationTests(AdGroupPageBase):
         self.assertEqual([o.creative.title for o in campaigns.list_owned_creatives(self.w.adv)], ["제목"])  # 남의 광고 화면으로는 올라가지 않는다
         self.assertEqual(self.client.post(reverse("ad_group_creative_select", args=[gid]), {"creative_id": str(self.crid)}).status_code, 404)  # 남의 광고에 내 이미지를 고를 수 없다
         self.assertEqual(self.client.post(reverse("ad_group_creative_select", args=[self.gid]), {"creative_id": str(crid)}).status_code, 404)  # 내 광고에 남의 이미지도
+        self.assertEqual(self.client.post(reverse("ad_group_slot_creative", args=[gid]), {"slot_id": str(other.slot.slot_id), "creative_id": str(self.crid)}).status_code, 404)
+        self.assertEqual(self.client.post(reverse("ad_group_slot_creative", args=[self.gid]), {"slot_id": str(self.w.slot.slot_id), "creative_id": str(crid)}).status_code, 404)  # 구성별로도
         self.assertEqual(campaigns.get_ad_group(other.adv, gid).creative_id, other.creative.creative_id)
         self.assertEqual(self.group().creative_id, self.crid)
+        self.assertEqual((self.group().slot_creative_ids, campaigns.get_ad_group(other.adv, gid).slot_creative_ids), ((), ()))
 
 
 class StaleSameFieldTests(Cases, AdGroupPageBase):

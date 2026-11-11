@@ -147,10 +147,30 @@
       </details>
     </section>
 
-    {% if group.creative_id %}{% url 'creative_image_file' group.creative_id as current_image %}{% endif %}
-    {% include "console/_frames.html" with frame_slots=page.linked.values source=current_image input="id_new-image" pick="" empty="이 광고의 구성에서 소재가 보일 모습입니다. 아래 ‘이미지 올리기’에서 이미지를 고르면 그 이미지로 그립니다." %}
+    {% if page.linked %}
+    <section class="card slot-creatives" aria-labelledby="slot-creatives-title">
+      <h2 id="slot-creatives-title">구성별 소재</h2>
+      <p class="helptext">구성마다 다른 이미지를 고를 수 있습니다. ‘기본 소재’인 구성에는 위의 현재 노출 소재가 나갑니다. 바꾸면 다음 결정부터 적용됩니다.</p>
+      {% for s in page.linked.values %}{% with own=page.slot_creatives|get_item:s.slot_id %}{% firstof own group.creative_id as shown %}
+      <div class="choice">
+        {% if shown %}<img class="thumb" src="{% url 'creative_image_file' shown %}" alt="" width="72" height="40" loading="lazy">{% else %}<span></span>{% endif %}
+        <p>{{ s.media_name }} · {{ s.name }}<span class="muted">{{ s.display|display_label }}</span></p>
+        <form method="post" action="{% url 'ad_group_slot_creative' group.ad_group_id %}" class="inline">{% csrf_token %}<input type="hidden" name="slot_id" value="{{ s.slot_id }}">
+          <select name="creative_id" aria-label="{{ s.media_name }} · {{ s.name }}에 나갈 이미지">
+            <option value=""{% if not own %} selected{% endif %}>기본 소재</option>
+            {% for c in page.images %}{% if not c.archived or c.creative_id == own %}<option value="{{ c.creative_id }}"{% if c.creative_id == own %} selected{% endif %}>{{ c.title }}</option>{% endif %}{% endfor %}
+          </select>
+          <button type="submit" class="link">저장</button>
+        </form>
+      </div>
+      {% endwith %}{% endfor %}
+    </section>
+    {% endif %}
 
-    <div class="notice info">새 이미지 업로드 ≠ 소재 변경<span class="detail">이미지를 올린 뒤, 노출할 소재를 ‘다른 소재 선택’에서 따로 골라야 합니다.</span></div>
+    {% if group.creative_id %}{% url 'creative_image_file' group.creative_id as current_image %}{% endif %}
+    {% include "console/_frames.html" with frame_slots=page.linked.values frame_creatives=page.slot_creatives source=current_image input="id_new-image" pick="" empty="이 광고의 구성에서 소재가 보일 모습입니다. 아래 ‘이미지 올리기’에서 이미지를 고르면 그 이미지로 그립니다." %}
+
+    <div class="notice info">새 이미지 업로드 ≠ 소재 변경<span class="detail">이미지를 올린 뒤, 노출할 소재를 ‘다른 소재 선택’(구성마다 다르게는 ‘구성별 소재’)에서 따로 골라야 합니다.</span></div>
 
     <section class="upload" aria-label="이미지 업로드">
       <details class="choose"{% if upload_form.errors %} open{% endif %}>

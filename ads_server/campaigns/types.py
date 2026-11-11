@@ -60,6 +60,7 @@ class AdGroupView:
     created_at: datetime
     updated_at: datetime
     segment_ids: tuple = ()  # 대상 그룹 T(정렬). 비면 전체가 대상(설계 §10 "대상 그룹 타기팅" ③)
+    slot_creative_ids: tuple = ()  # 구성별로 지정한 소재 ((slot_id, creative_id), …) — 구성 ID 순. 없는 구성은 `creative_id`(기본 소재)를 쓴다(설계 §10 "구성별 노출 소재")
 
 
 @dataclass(frozen=True)
@@ -85,7 +86,7 @@ class CreativeUse:
     campaign_id: uuid.UUID
     campaign_name: str
     campaign_open: bool  # 캠페인이 끝나지 않았다(일시 중지·중단 포함) — 그 광고가 이 소재를 선택하고 있으면 삭제(보관)할 수 없다(6-24)
-    selected: bool  # 그 광고그룹이 지금 이 소재를 선택했다
+    selected: bool  # 그 광고그룹이 지금 이 소재를 쓴다 — 기본 소재로든 구성별로든(설계 §10 "구성별 노출 소재" ④)
 
 
 @dataclass(frozen=True)
@@ -120,7 +121,7 @@ class MonitoredCampaign:
     campaign: CampaignView
     creatives: tuple  # CreativeView 들(그 캠페인의 광고그룹에 연결된 것)
     last_changed_at: datetime
-    selected_creative_ids: frozenset = frozenset()  # 그중 광고그룹이 지금 선택한 것(결정에 나가는 것, 6-9d)
+    selected_creative_ids: frozenset = frozenset()  # 그중 광고그룹이 지금 쓰는 것(결정에 나가는 것, 6-9d — 기본·구성별)
 
 
 @dataclass(frozen=True)

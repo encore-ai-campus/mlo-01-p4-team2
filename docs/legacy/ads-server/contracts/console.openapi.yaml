@@ -835,6 +835,47 @@ paths:
         "409":
           $ref: "#/components/responses/Conflict"
 
+  /ad-groups/{ad_group_id}/slots/{slot_id}/creative:
+    parameters:
+      - $ref: "#/components/parameters/AdGroupId"
+      - $ref: "#/components/parameters/SlotId"
+    put:
+      tags: [creatives]
+      operationId: selectSlotCreative
+      summary: 이 광고그룹의 한 구성에서 나갈 소재를 고른다 (구성별 노출 소재)
+      description: |
+        설계 §10 "구성별 노출 소재". `creative_id` 를 주면 그 구성에서는 그 소재가 나가고, `null` 이면 지정을 지워 광고그룹의 선택 소재(`creative_id`)로 돌아간다.
+        고르는 소재는 내 것·보관하지 않은 것이어야 하고(아니면 404), 아직 연결되지 않았으면 같은 요청에서 연결한다. 그 구성이 이 광고그룹의 구성이 아니면 400,
+        끝난 캠페인은 409 `ended`. 값이 바뀌면 `updated_at` 이 바뀐다. 바꿀 값이 분명한 동작이라 본 시각은 대조하지 않는다(선택 `PUT …?select=true` 와 같다).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [creative_id]
+              additionalProperties: false
+              properties:
+                creative_id:
+                  oneOf:
+                    - $ref: "#/components/schemas/Uuid"
+                    - type: "null"
+      responses:
+        "200":
+          description: 광고그룹
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdGroup"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
   /creatives:
     get:
       tags: [creatives]
@@ -1102,6 +1143,12 @@ components:
         $ref: "#/components/schemas/Uuid"
     CreativeId:
       name: creative_id
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/Uuid"
+    SlotId:
+      name: slot_id
       in: path
       required: true
       schema:
@@ -1584,7 +1631,7 @@ components:
 
     AdGroup:
       type: object
-      required: [ad_group_id, campaign_id, name, slot_ids, enabled, creative_id, current_bid, effects, created_at, updated_at]
+      required: [ad_group_id, campaign_id, name, slot_ids, enabled, creative_id, slot_creatives, current_bid, effects, created_at, updated_at]
       additionalProperties: false
       properties:
         ad_group_id:
@@ -1601,10 +1648,22 @@ components:
         enabled:
           type: boolean
         creative_id:
-          description: 선택된 소재 — 결정에 나가는 것(연결된 소재 중 하나). 없으면 `null`(노출되지 않는다).
+          description: 선택된 소재("기본 소재") — 구성별 지정(`slot_creatives`)이 없는 구성의 결정에 나가는 것(연결된 소재 중 하나). 없으면 `null`(지정이 없는 구성에는 노출되지 않는다).
           oneOf:
             - $ref: "#/components/schemas/Uuid"
             - type: "null"
+        slot_creatives:
+          type: array
+          description: 구성별로 지정한 소재(설계 §10 "구성별 노출 소재"). 지정한 구성만 있다 — 없는 구성은 `creative_id` 를 쓴다.
+          items:
+            type: object
+            required: [slot_id, creative_id]
+            additionalProperties: false
+            properties:
+              slot_id:
+                $ref: "#/components/schemas/Uuid"
+              creative_id:
+                $ref: "#/components/schemas/Uuid"
         current_bid:
           description: 현재 입찰(최대 버전). 아직 없으면 `null`(노출되지 않는다).
           oneOf:

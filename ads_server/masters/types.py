@@ -64,6 +64,16 @@ class PolicyView:
 
 
 @dataclass(frozen=True)
+class SlotDisplay:
+    """매체가 소재 이미지를 그리는 모양(설계 §10 "구성 표시 정보"). 화면 정보 — 판정·과금·결정에 쓰지 않는다.
+    `width`·`height` = 판의 가로:세로 비율(둘 다 있거나 둘 다 None — `contain` 만 None 일 수 있다), `fit` = `stretch`·`cover`·`contain`."""
+
+    width: int | None
+    height: int | None
+    fit: str
+
+
+@dataclass(frozen=True)
 class SlotView:
     slot_id: uuid.UUID
     media_id: uuid.UUID
@@ -74,6 +84,7 @@ class SlotView:
     is_active: bool
     policy: PolicyView  # 현재 정책. 슬롯은 항상 정책을 가진다(create_slot 이 함께 만든다)
     segment: "RequestSegment | None" = None  # `get_slot(…, segment_code=)` 이 그 매체 카탈로그에서 찾은 요청 그룹(못 찾았거나 묻지 않았으면 None)
+    display: SlotDisplay | None = None  # 표시 정보. 관리자가 정하지 않았으면 None
 
 
 @dataclass(frozen=True)

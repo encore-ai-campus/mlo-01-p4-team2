@@ -307,6 +307,7 @@ label.slot { display: grid; grid-template-columns: auto minmax(0, 1fr); column-g
 label.slot input { grid-row: span 2; width: 20px; height: 20px; margin: 0; }
 label.slot .name { font-weight: 700; }
 label.slot .muted { font-size: 11px; }
+label.slot .display { grid-column: 2; }  /* 구성 표시 정보(SDI-1) — 체크 칸 옆 세 번째 줄 */
 label.slot:has(input:checked) { border-color: var(--accent); background: var(--accentsoft); box-shadow: inset 0 0 0 .5px var(--accent); }
 .bid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 .bid > button { margin-top: 42px; min-height: 44px; }  /* 라벨 높이만큼 내려 입력 칸과 줄을 맞춘다 */
@@ -327,7 +328,7 @@ fieldset.segmented label:has(input:focus-visible) { outline: 2px solid var(--acc
 .aside-cards { display: grid; gap: 20px; align-content: start; }
 .aside-cards .card { margin: 0; }
 .creative-preview figure { margin: 0; }
-.creative-preview img.preview { width: 100%; max-width: 100%; margin: 0 0 14px; aspect-ratio: 1200 / 628; object-fit: cover; }
+.creative-preview img.preview { width: 100%; max-width: 100%; height: auto; margin: 0 0 14px; }  /* 원본 비율 — 구성마다 보이는 모습은 아래 .frames(SDI-1) */
 .creative-preview figcaption { display: grid; gap: 4px; font-size: 12px; }
 .creative-preview figcaption strong { margin-bottom: 8px; font-size: 14px; }
 .creative-preview .url { color: var(--blue); overflow-wrap: anywhere; }
@@ -367,9 +368,26 @@ details.choose summary { list-style: none; cursor: pointer; }
 details.choose summary::-webkit-details-marker { display: none; }
 details.choose[open] summary { margin-bottom: 14px; }
 .creative-preview details.choose { margin-top: 18px; }
+/* 구성별로 보이는 모습(설계 §10 "구성 표시 정보", SDI-1) — 판 비율은 frames.js 가 정하고, 그리는 방식은 data-fit 이 정한다 */
+.frames figure.frame { margin: 0 0 18px; }
+.frames .frame-box { display: grid; place-items: center; width: 100%; overflow: hidden; border: 1px dashed var(--wood); border-radius: 8px; background: var(--skeleton); }
+.frames .frame-box img { display: block; width: 100%; height: 100%; }
+.frames .frame[data-fit="stretch"] img { object-fit: fill; }
+.frames .frame[data-fit="cover"] img { object-fit: cover; }
+.frames .frame[data-fit="contain"] img { object-fit: contain; }
+.frames .frame[data-fit="contain"]:not([data-width]) .frame-box { border: 0; background: none; }
+.frames .frame[data-fit="contain"]:not([data-width]) img { height: auto; max-height: 320px; }  /* 정해진 판 없음 — 원본 비율 */
+.frames .frame:not([data-fit]) .frame-box { display: none; }
+.frames figcaption { display: grid; gap: 4px; margin-top: 8px; font-size: 12px; }
+.frames .frame-note:empty { display: none; }
 .choice { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
 .choice p { display: grid; margin: 0; font-size: 12px; font-weight: 700; }
 .choice img.thumb { width: 72px; height: 40px; }
+/* 구성별 소재(좁은 옆 칸): 고르기 상자·저장은 이름·권장 비율 아래 줄 — 긴 이미지 이름이 이름 칸을 눌러 글이 겹치지 않게 */
+.slot-creatives .choice { grid-template-columns: 72px minmax(0, 1fr); }
+.slot-creatives .choice form { grid-column: 1 / -1; }
+.slot-creatives .choice select { flex: 1; min-width: 0; }
+.slot-creatives .choice button { flex: none; }
 .aside-cards > .notice { margin: 0; }
 .upload form { margin-top: 14px; padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
 

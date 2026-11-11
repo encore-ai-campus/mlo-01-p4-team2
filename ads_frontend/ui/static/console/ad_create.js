@@ -19,6 +19,30 @@
     form.querySelectorAll(".creative-preview [data-creative]").forEach((el) => { el.hidden = el.dataset.creative !== (existing ? existing.value : ""); });
   };
 
+  // 2-1) 구성별로 보이는 모습(frames.js, 설계 §10 "구성 표시 정보")에 지금 고른 소재의 이미지를 넘긴다 — 등록된 소재는 그 그림, 새로 올리기는 고른 파일
+  const preview = document.getElementById("image-preview");
+  const frameSource = () => {
+    const source = (form.querySelector('input[name="creative_source"]:checked') || {}).value;
+    if (source === "existing") {
+      return imageOf(existing && existing.value);
+    }
+    return preview && !preview.hidden ? preview.src : "";
+  };
+  // 2-2) 구성별 소재(설계 §10 "구성별 노출 소재" ⑤): 고른 구성의 칸만 보이고, 고른 등록 소재는 그 구성의 틀에 그린다
+  const imageOf = (id) => {
+    const img = id ? form.querySelector(`.creative-preview [data-creative="${CSS.escape(id)}"] img`) : null;
+    return img ? img.getAttribute("src") : "";
+  };
+  const picks = () => {
+    const chosen = new Set([...form.querySelectorAll('input[name="slot_ids"]:checked')].map((c) => c.value));
+    form.querySelectorAll("[data-slot-pick-row]").forEach((row) => { row.hidden = !chosen.has(row.dataset.slotPickRow); });
+    return [...form.querySelectorAll("select[data-slot-pick]")].filter((select) => select.value && chosen.has(select.dataset.slotPick));
+  };
+  const showFrames = () => {
+    const own = Object.fromEntries(picks().map((select) => [select.dataset.slotPick, imageOf(select.value)]));
+    if (window.ConsoleFrames) window.ConsoleFrames.draw(frameSource(), own);
+  };
+
   // 3) 아래 띠·확인 창의 요약(캠페인·구성·입찰·소재)
   const summary = document.getElementById("ad-summary");
   const line = document.getElementById("ad-summary-line");
@@ -30,12 +54,14 @@
     const source = (form.querySelector('input[name="creative_source"]:checked') || {}).value;
     const creative = source === "existing"
       ? (existing && existing.value ? existing.selectedOptions[0].textContent : "고르지 않음")
-      : `${value("title") || "제목 없음"}(새로 올리기)`;
+      : `${value("title") || "이미지 이름 없음"}(새로 올리기)`;
     const rows = [
       ["캠페인", campaign && campaign.selectedOptions[0] ? campaign.selectedOptions[0].textContent : "고르지 않음"],
       ["구성 · 입찰", `${slots.length ? slots.join(", ") : "구성 없음"} · ${bid > 0 ? `${bid.toLocaleString()} P` : "입찰 없음"}`],
       ["소재", creative],
     ];
+    const own = picks().map((select) => `${select.closest(".field").querySelector("label").textContent.replace(/:$/, "")}: ${select.selectedOptions[0].textContent}`);
+    if (own.length) rows.push(["구성별 소재", own.join(", ")]);
     summary.replaceChildren(...rows.map(([term, text]) => {
       const row = document.createElement("div");
       const dt = document.createElement("dt"); dt.textContent = term;
@@ -45,6 +71,7 @@
     }));
     line.textContent = `선택 구성 ${slots.length}개 · 입찰 ${bid > 0 ? `${bid.toLocaleString()} P` : "없음"} · ${source === "existing" ? "등록된 소재" : "새 소재"}`;
     showExisting();
+    showFrames();
   };
   form.addEventListener("input", refresh);
   form.addEventListener("change", refresh);
@@ -61,11 +88,11 @@
     const chosen = file.files[0];
     note.textContent = "";
     image.hidden = true;
-    if (!chosen) return;
+    if (!chosen) { showFrames(); return; }
     if (chosen.size > Number(file.dataset.maxBytes)) note.textContent = "용량이 상한을 넘습니다. 그대로 보내면 거절됩니다.";
     const reader = new FileReader();
-    image.onerror = () => { image.hidden = true; };  // 그림이 아닌 파일은 깨진 그림 대신 숨긴다(서버가 거절 사유를 알린다)
-    reader.onload = () => { image.src = reader.result; image.hidden = false; };
+    image.onerror = () => { image.hidden = true; showFrames(); };  // 그림이 아닌 파일은 깨진 그림 대신 숨긴다(서버가 거절 사유를 알린다)
+    reader.onload = () => { image.src = reader.result; image.hidden = false; showFrames(); };
     reader.readAsDataURL(chosen);
   });
 })();

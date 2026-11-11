@@ -14,7 +14,7 @@ from campaigns.api import CampaignStatus, ReviewStatus
 from console import urls as console_urls
 from console.operator import urls as operator_urls
 from foundation.templatetags.kst import kst as backend_kst
-from masters.api import Audience
+from masters.api import Audience, DisplayFit
 from tests.support.helpers import BASE_DIR, run_python
 import tests.support.presentation  # noqa: F401 — 프론트 경로를 sys.path 에 둔다(아래 ui import 보다 먼저)
 from ui import labels, routes
@@ -61,7 +61,7 @@ class FrontendSyncTests(Cases, SimpleTestCase):
         self.assertEqual(frontend, json.loads(json.dumps({n: getattr(settings, n) for n in names})))
 
     def case_frontend_labels_match_the_backend_choices(self):
-        for data, choices in ((labels.AUDIENCES, Audience), (labels.CAMPAIGN_STATUSES, CampaignStatus), (labels.ENTRY_TYPES, EntryType),
+        for data, choices in ((labels.AUDIENCES, Audience), (labels.DISPLAY_FITS, DisplayFit), (labels.CAMPAIGN_STATUSES, CampaignStatus), (labels.ENTRY_TYPES, EntryType),
                               (labels.REVIEW_STATUSES, ReviewStatus)):
             self.assertEqual(data, {k: str(v) for k, v in choices.choices}, choices.__name__)
 

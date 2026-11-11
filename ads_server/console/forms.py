@@ -131,7 +131,7 @@ class AdCreateForm(forms.Form):
     bid_amount = forms.IntegerField(label="입찰 금액(포인트)")
     creative_source = forms.ChoiceField(label="소재", choices=[(EXISTING, "등록된 소재 쓰기"), (NEW, "새로 올리기")], widget=forms.RadioSelect, initial=NEW)
     creative_id = forms.ChoiceField(label="등록된 소재", required=False)
-    title = forms.CharField(label="제목", max_length=200, strip=False, required=False)
+    title = forms.CharField(label="이미지 이름", max_length=200, strip=False, required=False)
     redirect_url = forms.CharField(label="이동 주소(https)", max_length=2048, strip=False, required=False)
     image = forms.FileField(label="이미지", required=False, widget=forms.FileInput(attrs={"accept": "image/png,image/jpeg", "data-preview": "image-preview"}))
     request_key = forms.CharField(max_length=64, widget=forms.HiddenInput)
@@ -143,6 +143,7 @@ class AdCreateForm(forms.Form):
         "/ad_group/name": "group_name", "/ad_group/slot_ids": "slot_ids", "/ad_group/segment_ids": "segment_ids", "/ad_group/bid_amount": "bid_amount",
         "/creative": "creative_source", "/creative/title": "title", "/creative/redirect_url": "redirect_url",
     }
+    SLOT_PICK = "slot_creative_"  # 구성별 소재 칸 이름 = 이것 + 구성 ID(설계 §10 "구성별 노출 소재" ⑤)
 
     def __init__(self, *args, campaigns=(), slots=(), creatives=(), segments=(), **kwargs):
         super().__init__(*args, **kwargs)
@@ -153,6 +154,15 @@ class AdCreateForm(forms.Form):
         self.has_creatives = bool(creatives)  # 없으면 화면이 고르는 칸을 그리지 않는다
         self.fields["creative_id"].choices = [("", "고르세요")] + creatives
         self.fields["image"].widget.attrs["data-max-bytes"] = settings.ASSET_MAX_BYTES
+        for s in slots if creatives else ():  # 구성마다 '기본 소재'(위의 소재) 또는 등록된 소재 하나 — 등록된 소재가 없으면 칸이 없다
+            self.fields[self.SLOT_PICK + str(s.slot_id)] = forms.ChoiceField(label=f"{s.media_name} · {s.name}", required=False,
+                                                                            choices=[("", "기본 소재")] + creatives, widget=forms.Select(attrs={"data-slot-pick": str(s.slot_id)}))
+
+    def slot_creatives(self):
+        """{구성 ID: 소재 ID} 고른 구성에서 '기본 소재'가 아닌 것만(고르지 않은 구성의 칸은 버린다 — JS 가 없으면 모든 구성의 칸이 보인다).
+        보낸 구성 순서대로 중복 없이 — 같은 시각에 쓰는 이력·이벤트·감사의 순서가 실행마다 같게(리뷰 N1)."""
+        chosen = dict.fromkeys(self.cleaned_data.get("slot_ids") or ())
+        return {slot_id: self.cleaned_data[self.SLOT_PICK + slot_id] for slot_id in chosen if self.cleaned_data.get(self.SLOT_PICK + slot_id)}
 
     def clean(self):
         """어느 쪽 소재인지에 따라 그쪽 입력이 있는지만 본다(입력 모양 — 제목·주소·이미지 규칙은 서비스가 본다)."""
@@ -167,9 +177,9 @@ class AdCreateForm(forms.Form):
 
 
 class CreativeUploadForm(forms.Form):
-    """소재 올리기(소재 목록·광고 상세의 "이미지 업로드" — 목록에만 올린다). 규칙(제목·https·이미지 규격)은 서비스가 판단한다."""
+    """소재 올리기(소재 목록·광고 상세의 "이미지 업로드" — 목록에만 올린다). 규칙(이미지 이름·https·이미지 규격)은 서비스가 판단한다."""
 
-    title = forms.CharField(label="제목", max_length=200, strip=False)
+    title = forms.CharField(label="이미지 이름", max_length=200, strip=False)
     redirect_url = forms.CharField(label="이동 주소(https)", max_length=2048, strip=False)
     image = forms.FileField(label="이미지", widget=forms.FileInput(attrs={"accept": "image/png,image/jpeg"}))
 
@@ -217,7 +227,7 @@ class GroupSegmentsForm(forms.Form):
 class CreativeEditForm(forms.Form):
     """제목·이동 주소. `updated_at` 은 화면이 본 마지막 변경 시각 — 그 사이 바뀌었으면(이미지 교체 포함) 서비스가 거절한다. 바뀐 칸만 넘긴다."""
 
-    title = forms.CharField(label="제목", max_length=200, strip=False)
+    title = forms.CharField(label="이미지 이름", max_length=200, strip=False)
     redirect_url = forms.CharField(label="이동 주소(https)", max_length=2048, strip=False)
     updated_at = forms.DateTimeField(widget=forms.HiddenInput)
 

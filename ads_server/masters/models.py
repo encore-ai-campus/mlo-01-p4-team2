@@ -22,6 +22,17 @@ class Audience(models.TextChoices):
     SHARED = "shared", "일괄"
 
 
+class DisplayFit(models.TextChoices):
+    """매체가 소재 이미지를 그리는 방식(설계 §10 "구성 표시 정보"). 화면 정보다 — 판정·과금·결정에 쓰지 않는다."""
+
+    STRETCH = "stretch", "판에 맞춰 늘림"
+    COVER = "cover", "판을 채우고 넘치는 곳은 잘림"
+    CONTAIN = "contain", "이미지 전체"
+
+
+DISPLAY_SIZE_MAX = 10000  # 비율 칸(가로·세로) 하나의 상한. 하한은 1
+
+
 class Media(models.Model):
     media_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
     name = models.CharField(max_length=100, unique=True)
@@ -71,6 +82,10 @@ class Slot(models.Model):
     name = models.CharField(max_length=100)
     audience = models.CharField(max_length=20, choices=Audience.choices)  # 만든 뒤 바꿀 수 없다. 기본값을 두지 않는다: 만드는 쪽이 정한다
     is_active = models.BooleanField(default=True)
+    # 표시 정보(설계 §10 "구성 표시 정보", SDI-1): 판의 가로:세로 비율과 그리는 방식. 셋 다 NULL = 정보 없음. 규칙은 서비스(`set_slot_display`)와 아래 CHECK 가 같다
+    display_width = models.PositiveSmallIntegerField(null=True, blank=True)
+    display_height = models.PositiveSmallIntegerField(null=True, blank=True)
+    display_fit = models.CharField(max_length=10, choices=DisplayFit.choices, null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -78,6 +93,19 @@ class Slot(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["media", "name"], name="masters_slot_name_per_media"),
             models.CheckConstraint(condition=Q(audience__in=Audience.values), name="masters_slot_audience_valid"),
+            models.CheckConstraint(condition=Q(display_fit__isnull=True) | Q(display_fit__in=DisplayFit.values), name="masters_slot_display_fit_valid"),
+            # 비율은 둘 다 없거나, 둘 다 1~상한이고 방식이 있다. IS NOT NULL 을 따로 적는다 — 비교만 두면 한쪽이 NULL 일 때 CHECK 가 NULL(통과)이 된다
+            models.CheckConstraint(
+                condition=Q(display_width__isnull=True, display_height__isnull=True)
+                | Q(display_width__isnull=False, display_height__isnull=False, display_fit__isnull=False,
+                    display_width__gte=1, display_width__lte=DISPLAY_SIZE_MAX, display_height__gte=1, display_height__lte=DISPLAY_SIZE_MAX),
+                name="masters_slot_display_size_valid",
+            ),
+            # 늘림·자름은 판(비율)이 있어야 한다. 이미지 전체(contain)는 비율 없이도 된다(정해진 판 없이 원본 비율)
+            models.CheckConstraint(
+                condition=~Q(display_fit__in=[DisplayFit.STRETCH, DisplayFit.COVER]) | Q(display_width__isnull=False),
+                name="masters_slot_display_frame_has_size",
+            ),
         ]
 
     def save(self, *args, **kwargs):

@@ -16,7 +16,7 @@
   <div class="column">
     {% if not creative.archived %}
     <section class="card" aria-label="소재 수정">
-      <h2>제목·이동 주소</h2>
+      <h2>이미지 이름·이동 주소</h2>
       <p class="muted">고치면 이 소재를 쓰는 모든 광고에 다음 결정부터 적용됩니다. 이미 나간 광고는 그대로입니다.</p>
       <form method="post" action="{% url 'creative_edit' creative.creative_id %}">{% csrf_token %}
         {% if edit.non_field_errors %}<div class="notice error" role="alert">{{ edit.non_field_errors }}</div>{% endif %}
@@ -59,6 +59,8 @@
         <figcaption><strong>{{ creative.title }}</strong><span class="muted">이동 주소</span><span class="url">{{ creative.redirect_url }}</span></figcaption>
       </figure>
     </section>
+    {% url 'creative_image_file' creative.creative_id as current_image %}
+    {% include "console/_frames.html" with frame_slots=slots source=current_image input=image.image.id_for_label pick="" empty="고를 수 있는 구성마다 이 소재가 보일 모습입니다. ‘이미지 바꾸기’에서 이미지를 고르면 그 이미지로 그립니다." %}
     {% if not creative.archived %}
     <section class="card end" aria-label="삭제">
       <h2>소재 삭제</h2>
@@ -73,4 +75,4 @@
   </div>
 </div>
 {% endblock %}
-{% block scripts %}<script src="{% static 'console/confirm.js' %}" defer></script>{% endblock %}
+{% block scripts %}<script src="{% static 'console/confirm.js' %}" defer></script><script src="{% static 'console/frames.js' %}" defer></script>{% endblock %}

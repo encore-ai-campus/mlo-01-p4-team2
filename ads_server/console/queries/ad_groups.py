@@ -10,12 +10,18 @@ class AdGroupPage:
     group: object  # AdGroupView
     campaign_name: str  # 속한 캠페인(소유는 `get_ad_group` 이 확인했다 — 이름만 읽는다)
     bids: list  # BidView, 최신 버전부터
-    images: list  # CreativeView — 고를 수 있는 내 이미지(보관하지 않은 소재 전부)와, 보관했어도 지금 선택된 것(6-11: 화면은 고르기만 한다)
+    images: list  # CreativeView — 고를 수 있는 내 이미지(보관하지 않은 소재 전부)와, 보관했어도 지금 선택된 것(기본·구성별 — 6-11: 화면은 고르기만 한다)
+    deletable: frozenset  # 그중 지금 삭제(보관)할 수 있는 소재 ID — 끝나지 않은 캠페인의 광고가 쓰지 않는 것(설계 §10 "광고주 화면 정리" ①, 서비스가 다시 본다)
     linked: dict  # {slot_id: SlotView} 지금 고른 위치(꺼진 위치 포함)
     choices: list  # 고를 수 있는 위치(켜진 개인 구성 — 과금 단위는 없다, 6-10d. 일괄 구성은 화면에서 고를 수 없다 — TG-S4)
     effects: tuple  # 현재 입찰의 위치별 결과(SlotEffect), 입찰이 없으면 빈 튜플
     segments: dict  # {segment_id: SegmentView} 지금 연결된 대상 그룹(보관 포함)과 고른 구성의 매체에 속한 그룹
     media_names: dict  # {media_id: 매체 이름} 지금 고른 구성의 매체
+
+    @property
+    def slot_creatives(self):
+        """{slot_id: creative_id} 구성별로 고른 소재(설계 §10 "구성별 노출 소재"). 없는 구성은 기본 소재(`group.creative_id`)가 나간다."""
+        return dict(self.group.slot_creative_ids)
 
     @property
     def segment_choices(self):
@@ -66,13 +72,17 @@ def ad_group_page(user, ad_group_id):
     group = campaigns.get_ad_group(user, ad_group_id)
     linked = masters.get_slots_with_policy(group.slot_ids)
     effects = campaigns.bid_effects(group.current_bid.amount, list(group.slot_ids), slots=linked) if group.current_bid else ()  # 위치 정보와 같은 읽기
-    images = [o.creative for o in campaigns.list_owned_creatives(user)]
-    if group.creative_id is not None and group.creative_id not in {c.creative_id for c in images}:
-        images.insert(0, campaigns.get_creative(user, group.creative_id))  # 보관한 소재가 아직 선택돼 있으면(끝난 캠페인) 그것도 보인다
+    owned = campaigns.list_owned_creatives(user)
+    images = [o.creative for o in owned]
+    chosen = [group.creative_id] if group.creative_id is not None else []
+    chosen += [c for _, c in group.slot_creative_ids if c not in chosen]
+    for creative_id in reversed(chosen):  # 보관한 소재가 아직 선택돼 있으면(끝난 캠페인) 그것도 보인다
+        if creative_id not in {c.creative_id for c in images}:
+            images.insert(0, campaigns.get_creative(user, creative_id))
     media_names = {s.media_id: s.media_name for s in linked.values()}
     segments = {g.segment_id: g for g in masters.segments(segment_ids=group.segment_ids, media_ids=media_names)}
     return AdGroupPage(
         group=group, campaign_name=campaigns.campaign_names([group.campaign_id])[group.campaign_id], bids=campaigns.list_bids(user, group.ad_group_id),
-        images=images, linked=linked,
+        images=images, deletable=frozenset(o.creative.creative_id for o in owned if o.deletable), linked=linked,
         choices=individual_slots(), effects=effects, segments=segments, media_names=media_names,
     )

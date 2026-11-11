@@ -13,6 +13,7 @@ from campaigns import api as campaigns
 
 from ..errors import fetch, run_action, submit
 from ..forms import CreativeEditForm, CreativeUploadForm, ImageForm
+from ..queries.ad_groups import individual_slots
 from .campaigns import SEARCH_MAX
 from .common import present
 
@@ -35,8 +36,8 @@ def creative_list(request):
     use = use if use in dict(USE_FILTERS) else ""
     items = [i for i in campaigns.list_owned_creatives(request.user)
              if (query in i.creative.title.casefold() or query in i.creative.redirect_url.casefold()) and (not use or (use == "used") == bool(i.in_use))]
-    return present(request, "console/creative_list.html", {"items": items, "form": form, "q": q, "use": use,
-                                                           "filters": USE_FILTERS}, status=status)
+    return present(request, "console/creative_list.html", {"items": items, "form": form, "q": q, "use": use, "filters": USE_FILTERS,
+                                                           "slots": individual_slots()}, status=status)  # 올릴 이미지가 고를 수 있는 구성마다 보일 모습(설계 §10 "구성 표시 정보")
 
 
 def _edit_form(creative, data=None):
@@ -55,13 +56,16 @@ def creative_detail(request, creative_id, status=200, edit=None, image=None):
     return present(request, "console/creative_detail.html", {
         "creative": creative, "owned": owned,
         "edit": edit or _edit_form(creative), "image": image or _image_form(creative),
+        "slots": individual_slots(),  # 이 소재가 고를 수 있는 구성마다 보일 모습(설계 §10 "구성 표시 정보")
     }, status=status)
+
+
+ARCHIVED = "소재를 삭제했습니다. 이미 나간 광고의 기록은 남고, 목록과 광고 만들기에서는 보이지 않습니다."
 
 
 @require_POST
 def creative_archive(request, creative_id):
-    run_action(request, campaigns.archive_creative, request.user, creative_id,
-               success="소재를 삭제했습니다. 이미 나간 광고의 기록은 남고, 목록과 광고 만들기에서는 보이지 않습니다.")
+    run_action(request, campaigns.archive_creative, request.user, creative_id, success=ARCHIVED)
     return redirect("creative_list")
 
 

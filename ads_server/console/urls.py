@@ -5,12 +5,12 @@ from django.urls import path
 from .views.account import my_account, my_password
 from .views.auth import ConsoleLoginView, SignupView
 from .views.ad_groups import (
-    ad_group_bid, ad_group_creative_select, ad_group_creative_upload, ad_group_detail, ad_group_enabled, ad_group_name, ad_group_segments, ad_group_slots,
+    ad_group_bid, ad_group_creative_archive, ad_group_creative_select, ad_group_creative_upload, ad_group_detail, ad_group_enabled, ad_group_name, ad_group_segments, ad_group_slot_creative, ad_group_slots,
 )
 from .views.ads import ad_create
 from .views.campaigns import campaign_create, campaign_detail, campaign_end, campaign_list, campaign_review, campaign_status
 from .views.creatives import creative_archive, creative_detail, creative_edit, creative_image, creative_image_file, creative_list
-from .views.dashboard import advertiser_home
+from .views.dashboard import ad_report, advertiser_home
 from .views.points import points
 from .views.home import root
 
@@ -20,6 +20,7 @@ urlpatterns = [
     path("accounts/login/", login_not_required(ConsoleLoginView.as_view()), name="login"),
     path("accounts/logout/", LogoutView.as_view(), name="logout"),  # POST 만 받는다(Django 기본)
     path("advertiser/", advertiser_home, name="advertiser_home"),
+    path("advertiser/ad-report/", ad_report, name="ad_report"),
     path("advertiser/ads/new/", ad_create, name="ad_create"),
     path("advertiser/ad-groups/<str:ad_group_id>/", ad_group_detail, name="ad_group_detail"),
     path("advertiser/ad-groups/<str:ad_group_id>/bid", ad_group_bid, name="ad_group_bid"),
@@ -29,6 +30,8 @@ urlpatterns = [
     path("advertiser/ad-groups/<str:ad_group_id>/enabled", ad_group_enabled, name="ad_group_enabled"),
     path("advertiser/ad-groups/<str:ad_group_id>/creatives", ad_group_creative_upload, name="ad_group_creative_upload"),
     path("advertiser/ad-groups/<str:ad_group_id>/creatives/select", ad_group_creative_select, name="ad_group_creative_select"),
+    path("advertiser/ad-groups/<str:ad_group_id>/creatives/<str:creative_id>/archive", ad_group_creative_archive, name="ad_group_creative_archive"),
+    path("advertiser/ad-groups/<str:ad_group_id>/slot-creative", ad_group_slot_creative, name="ad_group_slot_creative"),
     path("advertiser/creatives/", creative_list, name="creative_list"),
     path("advertiser/creatives/<str:creative_id>/", creative_detail, name="creative_detail"),
     path("advertiser/creatives/<str:creative_id>/archive", creative_archive, name="creative_archive"),

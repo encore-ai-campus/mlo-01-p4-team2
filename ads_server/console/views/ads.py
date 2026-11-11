@@ -89,7 +89,7 @@ def ad_create(request):
         else:
             creative = {"creative": {"title": d["title"], "redirect_url": d["redirect_url"], "image_file": d["image"]}}
         return campaigns.create_ad(request.user, d["campaign_id"], ad_group={"name": d["group_name"], "slot_ids": d["slot_ids"], "segment_ids": d["segment_ids"], "bid_amount": d["bid_amount"]},
-                                   request_key=d["request_key"], **creative)
+                                   request_key=d["request_key"], slot_creatives=form.slot_creatives(), **creative)
 
     created, status = submit(form, create, pointers=AdCreateForm.POINTERS, image_field="image")
     if status is not None:

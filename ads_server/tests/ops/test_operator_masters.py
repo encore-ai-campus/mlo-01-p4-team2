@@ -151,6 +151,29 @@ class SlotPageTests(Cases, OperatorBase):
         self.assertRedirects(self.client.post(url, {"active": "0"}), reverse("operator:media_detail", args=[slot.media_id]))
         self.assertFalse(masters.get_slot(slot.slot_id).is_active)
 
+    def case_slot_display_is_set_from_the_slot_table(self):
+        """구성 표시 정보(설계 §10 "구성 표시 정보"): 구성 표의 줄마다 작은 폼 — 저장하면 바로 바뀌고 매체 상세로 돌아간다. 서비스가 거절하면 그 문구가 메시지로,
+        정수가 아닌 값은 폼이 거른다(둘 다 바뀌지 않음). 지금 값이 폼에 채워져 보인다."""
+        slot = masters.create_slot(self.admin, self.media.media_id, "옥상", 100, 200, 500, "초기", audience="individual", impression_share=98, click_share=1, conversion_share=1)
+        url = reverse("operator:slot_display", args=[slot.slot_id])
+
+        def post(**data):
+            r = self.client.post(url, data, follow=True)
+            self.assertEqual(r.redirect_chain, [(self.detail, 302)])
+            return [m.message for m in r.context["messages"]], masters.get_slot(slot.slot_id).display
+
+        self.assertEqual(post(width="260", height="175", fit="stretch"), ([f"‘{slot.name}’의 이미지 표시 정보를 바꿨습니다."], masters.SlotDisplay(260, 175, "stretch")))
+        html = self.client.get(self.detail).content.decode()
+        self.assertIn(f'action="{url}"', html)
+        self.assertIn('name="width" min="1" max="10000" value="260"', html)
+        self.assertIn('<option value="stretch" selected>판에 맞춰 늘림</option>', html)
+        self.assertEqual(post(width="", height="", fit="cover"), (["늘림·자름은 판의 가로·세로 비율이 있어야 합니다."], masters.SlotDisplay(260, 175, "stretch")))
+        self.assertEqual(post(width="1.5", height="1", fit="cover"), (["가로·세로는 정수로 적습니다."], masters.SlotDisplay(260, 175, "stretch")))
+        self.assertEqual(post(width="", height="", fit="contain")[1], masters.SlotDisplay(None, None, "contain"))
+        self.assertEqual(post(width="", height="", fit="")[1], None)
+        self.assertEqual(self.client.post(reverse("operator:slot_display", args=[uuid.uuid4()]), {"fit": ""}).status_code, 404)
+        self.assertEqual(self.client.get(url).status_code, 405)
+
     def case_unknown_media_is_404(self):
         r = self.client.get(reverse("operator:media_detail", args=[uuid.uuid4()]))
         self.assertEqual(r.status_code, 404)

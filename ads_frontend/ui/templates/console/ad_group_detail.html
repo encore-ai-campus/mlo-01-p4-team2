@@ -1,5 +1,5 @@
 {% extends "console/base.html" %}
-{% load kst console_format console_icons %}
+{% load static kst console_format console_icons %}
 {% block title %}{{ group.name }}{% endblock %}
 {% block crumb %} / <a href="{% url 'campaign_detail' group.campaign_id %}">{{ page.campaign_name }}</a> / {{ group.name }}{% endblock %}
 {% block page_head %}
@@ -79,7 +79,8 @@
           <legend>노출할 구성</legend>
           {% for s in page.choices %}
           <label class="slot"><input type="checkbox" name="slot_ids" value="{{ s.slot_id }}"{% if s.slot_id|stringformat:"s" in slots_form.slot_ids.value %} checked{% endif %}>
-            <span class="name">{{ s.media_name }} · {{ s.name }} · {{ s.audience|audience_label }}</span><span class="muted">하한 {{ s.policy.floor|p }} / 상한 {{ s.policy.cap|p }} / 기준가 {{ s.policy.base|p }} · {{ s.policy|shares }}</span></label>
+            <span class="name">{{ s.media_name }} · {{ s.name }} · {{ s.audience|audience_label }}</span><span class="muted">하한 {{ s.policy.floor|p }} / 상한 {{ s.policy.cap|p }} / 기준가 {{ s.policy.base|p }} · {{ s.policy|shares }}</span>
+            <span class="muted display">{{ s.display|display_label }}</span></label>
           {% empty %}
           <p class="muted">고를 수 있는 구성이 없습니다.</p>
           {% endfor %}
@@ -131,14 +132,22 @@
       {% if not group.creative_id %}<p class="muted">고른 이미지가 없습니다. 이미지가 없으면 광고가 나가지 않습니다.</p>{% endif %}
       <details class="choose">
         <summary class="button secondary wide">다른 소재 선택</summary>
-        <p class="helptext">바꾸면 다음 결정부터 적용되고, 이미 나간 광고는 그대로입니다. 제목·이동 주소 수정과 이미지 교체는 <a href="{% url 'creative_list' %}">소재</a>에서 합니다.</p>
+        <p class="helptext">바꾸면 다음 결정부터 적용되고, 이미 나간 광고는 그대로입니다. 이미지 이름·이동 주소 수정과 이미지 교체는 <a href="{% url 'creative_list' %}">소재</a>에서 합니다.</p>
         {% for c in page.images %}{% if c.creative_id != group.creative_id %}{# 보관한 이미지는 선택된 것일 때만 목록에 있다 #}
         <div class="choice">
           <img class="thumb" src="{% url 'creative_image_file' c.creative_id %}" alt="" width="72" height="40" loading="lazy">
           <p><a href="{% url 'creative_detail' c.creative_id %}">{{ c.title }}</a><span class="muted">{{ c.redirect_url|domain }}</span></p>
-          <form method="post" action="{% url 'ad_group_creative_select' group.ad_group_id %}">{% csrf_token %}<input type="hidden" name="creative_id" value="{{ c.creative_id }}">
-            <button type="submit" class="link" aria-label="이 이미지로 바꾸기: {{ c.title }}">선택</button>
-          </form>
+          <div class="inline">
+            <form method="post" action="{% url 'ad_group_creative_select' group.ad_group_id %}">{% csrf_token %}<input type="hidden" name="creative_id" value="{{ c.creative_id }}">
+              <button type="submit" class="link" aria-label="이 이미지로 바꾸기: {{ c.title }}">선택</button>
+            </form>
+            {% if c.creative_id in page.deletable %}
+            <form method="post" action="{% url 'ad_group_creative_archive' group.ad_group_id c.creative_id %}" data-confirm="‘{{ c.title }}’ 소재를 삭제할까요?" data-confirm-detail="삭제한 소재는 목록에서 사라지고 새 광고에 고를 수 없습니다." data-confirm-action="삭제">{% csrf_token %}
+              <button type="submit" class="link danger" aria-label="이 소재 삭제: {{ c.title }}">삭제</button>
+            </form>
+            {% elif c.archived %}<span class="muted">삭제한 이미지</span>{# 끝난 캠페인에서 구성별로 지정된 채 지운 것 #}
+            {% else %}<span class="muted" title="끝나지 않은 캠페인의 광고가 쓰는 소재는 삭제할 수 없습니다">사용 중</span>{% endif %}
+          </div>
         </div>
         {% endif %}{% empty %}
         <p class="muted">다른 이미지가 없습니다. 아래에서 올린 뒤 고르세요.</p>
@@ -146,7 +155,30 @@
       </details>
     </section>
 
-    <div class="notice info">새 이미지 업로드 ≠ 소재 변경<span class="detail">이미지를 올린 뒤, 노출할 소재를 ‘다른 소재 선택’에서 따로 골라야 합니다.</span></div>
+    {% if page.linked %}
+    <section class="card slot-creatives" aria-labelledby="slot-creatives-title">
+      <h2 id="slot-creatives-title">구성별 소재</h2>
+      <p class="helptext">구성마다 다른 이미지를 고를 수 있습니다. ‘기본 소재’인 구성에는 위의 현재 노출 소재가 나갑니다. 바꾸면 다음 결정부터 적용됩니다.</p>
+      {% for s in page.linked.values %}{% with own=page.slot_creatives|get_item:s.slot_id %}{% firstof own group.creative_id as shown %}
+      <div class="choice">
+        {% if shown %}<img class="thumb" src="{% url 'creative_image_file' shown %}" alt="" width="72" height="40" loading="lazy">{% else %}<span></span>{% endif %}
+        <p>{{ s.media_name }} · {{ s.name }}<span class="muted">{{ s.display|display_label }}</span></p>
+        <form method="post" action="{% url 'ad_group_slot_creative' group.ad_group_id %}" class="inline">{% csrf_token %}<input type="hidden" name="slot_id" value="{{ s.slot_id }}">
+          <select name="creative_id" aria-label="{{ s.media_name }} · {{ s.name }}에 나갈 이미지">
+            <option value=""{% if not own %} selected{% endif %}>기본 소재</option>
+            {% for c in page.images %}{% if not c.archived or c.creative_id == own %}<option value="{{ c.creative_id }}"{% if c.creative_id == own %} selected{% endif %}>{{ c.title }}</option>{% endif %}{% endfor %}
+          </select>
+          <button type="submit" class="link">저장</button>
+        </form>
+      </div>
+      {% endwith %}{% endfor %}
+    </section>
+    {% endif %}
+
+    {% if group.creative_id %}{% url 'creative_image_file' group.creative_id as current_image %}{% endif %}
+    {% include "console/_frames.html" with frame_slots=page.linked.values frame_creatives=page.slot_creatives source=current_image input="id_new-image" pick="" empty="이 광고의 구성에서 소재가 보일 모습입니다. 아래 ‘이미지 올리기’에서 이미지를 고르면 그 이미지로 그립니다." %}
+
+    <div class="notice info">새 이미지 업로드 ≠ 소재 변경<span class="detail">이미지를 올린 뒤, 노출할 소재를 ‘다른 소재 선택’(구성마다 다르게는 ‘구성별 소재’)에서 따로 골라야 합니다.</span></div>
 
     <section class="upload" aria-label="이미지 업로드">
       <details class="choose"{% if upload_form.errors %} open{% endif %}>
@@ -164,3 +196,4 @@
   </div>
 </div>
 {% endblock %}
+{% block scripts %}<script src="{% static 'console/confirm.js' %}" defer></script><script src="{% static 'console/frames.js' %}" defer></script>{% endblock %}

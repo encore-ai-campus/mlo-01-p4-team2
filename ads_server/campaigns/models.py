@@ -65,9 +65,13 @@ class AdGroup(models.Model):
 
 
 class AdGroupSlot(models.Model):
+    """광고그룹이 고른 구성(DRD O3). `creative` = 이 구성에서 나갈 소재(설계 §10 "구성별 노출 소재") — NULL 이면 광고그룹의 선택 소재(`AdGroup.creative`)를 쓴다.
+    구성 목록을 바꾸면 빠진 구성의 행만 지우므로 남는 구성의 지정은 그대로다. 소재 쪽은 `PROTECT` — 소재는 지우지 않고 보관한다."""
+
     ad_group_slot_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
     ad_group = models.ForeignKey(AdGroup, on_delete=models.CASCADE, related_name="slot_links", db_index=False)  # db_index=False: campaigns_ad_group_slot_unique 가 이 열로 시작해 FK 색인이 겹친다(계획서 부록 B-1)
     slot = models.ForeignKey("masters.Slot", on_delete=models.PROTECT, related_name="+")
+    creative = models.ForeignKey("Creative", on_delete=models.PROTECT, related_name="slot_selections", null=True, blank=True)  # 색인: 보관 제한이 소재로 찾는다
 
     class Meta:
         db_table = "campaigns_ad_group_slot"
@@ -159,7 +163,7 @@ class Bid(AppendOnlyModel):
 
 
 CAMPAIGN_CHANGES = ("CREATED", "STATUS_CHANGED", "BUDGET_CHANGED", "PERIOD_CHANGED")
-AD_GROUP_CHANGES = ("CREATED", "ENABLED_CHANGED", "SLOTS_CHANGED", "CREATIVE_SELECTED", "SEGMENTS_CHANGED")
+AD_GROUP_CHANGES = ("CREATED", "ENABLED_CHANGED", "SLOTS_CHANGED", "CREATIVE_SELECTED", "SEGMENTS_CHANGED", "SLOT_CREATIVE_SELECTED")
 
 
 class ChangeTarget(models.TextChoices):

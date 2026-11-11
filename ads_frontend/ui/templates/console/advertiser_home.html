@@ -117,7 +117,7 @@
 
 {% if campaign_count %}
 <section aria-label="상위 캠페인">
-  <div class="section-head"><h2>상위 캠페인</h2><a href="{% url 'campaign_list' %}">전체 보기 {% icon "arrow" 14 %}</a></div>
+  <div class="section-head"><h2>상위 캠페인</h2><a href="{% url 'ad_report' %}?days={{ days }}">전체 보기 {% icon "arrow" 14 %}</a></div>
   <div class="card table">
     <div class="table-wrap">
       <table>

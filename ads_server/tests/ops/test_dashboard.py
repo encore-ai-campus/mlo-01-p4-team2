@@ -157,7 +157,8 @@ class DashboardTests(Cases, TestCase):
 
 @tag("security")
 class TopCampaignTests(Cases, TestCase):
-    """상위 캠페인 표: 캠페인별 합계(`records.campaign_totals`)는 일별 성과와 같은 규칙이고, 화면은 소진 포인트 순으로 보인다."""
+    """상위 캠페인 표: 캠페인별 합계(`records.campaign_totals`)는 일별 성과와 같은 규칙이고, 화면은 소진 포인트 순으로 보인다.
+    그 "전체 보기"는 광고별 성과(`records.ad_group_totals` — 같은 규칙, 소진 포인트 없음, 설계 §10 "광고주 화면 정리" ③)다."""
 
     def setUp(self):
         self.w = World(ends_in=None)
@@ -202,6 +203,57 @@ class TopCampaignTests(Cases, TestCase):
         table = re.search(r'aria-label="상위 캠페인".*?</section>', html, re.S).group(0)
         self.assertEqual(re.findall(r"<tr><td>([^<]+)</td>", table), ["&lt;b&gt;둘째&lt;/b&gt;", "캠페인"])  # 소진 392 > 294
         self.assertNotIn("<b>둘째</b>", html)
+
+    def case_ad_group_totals_follow_the_daily_report_rules_without_points(self):
+        """광고마다 인정된 반응을 수신일로 센다. 소진 포인트는 없고(None), 모든 광고의 합은 같은 기간 일별 성과의 노출·클릭·전환과 같다. 질의는 한 번."""
+        second_group = campaigns.list_ad_groups(self.w.adv, self.second.campaign_id)[0].ad_group_id
+        impression(self.w, NOW - DAY)
+        impression(self.w, NOW, slot=self.slot2)
+        impression(self.w, NOW - DAY, slot=self.slot2)
+        impression(self.w, NOW - 10 * DAY)  # 기간 밖
+        impression(World(ends_in=None), NOW)  # 다른 광고주
+        with self.assertNumQueries(1):
+            totals = records.ad_group_totals(self.w.adv, *self.window)
+        self.assertEqual({gid: (t.impressions, t.clicks, t.conversions, t.spent) for gid, t in totals.items()},
+                         {self.w.group.ad_group_id: (1, 0, 0, None), second_group: (2, 0, 0, None)})
+        report = records.daily_report(self.w.adv, *self.window)
+        for name in ("impressions", "clicks", "conversions", "converted_clicks"):
+            self.assertEqual(sum(getattr(t, name) for t in totals.values()), getattr(report.totals, name), name)
+
+    def case_the_ad_report_shows_every_ad_of_running_campaigns_by_impressions_without_points(self):
+        """대시보드 "전체 보기" → 광고별 성과(같은 기간): 노출 많은 순, 끝나지 않은 캠페인의 광고는 0 이어도, 끝난 캠페인의 광고는 그 기간에 반응이 있을 때만. 포인트 열은 없다."""
+        second_group = campaigns.list_ad_groups(self.w.adv, self.second.campaign_id)[0].ad_group_id
+        ended = {}
+        for label, active in (("끝남·성과 있음", True), ("끝남·성과 없음", False)):
+            slot = make_slot(self.w.admin)
+            c = campaigns.create_campaign(self.w.adv, label, NOW - 30 * DAY, None, 5000, now=NOW)
+            g = campaigns.create_ad_group(self.w.adv, c.campaign_id, label, [slot.slot_id], bid_amount=300, now=NOW)
+            campaigns.create_creative(self.w.adv, g.ad_group_id, "이미지", "https://example.com/e", png_file((7, 7, 7)), now=NOW)
+            if active:
+                impression(self.w, NOW - DAY, slot=slot)  # 어제 — '오늘'(1일)에는 들지 않는다
+            campaigns.end_campaign(self.w.adv, c.campaign_id, now=NOW)
+            ended[label] = g.ad_group_id
+        impression(self.w, NOW, slot=self.slot2)
+        impression(self.w, NOW, slot=self.slot2)
+        other = World(ends_in=None)
+        impression(other, NOW)
+        campaigns.update_ad_group(self.w.adv, self.w.group.ad_group_id, {"enabled": False}, now=NOW)
+        self.client.force_login(self.w.adv)
+        with mock.patch("console.views.dashboard._now", return_value=NOW):
+            home = self.client.get(reverse("advertiser_home"), {"days": 7}).content.decode()
+            week = self.client.get(reverse("ad_report"), {"days": 7}).content.decode()
+            today = self.client.get(reverse("ad_report"), {"days": 1}).content.decode()
+        self.assertIn(f'href="{reverse("ad_report")}?days=7"', home)  # 상위 캠페인의 "전체 보기"가 같은 기간으로
+        table = lambda html: re.search(r"<table>.*?</table>", html, re.S).group(0)  # noqa: E731
+        ads = lambda html: re.findall(r'<tr><td><a href="/advertiser/ad-groups/([^/"]+)/">', table(html))  # noqa: E731
+        self.assertEqual(ads(week), [str(second_group), str(ended["끝남·성과 있음"]), str(self.w.group.ad_group_id)])  # 노출 2·1·0, 성과 없는 끝난 광고는 없다
+        self.assertEqual(ads(today), [str(second_group), str(self.w.group.ad_group_id)])  # 어제 반응만 있는 끝난 광고는 '오늘'에 없다
+        self.assertRegex(table(week), r'<th scope="row" colspan="3">합계</th><td class="num">3</td><td class="num">0</td><td class="num">0\.0%</td>')
+        self.assertIn("&lt;b&gt;둘째&lt;/b&gt;", table(week))
+        self.assertIn("광고 꺼짐", table(week))
+        self.assertNotIn(str(other.group.ad_group_id), week)
+        self.assertNotIn("소진", table(week))
+        self.assertNotIn(" P<", table(week))
 
     def test_top_campaign(self):
         self.run_cases()

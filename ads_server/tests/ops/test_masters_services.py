@@ -215,6 +215,44 @@ class PolicyServiceTests(Cases, TestCase):
         with self.assertRaises(NotFound):
             api.set_media_active(self.admin, uuid.uuid4(), True)
 
+    def case_slot_display_is_validated_audited_and_shown_on_the_slot(self):
+        """구성 표시 정보(설계 §10 "구성 표시 정보"): 규칙은 DB CHECK 와 같고 어긋나면 400(바뀌지 않음), 바꾸면 감사에 바꾼 값과 이전 값,
+        모든 슬롯 읽기(`get_slot`·`list_slots`·`get_slots_with_policy`)에 실린다. 화면 정보라 이벤트를 쓰지 않는다."""
+        slot = new_slot(self.admin)
+        self.assertIsNone(api.get_slot(slot.slot_id).display)  # 처음은 정보 없음
+        events_before = EventOutbox.objects.count()
+        rejected = {
+            (3, None, "cover"): "/width", (None, 2, "contain"): "/width", (0, 2, "cover"): "/width", (3, 10001, "cover"): "/height", (True, 2, "cover"): "/width",
+            ("3", 2, "cover"): "/width", (3, 2, None): "/fit", (3, 2, "fill"): "/fit", (None, None, "stretch"): "/width", (None, None, "cover"): "/width",
+        }
+        for (width, height, fit), pointer in rejected.items():
+            with self.subTest((width, height, fit)), self.assertRaises(InvalidRequest) as caught:
+                api.set_slot_display(self.admin, slot.slot_id, width, height, fit)
+            self.assertEqual(caught.exception.errors[0]["pointer"], pointer)
+        self.assertIsNone(api.get_slot(slot.slot_id).display)
+        self.assertFalse(AuditLog.objects.filter(action="masters.slot_display_changed").exists())
+
+        api.set_slot_display(self.admin, slot.slot_id, 260, 175, "stretch")
+        api.set_slot_display(self.admin, slot.slot_id, None, None, "contain")  # 이미지 전체는 비율 없이도 된다
+        self.assertEqual(api.get_slot(slot.slot_id).display, api.SlotDisplay(width=None, height=None, fit="contain"))
+        api.set_slot_display(self.admin, slot.slot_id, 3, 2, "cover")
+        shown = api.SlotDisplay(width=3, height=2, fit="cover")
+        self.assertEqual(api.get_slot(slot.slot_id).display, shown)
+        self.assertEqual({s.slot_id: s.display for s in api.list_slots()}[slot.slot_id], shown)
+        self.assertEqual(api.get_slots_with_policy([slot.slot_id])[slot.slot_id].display, shown)
+        api.set_slot_display(self.admin, slot.slot_id, None, None, "")  # 화면의 "없음"(빈 값) = 지움
+        self.assertIsNone(api.get_slot(slot.slot_id).display)
+        details = [e.detail for e in AuditLog.objects.filter(action="masters.slot_display_changed", target_id=str(slot.slot_id)).order_by("created_at", "pk")]
+        self.assertEqual(details, [
+            {"width": 260, "height": 175, "fit": "stretch", "previous": {"width": None, "height": None, "fit": None}},
+            {"width": None, "height": None, "fit": "contain", "previous": {"width": 260, "height": 175, "fit": "stretch"}},
+            {"width": 3, "height": 2, "fit": "cover", "previous": {"width": None, "height": None, "fit": "contain"}},
+            {"width": None, "height": None, "fit": None, "previous": {"width": 3, "height": 2, "fit": "cover"}},
+        ])
+        self.assertEqual(EventOutbox.objects.count(), events_before)
+        with self.assertRaises(NotFound):
+            api.set_slot_display(self.admin, uuid.uuid4(), 3, 2, "cover")
+
     def case_only_turning_an_active_media_off_records_a_deactivation(self):
         """6-1a: 켜져 있던 매체를 실제로 끌 때만 기록한다(이미 꺼진 매체를 다시 끄거나 켜면 없음). 반응 판정은 이 기록에서 (결정 시각, 접수 시각] 안의 가장 이른 비활성화를 찾는다."""
         media = api.create_media(self.admin, "끄는 매체")
@@ -302,6 +340,7 @@ class MastersAuthorizationAndAuditTests(Cases, TestCase):
             lambda: api.add_policy_version(actor, s.slot_id, 100, 200, 300, "사유", expected_version=1, **SHARES),
             lambda: api.add_policy_version_bulk(actor, {s.slot_id: 1}, 100, 200, 300, "사유", **SHARES),
             lambda: api.set_slot_active(actor, s.slot_id, False),
+            lambda: api.set_slot_display(actor, s.slot_id, 3, 2, "cover"),
             lambda: api.list_media(actor),
             lambda: api.list_policy_versions(actor, s.slot_id),
             lambda: api.get_media(actor, s.media_id),

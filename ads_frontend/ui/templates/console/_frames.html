@@ -1,0 +1,16 @@
+{% load console_format %}{% if frame_slots %}
+{% comment %}구성별로 보이는 모습(설계 §10 "구성 표시 정보", SDI-1). 그림은 console/frames.js 가 그린다 — JS 가 없으면 구성 이름과 권장 비율만 보인다.
+   frame_slots = 보일 구성(SlotView 목록), source = 처음 그릴 이미지 주소(없으면 빈 값),
+   frame_creatives = {구성 ID: 소재 ID} 구성마다 따로 그릴 소재(설계 §10 "구성별 노출 소재" ⑤ — 없는 구성은 source, 고른 파일은 모든 구성에), input = 고른 파일을 그릴 file 칸의 id(없으면 빈 값),
+   pick = 이 이름의 체크박스로 고른 구성만 보일 때 그 이름(없으면 모두), empty = 그릴 것이 없을 때의 안내{% endcomment %}
+<section class="card frames" aria-labelledby="frames-title" data-frames data-source="{{ source }}" data-input="{{ input }}" data-pick="{{ pick }}">
+  <h2 id="frames-title">구성별로 보이는 모습</h2>
+  <p class="muted" data-frames-empty>{{ empty }}</p>
+  {% for s in frame_slots %}
+  <figure class="frame" data-slot="{{ s.slot_id }}"{% with own=frame_creatives|get_item:s.slot_id %}{% if own %} data-src="{% url 'creative_image_file' own %}"{% endif %}{% endwith %}{% if s.display %} data-fit="{{ s.display.fit }}"{% if s.display.width %} data-width="{{ s.display.width }}" data-height="{{ s.display.height }}"{% endif %}{% endif %}>
+    <div class="frame-box"></div>
+    <figcaption><strong>{{ s.media_name }} · {{ s.name }}</strong><span class="muted">{{ s.display|display_label }}</span><span class="frame-note" role="status"></span></figcaption>
+  </figure>
+  {% endfor %}
+</section>
+{% endif %}

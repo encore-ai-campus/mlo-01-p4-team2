@@ -246,6 +246,9 @@ class LinkArchiveRaceTests(Cases, TransactionTestCase):
     def archive(self):
         return api.archive_creative(self.w.adv, self.mine.creative_id)
 
+    def slot_select(self):  # 구성별 소재(설계 §10 "구성별 노출 소재" ②) — 같은 소재 행 잠금
+        return api.select_slot_creative(self.w.adv, self.w.group.ad_group_id, self.w.slot.slot_id, self.mine.creative_id)
+
     def case_a_link_waiting_behind_an_archive_is_refused(self):  # 6-24 부터 연결과 함께 선택한다(이름은 위협 모델 인용 그대로)
         first, second = overlap(self, self.archive, "UPDATE", "campaigns_creative", self.select)  # 둘째는 소재 행 잠금에서 기다린다
         self.assertEqual((first.errors, [type(e) for e in second.errors]), ([], [errors.NotFound]))
@@ -253,6 +256,16 @@ class LinkArchiveRaceTests(Cases, TransactionTestCase):
 
     def case_an_archive_waiting_behind_a_link_is_refused(self):  # 연결과 함께 선택된 소재는 보관되지 않는다
         first, second = overlap(self, self.select, "INSERT", "campaigns_ad_group_creative", self.archive)
+        self.assertEqual((first.errors, [type(e) for e in second.errors]), ([], [errors.Conflict]))
+        self.assertFalse(api.get_creative(self.w.adv, self.mine.creative_id).archived)
+
+    def case_a_slot_choice_waiting_behind_an_archive_is_refused(self):
+        first, second = overlap(self, self.archive, "UPDATE", "campaigns_creative", self.slot_select)
+        self.assertEqual((first.errors, [type(e) for e in second.errors]), ([], [errors.NotFound]))
+        self.assertEqual(api.get_ad_group(self.w.adv, self.w.group.ad_group_id).slot_creative_ids, ())
+
+    def case_an_archive_waiting_behind_a_slot_choice_is_refused(self):  # 구성별로 쓰는 소재도 보관되지 않는다
+        first, second = overlap(self, self.slot_select, "UPDATE", "campaigns_ad_group_slot", self.archive)
         self.assertEqual((first.errors, [type(e) for e in second.errors]), ([], [errors.Conflict]))
         self.assertFalse(api.get_creative(self.w.adv, self.mine.creative_id).archived)
 

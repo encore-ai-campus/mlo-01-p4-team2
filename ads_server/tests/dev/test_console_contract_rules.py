@@ -10,7 +10,7 @@ from billing.models import EntryType
 from campaigns import api as campaigns
 from campaigns.models import CampaignStatus, ReviewStatus
 from foundation.api import MAX_AMOUNT, change_password, errors, update_profile
-from masters.models import MAX_SHARE, MIN_SHARE, Audience
+from masters.models import DISPLAY_SIZE_MAX, MAX_SHARE, MIN_SHARE, Audience, DisplayFit
 from records.models import ReactionType
 from tests.support.contract_support import Contract
 from tests.support.factories import NOW, PW, World
@@ -26,8 +26,11 @@ class ConsoleContractRuleTests(Cases, TestCase):
 
     def case_value_lists_and_amounts_match_the_models(self):
         for schema, choices in (("ReactionType", ReactionType), ("CampaignStatus", CampaignStatus), ("LedgerType", EntryType), ("Audience", Audience),
-                                ("ReviewRequestStatus", ReviewStatus)):
+                                ("ReviewRequestStatus", ReviewStatus), ("DisplayFit", DisplayFit)):
             self.assertEqual(set(self.schema(schema)["enum"]), set(choices.values), schema)
+        for side in ("width", "height"):  # 구성 표시 정보의 비율 칸(설계 §10 "구성 표시 정보")
+            limits = self.schema("SlotDisplay")["properties"][side]
+            self.assertEqual((limits["minimum"], limits["maximum"]), (1, DISPLAY_SIZE_MAX), side)
         self.assertEqual(self.schema("Money")["maximum"], MAX_AMOUNT)
         self.assertEqual((self.schema("ChargeShare")["minimum"], self.schema("ChargeShare")["maximum"]), (MIN_SHARE, MAX_SHARE))  # 반응별 비율(6-10)
         self.assertEqual(set(self.schema("ExpectedCharges")["required"]), set(ReactionType.values))

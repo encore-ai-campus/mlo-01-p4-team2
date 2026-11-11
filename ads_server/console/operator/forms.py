@@ -1,7 +1,7 @@
 """관리자 화면의 폼. **입력 변환만** 한다 — 규칙(이름 형식, 하한 ≤ 기준가 ≤ 상한, 유예 범위)은 서비스가 판단한다."""
 from django import forms
 
-from masters.api import Audience
+from masters.api import Audience, DisplayFit
 
 GRACE_CHOICES = [(0, "즉시 만료"), (3600, "1시간"), (86400, "24시간"), (7 * 86400, "7일"), (30 * 86400, "30일")]
 
@@ -26,6 +26,14 @@ class SlotForm(PolicyValuesForm):
                                  help_text="개인: 결정 하나를 한 사람이 봅니다. 일괄(여러 사람이 같은 광고를 봄)은 사용 중지라 새로 만들 수 없습니다. 만든 뒤 바꿀 수 없습니다.")
     reason = forms.CharField(label="사유", max_length=200, strip=False, required=False, help_text="비우면 ‘없음’으로 남습니다.")  # 비면 서비스가 채운다(6-8c)
     field_order = ["name", "audience"]  # 첫 정책 값(하한·기준가·상한·비율·사유)은 그 뒤
+
+
+class SlotDisplayForm(forms.Form):
+    """구성 표시 정보(설계 §10 "구성 표시 정보"): 판의 가로:세로 비율과 그리는 방식. 빈 칸은 None(지움) — 규칙(둘 다·범위·방식 필수)은 서비스가 판단한다."""
+
+    width = forms.IntegerField(label="가로", required=False)
+    height = forms.IntegerField(label="세로", required=False)
+    fit = forms.ChoiceField(label="그리는 방식", choices=[("", "없음"), *DisplayFit.choices], required=False)
 
 
 class PolicyForm(PolicyValuesForm):

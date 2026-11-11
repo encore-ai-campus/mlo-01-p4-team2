@@ -132,3 +132,12 @@ def campaign_totals(owner, start, end):
     spent = billing.spend_by_campaign(campaigns.campaign_ids_of(owner), billing.budget_day_of(start), billing.budget_day_of(end))
     zero = dict.fromkeys(("impressions", "clicks", "conversions", "converted_clicks"), 0)
     return {cid: ReportTotals(spent=spent.get(cid, 0), **{**zero, **counts.get(cid, {})}) for cid in set(counts) | set(spent)}
+
+
+def ad_group_totals(owner, start, end):
+    """기간의 광고(광고그룹)별 노출·클릭·전환 `{ad_group_id: ReportTotals}`(대시보드 "광고별 성과", 설계 §10 "광고주 화면 정리" ③). `daily_report` 와 같은 규칙 —
+    인정된 반응을 수신일로 센다. **소진 포인트는 세지 않는다**(`spent=None` — 원장 과금 줄에는 캠페인만 있다, 사용자 결정). 반응이 없는 광고는 결과에 없다. 질의 한 번."""
+    require_advertiser(owner, "광고주만 볼 수 있습니다.")
+    _check_window(start, end)
+    ad_group_of = Subquery(Decision.objects.filter(pk=OuterRef("decision_id")).values("ad_group_id")[:1])
+    return {gid: ReportTotals(spent=None, **c) for gid, c in _counts({"owner_id": owner.pk}, start, end, key=ad_group_of).items()}

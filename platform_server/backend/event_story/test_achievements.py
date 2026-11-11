@@ -22,6 +22,7 @@ from .achievement_views import achievements
 def seed_definitions():
     import_module("event_story.migrations.0004_seed_easter_eggs").seed(apps, SimpleNamespace(connection=connection))
     import_module("event_story.migrations.0005_learning_achievements").seed(apps, SimpleNamespace(connection=connection))
+    import_module("event_story.migrations.0006_secret_recipe_achievement").seed(apps, SimpleNamespace(connection=connection))
 
 
 class ManagerAchievementTests(TestCase):
@@ -34,13 +35,13 @@ class ManagerAchievementTests(TestCase):
     def setUp(self):
         self.managers = sorted(manager_ids())
 
-    def test_eight_achievements_and_generated_seven_managers(self):
+    def test_nine_achievements_and_generated_seven_managers(self):
         self.assertEqual(set(self.managers), {
             "manager-suhyeon", "manager-yebin", "manager-songhee", "manager-huiae",
             "manager-yeongseok", "manager-jeonghun", "manager-yuhyeong",
         })
         snapshot = achievement_snapshot(self.alice)
-        self.assertEqual([row["name"] for row in snapshot], ["수상한 친화력", "참을성 테스트", "뱀을 길들이는 자", "데이터의 비밀문", "찰나의 기적", "손가락에 불났다", "삼각지대 탈출", "컴퓨터의 속마음"])
+        self.assertEqual([row["name"] for row in snapshot], ["수상한 친화력", "참을성 테스트", "뱀을 길들이는 자", "데이터의 비밀문", "찰나의 기적", "손가락에 불났다", "삼각지대 탈출", "컴퓨터의 속마음", "꾸왕이의 비밀 레시피"])
         self.assertTrue(all(not row["achieved"] and row["completed_at"] is None for row in snapshot))
         self.assertTrue(all(row["image_url"].startswith("/static/campus/assets/achievements/") for row in snapshot))
 

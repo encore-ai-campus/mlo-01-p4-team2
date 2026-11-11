@@ -1158,6 +1158,24 @@
           }
         },
         {
+          "id": "hidden-recipe-note",
+          "type": "pepero-art",
+          "name": "초콜릿 묻은 레시피 쪽지",
+          "action": "recipe-note",
+          "confirmTransfer": false,
+          "interactionPoint": [
+            1552,
+            747
+          ],
+          "interactionRadius": 50,
+          "footprint": {
+            "x": 1540,
+            "y": 720,
+            "w": 24,
+            "h": 18
+          }
+        },
+        {
           "id": "minigame-timer",
           "type": "game-pc-station",
           "name": "타이머 게임",

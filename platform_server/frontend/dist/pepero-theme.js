@@ -5,10 +5,10 @@
   if(window.CAMPUS_SEASON!=='pepero')return;
   const motion = matchMedia('(prefers-reduced-motion: reduce)');
   const art = {};
-  for (const key of ['monument','cart','gifts','stall','workbench','flowerbox','hero','gate','pedestal','cafe','refill-chest','timer-station-east','typing-station-east']) {
+  for (const key of ['monument','cart','gifts','stall','workbench','flowerbox','hero','gate','pedestal','cafe','refill-chest','recipe-note','timer-station-east','typing-station-east']) {
     const image = new Image(); image.decoding = 'async';
     image.onload = () => window.dispatchEvent(new CustomEvent('campus-seasonal-assets-ready',{detail:{key}}));
-    image.src = ['timer-station-east','typing-station-east'].includes(key)?`assets/minigames/${key}-v1.webp`:`assets/seasonal/pepero/${['monument','cart','gifts','refill-chest'].includes(key)?'':'reference/'}${key}.png`; art[key] = image;
+    image.src = ['timer-station-east','typing-station-east'].includes(key)?`assets/minigames/${key}-v1.webp`:`assets/seasonal/pepero/${['monument','cart','gifts','refill-chest','recipe-note'].includes(key)?'':'reference/'}${key}.png`; art[key] = image;
   }
   function drawAsset(g,image,q,w,h) {
     if (!image.complete || !image.naturalWidth) return;

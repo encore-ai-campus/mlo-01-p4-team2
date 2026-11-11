@@ -97,14 +97,13 @@ def learning_write_transaction(view):
 def start_learning_session(user, question_type, difficulty, subject=Subject.PYTHON):
     if subject not in Subject.values or question_type not in QuestionType.values or difficulty not in Difficulty.values:
         raise LearningError('유효한 문제 유형과 난이도를 선택하세요.')
-    pool = list(Question.objects.filter(is_active=True, subject=subject, question_type=question_type, difficulty=difficulty).prefetch_related('choices'))
+    # Seed/import validate question content before play.
+    pool = list(Question.objects.filter(is_active=True, subject=subject, question_type=question_type, difficulty=difficulty))
     if not pool:
         raise LearningError('해당 유형과 난이도의 활성 문제가 없습니다.', 'empty_question_pool', 409)
     if len(pool) < 10:
         raise LearningError('활성 문제가 10개 이상 필요합니다.', 'insufficient_question_pool', 409)
     selected = random.sample(pool, 10)
-    for question in selected:
-        validate_question(question)
     session = LearningSession.objects.create(user=user, subject=subject, question_type=question_type, difficulty=difficulty, total_questions=len(selected))
     for order, question in enumerate(selected, 1):
         # save/full_clean also verifies type/difficulty relationships.
@@ -216,7 +215,6 @@ def submit_answer(user, session_id, order, answer, submission_request_uuid=None,
         code = 'attempt_limit_reached' if progress['outcome'] == 'incorrect' else 'question_finalized'
         raise LearningError('이미 확정된 문제에는 더 제출할 수 없습니다.', code, 409)
     question = item.question
-    validate_question(question)
     selected_choice = None
     if question.question_type == QuestionType.MULTIPLE_CHOICE:
         matches = [c for c in question.choices.all() if normalize_answer(c.choice_text) == normalize_answer(answer)

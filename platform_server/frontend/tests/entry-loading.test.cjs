@@ -44,3 +44,21 @@ test('arrival timeout shows retry instead of exposing an unprepared map',async()
 test('seasonal image routing follows objects on each floor',()=>{
  const f=fixture();assert.deepEqual(Array.from(f.api.floorsForArt('cart')),['campus']);assert.deepEqual(Array.from(f.api.floorsForArt('monument')),['rooftop']);assert.deepEqual(Array.from(f.api.floorsForArt('unused')),[]);
 });
+test('known image URLs use optimized files and unknown URLs retain their original path',async()=>{
+ const f=fixture(),known=f.image(),unknown=f.image();
+ const first=f.api.image(known,'assets/characters/male-1-walk-v5.png');
+ const second=f.api.image(unknown,'assets/characters/other.png');
+ assert.match(f.started[0],/^assets\/entry-optimized\/male-1-walk-v5-[a-f0-9]+\.webp$/);
+ assert.equal(f.started[1],'assets/characters/other.png');
+ assert.ok(fs.existsSync(path.join(__dirname,'../dist',f.started[0])));
+ await Promise.all([known.load(),unknown.load(),first,second]);
+});
+test('all optimized image mappings point to existing originals and WebP assets',()=>{
+ const mapping=JSON.parse(source.match(/const optimizedImages=(\{.*?\});/)[1]);
+ assert.equal(Object.keys(mapping).length,34);
+ for(const [original,optimized] of Object.entries(mapping)){
+  assert.ok(fs.existsSync(path.join(__dirname,'../dist',original)),original);
+  const data=fs.readFileSync(path.join(__dirname,'../dist',optimized));
+  assert.equal(data.toString('ascii',0,4),'RIFF',optimized);assert.equal(data.toString('ascii',8,12),'WEBP',optimized);
+ }
+});

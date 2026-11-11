@@ -11,8 +11,8 @@ from django.views.decorators.cache import never_cache
 
 from accounts.models import get_avatar, get_nickname, needs_profile_setup
 from .forms import CommentForm, PostForm
-from .models import Comment, Post, MealComment
-from eventing.events import record_comment_event, record_post_event
+from .models import Comment, Post, PostReadLog
+from eventing.events import SESSION_KEY
 
 
 CATEGORY_DESCRIPTIONS = {
@@ -86,7 +86,7 @@ def can_manage(request, item):
 
 def post_data(post, request, detail=False):
     data = {
-        "id": post.pk, "category": post.category, "categoryLabel": post.get_category_display(),
+        "id": post.id, "category": post.category, "categoryLabel": post.get_category_display(),
         "postUuid": str(post.post_uuid), "revision": post.revision,
         "title": post.title, "author": author_data(post.author),
         "createdAt": post.created_at.isoformat(), "updatedAt": post.updated_at.isoformat(),
@@ -102,9 +102,9 @@ def post_data(post, request, detail=False):
 def comment_data(comment, request):
     deleted = comment.deleted_at is not None
     data = {
-        "id": comment.pk, "commentUuid": str(comment.comment_uuid), "revision": comment.revision,
+        "id": comment.id, "commentUuid": str(comment.comment_uuid), "revision": comment.revision,
         "parentCommentUuid": str(comment.parent_id) if comment.parent_id else None,
-        "postId": comment.post_id, "body": "삭제된 댓글입니다." if deleted else comment.body,
+        "postId": comment.post.id, "body": "삭제된 댓글입니다." if deleted else comment.body,
         "author": None if deleted else author_data(comment.author), "createdAt": comment.created_at.isoformat(),
         "updatedAt": comment.updated_at.isoformat(), "isDeleted": deleted,
         "canEdit": not deleted and can_manage(request, comment),
@@ -178,18 +178,25 @@ def posts(request):
     with transaction.atomic():
         item.save()
         item.comment_count = 0
-        record_post_event("post_created", request.user, request.session.get("platform_session_uuid"), item)
     return JsonResponse({"post": post_data(item, request, detail=True)}, status=201)
 
 
 @community_api(["GET", "PATCH", "DELETE"])
 def post_detail(request, post_id):
-    item = posts_query().filter(pk=post_id).first()
+    item = posts_query().filter(id=post_id).first()
     if item is None:
         return error("글이 삭제되었거나 존재하지 않아요.", 404)
     if request.method == "GET":
-        with transaction.atomic():
-            record_post_event("post_read", request.user, request.session.get("platform_session_uuid"), item)
+        try:
+            read_uuid = uuid.UUID(request.GET["read_uuid"]) if "read_uuid" in request.GET else uuid.uuid4()
+            if read_uuid.version != 4:
+                raise ValueError
+        except (ValueError, AttributeError):
+            return error("읽기 요청 UUID를 확인해 주세요.")
+        record, _ = PostReadLog.objects.get_or_create(read_uuid=read_uuid, defaults={
+            "post": item, "user": request.user, "platform_session_id": request.session[SESSION_KEY], "revision": item.revision})
+        if record.user_id != request.user.pk or record.post_id != item.pk:
+            return error("이미 사용한 읽기 요청 UUID입니다.", 409)
         return JsonResponse({"post": post_data(item, request, detail=True)})
     if not can_manage(request, item):
         return error("본인이 쓴 글만 수정하거나 삭제할 수 있어요.", 403)
@@ -198,12 +205,11 @@ def post_detail(request, post_id):
         next_revision = item.revision + 1
         with transaction.atomic():
             updated = Post.objects.filter(
-                pk=post_id, deleted_at__isnull=True, revision=item.revision
+                id=post_id, deleted_at__isnull=True, revision=item.revision
             ).update(deleted_at=now, updated_at=now, revision=next_revision)
             if not updated:
                 return error("다른 화면에서 수정된 글이에요. 최신 글을 다시 확인해 주세요.", 409)
             item.revision = next_revision
-            record_post_event("post_deleted", request.user, request.session.get("platform_session_uuid"), item)
         return JsonResponse({"deleted": True})
     data, failure = payload(request)
     if failure:
@@ -219,24 +225,23 @@ def post_detail(request, post_id):
     next_revision = item.revision + 1
     with transaction.atomic():
         updated = Post.objects.filter(
-            pk=post_id, deleted_at__isnull=True, revision=item.revision, updated_at=item.updated_at
+            id=post_id, deleted_at__isnull=True, revision=item.revision, updated_at=item.updated_at
         ).update(**form.cleaned_data, updated_at=now, revision=next_revision)
         if not updated:
             return error("다른 화면에서 수정된 글이에요. 최신 글을 다시 확인해 주세요.", 409)
         item.revision = next_revision
-        record_post_event("post_updated", request.user, request.session.get("platform_session_uuid"), item)
-    return JsonResponse({"post": post_data(posts_query().get(pk=post_id), request, detail=True)})
+    return JsonResponse({"post": post_data(posts_query().get(id=post_id), request, detail=True)})
 
 
 @community_api(["GET", "POST"])
 def comments(request, post_id):
-    post = Post.objects.filter(pk=post_id, deleted_at__isnull=True).first()
+    post = Post.objects.filter(id=post_id, deleted_at__isnull=True).first()
     if post is None:
         return error("글이 삭제되었거나 존재하지 않아요.", 404)
     if request.method == "GET":
         # Paginate whole threads so a reply cannot appear without its parent.
         replies = Comment.objects.filter(deleted_at__isnull=True).select_related("author", "author__campus_profile")
-        threads = Comment.objects.filter(post_id=post_id, parent__isnull=True).select_related(
+        threads = Comment.objects.filter(post=post, parent__isnull=True).select_related(
             "author", "author__campus_profile"
         ).annotate(reply_count=Count("replies", filter=Q(replies__deleted_at__isnull=True))).filter(
             Q(deleted_at__isnull=True) | Q(reply_count__gt=0)
@@ -247,7 +252,7 @@ def comments(request, post_id):
         page, pagination = result
         return JsonResponse({
             "comments": [comment_data(item, request) for item in page], "pagination": pagination,
-            "commentCount": Comment.objects.filter(post_id=post_id, deleted_at__isnull=True).count(),
+            "commentCount": Comment.objects.filter(post=post, deleted_at__isnull=True).count(),
         })
     data, failure = payload(request)
     if failure:
@@ -266,12 +271,12 @@ def comments(request, post_id):
         except ValueError:
             return error("답글을 달 댓글을 확인해 주세요.")
     item = form.save(commit=False)
-    item.post_id = post_id
+    item.post = post
     item.author = request.user
     with transaction.atomic():
         if parent_uuid is not None:
             parent = Comment.objects.select_for_update().filter(
-                comment_uuid=parent_uuid, post_id=post_id, deleted_at__isnull=True
+                comment_uuid=parent_uuid, post=post, deleted_at__isnull=True
             ).first()
             if parent is None:
                 return error("답글을 달 댓글이 삭제되었거나 존재하지 않아요.", 404)
@@ -279,15 +284,13 @@ def comments(request, post_id):
                 return error("답글은 원래 댓글에 남겨 주세요.")
             item.parent = parent
         item.save()
-        item.post = post
-        record_comment_event("comment_created", request.user, request.session.get("platform_session_uuid"), item)
     return JsonResponse({"comment": comment_data(item, request)}, status=201)
 
 
 @community_api(["PATCH", "DELETE"])
 def comment_detail(request, comment_id):
     item = Comment.objects.select_related("author", "author__campus_profile", "post").filter(
-        pk=comment_id, deleted_at__isnull=True, post__deleted_at__isnull=True
+        id=comment_id, deleted_at__isnull=True, post__deleted_at__isnull=True
     ).first()
     if item is None:
         return error("댓글이 삭제되었거나 존재하지 않아요.", 404)
@@ -298,12 +301,11 @@ def comment_detail(request, comment_id):
         next_revision = item.revision + 1
         with transaction.atomic():
             updated = Comment.objects.filter(
-                pk=comment_id, deleted_at__isnull=True, revision=item.revision
+                id=comment_id, deleted_at__isnull=True, revision=item.revision
             ).update(deleted_at=now, updated_at=now, revision=next_revision)
             if not updated:
                 return error("다른 화면에서 수정된 댓글이에요. 최신 댓글을 다시 확인해 주세요.", 409)
             item.revision = next_revision
-            record_comment_event("comment_deleted", request.user, request.session.get("platform_session_uuid"), item)
         return JsonResponse({"deleted": True})
     data, failure = payload(request)
     if failure:
@@ -319,64 +321,9 @@ def comment_detail(request, comment_id):
     next_revision = item.revision + 1
     with transaction.atomic():
         updated = Comment.objects.filter(
-            pk=comment_id, deleted_at__isnull=True, revision=item.revision, updated_at=item.updated_at
+            id=comment_id, deleted_at__isnull=True, revision=item.revision, updated_at=item.updated_at
         ).update(body=form.cleaned_data["body"], updated_at=now, revision=next_revision)
         if not updated:
             return error("다른 화면에서 수정된 댓글이에요. 최신 댓글을 다시 확인해 주세요.", 409)
         item.revision = next_revision
-        record_comment_event("comment_updated", request.user, request.session.get("platform_session_uuid"), item)
-    return JsonResponse({"comment": comment_data(Comment.objects.select_related("author", "author__campus_profile").get(pk=comment_id), request)})
-
-
-def meal_comment_data(item, request):
-    return {"id": item.pk, "body": item.body, "author": author_data(item.author),
-            "createdAt": item.created_at.isoformat(), "updatedAt": item.updated_at.isoformat(),
-            "canEdit": can_manage(request, item), "canDelete": can_manage(request, item)}
-
-
-@community_api(["GET", "POST"])
-def meal_comments(request):
-    from datetime import date
-    try:
-        meal_date = date.fromisoformat(request.GET.get("date", timezone.localdate().isoformat()))
-    except (TypeError, ValueError):
-        return error("날짜를 확인해 주세요.")
-    if request.method == "POST":
-        data, failure = payload(request)
-        if failure:
-            return failure
-        form = CommentForm(data)
-        if not form.is_valid():
-            return form_error(form)
-        item = MealComment.objects.create(author=request.user, meal_date=meal_date, body=form.cleaned_data["body"])
-        return JsonResponse({"comment": meal_comment_data(item, request)}, status=201)
-    items = MealComment.objects.filter(meal_date=meal_date).select_related("author", "author__campus_profile")
-    page = Paginator(items, 20).get_page(request.GET.get("page", 1))
-    return JsonResponse({"date": meal_date.isoformat(), "comments": [meal_comment_data(item, request) for item in page],
-                         "pagination": {"page": page.number, "pages": page.paginator.num_pages, "total": page.paginator.count}})
-
-
-@community_api(["PATCH", "DELETE"])
-def meal_comment_detail(request, comment_id):
-    item = MealComment.objects.select_related("author", "author__campus_profile").filter(pk=comment_id).first()
-    if item is None:
-        return error("댓글을 찾을 수 없어요.", 404)
-    if not can_manage(request, item):
-        return error("본인 댓글만 변경할 수 있어요.", 403)
-    if request.method == "DELETE":
-        item.delete()
-        return JsonResponse({"deleted": True})
-    data, failure = payload(request)
-    if failure:
-        return failure
-    if data.get("version") != item.updated_at.isoformat():
-        return error("댓글이 변경됐어요. 다시 불러와 주세요.", 409)
-    form = CommentForm(data)
-    if not form.is_valid():
-        return form_error(form)
-    now = timezone.now()
-    updated = MealComment.objects.filter(pk=item.pk, updated_at=item.updated_at).update(body=form.cleaned_data["body"], updated_at=now)
-    if not updated:
-        return error("댓글이 변경됐어요. 다시 불러와 주세요.", 409)
-    item.refresh_from_db()
-    return JsonResponse({"comment": meal_comment_data(item, request)})
+    return JsonResponse({"comment": comment_data(Comment.objects.select_related("author", "author__campus_profile").get(id=comment_id), request)})

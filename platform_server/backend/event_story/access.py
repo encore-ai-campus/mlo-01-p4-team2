@@ -16,7 +16,7 @@ def issue(user_id, controller, data):
     target = data.get('target')
     if not isinstance(target, str) or target not in TARGETS:
         raise ControlError('미션 대상을 확인해 주세요.')
-    details = {'user': user_id, 'target': target}
+    details = {'user': str(user_id), 'target': target}
     floor, object_id = TARGETS[target]
     obj = controller.world.objects.get(object_id)
     if (not obj or controller.interior or controller.pose['floor'] != floor
@@ -31,7 +31,7 @@ def verify(user, token, target):
     from learning.services import LearningError
     try:
         value = signing.loads(token, salt=SALT, max_age=900)
-        if value.get('user') != user.pk or value.get('target') != target:
+        if value.get('user') != str(user.pk) or value.get('target') != target:
             raise signing.BadSignature()
         return value
     except (signing.BadSignature, TypeError, ValueError):

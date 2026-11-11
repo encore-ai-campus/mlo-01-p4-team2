@@ -12,7 +12,7 @@ from django.test import TransactionTestCase, SimpleTestCase, RequestFactory
 from learning import services, views
 from learning.models import Question, LearningSession, UserAnswer, PointLedger
 from learning.point_integration import wallet_balance
-from eventing.models import EventOutbox
+
 from .legacy_fixtures import prepare_event_context
 
 
@@ -96,8 +96,6 @@ class LearningConcurrencyTests(TransactionTestCase):
         self.session.refresh_from_db(); self.assertEqual(self.session.correct_count, 1)
         self.assertEqual(PointLedger.objects.count(), 1)
         self.assertEqual(wallet_balance(self.user), 20)
-        self.assertEqual(EventOutbox.objects.filter(event_type='quiz_answered').count(), 1)
-        self.assertEqual(EventOutbox.objects.filter(event_type='point_granted').count(), 1)
 
     def test_four_concurrent_wrong_answers_stop_at_three(self):
         def submit(user):
@@ -108,7 +106,6 @@ class LearningConcurrencyTests(TransactionTestCase):
         self.assertEqual(sorted(self.parallel([submit]*4)), [1, 2, 3, 409])
         self.assertEqual(UserAnswer.objects.count(), 3)
         self.assertEqual(wallet_balance(self.user), 0)
-        self.assertEqual(EventOutbox.objects.filter(event_type='quiz_answered').count(), 3)
         self.assertEqual(PointLedger.objects.count(), 0)
 
     def test_different_lessons_share_one_locked_wallet_without_lost_update(self):
@@ -122,7 +119,6 @@ class LearningConcurrencyTests(TransactionTestCase):
         self.assertEqual(len(set(ids)), 2)
         self.assertEqual(wallet_balance(self.user), 40)
         self.assertEqual(sorted(PointLedger.objects.values_list('balance_after', flat=True)), [20, 40])
-        self.assertEqual(EventOutbox.objects.filter(event_type='point_granted').count(), 2)
 
     def test_same_owner_request_id_raced_across_lessons_creates_one_grant(self):
         other = services.start_learning_session(self.user, 'fill_blank', 'beginner', 'sql')

@@ -1,3 +1,4 @@
+from tests.factories import create_profile
 import asyncio
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
@@ -12,7 +13,8 @@ from django.utils import timezone
 
 from accounts.models import Profile
 from accounts.session_policy import ACTIVITY, STARTED
-from eventing.models import EventOutbox, PlatformSession
+from eventing.models import PlatformSession
+from eventing.catalog import class_group_uuid
 from config.asgi import application
 from . import consumers
 
@@ -28,8 +30,8 @@ class CampusSocketTests(TransactionTestCase):
             MapFloor.objects.get_or_create(floor_uuid=floor_uuid(code), defaults={"code": code, "name": name})
         self.alice = get_user_model().objects.create_user(username="alice", password="Test!River4820")
         self.bob = get_user_model().objects.create_user(username="bob", password="Test!River4820")
-        Profile.objects.create(user=self.alice, nickname="조원 하나", avatar="female-2")
-        Profile.objects.create(user=self.bob, nickname="조원 둘", avatar="male-2")
+        create_profile(user=self.alice, nickname="조원 하나", avatar="female-2")
+        create_profile(user=self.bob, nickname="조원 둘", avatar="male-2")
         self.a, self.b = Client(), Client()
         self.a.force_login(self.alice)
         self.b.force_login(self.bob)
@@ -78,7 +80,7 @@ class CampusSocketTests(TransactionTestCase):
                 await ws.disconnect()
 
     async def test_incomplete_profile_cannot_join_presence_until_setup_is_finished(self):
-        await database_sync_to_async(Profile.objects.filter(user=self.alice).update)(cohort="mlo-1", setup_complete=False)
+        await database_sync_to_async(Profile.objects.filter(user=self.alice).update)(cohort_id=class_group_uuid("mlo-1"), setup_complete=False)
         ws = self.socket(self.a)
         try:
             connected, code = await ws.connect()
@@ -274,7 +276,6 @@ class CampusSocketTests(TransactionTestCase):
             self.assertFalse(connected)
             self.assertEqual(code, 4401)
             self.assertFalse(await database_sync_to_async(PlatformSession.objects.exists)())
-            self.assertFalse(await database_sync_to_async(EventOutbox.objects.exists)())
         finally:
             await ws.disconnect()
 
@@ -291,6 +292,5 @@ class CampusSocketTests(TransactionTestCase):
             await second.receive_json_from()
             self.assertEqual(await saved_session(), initial)
         self.assertEqual(await database_sync_to_async(PlatformSession.objects.count)(), 1)
-        self.assertFalse(await database_sync_to_async(EventOutbox.objects.filter(event_type="session_ended").exists)())
 
 

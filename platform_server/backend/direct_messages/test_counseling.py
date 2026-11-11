@@ -1,3 +1,4 @@
+from tests.factories import create_profile
 import json
 import uuid
 from django.contrib.auth import get_user_model
@@ -17,7 +18,7 @@ class CounselingTests(TestCase):
         self.user('incomplete', is_staff=True, complete=False)
     def user(self, name, complete=True, **kwargs):
         user = get_user_model().objects.create_user(username=name, **kwargs)
-        Profile.objects.create(user=user, nickname=name, setup_complete=complete)
+        create_profile(user=user, nickname=name, setup_complete=complete)
         return user
     def request(self, user, body=None):
         request = self.factory.get('/api/messages/counselors/') if body is None else self.factory.post('/api/messages/send/',data=json.dumps(body),content_type='application/json')

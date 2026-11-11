@@ -1,3 +1,4 @@
+from accounts.models import Position
 """Jumps are authenticated, transient, scoped effects with no position writes."""
 import asyncio
 import math
@@ -5,7 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 from channels.db import database_sync_to_async
 from django.test import SimpleTestCase, TransactionTestCase, override_settings
-from eventing.models import EventOutbox
+
 from . import consumers, test_poke as fixtures
 from .motion import MotionController
 
@@ -97,21 +98,21 @@ class JumpSocketTests(TransactionTestCase):
     packets = fixtures.PokeSocketTests.packets
 
     @database_sync_to_async
-    def outbox_count(self):
-        return EventOutbox.objects.count()
+    def stored_position_count(self):
+        return Position.objects.filter(last_position_at__isnull=False).count()
 
-    async def test_two_authenticated_clients_share_jump_without_collecting_event(self):
+    async def test_two_authenticated_clients_share_jump_without_writing_position(self):
         left,right = [self.socket(client) for client in self.clients]
         try:
             await left.connect();own=(await self.packets(left,{'welcome'}))['welcome']['selfId']
             await right.connect();await self.packets(right,{'welcome'})
-            before=await self.outbox_count()
+            before=await self.stored_position_count()
             await left.send_json_to({'type':'control','requestId':'jump-1','action':'jump','data':{'context':'world','floor':'campus'}})
             accepted=await self.packets(left,{'jump','control_result'})
             observed=(await self.packets(right,{'jump'}))['jump']
             self.assertEqual(accepted['jump'],observed)
             self.assertEqual(observed['actorId'],own)
-            self.assertEqual(before,await self.outbox_count())
+            self.assertEqual(before,await self.stored_position_count())
             await left.send_json_to({'type':'control','requestId':'jump-2','action':'jump','data':{'context':'world','floor':'campus'}})
             self.assertIn('error',(await self.packets(left,{'control_result'}))['control_result'])
         finally:

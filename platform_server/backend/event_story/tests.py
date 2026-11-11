@@ -1,3 +1,5 @@
+import uuid
+from types import SimpleNamespace
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from unittest.mock import patch
@@ -22,7 +24,7 @@ class StoryTests(TestCase):
 
     def act(self, action, **data):
         if action in access.TARGETS:
-            data.setdefault('ticket', signing.dumps({'user': self.user.pk, 'target': action}, salt=access.SALT))
+            data.setdefault('ticket', signing.dumps({'user': str(self.user.pk), 'target': action}, salt=access.SALT))
         return services.act(self.user, {'action':action, **data})
 
     def clues(self):
@@ -60,7 +62,7 @@ class StoryTests(TestCase):
         self.act('start')
         with self.assertRaises(learning.LearningError):self.act('quantity', answer=2)
         with self.assertRaises(learning.LearningError):self.act('board', ticket='fake')
-        other=signing.dumps({'user':self.other.pk,'target':'board'},salt=access.SALT)
+        other=signing.dumps({'user':str(self.other.pk),'target':'board'},salt=access.SALT)
         with self.assertRaises(learning.LearningError):self.act('board',ticket=other)
         self.assertEqual(services.status(self.user)['stage'],1)
 
@@ -134,6 +136,15 @@ class StoryGeometryTests(SimpleTestCase):
             self.assertEqual(signing.loads(proof['ticket'],salt=access.SALT)['target'],target)
         c.pose.update(x=2000,y=900)
         with self.assertRaises(ControlError):access.issue(7,c,{'target':'wrapper'})
+
+    def test_uuid_proximity_ticket_roundtrips_and_is_bound_to_one_account(self):
+        account = uuid.uuid4()
+        controller = MotionController(dict(floor='campus',x=590,y=445,dir='up'))
+        proof = access.issue(account, controller, {'target':'wrapper'})
+        self.assertEqual(proof['user'], str(account))
+        self.assertEqual(access.verify(SimpleNamespace(pk=account), proof['ticket'], 'wrapper')['user'], str(account))
+        with self.assertRaises(learning.LearningError):
+            access.verify(SimpleNamespace(pk=uuid.uuid4()), proof['ticket'], 'wrapper')
 
     def test_table_only_blocks_its_base_and_booth_remains_accessible(self):
         floor=world('campus')

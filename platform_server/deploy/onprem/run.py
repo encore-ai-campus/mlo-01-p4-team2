@@ -45,15 +45,15 @@ def load_environment(env_file):
     env = {**dotenv_values(env_file), **os.environ}
     required = (
         "DJANGO_SECRET_KEY", "FRONTEND_SECRET_KEY", "DJANGO_ALLOWED_HOSTS",
-        "FRONTEND_ALLOWED_HOSTS", "DJANGO_CSRF_TRUSTED_ORIGINS", "MYSQL_HOST",
-        "MYSQL_DATABASE", "MYSQL_USER", "MYSQL_PASSWORD",
+        "FRONTEND_ALLOWED_HOSTS", "DJANGO_CSRF_TRUSTED_ORIGINS", "POSTGRES_HOST",
+        "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD",
         "CAMPUS_MOVEMENT_REDIS_URL", "CAMPUS_SERVICE_REDIS_URL",
     )
     missing = [key for key in required if not (env.get(key) or "").strip()]
     if missing:
         raise ValueError("Missing environment variables: " + ", ".join(missing))
     env = {key: value for key, value in env.items() if value is not None}
-    env.update(DJANGO_DEBUG="0", FRONTEND_DEBUG="0", DATABASE_ENGINE="mysql",
+    env.update(DJANGO_DEBUG="0", FRONTEND_DEBUG="0", DATABASE_ENGINE="postgresql",
                DJANGO_SETTINGS_MODULE="config.settings", PYTHONUNBUFFERED="1")
     return env
 

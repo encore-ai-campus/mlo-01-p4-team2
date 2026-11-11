@@ -1,3 +1,6 @@
+> 과거 Outbox 발행 계약이다. 현재 event 브랜치는 Outbox와 직접 Kafka 발행을 제거했다.
+> PostgreSQL CDC 확장은 별도 단계에서 검증한다. [현재 실행 가이드](RUN_GUIDE.md)를 참고한다.
+
 # 플랫폼 Kafka 토픽 정리
 
 최종 갱신: **2026-10-22** · 대상: **프론트·백엔드 분리 플랫폼 (`frontend/`, `backend/`)**

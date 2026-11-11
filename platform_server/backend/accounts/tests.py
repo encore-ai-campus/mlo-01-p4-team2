@@ -1,3 +1,5 @@
+from tests.factories import create_profile
+from eventing.catalog import class_group_uuid
 from config.testing import PresentationTestCase, PresentationClient
 from django.conf import settings
 from django.contrib.auth import SESSION_KEY, get_user_model
@@ -89,7 +91,7 @@ class AccountFlowTests(PresentationTestCase):
                         self.assertContains(response, option + "-preview.png")
                     self.assertRedirects(self.client.post(reverse("accounts:setup"), {"nickname": "새 조원", "avatar": avatar}), reverse("campus:map"))
                     profile = Profile.objects.get(user__username=data["username"])
-                    self.assertEqual((profile.cohort, profile.avatar, profile.nickname), (cohort, avatar, "새 조원"))
+                    self.assertEqual((profile.cohort.code, profile.avatar, profile.nickname), (cohort, avatar, "새 조원"))
                     self.assertTrue(profile.setup_complete)
                     self.assertEqual(profile.course, cohort.split("-")[0])
                     self.client.logout()
@@ -121,18 +123,18 @@ class AccountFlowTests(PresentationTestCase):
             self.assertIn("avatar", response.context["form"].errors)
             profile.refresh_from_db()
             self.assertFalse(profile.setup_complete)
-            self.assertEqual(profile.cohort, "mlo-1")
+            self.assertEqual(profile.cohort.code, "mlo-1")
         self.assertRedirects(self.client.post(reverse("accounts:setup"), {"nickname": "새 조원", "avatar": "female-2", "cohort": "skn-34", "user": self.user.pk}), reverse("campus:map"))
         self.assertFalse(Profile.objects.filter(user=self.user).exists())
 
     def test_initial_selection_is_frozen_and_change_controls_and_endpoint_are_removed(self):
-        profile = Profile.objects.create(user=self.user, nickname="내 이름", cohort="skn-36", avatar="male-2")
+        profile = create_profile(user=self.user, nickname="내 이름", cohort_id=class_group_uuid("skn-36"), avatar="male-2")
         self.client.force_login(self.user)
         self.assertRedirects(self.client.post(reverse("accounts:setup"), {"nickname": "새 이름", "avatar": "female-1"}), reverse("campus:map"))
         for method in [self.client.get, self.client.post]:
             self.assertEqual(method("/accounts/avatar/", {"avatar": "female-1"}).status_code, 404)
         profile.refresh_from_db()
-        self.assertEqual((profile.avatar, profile.nickname, profile.cohort), ("male-2", "내 이름", "skn-36"))
+        self.assertEqual((profile.avatar, profile.nickname, profile.cohort.code), ("male-2", "내 이름", "skn-36"))
         response = self.client.get(reverse("campus:map"))
         for text in ['id="avatarBtn"', "캐릭터 변경", '"avatarUrl"', "/accounts/avatar/"]:
             self.assertNotContains(response, text)
@@ -197,7 +199,7 @@ class AccountFlowTests(PresentationTestCase):
 
     def test_nickname_update_does_not_change_another_account(self):
         other = User.objects.create_user(username="other")
-        other_profile = Profile.objects.create(user=other, nickname="다른 조원")
+        other_profile = create_profile(user=other, nickname="다른 조원")
         self.client.force_login(self.user)
         self.client.post(reverse("accounts:nickname"), {"nickname": "내 닉네임", "user": other.pk})
         other_profile.refresh_from_db()
@@ -205,7 +207,7 @@ class AccountFlowTests(PresentationTestCase):
         self.assertEqual(Profile.objects.get(user=self.user).nickname, "내 닉네임")
 
     def test_nickname_update_is_validated_and_csrf_protected(self):
-        Profile.objects.create(user=self.user, nickname="기존 이름")
+        create_profile(user=self.user, nickname="기존 이름")
         self.client.force_login(self.user)
         response = self.client.post(reverse("accounts:nickname"), {"nickname": "<img src=x>"})
         self.assertIn("nickname", response.context["form"].errors)

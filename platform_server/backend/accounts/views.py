@@ -99,7 +99,7 @@ def profile_setup_view(request):
     profile = Profile.objects.filter(user=request.user).first()
     if profile is None or profile.setup_complete:
         return redirect("campus:map")
-    form = ProfileSetupForm(request.POST if request.method == "POST" else None, cohort=profile.cohort)
+    form = ProfileSetupForm(request.POST if request.method == "POST" else None, cohort=profile.cohort.code)
     if request.method == "POST" and form.is_valid():
         # A single conditional write freezes the first successful selection, even across tabs.
         Profile.objects.filter(pk=profile.pk, cohort=profile.cohort, setup_complete=False).update(
@@ -107,8 +107,8 @@ def profile_setup_view(request):
         )
         return redirect("campus:map")
     return render(request, "accounts/profile_setup.html", {
-        "form": form, "cohort_label": profile.get_cohort_display(), "course_label": profile.course.upper(),
-        "avatar_options": avatar_options(allowed_avatars(profile.cohort)),
+        "form": form, "cohort_label": profile.cohort.name, "course_label": profile.course.upper(),
+        "avatar_options": avatar_options(allowed_avatars(profile.cohort.code)),
     })
 
 
@@ -123,6 +123,6 @@ def nickname_view(request):
     if request.method == "POST" and form.is_valid():
         profile = form.save(commit=False)
         # Leave location checkpoints written by another open map untouched.
-        profile.save(update_fields=["nickname"] if profile.pk else None)
+        profile.save(update_fields=["nickname"] if not profile._state.adding else None)
         return redirect("campus:map")
     return render(request, "accounts/nickname.html", {"form": form})

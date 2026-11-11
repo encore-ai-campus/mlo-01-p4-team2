@@ -3,11 +3,13 @@
 플랫폼 코드는 `encore-ai-campus/mlo-01-p4-team2` 저장소의 `platform_server/`에서 관리한다.
 아래 폴더와 실행 명령은 `platform_server/`를 기준으로 한다.
 
+현재 `event` 브랜치는 PostgreSQL과 UUID 계정 키를 사용한다. 새 DB 생성과 기존 데이터 이전은 [실행 가이드](RUN_GUIDE.md)를 따른다.
+
 PLAYDATA 캠퍼스를 옮겨 온 실시간 메타버스 서비스입니다. 닉네임과 캐릭터로 18층 캠퍼스와 옥상을 돌아다니며 채팅·말풍선·찌르기로 동료와 인사하고, Python·SQL 학습교실에서 문제를 풀어 포인트를 모읍니다. 게시판, 쪽지, 점심 메뉴, 옥상 콘텐츠(게임 부스·심리 테스트·YouTube 스튜디오)와 캠퍼스 광고판이 함께 있습니다.
 
 ## 이벤트맵 개발 당시 운영 안내
 
-> 빼빼로 이벤트맵 작업 브랜치: `feat/27` → 통합·배포 브랜치: `event`. 공통 배포 기반은 이벤트 변경 전 `feat/15`임. [맵 전환 절차](deploy/onprem/MAP_SWITCHING.md) · [현재 검증 결과](deploy/onprem/VALIDATION-20261103.md)
+> 빼빼로 이벤트맵 작업 브랜치: `feat/27` → 통합·배포 브랜치: `event`. [맵 전환 절차](deploy/onprem/MAP_SWITCHING.md) · [통합 검증 결과](deploy/onprem/VALIDATION-20261103-PG.md)
 > Draft 검토 상태임. 전체 회귀 미통과 항목을 해결하고 실제 두 PC 환경을 검증한 뒤 배포할 버전을 결정함.
 
 ## 브랜치

@@ -1,3 +1,5 @@
+from tests.factories import create_profile
+from eventing.catalog import class_group_uuid
 """HTTP 요청 하나에서는 세션 확인을 한 번만 한다(계획 docs/metaverse-optimization-plan.md 4e).
 미들웨어가 구한 상태(`request.campus_session_status`)를 화면 데이터·세션 상태 응답이 다시 쓴다. 활동 POST 는 기록(touch)해야 하므로 그대로다."""
 from unittest.mock import patch
@@ -12,7 +14,7 @@ from .models import Profile
 class OneSessionCheckPerRequestTests(TestCase):
     def setUp(self):
         user = get_user_model().objects.create_user(username="one-check")
-        Profile.objects.create(user=user, nickname="한 번 확인", cohort="mlo-1", setup_complete=True)
+        create_profile(user=user, nickname="한 번 확인", cohort_id=class_group_uuid("mlo-1"), setup_complete=True)
         self.client.force_login(user)
 
     def count(self, request):

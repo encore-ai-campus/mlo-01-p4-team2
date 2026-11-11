@@ -1,3 +1,5 @@
+from tests.factories import create_profile
+from eventing.catalog import class_group_uuid
 import asyncio
 import json
 import uuid
@@ -25,7 +27,7 @@ class DirectMessageTests(TestCase):
         self.outsider=get_user_model().objects.create_user(username='outsider',is_staff=True)
         self.profiles={}
         for user,name in [(self.owner,'시범 사용자'),(self.recipient,'받는사람'),(self.outsider,'제삼자')]:
-            self.profiles[user.pk]=Profile.objects.create(user=user,nickname=name,cohort='mlo-1',setup_complete=True)
+            self.profiles[user.pk]=create_profile(user=user,nickname=name,cohort_id=class_group_uuid('mlo-1'),setup_complete=True)
         self.client.force_login(self.owner)
 
     def send(self,recipient=None,body='개인 메시지',request_id=None,client=None):

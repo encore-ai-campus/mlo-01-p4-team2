@@ -9,7 +9,7 @@ class AioCohortTests(TestCase):
         form = SignUpForm(data={"username":"aio_test_user","cohort":"aio-4","password1":"AioUniqueSignup9!","password2":"AioUniqueSignup9!"})
         self.assertTrue(form.is_valid(), form.errors)
         user = form.save()
-        self.assertEqual(user.campus_profile.cohort, "aio-4")
+        self.assertEqual(user.campus_profile.cohort.code, "aio-4")
         self.assertFalse(user.campus_profile.setup_complete)
         self.assertEqual(course_for_cohort("aio-4"), "aio")
         self.assertEqual(allowed_avatars("aio-4"), allowed_avatars("skn-34"))

@@ -1,3 +1,4 @@
+from tests.factories import create_profile
 from datetime import timedelta
 import json
 import subprocess
@@ -36,7 +37,7 @@ class SessionPolicyTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = get_user_model().objects.create_user(username="session-user", password="Session!River4820")
-        Profile.objects.create(user=cls.user, nickname="세션 테스트", avatar="male-1")
+        create_profile(user=cls.user, nickname="세션 테스트", avatar="male-1")
 
     def setUp(self):
         self.now = timezone.now().replace(microsecond=0)
@@ -143,7 +144,7 @@ class SessionPolicyTests(TestCase):
                 patch("accounts.session_policy.get_channel_layer", return_value=layer):
             check_session(self.key, now=self.now.timestamp() + 30)
         self.assertEqual(trace, ["save", "delete", "notify"])
-        self.assertEqual(Profile.objects.get(user=self.user).last_position, newest)
+        self.assertEqual(Profile.objects.get(user=self.user).position.last_position, newest)
         self.assertFalse(Session.objects.filter(pk=self.key).exists())
 
     def test_stale_expiry_revision_cannot_delete_activity_from_another_tab(self):
@@ -183,7 +184,7 @@ class SessionCleanupTests(TestCase):
     def test_cleanup_runs_once_per_day_and_removes_only_expired_sessions(self):
         now = timezone.now()
         user = get_user_model().objects.create_user(username="cleanup-user")
-        profile = Profile.objects.create(user=user, nickname="유지되는 계정")
+        profile = create_profile(user=user, nickname="유지되는 계정")
         Session.objects.create(pk="expired-session", session_data="", expire_date=now - timedelta(seconds=1))
         Session.objects.create(pk="valid-session", session_data="", expire_date=now + timedelta(days=1))
         with TemporaryDirectory() as directory:

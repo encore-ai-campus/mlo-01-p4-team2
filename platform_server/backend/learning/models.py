@@ -193,7 +193,7 @@ class UserAnswer(models.Model):
 
 
 class PointWallet(models.Model):
-    profile = models.OneToOneField('accounts.Profile', to_field='user_uuid', db_column='user_uuid',
+    profile = models.OneToOneField('accounts.Profile', db_column='user_uuid',
                                   on_delete=models.PROTECT, primary_key=True, related_name='point_wallet')
     balance = models.PositiveBigIntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
@@ -204,7 +204,7 @@ class PointWallet(models.Model):
 
 class PointLedger(models.Model):
     ledger_uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    profile = models.ForeignKey('accounts.Profile', to_field='user_uuid', db_column='user_uuid',
+    profile = models.ForeignKey('accounts.Profile', db_column='user_uuid',
                                 on_delete=models.PROTECT, related_name='point_ledger')
     answer = models.OneToOneField(UserAnswer, to_field='attempt_uuid', db_column='attempt_uuid',
                                  on_delete=models.PROTECT, related_name='point_grant')

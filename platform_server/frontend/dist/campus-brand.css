@@ -8,40 +8,10 @@
 .snb-services { display: grid; gap: 8px; }
 .snb-services button { border: 1px solid #dae6df; border-radius: 10px; background: #f3f8f5; color: #167d79; padding: 12px 14px; text-align: left; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .snb-services button:hover { background: #e2efea; }
-.meal-comments { margin: 24px 0; padding: 22px; border: 1px solid #dbe6df; border-radius: 14px; background: #fff; }
-.meal-comments header { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
-.meal-comments h4 { margin: 0; font-size: 18px; color: #234b48; }
-#mealCommentsDate { font-size: 12px; color: #6f857c; }
-#mealCommentsStatus { font-size: 13px; color: #61796e; }
-#mealCommentsStatus[data-error=true] { color: #ad3f37; }
-#mealCommentsList { padding: 0; margin: 14px 0; list-style: none; }
-.meal-comment { padding: 14px 0; border-bottom: 1px solid #e4ece7; }
-.meal-comment-heading { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
-.meal-comment-heading strong { color: #25534e; }
-.meal-comment-heading time { color: #82948a; }
-.meal-comment p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.7; margin: 9px 0; }
-.meal-comment-actions { display: flex; gap: 8px; }
-.meal-comments button { border: 1px solid #d6e3db; padding: 7px 12px; border-radius: 7px; color: #167d79; background: #f7faf8; cursor: pointer; font: inherit; font-size: 12px; }
-.meal-comments button:disabled { opacity: .5; cursor: default; }
-.meal-comment-pages { display: flex; justify-content: center; gap: 12px; align-items: center; font-size: 12px; margin: 18px 0; }
-#mealCommentForm label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 9px; }
-#mealCommentBody { width: 100%; box-sizing: border-box; resize: vertical; min-height: 80px; padding: 12px; border: 1px solid #cfdfd5; border-radius: 9px; font: inherit; font-size: 14px; }
-#mealCommentForm>div { display: flex; justify-content: flex-end; gap: 8px; margin-top: 9px; }
-#mealCommentSubmit { background: #167d79; color: #fff; border-color: #167d79; }
-.meal-comments [hidden] { display: none !important; }
 
 .board-shortcut-open + .board-shortcut-open { margin-top: 8px; background: #eef6f1; color: #167d79; }
 
 /* Minimal meal feedback composer. Existing comments remain available below it. */
-.meal-comments { display: flex; flex-direction: column; margin: 20px 0; padding: 0; border: 0; border-radius: 0; background: transparent; }
-.meal-comments>header { display: none; }
-#mealCommentForm { order: 0; }
-#mealCommentForm label { margin-bottom: 10px; }
-#mealCommentBody { min-height: 108px; background: #fff; }
-#mealCommentsStatus { order: 1; }
-#mealCommentsStatus:empty { display: none; }
-#mealCommentsList { order: 2; margin: 16px 0 0; }
-.meal-comment-pages { order: 3; }
 
 /* Service entry points live exclusively in the SNB. */
 #boardShortcut { display: none !important; }
@@ -66,11 +36,6 @@
 #boardDialog[data-view=menu] .board-menu-caption { flex: none; margin: 0; font-size: 11px; }
 #boardDialog[data-view=menu] #boardMenuStatus { flex: none; margin: 0; font-size: 12px; }
 #boardMenuStatus:empty { display: none; }
-#boardDialog[data-view=menu] .meal-comments { flex: 1; min-height: 0; margin: 6px 0 0; overflow: hidden; }
-#boardDialog[data-view=menu] #mealCommentForm { flex: none; }
-#boardDialog[data-view=menu] #mealCommentBody { min-height: 60px; height: 60px; resize: none; }
-#boardDialog[data-view=menu] #mealCommentsList { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; margin-top: 8px; }
-#boardDialog[data-view=menu] #mealCommentsStatus,#boardDialog[data-view=menu] .meal-comment-pages { flex: none; margin: 5px 0; }
 @media(max-width:600px) {
  #boardDialog[data-view=menu]>.dialog-top { padding: 14px 16px; }
  #boardDialog[data-view=menu]>.dialog-content { padding: 0 16px 14px; }
@@ -78,11 +43,6 @@
  #boardDialog[data-view=menu] #boardMenuImage { height: 30dvh; }
 }
 
-/* Use the entire space below the fixed meal image as one comment scroll region. */
-#boardDialog[data-view=menu] .meal-comments { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin; margin-top: 0; padding-right: 5px; }
-#boardDialog[data-view=menu] #mealCommentForm { margin: 0; }
-#boardDialog[data-view=menu] #mealCommentForm label.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-#boardDialog[data-view=menu] #mealCommentsList { flex: none; overflow: visible; margin-top: 8px; }
 
 /* Enlarge the fixed meal image while reserving room for the comment panel. */
 #boardDialog[data-view=menu] #boardMenuImage { height: min(48dvh, 460px); }

@@ -1,6 +1,9 @@
 import re
 
 from django import forms
+from django.contrib.auth import get_user_model
+from django.db import transaction
+from eventing.models import ClassGroup
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 
 from .avatars import AVATAR_CHOICES
@@ -65,13 +68,15 @@ class SignUpForm(UserCreationForm):
     cohort = forms.ChoiceField(label="과정·기수", choices=COHORT_FORM_CHOICES)
 
     class Meta(UserCreationForm.Meta):
+        model = get_user_model()
         fields = ["username", "cohort"]
 
     def save(self, commit=True):
         user = super().save(commit=False)
         if commit:
-            user.save()
-            Profile.objects.create(user=user, nickname="", cohort=self.cleaned_data["cohort"], setup_complete=False)
+            with transaction.atomic():
+                user.save()
+                Profile.objects.create(user=user, nickname="", cohort=ClassGroup.objects.get(code=self.cleaned_data["cohort"]), setup_complete=False)
         return user
 
     def __init__(self, *args, **kwargs):

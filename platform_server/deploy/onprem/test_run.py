@@ -46,8 +46,8 @@ class LauncherTests(unittest.TestCase):
     def test_required_environment_and_production_defaults(self):
         values = {name: 'test-value' for name in (
             'DJANGO_SECRET_KEY', 'FRONTEND_SECRET_KEY', 'DJANGO_ALLOWED_HOSTS',
-            'FRONTEND_ALLOWED_HOSTS', 'DJANGO_CSRF_TRUSTED_ORIGINS', 'MYSQL_HOST',
-            'MYSQL_DATABASE', 'MYSQL_USER', 'MYSQL_PASSWORD',
+            'FRONTEND_ALLOWED_HOSTS', 'DJANGO_CSRF_TRUSTED_ORIGINS', 'POSTGRES_HOST',
+            'POSTGRES_DB', 'POSTGRES_USER', 'POSTGRES_PASSWORD',
             'CAMPUS_MOVEMENT_REDIS_URL', 'CAMPUS_SERVICE_REDIS_URL')}
         with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {}, clear=True):
             env_file = Path(directory) / '.env'
@@ -55,7 +55,7 @@ class LauncherTests(unittest.TestCase):
             env = launcher.load_environment(env_file)
             self.assertEqual(env['DJANGO_DEBUG'], '0')
             self.assertEqual(env['FRONTEND_DEBUG'], '0')
-            self.assertEqual(env['DATABASE_ENGINE'], 'mysql')
+            self.assertEqual(env['DATABASE_ENGINE'], 'postgresql')
             env_file.write_text('DJANGO_SECRET_KEY=test-only\n')
             with self.assertRaisesRegex(ValueError, 'Missing environment variables'):
                 launcher.load_environment(env_file)

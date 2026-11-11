@@ -19,7 +19,7 @@ def wallet_balance(user):
 
 def grant_answer_points(answer):
     if not connection.in_atomic_block:
-        raise RuntimeError('Answer, wallet, ledger and outbox must share one transaction')
+        raise RuntimeError('Answer, wallet and ledger must share one transaction')
     wallet = ensure_wallet(answer.user)
     wallet = PointWallet.objects.select_for_update().get(pk=wallet.pk)
     delta = points_for(answer.session_question.session.difficulty) if answer.is_correct else 0

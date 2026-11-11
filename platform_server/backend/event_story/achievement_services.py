@@ -190,7 +190,7 @@ def record_manager_action(user, manager_id, action, session_uuid=None):
                 newly_completed.append(str(event_id))
         else:
             EventProgress.objects.get_or_create(user=user, event_id=event_id, defaults={"started_at": now})
-        return {"achievements": achievement_snapshot(user), "newly_completed": newly_completed}
+    return {"achievements": achievement_snapshot(user), "newly_completed": newly_completed}
 
 
 def record_guide_talk(user, remaining, session_uuid=None):
@@ -201,7 +201,7 @@ def record_guide_talk(user, remaining, session_uuid=None):
             require_open()
         # The global one-winner badge is granted only when the user accepts the
         # hidden last-bite story, not merely by opening the guide dialogue.
-        return {"achievements": achievement_snapshot(user), "newly_completed": []}
+    return {"achievements": achievement_snapshot(user), "newly_completed": []}
 
 
 def record_learning_completion(user, lesson, session_uuid=None):
@@ -217,4 +217,4 @@ def record_learning_completion(user, lesson, session_uuid=None):
         for event_id in event_ids:
             if complete_achievement(user, event_id, timezone.now(), started_at=lesson.started_at, session_uuid=session_uuid):
                 newly_completed.append(str(event_id))
-        return {"achievements": achievement_snapshot(user), "newly_completed": newly_completed}
+        return {"newly_completed": newly_completed}

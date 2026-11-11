@@ -126,15 +126,19 @@ class RecipeStoryTests(TestCase):
             act(self.user, 'defer')
         self.assertEqual(recipe.status(self.user), before)
 
-    def test_completion_rolls_back_with_its_log_and_badge_when_response_creation_fails(self):
+    def test_completion_survives_response_failure_and_retry_does_not_duplicate(self):
         ready(self.user, 'thanks')
         with patch('event_story.recipe.achievement_snapshot', side_effect=RuntimeError('failure')):
             with self.assertRaises(RuntimeError):
                 act(self.user, 'finish')
-        self.assertFalse(recipe.status(self.user)['secretCompleted'])
-        self.assertFalse(EventProgress.objects.filter(user=self.user, event_id=RECIPE_ID).exists())
-        self.assertFalse(StoryRecord.objects.filter(progress__user=self.user, key='finish').exists())
-        self.assertTrue(act(self.user, 'finish')['state']['secretCompleted'])
+        self.assertTrue(recipe.status(self.user)['secretCompleted'])
+        first=EventProgress.objects.get(user=self.user,event_id=RECIPE_ID)
+        self.assertEqual(StoryRecord.objects.filter(progress__user=self.user,key='finish').count(),1)
+        retry=act(self.user,'finish')
+        self.assertTrue(retry['state']['secretCompleted'])
+        self.assertEqual(retry['newly_completed'],[])
+        self.assertEqual(EventProgress.objects.get(pk=first.pk).completed_at,first.completed_at)
+        self.assertEqual(StoryRecord.objects.filter(progress__user=self.user,key='finish').count(),1)
 
     def test_guide_proofs_only_issue_at_the_actual_guide(self):
         near = MotionController({'floor': 'campus', 'x': 1250, 'y': 185, 'dir': 'up'})

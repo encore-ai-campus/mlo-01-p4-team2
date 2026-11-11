@@ -11,13 +11,14 @@ from eventing.events import end_platform_session, SESSION_KEY
 from eventing.models import PlatformSession
 from .game_services import GameError, start_game, finish_game
 from .models import GamePlay, GameDefinition
+from .test_achievements import seed_definitions
 
 
 @override_settings(DEBUG=True, EVENT_STORY_PREVIEW=True)
 class GamePlayTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        import_module("event_story.migrations.0004_seed_easter_eggs").seed(apps, SimpleNamespace(connection=connection))
+        seed_definitions()
         cls.user = get_user_model().objects.create_user(username="game-alice")
         cls.other = get_user_model().objects.create_user(username="game-bob")
         now = timezone.now()

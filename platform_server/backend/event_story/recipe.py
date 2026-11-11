@@ -26,8 +26,16 @@ def status(user, progress=None):
             'secretCompleted': bool(progress and progress.completed_at), 'topping': flags.get('topping')}
 
 
-@learning_write_transaction
 def action(user, data, session_uuid=None):
+    progress,newly_completed=_write_action(user,data,session_uuid)
+    result={'state':status(user,progress)}
+    if newly_completed is not None:
+        result.update(achievements=achievement_snapshot(user),newly_completed=newly_completed)
+    return result
+
+
+@learning_write_transaction
+def _write_action(user,data,session_uuid):
     main.ensure_open()
     action = data.get('action')
     if action not in ('acquire', 'recognize', 'defer', 'start', 'topping', 'finish'):
@@ -79,10 +87,9 @@ def action(user, data, session_uuid=None):
         progress.save(update_fields=['flags', 'started_at', 'completed_at', 'updated_at'])
     log(progress, action, 'recipe_note_acquired' if action == 'acquire' else 'recipe_' + action,
         payload, session_uuid)
-    result = {'state': status(user, progress)}
+    newly_completed=None
     if action == 'finish':
         newly_completed = []
         if complete_achievement(user, RECIPE_ID, progress.completed_at, session_uuid=session_uuid):
             newly_completed.append(str(RECIPE_ID))
-        result.update(achievements=achievement_snapshot(user), newly_completed=newly_completed)
-    return result
+    return progress,newly_completed

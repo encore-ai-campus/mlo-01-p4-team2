@@ -9,15 +9,22 @@
 
 | 공개 요청 | 서버 입구 | 처리 |
 |---|---|---|
-| `/ws/movement/` | PC 1의 Front `8004` | 이동 WebSocket |
-| `/ws/chat/` | PC 2의 Front `8004` | 채팅·개인 알림 WebSocket |
+| `/ws/movement/` | PC 1의 내부 Nginx `8000` | 이동 WebSocket |
+| `/ws/chat/` | PC 2의 내부 Nginx `8000` | 채팅·개인 알림 WebSocket |
 | `/static/*` | PC 2의 Nginx `8000` | 수집한 정적 파일 전체 |
 | `/`, `/accounts/*`, `/api/*`, `/learning/*`, `/content/*` | PC 2의 Front `8004` | 화면 HTML·업무 API |
 
 - `/ws/campus/`는 새 역할별 Front에서 거부한다.
 - HTTP 화면을 Backend Nginx로 직접 보내면 화면 대신 JSON을 받을 수 있다.
-- PC 2 Nginx의 외부 연결 용도는 `/static/*`다. 업무 요청은 Front로 보낸다.
+- 이동·채팅 WS는 Python Front를 우회한다. 연결 후에도 입구·내부 Nginx를 경유한다.
+- PC 2 Nginx는 정적 파일과 채팅 WS를 받는다. 업무 HTTP는 Front로 보낸다.
+- 서비스 HTTP와 채팅 WS는 같은 로그인 쿠키 hash로 Backend를 선택한다.
 - Front의 `/health/`는 프로세스 확인용이다. DB·Redis·백엔드 정상까지 보장하지 않는다.
+
+입구 템플릿은 [nginx-entry.conf.example](nginx-entry.conf.example)이다. @...@ 값을 장비 주소·포트로 바꾼다.
+@RUNTIME@은 입구 Nginx의 쓰기 가능한 절대 경로다. @BIND@·@ENTRY_PORT@는 수신 주소·포트다.
+이 템플릿은 직접 HTTP를 받는 입구 예시다. TLS 종료 위치와 인증서는 기존 공개 설정에 맞춰 적용한다.
+상위 TLS 프록시 뒤에 둘 때는 신뢰하는 입구만 원래 HTTPS 정보를 전달하도록 설정한다.
 
 ## 2. 주소와 접근 범위
 
@@ -76,4 +83,5 @@ Cloudflare 구성·실제 공개 HTTPS/WSS 연결은 이번 작업의 검증 대
 
 | 날짜 | 변경 | 변경한 절 |
 |---|---|---|
+| 2026-11-07 | WS Python 중계 우회·내부 Nginx 유지 | 1. 전달 경로 |
 | 2026-10-23 | 외부 설정을 제외한 연결 명세 작성 | 1. 전달 경로 · 2. 주소와 접근 범위 · 3. HTTP·WebSocket 전달 조건 · 4. 연결 후 확인 · 5. 변경 이력 |

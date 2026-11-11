@@ -92,6 +92,12 @@ if DATABASE_ENGINE in {"postgresql", "postgres", "pgsql"}:
         "CONN_MAX_AGE": 0,
         "OPTIONS": {"connect_timeout": 5},
     }}
+    pool_max_size = int(os.environ.get("POSTGRES_POOL_MAX_SIZE", "10"))
+    if pool_max_size < 0:
+        raise ValueError("POSTGRES_POOL_MAX_SIZE must be nonnegative; 0 disables pooling.")
+    if pool_max_size:
+        DATABASES["default"]["OPTIONS"]["pool"] = {"min_size": 1, "max_size": pool_max_size}
+        DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 elif DATABASE_ENGINE == "mysql":
     DATABASES = {"default": {
         "ENGINE": "django.db.backends.mysql",

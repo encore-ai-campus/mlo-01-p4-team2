@@ -34,7 +34,6 @@ class GamePlayTests(TestCase):
         self.assertEqual((row.user_id, row.session_id, row.game.game_code), (self.user.pk, self.session.pk, "timer"))
         self.assertEqual((row.status, row.duration_ms, row.ended_at), ("RUNNING", None, None))
         self.assertIsNone(row.event_id)
-        self.assertIsNone(row.difficulty)
         self.assertEqual(row.evidence, {})
         self.assertNotIn("difficulty", play)
         self.assertEqual(play["config"], {"targetMs": 11110, "toleranceMs": 0, "overtimeMs": 2000})

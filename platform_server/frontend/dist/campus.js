@@ -24,7 +24,7 @@
   let menuRequest=null,menuVersion=0;
   let directMessages=null;
   let achievements=null,minigames=null,managerGreetingPending=false;
-  const isDialogOpen=(includeClassroom=true,includeTyping=true)=>window.CampusFreeze?.blocking||window.CampusStory?.blocking||logoutPending||managerGreetingPending||minigames?.blocking||achievements?.blocking||directMessages?.blocking||(includeClassroom&&classroom.blocking)||window.CampusLearning?.blocking||window.CampusGuide?.blocking||window.CampusSession?.ending||floorTransition.blocking||$('lunchDialog').open||dialog.open||boardDialog.open||exitDialog.open||transferDialog.open||$('settingsDialog').open||(includeTyping&&social.isTyping)||boothUI.blocking;
+  const isDialogOpen=(includeClassroom=true,includeTyping=true)=>window.CampusFreeze?.blocking||window.CampusNotices?.blocking||window.CampusStory?.blocking||logoutPending||managerGreetingPending||minigames?.blocking||achievements?.blocking||directMessages?.blocking||(includeClassroom&&classroom.blocking)||window.CampusLearning?.blocking||window.CampusGuide?.blocking||window.CampusSession?.ending||floorTransition.blocking||$('lunchDialog').open||dialog.open||boardDialog.open||exitDialog.open||transferDialog.open||$('settingsDialog').open||(includeTyping&&social.isTyping)||boothUI.blocking;
   const renderers=new Map();
   const displayRefresh=new Map();
   let renderer=window.CampusIsometric.create({data:D}), P=renderer.projection, scene=renderer.scene;
@@ -67,6 +67,8 @@
   minigames=window.CampusMinigames.create({start:objectId=>presence.command('game_start',{objectId}),isBlocked:()=>isDialogOpen(),
     onOpen(){keys.clear();player.moving=false;presence.setInput([]);poke.stop(true);},
     onClose(){keys.clear();presence.setInput([]);canvas.focus({preventScroll:true});}});
+  window.addEventListener('campus:notices-open',()=>{keys.clear();player.moving=false;presence.setInput([]);poke.stop(true);});
+  window.addEventListener('campus:notices-close',()=>{keys.clear();presence.setInput([]);canvas.focus({preventScroll:true});});
   achievements=window.CampusAchievements.create({isBlocked:()=>isDialogOpen(),onOpen(){keys.clear();player.moving=false;presence.setInput([]);poke.stop(true);},onClose(){keys.clear();presence.setInput([]);}});
   directMessages=window.CampusMessages.create({config:JSON.parse($('campusViewConfig')?.textContent||'{}').privateMessages||{},
     onOpen(){keys.clear();player.moving=false;presence.setInput([]);},

@@ -18,18 +18,20 @@ from .access import verify
 from . import topping_order
 
 TZ = ZoneInfo('Asia/Seoul')
-NAMES = ['이상한 수량표 확인', 'Python 학습교실', 'ROOM01 증거분석실', '꾸왕이에게 돌아가기', 'ROOM02 빼빼로 만들기', '꾸왕이 최종 전달']
+# Stable event IDs preserve all existing progress, plays and final completion ranks.
+STAGES = [('1', '이상한 수량표 확인'), ('3', 'ROOM01 증거분석실'), ('4', '꾸왕이에게 돌아가기'), ('5', 'ROOM02 빼빼로 만들기'), ('6', '꾸왕이 최종 전달')]
+NAMES = [name for _, name in STAGES]
 GAMES = [('sql_memory', 'SQL 순서 기억 게임'), ('card_match', '카드 뒤집기'), ('coating', '초콜릿 코팅'), ('topping', '토핑 뿌리기'), ('wrapping', '포장 완료')]
 LOCKED = {}
 SALT = 'event-main-game-v3'
-TOUCH_DURATION_MS = 10000  # Finish the full round to advance STEP 04; hit count is a score only.
+TOUCH_DURATION_MS = 10000  # Finish the full round to advance STEP 03; hit count is a score only.
 
 def uid(code):
     return uuid.uuid5(uuid.NAMESPACE_URL, 'playdata/pepero-2026/v3/' + code)
 
 def coating_challenge(seed):
     rng=random.Random(seed)
-    return dict(rulesVersion=3,leadInMs=300,lateWindowMs=500,maxAverageMs=200,rounds=[dict(fillMs=rng.choice([1000,1200,1400]),targetPct=75,zoneLeftPct=74,zoneRightPct=76) for _ in range(3)])
+    return dict(rulesVersion=3,leadInMs=300,lateWindowMs=500,maxAverageMs=200,rounds=[dict(fillMs=rng.choice([1000,1200,1400]),targetPct=75,zoneLeftPct=70,zoneRightPct=80) for _ in range(3)])
 
 
 def coating_timing(c,result,elapsed):
@@ -56,9 +58,19 @@ def coating_timing(c,result,elapsed):
 
 def catalog():
     campaign, _ = EventDefinition.objects.get_or_create(event_uuid=uid('campaign'), defaults=dict(event_name='사라진 11번째 빼빼로', event_type='CAMPAIGN', starts_at=datetime(2026,11,9,8,30,tzinfo=TZ), ends_at=datetime(2026,11,11,22,tzinfo=TZ)))
-    for i, name in enumerate(NAMES, 1):
-        stage,_=EventDefinition.objects.get_or_create(event_uuid=uid(str(i)), defaults=dict(parent_event=campaign,event_type='MAIN',event_name=name,step_order=i))
-        if stage.event_name!=name:EventDefinition.objects.filter(pk=stage.pk).update(event_name=name)
+    for code, name in STAGES:
+        EventDefinition.objects.get_or_create(event_uuid=uid(code), defaults=dict(parent_event=campaign,event_type='MAIN',event_name=name))
+    definitions = EventDefinition.objects.in_bulk([uid(code) for code, _ in STAGES] + [uid('2')])
+    retired = definitions.get(uid('2'))
+    if ((retired and (retired.parent_event_id is not None or retired.step_order is not None or retired.event_type != 'ARCHIVED'))
+            or any(definitions[uid(code)].step_order != order or definitions[uid(code)].event_name != name
+                   for order, (code, name) in enumerate(STAGES, 1))):
+        with transaction.atomic():
+            EventDefinition.objects.select_for_update().get(pk=campaign.pk)
+            EventDefinition.objects.filter(pk__in=definitions).update(step_order=None)
+            EventDefinition.objects.filter(pk=uid('2')).update(parent_event=None, event_type='ARCHIVED')
+            for order, (code, name) in enumerate(STAGES, 1):
+                EventDefinition.objects.filter(pk=uid(code)).update(parent_event=campaign, event_type='MAIN', event_name=name, step_order=order)
     desired=[]
     for i,(code,name) in enumerate(GAMES):
         game,_=GameDefinition.objects.get_or_create(game_uuid=uid('game/'+code),defaults=dict(game_code=code,game_name=name))
@@ -123,8 +135,8 @@ def status(user):
     catalog()
     recover_finished_challenge(user)
     flags={str(p.event_id):p for p in EventProgress.objects.filter(user=user)}
-    steps=[dict(name=name,complete=bool(flags.get(str(uid(str(i)))) and flags[str(uid(str(i)))].status=='COMPLETED')) for i,name in enumerate(NAMES,1)]
-    current=next((i+1 for i,x in enumerate(steps) if not x['complete']),7)
+    steps=[dict(name=name,complete=bool(flags.get(str(uid(code))) and flags[str(uid(code))].status=='COMPLETED')) for code,name in STAGES]
+    current=next((i+1 for i,x in enumerate(steps) if not x['complete']),len(STAGES)+1)
     ranks=ranking(user)
     return dict(room1Briefed=room1_briefed(user),window=window(),steps=steps,stage=current,started=steps[0]['complete'],completed=steps[-1]['complete'],games={code:done(user,code) for code,_ in GAMES},locked=LOCKED,canPractice=bool(user.is_staff and settings.DEBUG and settings.EVENT_STORY_PREVIEW),ranking=dict(myRank=ranks['myRank'],top3=ranks['entries'][:3]))
 
@@ -138,7 +150,7 @@ def check_game(user, code):
     if code=='kkuwang_touch':
         require(user,'3');return
     if code in LOCKED: raise LearningError(LOCKED[code]+' — 완료 처리가 잠겨 있습니다.','policy_pending',409)
-    if code=='sql_memory': require(user,'2')
+    if code=='sql_memory': require(user,'1')
     else:
         require(user,'4')
         codes=[c for c,_ in GAMES][1:];index=codes.index(code)
@@ -280,11 +292,10 @@ def judge(code,c,r,elapsed):
     return False
 
 def learning_started(session):
-    if window()['phase']=='open' and done(session.user,'1') and session.subject=='python' and session.difficulty=='beginner' and session.question_type=='multiple_choice':
-        EventProgress.objects.get_or_create(user=session.user,event_id=uid('2'))
+    """Learning remains optional and no longer creates main-quest progress."""
+    return None
+
 
 def learning_completed(session):
-    if window()['phase']=='open' and done(session.user,'1') and session.subject=='python' and session.difficulty=='beginner' and session.question_type=='multiple_choice' and session.total_questions==10 and session.completed_at and session.correct_count>=7:
-        p=EventProgress.objects.filter(user=session.user,event_id=uid('2')).first()
-        registered=EventProgress.objects.get(user=session.user,event_id=uid('1'))
-        if p and session.started_at>=registered.completed_at:complete(session.user,'2')
+    """Learning results and learning achievements are handled independently."""
+    return None

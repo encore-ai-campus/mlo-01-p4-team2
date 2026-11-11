@@ -83,7 +83,6 @@ class GamePlay(models.Model):
     session = models.ForeignKey('eventing.PlatformSession', on_delete=models.PROTECT)
     game = models.ForeignKey(GameDefinition, on_delete=models.PROTECT)
     event = models.ForeignKey(EventDefinition, null=True, on_delete=models.PROTECT)
-    difficulty = models.CharField(max_length=20, null=True)
     status = models.CharField(max_length=16, default='RUNNING')
     started_at = models.DateTimeField(auto_now_add=True)
     ended_at = models.DateTimeField(null=True)

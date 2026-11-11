@@ -4,7 +4,7 @@ import uuid
 
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Count, Exists, OuterRef, Prefetch, Q
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
@@ -327,3 +327,21 @@ def comment_detail(request, comment_id):
             return error("다른 화면에서 수정된 댓글이에요. 최신 댓글을 다시 확인해 주세요.", 409)
         item.revision = next_revision
     return JsonResponse({"comment": comment_data(Comment.objects.select_related("author", "author__campus_profile").get(id=comment_id), request)})
+
+
+@community_api(["GET"])
+def notice_notifications(request):
+    """Use existing account-owned reads; listing a notice never marks it read."""
+    reads = PostReadLog.objects.filter(user=request.user, post_id=OuterRef('pk'))
+    query = Post.objects.filter(category=Post.Category.NOTICE, deleted_at__isnull=True).annotate(
+        is_read=Exists(reads)).order_by('-created_at', '-pk')
+    unread = query.filter(is_read=False).count()
+    if request.GET.get('summary') == '1':
+        return JsonResponse({'unreadCount': unread})
+    result, failure = page_for(request, query, 8)
+    if failure:
+        return failure
+    page, pagination = result
+    return JsonResponse({'unreadCount': unread, 'pagination': pagination, 'notices': [
+        {'id': item.id, 'title': item.title, 'createdAt': item.created_at.isoformat(), 'isRead': item.is_read}
+        for item in page]})

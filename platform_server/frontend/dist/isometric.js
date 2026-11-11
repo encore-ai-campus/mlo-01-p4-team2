@@ -959,7 +959,7 @@
     }
     D.paintFloor?.({g,P});
     function cacheSprite(o,paint,isWall=false) {
-      const r=footprint(o),area=o,corners=[[area.x-12,area.y-12],[area.x+area.w+12,area.y-12],[area.x+area.w+12,area.y+area.h+12],[area.x-12,area.y+area.h+12]].map(([x,y])=>p(x,y));
+      const r=footprint(o),area=o.type==='mission-building'?{x:o.x-5,y:o.y-5,w:o.w+(o.facing==='east'?65:10),h:o.h+(o.facing==='east'?10:65)}:o,corners=[[area.x-12,area.y-12],[area.x+area.w+12,area.y-12],[area.x+area.w+12,area.y+area.h+12],[area.x-12,area.y+area.h+12]].map(([x,y])=>p(x,y));
       const b={x:Math.floor(Math.min(...corners.map(q=>q.x))-7),y:Math.floor(Math.min(...corners.map(q=>q.y))-groundHeight(o.x+o.w/2,o.y+o.h/2)-(o.renderHeight||110))};
       b.w=Math.ceil(Math.max(...corners.map(q=>q.x))-b.x+7);b.h=Math.ceil(Math.max(...corners.map(q=>q.y))-b.y+10+(o.renderDepth||0));
       if(o.type==='mission-manager'){const q=projectGround(o.x+o.w/2,o.y+o.h/2);Object.assign(b,{x:Math.floor(q.x-75),y:Math.floor(q.y-90),w:150,h:110});}
@@ -976,8 +976,9 @@
       }
       // Generated art needs bounds independent of its small ground footprint.
       if(o.seasonalArt||o.type==='pepero-monument'||o.type==='pepero-cart'||o.type==='pepero-gift-art'){
-        const q=projectGround(o.x+o.w/2+(o.artGroundOffsetX||0),o.y+o.h/2),w=o.artWidth,h=o.artHeight;
-        b.x=Math.floor(q.x-w/2-5);b.y=Math.floor(q.y-h-5);b.w=Math.ceil(w+10);b.h=Math.ceil(h*1.2+10);
+        const q=projectGround(o.x+o.w/2+(o.artGroundOffsetX||0),o.y+o.h/2),w=o.artWidth,h=o.artHeight,projection=window.CampusSeasonal?.artProjection?.(o,p)||{scaleX:1,shearY:0},extra=Math.abs(projection.shearY)*w/2;
+        q.y+=o.artScreenOffsetY||0;
+        b.x=Math.floor(q.x-w*projection.scaleX/2-5);b.y=Math.floor(q.y-h-extra-5);b.w=Math.ceil(w*projection.scaleX+10);b.h=Math.ceil(h*1.2+extra*2+10);
       }
       const canvas=makeCanvas(b.w*2,b.h*2);g=canvas.getContext('2d',{willReadFrequently:Boolean(o.name)});g.scale(2,2);g.translate(-b.x,-b.y);paint();
       return {o,r,b,canvas,isWall,groundOutline:o.seasonalArt&&o.collisionPolygon?o.collisionPolygon.map(([x,y])=>p(x,y)):null,depth:isWall&&D.backdropWalls&&((o.x<=15&&o.w<=10)||(o.y<=15&&o.h<=10))?-Infinity:p(r.x+r.w/2,r.y+r.h/2).y};

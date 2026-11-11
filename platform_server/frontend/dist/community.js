@@ -187,6 +187,7 @@
     }
     function renderDetail(value, comments) {
       post = value; editingPost = null; setMode('detail'); resetComment();
+      if(post.category==='notice')window.dispatchEvent(new Event('campus:notices-changed'));
       const badge = $('communityPostCategory'); badge.textContent = post.categoryLabel; badge.dataset.category = post.category;
       $('communityPostTitle').textContent = post.title;
       const details = $('communityPostMeta'); details.replaceChildren(node('strong', '', post.author.nickname), node('span', '', fullDate(post.createdAt)));
@@ -283,6 +284,7 @@
       if (old) data.version = old.updatedAt;
       await mutate(async () => {
         const result = await api(old ? `posts/${old.id}/` : 'posts/', {method: old ? 'PATCH' : 'POST', body: data});
+        if(old?.category==='notice'&&result.post.category!=='notice')window.dispatchEvent(new Event('campus:notices-changed'));
         editorBaseline = editorSignature();
         renderDetail(result.post, {comments: [], pagination: {page: 1, pages: 1, total: result.post.commentCount}});
         const [commentsLoaded, metaLoaded] = await Promise.all([loadComments(1), refreshMeta()]);
@@ -291,8 +293,8 @@
     }
     async function deletePost() {
       if (!post || busy || !canLeave() || !window.confirm('이 글을 삭제할까요? 댓글도 함께 삭제됩니다.')) return;
-      const id = post.id;
-      await mutate(async () => {await api(`posts/${id}/`, {method: 'DELETE'}); await loadList({focus: true}); status('글을 삭제했어요.');});
+      const id = post.id, wasNotice = post.category==='notice';
+      await mutate(async () => {await api(`posts/${id}/`, {method: 'DELETE'}); if(wasNotice)window.dispatchEvent(new Event('campus:notices-changed')); await loadList({focus: true}); status('글을 삭제했어요.');});
     }
     async function saveComment(event) {
       event.preventDefault(); if (busy || !post) return;

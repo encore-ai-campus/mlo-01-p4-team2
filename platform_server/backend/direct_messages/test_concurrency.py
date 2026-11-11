@@ -15,7 +15,7 @@ from accounts.models import Profile
 from .models import Conversation, Message
 
 
-@unittest.skipUnless(connection.vendor == 'mysql', 'Requires MySQL row locking')
+@unittest.skipIf(connection.vendor == 'sqlite', 'Requires row locking (MySQL or PostgreSQL)')
 @override_settings(CAMPUS_DM_ENABLED=True, KAFKA_BOOTSTRAP_SERVERS='')
 class SimultaneousFirstSendTests(TransactionTestCase):
     def test_opposite_first_sends_keep_both_messages_in_one_conversation(self):

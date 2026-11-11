@@ -3,6 +3,8 @@ from unittest.mock import AsyncMock, patch
 
 from channels.testing import WebsocketCommunicator
 from django.test import SimpleTestCase, override_settings
+from websockets.exceptions import ConnectionClosed
+from websockets.frames import Close
 
 from config.asgi import application
 
@@ -18,7 +20,10 @@ class UpstreamSocket:
         return self
 
     async def __anext__(self):
-        return await self.outgoing.get()
+        message = await self.outgoing.get()
+        if isinstance(message, Exception):
+            raise message
+        return message
 
     async def send(self, message):
         self.received.append(message)
@@ -75,4 +80,28 @@ class SocketRoutingTests(SimpleTestCase):
         client = WebsocketCommunicator(application, '/ws/chat/')
         with patch('pages.sockets.connect', AsyncMock(side_effect=OSError('unavailable'))):
             self.assertEqual(await client.connect(), (False, 4401))
+            await client.disconnect()
+
+    async def test_backend_close_codes_reach_the_browser_as_sendable_codes(self):
+        # daphne(autobahn)는 1000·3000–4999 만 보낸다. 그 밖을 그대로 넘기면 예외가 되어 브라우저 소켓이 열린 채 남았다
+        for received, expected in ((Close(1000, ''), 1000), (Close(4401, ''), 4401), (Close(4013, ''), 4013),
+                                   (Close(1011, ''), 4011), (Close(1001, ''), 4001), (Close(2500, ''), 4011),
+                                   (None, 4011)):
+            with self.subTest(received=received and received.code):
+                upstream = UpstreamSocket()
+                client = WebsocketCommunicator(application, '/ws/campus/')
+                with patch('pages.sockets.connect', AsyncMock(return_value=upstream)):
+                    self.assertTrue((await client.connect())[0])
+                    await upstream.outgoing.put(ConnectionClosed(received, None))
+                    self.assertEqual(await client.receive_output(timeout=1), {'type': 'websocket.close', 'code': expected})
+                    await client.disconnect()
+
+    async def test_failed_send_to_backend_closes_the_browser_socket_with_4011(self):
+        upstream = UpstreamSocket()
+        upstream.send = AsyncMock(side_effect=ConnectionClosed(None, None))
+        client = WebsocketCommunicator(application, '/ws/chat/')
+        with patch('pages.sockets.connect', AsyncMock(return_value=upstream)):
+            self.assertTrue((await client.connect())[0])
+            await client.send_to(text_data='{"type":"ping"}')
+            self.assertEqual(await client.receive_output(timeout=1), {'type': 'websocket.close', 'code': 4011})
             await client.disconnect()

@@ -82,6 +82,8 @@ if CAMPUS_SERVICE_REDIS_URL != CAMPUS_MOVEMENT_REDIS_URL:
 
 DATABASE_ENGINE = os.environ.get("DATABASE_ENGINE", "postgresql").strip().lower()
 if DATABASE_ENGINE in {"postgresql", "postgres", "pgsql"}:
+    from psycopg import IsolationLevel
+
     DATABASES = {"default": {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.environ.get("POSTGRES_DB", "platform"),
@@ -90,8 +92,16 @@ if DATABASE_ENGINE in {"postgresql", "postgres", "pgsql"}:
         "HOST": os.environ.get("POSTGRES_HOST", "127.0.0.1"),
         "PORT": os.environ.get("POSTGRES_PORT", "5432"),
         "CONN_MAX_AGE": 0,
-        "OPTIONS": {"connect_timeout": 5},
+        "OPTIONS": {
+            "isolation_level": IsolationLevel.READ_COMMITTED,
+            "options": "-c lock_timeout=5s -c idle_in_transaction_session_timeout=60s",
+            "connect_timeout": 5,
+        },
     }}
+    # TLS is optional for the route to the cluster; unset values keep libpq defaults.
+    for _option, _variable in (("sslmode", "POSTGRES_SSLMODE"), ("sslrootcert", "POSTGRES_SSLROOTCERT")):
+        if os.environ.get(_variable, "").strip():
+            DATABASES["default"]["OPTIONS"][_option] = os.environ[_variable].strip()
     pool_max_size = int(os.environ.get("POSTGRES_POOL_MAX_SIZE", "10"))
     if pool_max_size < 0:
         raise ValueError("POSTGRES_POOL_MAX_SIZE must be nonnegative; 0 disables pooling.")

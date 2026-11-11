@@ -208,7 +208,8 @@ def stored_position(session_key, user_id):
     try:
         if _sync_redis is None:
             import redis
-            _sync_redis = redis.Redis.from_url(settings.CAMPUS_MOVEMENT_REDIS_URL, socket_timeout=1)
+            # 연결 제한 기본값은 5초다(redis-py). 꺼진 Redis 를 기다리는 시간도 읽기와 같은 1초로 둔다
+            _sync_redis = redis.Redis.from_url(settings.CAMPUS_MOVEMENT_REDIS_URL, socket_timeout=1, socket_connect_timeout=1)
         raw = _sync_redis.get(position_key(session_key))
     except Exception:  # noqa: BLE001 — Redis 가 안 되면 DB 의 5초 체크포인트로 갈음한다
         logger.warning("Could not read the live campus position from Redis", exc_info=True)

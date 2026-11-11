@@ -66,9 +66,16 @@ def notify_expiry(key, reason):
         raise first_error
 
 
-def expire_record(record, data, reason, *, now=None, notify=True):
-    """Save the newest accepted position, delete exactly this revision, then notify sockets."""
-    snapshot = session_registry.latest(record.session_key, data.get(SESSION_KEY))
+LIVE = object()  # expire_record 가 마지막 위치를 그 자리에서 읽는다
+
+
+def expire_record(record, data, reason, *, now=None, notify=True, snapshot=LIVE):
+    """Save the newest accepted position, delete exactly this revision, then notify sockets.
+
+    snapshot: 잠그기 전에 미리 읽은 (위치, 관측 시각). None 이면 위치를 저장하지 않는다(5초 DB 체크포인트가 남는다).
+    """
+    if snapshot is LIVE:
+        snapshot = session_registry.latest(record.session_key, data.get(SESSION_KEY))
     if snapshot:
         user = get_user_model().objects.filter(pk=data[SESSION_KEY], is_active=True).first()
         if user:

@@ -18,6 +18,7 @@ from django.utils import timezone
 
 from accounts.models import get_identity, needs_profile_setup
 from accounts.session_policy import check_session
+from config.dberrors import is_transient
 from direct_messages.live import user_group
 from eventing.events import SESSION_KEY, record_chat
 from eventing.models import ChatMessage
@@ -43,6 +44,14 @@ class ChatConsumer(CleanupWebsocketConsumer):
         return "service" if "service" in settings.CHANNEL_LAYERS else "default"
 
     async def connect(self):
+        try:
+            await self.open_socket()
+        except DatabaseError as error:
+            if not is_transient(error):
+                raise
+            await socket_db.try_again_later(self)
+
+    async def open_socket(self):
         self.groups_joined = []
         self.guard_task = None
         self.connected = False
@@ -86,12 +95,12 @@ class ChatConsumer(CleanupWebsocketConsumer):
         if not self.connected:
             return
         if text_data is None or len(text_data) > 4096:
-            await self.close(code=1009)
+            await self.close(code=4009)  # 1009(너무 큼)와 같은 뜻. daphne 는 1000·3000–4999 만 보낸다(04 §23)
             return
         try:
             data = json.loads(text_data)
         except (ValueError, RecursionError):
-            await self.close(code=1007)
+            await self.close(code=4007)  # 1007(잘못된 데이터)와 같은 뜻
             return
         if not isinstance(data, dict):
             return

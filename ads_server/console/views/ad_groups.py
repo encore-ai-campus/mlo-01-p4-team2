@@ -15,6 +15,7 @@ from ..forms import BidForm, CreativeUploadForm, GroupNameForm, GroupSegmentsFor
 from ..queries.ad_groups import ad_group_page
 from .ads import effect_row
 from .common import present
+from .creatives import ARCHIVED
 
 
 def ad_group_detail(request, ad_group_id, status=200, **bound):
@@ -89,6 +90,15 @@ def ad_group_creative_select(request, ad_group_id):
     남의 이미지·보관한 이미지는 서비스가 404."""
     run_action(request, campaigns.link_creative, request.user, ad_group_id, request.POST.get("creative_id"), select=True,
                success="이 광고에 나갈 이미지를 바꿨습니다. 다음 결정부터 적용됩니다.")
+    return redirect("ad_group_detail", ad_group_id=ad_group_id)
+
+
+@require_POST
+def ad_group_creative_archive(request, ad_group_id, creative_id):
+    """"다른 소재 선택"의 삭제(설계 §10 "광고주 화면 정리" ①): 소재 목록의 삭제와 같은 서비스(쓰는 소재는 409 를 메시지로)이고, 끝나면 이 광고 상세로 돌아온다.
+    돌아갈 곳을 숨김 칸으로 받지 않으므로 광고 상세 전용 경로이고, 그 광고가 내 것인지 먼저 본다(남의 광고·남의 소재 404)."""
+    fetch(campaigns.get_ad_group, request.user, ad_group_id)
+    run_action(request, campaigns.archive_creative, request.user, creative_id, success=ARCHIVED)
     return redirect("ad_group_detail", ad_group_id=ad_group_id)
 
 

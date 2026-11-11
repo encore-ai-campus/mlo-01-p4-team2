@@ -120,7 +120,7 @@ class ScreenQualityTests(Cases, TestCase):
 
     def pages(self):
         adv = [reverse(n, args=a) for n, a in (
-            ("advertiser_home", []), ("campaign_list", []), ("campaign_detail", [self.w.campaign.campaign_id]),
+            ("advertiser_home", []), ("ad_report", []), ("campaign_list", []), ("campaign_detail", [self.w.campaign.campaign_id]),
             ("campaign_detail", [self.suspended.campaign_id]), ("ad_group_detail", [self.w.group.ad_group_id]), ("ad_create", []),
             ("campaign_create", []), ("creative_list", []), ("creative_detail", [self.w.creative.creative_id]),
             ("points", []), ("my_account", []),
@@ -246,7 +246,7 @@ class ScreenQualityTests(Cases, TestCase):
 
     def case_every_advertiser_screen_marks_its_menu(self):
         """주 메뉴의 현재 위치(`aria-current`)는 화면마다 하나 — 광고 만들기·광고 상세는 캠페인에 속한다(6-13c R8)."""
-        menus = {"대시보드": ("advertiser_home",), "캠페인": ("campaign_list", "campaign_detail", "campaign_create", "ad_group_detail", "ad_create"),
+        menus = {"대시보드": ("advertiser_home", "ad_report"), "캠페인": ("campaign_list", "campaign_detail", "campaign_create", "ad_group_detail", "ad_create"),
                  "소재": ("creative_list", "creative_detail"), "포인트": ("points",), "내 정보": ("my_account",)}
         menu_of = {name: menu for menu, names in menus.items() for name in names}
         self.client.force_login(self.w.adv)

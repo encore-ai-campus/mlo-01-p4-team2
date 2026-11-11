@@ -16,7 +16,7 @@
   <div class="column">
     {% if not creative.archived %}
     <section class="card" aria-label="소재 수정">
-      <h2>제목·이동 주소</h2>
+      <h2>이미지 이름·이동 주소</h2>
       <p class="muted">고치면 이 소재를 쓰는 모든 광고에 다음 결정부터 적용됩니다. 이미 나간 광고는 그대로입니다.</p>
       <form method="post" action="{% url 'creative_edit' creative.creative_id %}">{% csrf_token %}
         {% if edit.non_field_errors %}<div class="notice error" role="alert">{{ edit.non_field_errors }}</div>{% endif %}

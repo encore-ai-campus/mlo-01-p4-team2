@@ -60,10 +60,12 @@ def creative_detail(request, creative_id, status=200, edit=None, image=None):
     }, status=status)
 
 
+ARCHIVED = "소재를 삭제했습니다. 이미 나간 광고의 기록은 남고, 목록과 광고 만들기에서는 보이지 않습니다."
+
+
 @require_POST
 def creative_archive(request, creative_id):
-    run_action(request, campaigns.archive_creative, request.user, creative_id,
-               success="소재를 삭제했습니다. 이미 나간 광고의 기록은 남고, 목록과 광고 만들기에서는 보이지 않습니다.")
+    run_action(request, campaigns.archive_creative, request.user, creative_id, success=ARCHIVED)
     return redirect("creative_list")
 
 

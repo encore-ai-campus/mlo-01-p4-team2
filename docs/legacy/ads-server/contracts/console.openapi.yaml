@@ -1044,6 +1044,30 @@ paths:
         "415":
           $ref: "#/components/responses/UnsupportedMediaType"
 
+  /reports/ad-groups:
+    get:
+      tags: [reports]
+      operationId: getAdGroupReport
+      summary: 광고별 성과 (노출·클릭·전환 — 소진 포인트 없음)
+      description: |
+        대시보드 "전체 보기"의 광고별 성과다(설계 §10 "광고주 화면 정리" ③). `/reports/daily`와 같은 구간·같은 규칙(인정된 반응을 받은 예산 일로)이다.
+        **소진 포인트는 싣지 않는다** — 원장 과금 줄에는 캠페인만 있어 광고별 소진은 반응과 원장을 짝지어야 한다(사용자 결정 2026-11-11, 캠페인 단위로 본다).
+        반응이 없는 광고는 `rows`에 없다(화면이 광고 목록과 합친다). 모든 행을 더하면 같은 구간 `/reports/daily`의 `totals`에서 `spent`를 뺀 값과 같다.
+      parameters:
+        - $ref: "#/components/parameters/FromRequired"
+        - $ref: "#/components/parameters/ToRequired"
+      responses:
+        "200":
+          description: 광고별 성과
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdGroupReport"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
   /reports/daily:
     get:
       tags: [reports]
@@ -1781,6 +1805,7 @@ components:
           type: string
           minLength: 1
           maxLength: 200
+          description: 광고주 화면 이름은 "이미지 이름"이다(설계 §10 "광고주 화면 정리" ②). 필드 이름과 C1 응답의 `title`은 그대로다.
         redirect_url:
           type: string
           format: uri
@@ -1999,6 +2024,43 @@ components:
             **전환율 = `converted_clicks / clicks`** (`clicks`가 0이면 정의되지 않음). `conversions / clicks`로 나누지 않는다 — 이전 구간 클릭의 전환이 섞여 1을 넘을 수 있다.
         spent:
           $ref: "#/components/schemas/Money"
+
+    AdGroupReport:
+      type: object
+      required: [from, to, rows]
+      additionalProperties: false
+      properties:
+        from:
+          $ref: "#/components/schemas/DateTimeUtc"
+        to:
+          $ref: "#/components/schemas/DateTimeUtc"
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdGroupReportRow"
+
+    AdGroupReportRow:
+      description: 광고 하나의 구간 합. `Totals`에서 `spent`를 뺀 필드에 광고·캠페인 ID를 더했다. `Totals`와 필드를 함께 바꾼다.
+      type: object
+      required: [ad_group_id, campaign_id, impressions, clicks, conversions, converted_clicks]
+      additionalProperties: false
+      properties:
+        ad_group_id:
+          $ref: "#/components/schemas/Uuid"
+        campaign_id:
+          $ref: "#/components/schemas/Uuid"
+        impressions:
+          type: integer
+          minimum: 0
+        clicks:
+          type: integer
+          minimum: 0
+        conversions:
+          type: integer
+          minimum: 0
+        converted_clicks:
+          type: integer
+          minimum: 0
 
     DailyReport:
       type: object

@@ -46,7 +46,7 @@ class ReportTotals:
     clicks: int
     conversions: int  # 이 구간에 **받은** 전환 수(수신일 기준) — 이전 구간 클릭의 전환도 들어 있다
     converted_clicks: int  # 이 구간에 받은 클릭 중 인정된 전환이 이어진 클릭 수(클릭 코호트). 전환이 나중에 와도 조회 시점에 센다. 항상 clicks 이하
-    spent: int
+    spent: int | None  # 받은 포인트. 광고별 성과(`ad_group_totals`)는 세지 않아 None(설계 §10 "광고주 화면 정리" ③)
 
     @property
     def ctr(self):

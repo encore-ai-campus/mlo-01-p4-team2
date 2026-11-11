@@ -734,7 +734,7 @@ def create_creative(user, ad_group_id, title, redirect_url, image_file, now=None
     C6 `createCreative`). `None` 이면 목록에만 올린다(소재 목록·광고 상세의 "이미지 업로드"). 이미지는 검증·재인코딩해 저장한다(`ImageRejected` 는 그대로 전달)."""
     require_advertiser(user)
     now = _now(now)
-    title = clean_text(title, "제목", "/title", 200)
+    title = clean_text(title, "이미지 이름", "/title", 200)
     redirect_url = _redirect_url(redirect_url)
     image = validate_image(image_file)
     with transaction.atomic():
@@ -966,7 +966,7 @@ def update_creative(user, creative_id, changes, now=None, expected_updated_at=No
         c = _locked_creative(user, creative_id)
         _assert_seen(expected_updated_at, c.updated_at)
         if "title" in changes:
-            c.title = clean_text(changes["title"], "제목", "/title", 200)
+            c.title = clean_text(changes["title"], "이미지 이름", "/title", 200)
         if "redirect_url" in changes:
             c.redirect_url = _redirect_url(changes["redirect_url"])
         c.updated_at = now

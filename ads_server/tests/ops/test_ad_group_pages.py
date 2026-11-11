@@ -301,6 +301,36 @@ class ImageSectionTests(Cases, AdGroupPageBase):
         self.assertRedirects(post(str(other.slot_id), ""), self.detail)  # 빈 값 = 기본 소재로
         self.assertEqual(self.group().slot_creative_ids, ())
 
+    def case_a_creative_not_in_use_can_be_deleted_from_the_choice_list(self):
+        """설계 §10 "광고주 화면 정리" ①: '다른 소재 선택'에서도 삭제(보관)한다 — 쓰지 않는 소재만 확인 창과 함께 버튼, 쓰는 소재는 '사용 중'. 끝나면 광고 상세로."""
+        free = campaigns.create_creative(self.w.adv, None, "안 쓰는 이미지", "https://example.com/2", png_file((9, 9, 9)))
+        busy = campaigns.create_creative(self.w.adv, None, "다른 광고의 이미지", "https://example.com/3", png_file((8, 8, 8)))
+        other_ad = campaigns.create_ad_group(self.w.adv, self.w.campaign.campaign_id, "다른 광고", [self.w.slot.slot_id])
+        campaigns.link_creative(self.w.adv, other_ad.ad_group_id, busy.creative_id, select=True)
+        archive = lambda c: reverse("ad_group_creative_archive", args=[self.gid, c.creative_id])  # noqa: E731
+        html = self.html()
+        self.assertIn("console/confirm.js", html)  # 확인 창(없으면 누르자마자 삭제)
+        image = html.split('aria-label="이미지"', 1)[1].split('aria-labelledby="slot-creatives-title"', 1)[0]
+        self.assertIn(f'action="{archive(free)}" data-confirm="‘안 쓰는 이미지’ 소재를 삭제할까요?"', image)
+        self.assertNotIn(archive(busy), image)
+        self.assertIn("사용 중", image)
+        r = self.client.post(archive(free), follow=True)
+        self.assertRedirects(r, self.detail)
+        self.assertContains(r, "소재를 삭제했습니다.")
+        self.assertTrue(campaigns.get_creative(self.w.adv, free.creative_id).archived)
+        r = self.client.post(archive(busy), follow=True)  # 화면에 없는 버튼을 만들어 보내도 서비스가 막는다
+        self.assertRedirects(r, self.detail)
+        self.assertContains(r, "삭제할 수 없습니다")
+        self.assertFalse(campaigns.get_creative(self.w.adv, busy.creative_id).archived)
+
+    def case_the_title_is_called_image_name_on_the_screens(self):
+        """설계 §10 "광고주 화면 정리" ②: 소재의 `title` 은 화면에서 "이미지 이름"이다 — 입력 칸·소재 상세 제목줄·서비스 오류 문구."""
+        self.assertIn('<label for="id_new-title">이미지 이름</label>', self.html())
+        self.assertIn("<h2>이미지 이름·이동 주소</h2>", self.client.get(reverse("creative_detail", args=[self.crid])).content.decode())
+        r = self.client.post(reverse("ad_group_creative_upload", args=[self.gid]),
+                             {"new-title": "   ", "new-redirect_url": "https://example.com/x", "new-image": png_file((6, 6, 6))})
+        self.assertContains(r, "이미지 이름은(는) 1~200자의 보이는 문자여야 합니다.", status_code=400)
+
     def case_an_archived_image_shows_only_where_it_is_still_chosen(self):
         """끝난 캠페인에서는 구성별로 쓰던 이미지도 지울 수 있다 — 화면은 그 이미지를 그 구성의 선택으로만 보이고, 다른 구성에서는 고를 수 없다."""
         other = make_slot(self.w.admin)
@@ -314,6 +344,8 @@ class ImageSectionTests(Cases, AdGroupPageBase):
         self.assertEqual(re.findall(r'<option value="([^"]*)"', rows[str(other.slot_id)]), ["", str(mine.creative_id), str(self.crid)])  # 지운 채 지정된 것은 맨 앞(기본 소재와 같다)
         self.assertIn(f'<option value="{mine.creative_id}" selected>가로 이미지</option>', rows[str(other.slot_id)])
         self.assertEqual(re.findall(r'<option value="([^"]*)"', rows[str(self.w.slot.slot_id)]), ["", str(self.crid)])  # 지운 이미지는 새로 고를 수 없다
+        image = self.html().split('aria-label="이미지"', 1)[1].split('aria-labelledby="slot-creatives-title"', 1)[0]
+        self.assertEqual((image.count('<span class="muted">삭제한 이미지</span>'), image.count("사용 중")), (1, 0))  # '다른 소재 선택'에서도 사실대로(CUX-1 리뷰 N1)
 
     def test_image_section(self):
         self.run_cases()
@@ -343,6 +375,9 @@ class IsolationTests(AdGroupPageBase):
         self.assertEqual(campaigns.get_ad_group(other.adv, gid).creative_id, other.creative.creative_id)
         self.assertEqual(self.group().creative_id, self.crid)
         self.assertEqual((self.group().slot_creative_ids, campaigns.get_ad_group(other.adv, gid).slot_creative_ids), ((), ()))
+        self.assertEqual(self.client.post(reverse("ad_group_creative_archive", args=[gid, self.crid])).status_code, 404)  # 남의 광고 경로로 내 소재를
+        self.assertEqual(self.client.post(reverse("ad_group_creative_archive", args=[self.gid, crid])).status_code, 404)  # 내 광고 경로로 남의 소재를
+        self.assertEqual((self.group().creative_id, campaigns.get_creative(other.adv, crid).archived), (self.crid, False))
 
 
 class StaleSameFieldTests(Cases, AdGroupPageBase):

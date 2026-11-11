@@ -1,0 +1,49 @@
+{% extends "console/base.html" %}
+{% load static kst console_format console_icons %}
+{% block title %}광고별 성과{% endblock %}
+{% block crumb %} / <a href="{% url 'advertiser_home' %}?days={{ days }}">대시보드</a> / 광고별 성과{% endblock %}
+{% block page_head %}
+<div class="page-head">
+  <div><h1>광고별 성과</h1><p>광고마다 노출·클릭·전환을 봅니다. 소진 포인트는 <a href="{% url 'campaign_list' %}">캠페인</a> 단위로 봅니다.</p></div>
+</div>
+{% endblock %}
+{% block content %}
+<form method="get" class="period autosubmit" aria-label="기간 고르기">
+  {% icon "clock" 16 %}
+  <span class="sr-only">{{ form.days.label_tag }}</span>{{ form.days }}
+  <input type="hidden" name="metric" value="{{ metric }}">
+  <button type="submit" class="secondary js-hide">보기</button>
+  <span class="range">{{ start|kst:"%Y.%m.%d %H:%M" }} — {{ end|kst:"%m.%d %H:%M" }} KST</span>
+  <span class="status info">오늘 집계 중</span>
+</form>
+
+<div class="section-head">
+  <h2>광고 <span class="count">{{ rows|length }}</span></h2>
+  <span class="muted">끝난 캠페인의 광고는 이 기간에 성과가 있을 때만</span>
+</div>
+<div class="card table">
+  <div class="table-wrap">
+    <table>
+      <caption class="sr-only">이 기간의 광고별 노출·클릭·전환, 노출이 많은 순</caption>
+      <thead><tr><th scope="col">광고</th><th scope="col">캠페인</th><th scope="col">상태</th><th scope="col" class="num">노출</th><th scope="col" class="num">클릭</th>
+        <th scope="col" class="num">클릭률</th><th scope="col" class="num">전환</th><th scope="col" class="num">전환율</th></tr></thead>
+      <tbody>
+      {% for ad, campaign, t in rows %}
+        <tr><td><a href="{% url 'ad_group_detail' ad.ad_group_id %}">{{ ad.name }}</a></td>
+          <td>{{ campaign.name }}</td>
+          <td><span class="status {{ campaign.status|lower }}">{{ campaign.status|status_label }}</span>{% if not ad.enabled %} <span class="status paused">광고 꺼짐</span>{% endif %}</td>
+          <td class="num">{{ t.impressions|number }}</td><td class="num">{{ t.clicks|number }}</td><td class="num">{{ t.ctr|percent }}</td>
+          <td class="num">{{ t.conversions|number }}</td><td class="num">{{ t.conversion_rate|percent }}</td></tr>
+      {% empty %}
+        <tr><td colspan="8">아직 광고가 없습니다.</td></tr>
+      {% endfor %}
+      </tbody>
+      {% if rows %}
+      <tfoot><tr><th scope="row" colspan="3">합계</th><td class="num">{{ total.impressions|number }}</td><td class="num">{{ total.clicks|number }}</td><td class="num">{{ total.ctr|percent }}</td>
+        <td class="num">{{ total.conversions|number }}</td><td class="num">{{ total.conversion_rate|percent }}</td></tr></tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'console/autosubmit.js' %}" defer></script>{% endblock %}

@@ -132,14 +132,22 @@
       {% if not group.creative_id %}<p class="muted">고른 이미지가 없습니다. 이미지가 없으면 광고가 나가지 않습니다.</p>{% endif %}
       <details class="choose">
         <summary class="button secondary wide">다른 소재 선택</summary>
-        <p class="helptext">바꾸면 다음 결정부터 적용되고, 이미 나간 광고는 그대로입니다. 제목·이동 주소 수정과 이미지 교체는 <a href="{% url 'creative_list' %}">소재</a>에서 합니다.</p>
+        <p class="helptext">바꾸면 다음 결정부터 적용되고, 이미 나간 광고는 그대로입니다. 이미지 이름·이동 주소 수정과 이미지 교체는 <a href="{% url 'creative_list' %}">소재</a>에서 합니다.</p>
         {% for c in page.images %}{% if c.creative_id != group.creative_id %}{# 보관한 이미지는 선택된 것일 때만 목록에 있다 #}
         <div class="choice">
           <img class="thumb" src="{% url 'creative_image_file' c.creative_id %}" alt="" width="72" height="40" loading="lazy">
           <p><a href="{% url 'creative_detail' c.creative_id %}">{{ c.title }}</a><span class="muted">{{ c.redirect_url|domain }}</span></p>
-          <form method="post" action="{% url 'ad_group_creative_select' group.ad_group_id %}">{% csrf_token %}<input type="hidden" name="creative_id" value="{{ c.creative_id }}">
-            <button type="submit" class="link" aria-label="이 이미지로 바꾸기: {{ c.title }}">선택</button>
-          </form>
+          <div class="inline">
+            <form method="post" action="{% url 'ad_group_creative_select' group.ad_group_id %}">{% csrf_token %}<input type="hidden" name="creative_id" value="{{ c.creative_id }}">
+              <button type="submit" class="link" aria-label="이 이미지로 바꾸기: {{ c.title }}">선택</button>
+            </form>
+            {% if c.creative_id in page.deletable %}
+            <form method="post" action="{% url 'ad_group_creative_archive' group.ad_group_id c.creative_id %}" data-confirm="‘{{ c.title }}’ 소재를 삭제할까요?" data-confirm-detail="삭제한 소재는 목록에서 사라지고 새 광고에 고를 수 없습니다." data-confirm-action="삭제">{% csrf_token %}
+              <button type="submit" class="link danger" aria-label="이 소재 삭제: {{ c.title }}">삭제</button>
+            </form>
+            {% elif c.archived %}<span class="muted">삭제한 이미지</span>{# 끝난 캠페인에서 구성별로 지정된 채 지운 것 #}
+            {% else %}<span class="muted" title="끝나지 않은 캠페인의 광고가 쓰는 소재는 삭제할 수 없습니다">사용 중</span>{% endif %}
+          </div>
         </div>
         {% endif %}{% empty %}
         <p class="muted">다른 이미지가 없습니다. 아래에서 올린 뒤 고르세요.</p>
@@ -188,4 +196,4 @@
   </div>
 </div>
 {% endblock %}
-{% block scripts %}<script src="{% static 'console/frames.js' %}" defer></script>{% endblock %}
+{% block scripts %}<script src="{% static 'console/confirm.js' %}" defer></script><script src="{% static 'console/frames.js' %}" defer></script>{% endblock %}

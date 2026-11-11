@@ -42,7 +42,7 @@
     const source = (form.querySelector('input[name="creative_source"]:checked') || {}).value;
     const creative = source === "existing"
       ? (existing && existing.value ? existing.selectedOptions[0].textContent : "고르지 않음")
-      : `${value("title") || "제목 없음"}(새로 올리기)`;
+      : `${value("title") || "이미지 이름 없음"}(새로 올리기)`;
     const rows = [
       ["캠페인", campaign && campaign.selectedOptions[0] ? campaign.selectedOptions[0].textContent : "고르지 않음"],
       ["구성 · 입찰", `${slots.length ? slots.join(", ") : "구성 없음"} · ${bid > 0 ? `${bid.toLocaleString()} P` : "입찰 없음"}`],

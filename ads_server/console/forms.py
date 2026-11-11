@@ -131,7 +131,7 @@ class AdCreateForm(forms.Form):
     bid_amount = forms.IntegerField(label="입찰 금액(포인트)")
     creative_source = forms.ChoiceField(label="소재", choices=[(EXISTING, "등록된 소재 쓰기"), (NEW, "새로 올리기")], widget=forms.RadioSelect, initial=NEW)
     creative_id = forms.ChoiceField(label="등록된 소재", required=False)
-    title = forms.CharField(label="제목", max_length=200, strip=False, required=False)
+    title = forms.CharField(label="이미지 이름", max_length=200, strip=False, required=False)
     redirect_url = forms.CharField(label="이동 주소(https)", max_length=2048, strip=False, required=False)
     image = forms.FileField(label="이미지", required=False, widget=forms.FileInput(attrs={"accept": "image/png,image/jpeg", "data-preview": "image-preview"}))
     request_key = forms.CharField(max_length=64, widget=forms.HiddenInput)
@@ -167,9 +167,9 @@ class AdCreateForm(forms.Form):
 
 
 class CreativeUploadForm(forms.Form):
-    """소재 올리기(소재 목록·광고 상세의 "이미지 업로드" — 목록에만 올린다). 규칙(제목·https·이미지 규격)은 서비스가 판단한다."""
+    """소재 올리기(소재 목록·광고 상세의 "이미지 업로드" — 목록에만 올린다). 규칙(이미지 이름·https·이미지 규격)은 서비스가 판단한다."""
 
-    title = forms.CharField(label="제목", max_length=200, strip=False)
+    title = forms.CharField(label="이미지 이름", max_length=200, strip=False)
     redirect_url = forms.CharField(label="이동 주소(https)", max_length=2048, strip=False)
     image = forms.FileField(label="이미지", widget=forms.FileInput(attrs={"accept": "image/png,image/jpeg"}))
 
@@ -217,7 +217,7 @@ class GroupSegmentsForm(forms.Form):
 class CreativeEditForm(forms.Form):
     """제목·이동 주소. `updated_at` 은 화면이 본 마지막 변경 시각 — 그 사이 바뀌었으면(이미지 교체 포함) 서비스가 거절한다. 바뀐 칸만 넘긴다."""
 
-    title = forms.CharField(label="제목", max_length=200, strip=False)
+    title = forms.CharField(label="이미지 이름", max_length=200, strip=False)
     redirect_url = forms.CharField(label="이동 주소(https)", max_length=2048, strip=False)
     updated_at = forms.DateTimeField(widget=forms.HiddenInput)
 

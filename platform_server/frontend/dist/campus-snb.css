@@ -246,4 +246,4 @@
 .campus-snb .campus-space-guide #roomNav { max-height: 420px; }
 
 /* Tab is the only sidebar toggle input; the edge marker never captures movement. */
-.campus-snb-toggle{pointer-events:none;cursor:default;display:flex;align-items:center;justify-content:center;gap:0;width:35px;flex-direction:column;padding:5px 0}.campus-snb-toggle kbd{font:9px monospace;border:0;background:none;padding:0;color:#6c8a81}
+.campus-snb-toggle{pointer-events:auto;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0;width:35px;flex-direction:column;padding:5px 0}.campus-snb-toggle kbd{font:9px monospace;border:0;background:none;padding:0;color:#6c8a81}

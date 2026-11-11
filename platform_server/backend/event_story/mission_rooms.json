@@ -49,8 +49,8 @@
     {
       "id": "manager-yuhyeong",
       "floor": "campus",
-      "x": 2340,
-      "y": 95,
+      "x": 1930,
+      "y": 760,
       "name": "유형 매니저님",
       "sprite": "yuhyeong",
       "copy": "직원실 안쪽까지 찾아왔네요! 사건의 단서는 데이터 안에 있어요. ROOM 01에서는 영석 매니저님의 설명을 듣고 SQL 실행 순서를 복원해 보세요."

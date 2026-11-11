@@ -19,6 +19,7 @@ def main():
         parser.error("Choose two different ports between 1 and 65535")
     for port in ports:
         with socket.socket() as listener:
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             listener.bind(("0.0.0.0", port))
     root = Path(__file__).resolve().parent
     subprocess.run(["node", "frontend/tools/build-event-map.cjs"], cwd=root, check=True)

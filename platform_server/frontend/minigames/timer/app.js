@@ -101,7 +101,7 @@ function complete(result) {
   const message = resultMessage(result);
   if (window.minigameChannel) {
     window.minigameChannel.complete({duration_ms:Math.round(result.elapsedMs),status:result.success?'SUCCESS':'FAILED'});
-    action.disabled = true;
+    action.disabled = false;
   } else if (parentOrigin && window.parent !== window) window.parent.postMessage(message, parentOrigin);
   window.dispatchEvent(new CustomEvent('timer-game:result', { detail: message }));
 }
@@ -124,6 +124,9 @@ function watchDeadline() {
 
 function activate() {
   if (window.minigameChannel && action.disabled) return;
+  if(window.minigameChannel&&game.state==='finished'){
+    action.disabled=true;window.minigameChannel.restart();return;
+  }
   if (game.state === 'running') {
     complete(game.checkTimeout() ?? game.finish());
     return;

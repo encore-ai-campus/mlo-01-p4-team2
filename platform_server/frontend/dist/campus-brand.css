@@ -96,39 +96,12 @@
 
 .world-kkuwang>img { image-rendering: auto; filter: none; }
 
-.consultation-chat-launcher { position: fixed; right: max(24px,env(safe-area-inset-right)); bottom: max(24px,env(safe-area-inset-bottom)); z-index: 20; display: grid; place-items: center; width: 60px; height: 60px; padding: 0; border: 0; border-radius: 50%; background: #167d79; color: #fff; box-shadow: 0 5px 20px #123c3a30; cursor: pointer; }
-.consultation-chat-launcher:hover { background: #126b68; }
-.consultation-chat-launcher:focus-visible { outline: 3px solid #88cfbf; outline-offset: 4px; }
 .map-shell .chat-panel { bottom: 100px; }
 
-.consultation-chat-launcher { z-index: 1001; }
-.consultation-chat-launcher[aria-busy=true] { opacity: .7; cursor: wait; }
-.consultation-chat-launcher[aria-expanded=true] svg { visibility: hidden; }
-.consultation-chat-launcher[aria-expanded=true]::before,.consultation-chat-launcher[aria-expanded=true]::after { content: ''; position: absolute; width: 24px; height: 2px; border-radius: 2px; background: white; transform: rotate(45deg); }
-.consultation-chat-launcher[aria-expanded=true]::after { transform: rotate(-45deg); }
-.consultation-chat-error { position: fixed; bottom: 96px; right: 24px; z-index: 1001; width: min(300px,calc(100vw - 48px)); padding: 18px; border: 1px solid #dce7e1; border-radius: 16px; background: #fffdf8; box-shadow: 0 6px 24px #23433126; color: #31564a; font-size: 13px; }
-.consultation-chat-error[hidden] { display: none; }
-.consultation-chat-error p { margin: 0 0 12px; line-height: 1.6; }
-.consultation-chat-error a { color: #167d79; font-weight: 700; }
 
 .world-kkuwang { width: 60px; }
 .world-kkuwang>img { width: 60px; height: 72px; image-rendering: auto; }
 
-.consultation-chat-launcher { --consultation-button-color: #167d79; width: 64px; height: 64px; border-radius: 24px; background: var(--consultation-button-color); }
-.consultation-chat-launcher:hover { --consultation-button-color: #126b68; }
-.consultation-smile { stroke: var(--consultation-button-color); }
-.consultation-greeting { position: fixed; z-index: 1001; right: 24px; bottom: 104px; display: flex; align-items: flex-start; width: min(400px,calc(100vw - 48px)); padding: 16px 13px 16px 18px; border-radius: 24px; background: #414544; color: #fff; box-shadow: 0 8px 30px #14252333; }
-.consultation-greeting[hidden] { display: none; }
-.consultation-greeting-open { display: flex; align-items: center; gap: 13px; min-width: 0; flex: 1; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
-.consultation-greeting-mark { display: grid; place-items: center; flex: 0 0 42px; width: 42px; height: 42px; }
-.consultation-greeting-mark img { width: 38px; height: 38px; object-fit: contain; }
-.consultation-greeting-copy { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
-.consultation-greeting-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; line-height: 1.4; font-weight: 700; }
-.consultation-greeting-detail { display: flex; align-items: center; gap: 8px; color: #c5cac7; font-size: 13px; line-height: 1.4; }
-.consultation-greeting-detail::before { content: ''; flex: 0 0 7px; width: 7px; height: 7px; border-radius: 50%; background: #39ce68; }
-.consultation-greeting-close { display: grid; place-items: center; flex: 0 0 28px; width: 28px; height: 28px; padding: 0; margin: -2px 0 0 8px; border: 0; border-radius: 50%; background: #ffffff16; color: #c4c8c6; font-size: 25px; line-height: 1; cursor: pointer; }
-.consultation-greeting-close:hover { background: #ffffff28; color: #fff; }
-@media(max-width:420px) { .consultation-greeting-copy strong { font-size: 14px; }.consultation-greeting-detail { font-size: 11px; }.consultation-greeting { padding-left: 13px; }.consultation-greeting-open { gap: 8px; } }
 
 /* Trim transparent margins so the character, rather than the canvas, fills its display box. */
 .world-kkuwang { width: 58px; }
@@ -149,14 +122,8 @@
 .snb-student-menu .snb-section-title {display:flex;align-items:center;gap:8px}
 .snb-pending-badge {padding:3px 7px;border-radius:6px;background:#ecf1ed;color:#758c7e;font-size:10px;font-weight:600;letter-spacing:0}
 .snb-student-menu nav[hidden] {display:none}
-.consultation-greeting-copy strong {display:flex;align-items:center;gap:9px}
-.consultation-pending-badge {padding:3px 7px;border-radius:6px;background:#ffffff20;color:#e0e8e2;font-size:11px;font-weight:600;white-space:nowrap}
-.consultation-greeting-detail::before {background:#a8b5ae}
-.consultation-launcher-pending {position:absolute;top:-8px;right:-7px;padding:4px 7px;border:1px solid #ccdbd1;border-radius:8px;background:#fffdf7;color:#557365;font-size:10px;font-weight:700;white-space:nowrap;line-height:1.3}
 
 /* Keep counseling controls above the footer at every viewport width. */
-.consultation-chat-launcher {bottom:calc(var(--campus-help-height,54px) + 12px + env(safe-area-inset-bottom,0px))}
-.consultation-greeting {bottom:calc(var(--campus-help-height,54px) + 92px + env(safe-area-inset-bottom,0px))}
 
 /* Lower chat slightly while leaving the keyboard help bar clear. */
 .map-shell .chat-panel {bottom:calc(var(--map-footer-height,54px) + 12px)}

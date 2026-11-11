@@ -365,3 +365,12 @@ Docker의 호스트 경로를 사용하는 검증 환경에서는 테스트 DB �
 - 기존 학습·답안·포인트 기록은 변경하지 않는다. 업적은 사용자별 `event_progress`에 최초 1회 저장한다.
 - 달성 알림은 차례로 표시하고, 재전송은 최초 달성 시각과 알림을 중복 생성하지 않는다.
 - 원본 이미지: `easter-egg/easter-egg-final-asset/05-삼각지대 탈출.png`, `07-컴퓨터의 속마음.png`.
+
+## 공지사항 알림함
+
+- 오른쪽 아래 종 아이콘에서 계정별 미확인 공지 수를 확인하고 공지 목록을 열 수 있음. 기존 상담톡 런처 자리를 사용함.
+- 목록을 여는 것만으로 읽음 처리하지 않음. 공지 본문을 열면 기존 게시글 읽음 기록에 반영되며, 게시판에서 직접 읽은 상태와 공유됨. 새로고침·재접속 후에도 계정별 상태가 유지됨.
+- 활성 화면은 30초마다 새 공지 수를 확인함. 탭이 숨겨진 동안 요청을 건너뛰고 다시 포커스되면 갱신함.
+- `GET /api/community/notices/`는 공지 목록과 읽음 여부를 8개 단위로 반환하고, `GET /api/community/notices/?summary=1`은 미확인 수만 반환함. 별도 테이블이나 마이그레이션은 추가하지 않음.
+- 관련 파일: `backend/community/views.py`, `backend/community/urls.py`, `backend/community/test_notices.py`, `frontend/dist/notice-notifications.js`, `frontend/dist/notice-notifications.css`, `frontend/dist/community.js`, `frontend/dist/campus.js`, `frontend/dist/campus-brand.css`, `frontend/dist/index.html`.
+- 원본 변경에서 프런트 검사 198개, JS 구문 검사, 변경 Python 파일 컴파일, `git diff --check`가 통과함. 공지 백엔드 테스트는 격리된 PostgreSQL 테스트 DB가 없어 실행하지 못했음. 이 P4 이식본은 별도 재검증함.

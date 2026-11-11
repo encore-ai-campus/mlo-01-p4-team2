@@ -1,3 +1,4 @@
+from uuid import uuid4
 from datetime import timedelta
 from unittest.mock import patch
 from django.test import TestCase, override_settings
@@ -19,6 +20,7 @@ class MainFlowTests(TestCase):
     def ticket(self,target):
         return signing.dumps({'user':str(self.user.pk),'target':target},salt=SALT)
     def send(self,action,**kwargs):
+        if action=='game_start':kwargs.setdefault('request_uuid',str(uuid4()))
         return main.action(self.user,dict(action=action,**kwargs),self.session.pk)
     def test_notice_does_not_register_and_investigation_is_idempotent(self):
         self.assertTrue(self.send('notice')['show_notice'])
@@ -308,6 +310,7 @@ class MainFlowTests(TestCase):
 
     def test_investigation_unlocks_room1_without_any_learning_record(self):
         result = self.send('investigate', ticket=self.ticket('investigate'))
+        result['state']=main.status(self.user)
         self.assertEqual(len(result['state']['steps']), 5)
         self.assertEqual(result['state']['stage'], 2)
         self.assertEqual(result['state']['steps'][1]['name'], 'ROOM01 증거분석실')

@@ -93,6 +93,7 @@ class PokeControlTests(SimpleTestCase):
         self.room = consumers.CampusRoom()
         self.consumer = consumers.CampusConsumer()
         self.consumer.player_id = "self"
+        self.consumer.pepero_remaining = 10  # This fixture has collected a full pepero.
         self.consumer.controller = MotionController({"floor": "campus", "x": 130, "y": 100, "dir": "right"})
         self.consumer.state = {"id": "self", **self.consumer.controller.pose}
         self.consumer.control_lock = asyncio.Lock()

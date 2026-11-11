@@ -1,6 +1,5 @@
 """Authenticated public chat and private-message notifications; no movement state."""
 import asyncio
-from contextlib import suppress
 from datetime import timedelta
 from importlib import import_module
 import json
@@ -11,7 +10,6 @@ from types import SimpleNamespace
 
 from channels.consumer import get_handler_name
 from channels.exceptions import ChannelFull
-from channels.generic.websocket import AsyncWebsocketConsumer
 from django.conf import settings
 from django.contrib.auth import get_user, get_user_model
 from django.core import signing
@@ -25,6 +23,7 @@ from eventing.events import SESSION_KEY, record_chat
 from eventing.models import ChatMessage
 from . import session_registry, socket_db
 from .chat_tokens import verify_actor_token
+from .socket_lifecycle import CleanupWebsocketConsumer
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +32,7 @@ class ChatRateLimited(Exception):
     pass
 
 
-class ChatConsumer(AsyncWebsocketConsumer):
+class ChatConsumer(CleanupWebsocketConsumer):
     group = "campus.chat.public"
     session_check_interval = 10
     chat_interval = 0.8
@@ -65,8 +64,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if settings.CAMPUS_DM_ENABLED:
             groups.append(user_group(self.user.pk))
         for group in groups:
-            await self.channel_layer.group_add(group, self.channel_name)
             self.groups_joined.append(group)
+            await self.channel_layer.group_add(group, self.channel_name)
         if await self.current_identity() is None:
             await self.disconnect(4401)
             await self.close(code=4401)
@@ -229,10 +228,5 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         self.connected = False
-        if self.guard_task:
-            self.guard_task.cancel()
-            with suppress(asyncio.CancelledError):
-                await self.guard_task
-        for group in self.groups_joined:
-            await self.channel_layer.group_discard(group, self.channel_name)
-        self.groups_joined.clear()
+        await self.finish_task(getattr(self, "guard_task", None))
+        await self.discard_groups()

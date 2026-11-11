@@ -11,8 +11,7 @@ from types import SimpleNamespace
 from uuid import uuid4
 
 from channels.consumer import get_handler_name
-from channels.exceptions import ChannelFull
-from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.exceptions import ChannelFull, StopConsumer
 from django.conf import settings
 from django.contrib.auth import get_user
 from django.db import DatabaseError
@@ -29,6 +28,7 @@ from .interest import InterestView, SpatialIndex
 from .motion import CLASSROOM_TRANSITION_DELAY, MotionController, ControlError, World, geometry, world
 from .positions import DIRECTIONS, FLOOR_BOUNDS, get_position, save_position, validate_position
 from .chat_tokens import issue_actor_token
+from .socket_lifecycle import CleanupWebsocketConsumer
 
 
 class CampusRoom:
@@ -215,7 +215,7 @@ def note_slow_db(what, started):
         logging.getLogger(__name__).warning("campus %s waited %.2fs for the database", what, elapsed)
 
 
-class CampusConsumer(AsyncWebsocketConsumer):
+class CampusConsumer(CleanupWebsocketConsumer):
     logout_prepared = False
     session_check_interval = 10
     idle_timeout = 60
@@ -230,6 +230,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
         self.logout_prepared = False
         self.guard_task = None
         self.motion_task = None
+        self.groups_joined = []
         self.controller = None
         self.control_lock = asyncio.Lock()
         self.server_control = not getattr(settings, "CAMPUS_TEST_LEGACY_MOVEMENT", False) or b"control=server" in self.scope.get("query_string", b"")
@@ -298,15 +299,14 @@ class CampusConsumer(AsyncWebsocketConsumer):
             self.position_dirty, self.position_changed_at = True, live[1]
         await room.cluster.start(room, lambda payloads, campus=room: send_to_sockets(campus, payloads))
         async with room.lock:
-            await self.channel_layer.group_add(room.group, self.channel_name)
-            await self.channel_layer.group_add(self.session_group, self.channel_name)
             from event_story.achievement_services import DISCOVERY_GROUP
-            await self.channel_layer.group_add(DISCOVERY_GROUP, self.channel_name)
+            for group in (room.group, self.session_group, DISCOVERY_GROUP):
+                self.groups_joined.append(group)
+                await self.channel_layer.group_add(group, self.channel_name)
             # Subscribe before the final check so a login replacing this key
             # during the handshake cannot leave an unnoticed stale socket.
             if await self.current_identity() is None:
-                await self.channel_layer.group_discard(room.group, self.channel_name)
-                await self.channel_layer.group_discard(self.session_group, self.channel_name)
+                await self.discard_groups()
                 await self.close(code=4401)
                 return
             previous_id = room.sessions.get(self.session_key)
@@ -623,7 +623,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
                     for event in events:
                         await self.send_packet({"type": "control_event", "event": event})
                     resting = not (moved or events or sent or self.busy(now))
-        except asyncio.CancelledError:
+        except (asyncio.CancelledError, StopConsumer):
             raise
         except Exception:
             logging.getLogger(__name__).exception("Campus movement calculation failed")
@@ -731,7 +731,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
         await self.stop_poke()
         saving = getattr(self, "saving", None)
         if saving is not None:
-            await saving
+            await asyncio.shield(saving)
         state = {**self.state, **self.controller.pose, "moving": False}
         observed_at = timezone.now()
         transfer = self.pending_floor_transfer
@@ -1189,7 +1189,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
         if saving is not None and not saving.done():
             if not wait:
                 return  # 저장 중이다: 끝난 뒤 다음 기회(다음 틱·세션 확인)에 다시 본다
-            await saving
+            await asyncio.shield(saving)
         force = force or self.pending_floor_transfer is not None
         if not self.position_dirty and self.pending_floor_transfer is None:
             return
@@ -1199,7 +1199,7 @@ class CampusConsumer(AsyncWebsocketConsumer):
         state = self.state.copy() if self.position_dirty else None
         self.saving = asyncio.create_task(self.write_position(state, self.position_changed_at, self.pending_floor_transfer))
         if wait:
-            await self.saving
+            await asyncio.shield(self.saving)
 
     async def write_position(self, state, observed_at, transfer):
         try:
@@ -1263,32 +1263,39 @@ class CampusConsumer(AsyncWebsocketConsumer):
             await self.send_packet({"type": "identity", "player": self.state.copy()})
 
     async def leave(self):
-        if self.player_id not in room.players:
-            session_registry.unregister(self.player_id)
-            if self.session_group:
-                await self.channel_layer.group_discard(self.session_group, self.channel_name)
-            await self.channel_layer.group_discard(room.group, self.channel_name)
-            return
-        self.poke_requested = False
-        await self.stop_poke()
-        await self.checkpoint(force=True)
-        session_registry.unregister(self.player_id)
-        if self.session_group:
-            await self.channel_layer.group_discard(self.session_group, self.channel_name)
+        player_id = getattr(self, "player_id", None)
+        await self.finish_task(getattr(self, "saving", None), cancel=False)
+        if player_id in room.players:
+            self.poke_requested = False
+            try:
+                await self.stop_poke()
+            except Exception:
+                logging.getLogger(__name__).exception("Could not stop campus poke during cleanup")
+            try:
+                await self.checkpoint(force=True)
+            except Exception:
+                logging.getLogger(__name__).exception("Could not checkpoint campus position during cleanup")
+        session_registry.unregister(player_id)
         async with room.lock:
-            room.interiors.discard(self.player_id)
-            room.channels.pop(self.player_id, None)
-            room.sockets.pop(self.player_id, None)
-            room.pending_moves.pop(self.player_id, None)
-            room.pending_effects.pop(self.player_id, None)
-            room.controllers.pop(self.player_id, None)
+            room.interiors.discard(player_id)
+            room.channels.pop(player_id, None)
+            room.sockets.pop(player_id, None)
+            room.pending_moves.pop(player_id, None)
+            room.pending_effects.pop(player_id, None)
+            room.controllers.pop(player_id, None)
             session_key = getattr(self, "session_key", None)
-            if room.sessions.get(session_key) == self.player_id:
+            if player_id and room.sessions.get(session_key) == player_id:
                 room.sessions.pop(session_key, None)
-            if self.player_id and room.players.pop(self.player_id, None) is not None:
-                await self.channel_layer.group_discard(room.group, self.channel_name)
-                await self.tell_local({"type": "leave", "id": self.player_id})
-                await room.cluster.left(self.player_id)
+            if player_id and room.players.pop(player_id, None) is not None:
+                try:
+                    await self.tell_local({"type": "leave", "id": player_id})
+                except Exception:
+                    logging.getLogger(__name__).exception("Could not publish local campus leave")
+                try:
+                    await room.cluster.left(player_id)
+                except Exception:
+                    logging.getLogger(__name__).exception("Could not publish cluster campus leave")
+        await self.discard_groups()
 
     async def close(self, code=None, reason=None):
         if code not in (None, 1000):
@@ -1311,14 +1318,6 @@ class CampusConsumer(AsyncWebsocketConsumer):
         await self.close(code=4401)
 
     async def disconnect(self, close_code):
-        from event_story.achievement_services import DISCOVERY_GROUP
-        await self.channel_layer.group_discard(DISCOVERY_GROUP, self.channel_name)
-        if self.motion_task:
-            self.motion_task.cancel()
-            with suppress(asyncio.CancelledError):
-                await self.motion_task
-        if self.guard_task:
-            self.guard_task.cancel()
-            with suppress(asyncio.CancelledError):
-                await self.guard_task
+        await self.finish_task(getattr(self, "motion_task", None))
+        await self.finish_task(getattr(self, "guard_task", None))
         await self.leave()

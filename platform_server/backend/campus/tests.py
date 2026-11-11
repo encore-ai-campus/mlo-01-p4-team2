@@ -23,6 +23,8 @@ from . import consumers
 class CampusSocketTests(TransactionTestCase):
     def setUp(self):
         consumers.room = consumers.CampusRoom()
+        from campus_control.service import invalidate
+        invalidate()
         from eventing.catalog import FLOORS, floor_uuid
         from eventing.models import MapFloor
         # TransactionTestCase flushes migration data between socket tests.
@@ -41,7 +43,29 @@ class CampusSocketTests(TransactionTestCase):
         if client:
             cookie = client.cookies[settings.SESSION_COOKIE_NAME].value
             headers.append((b"cookie", f"{settings.SESSION_COOKIE_NAME}={cookie}".encode()))
-        return WebsocketCommunicator(application, "/ws/campus/", headers=headers)
+        socket = WebsocketCommunicator(application, "/ws/campus/", headers=headers)
+        receive, connect = socket.receive_json_from, socket.connect
+        welcome = []
+        async def connect_ready(*args, **kwargs):
+            result = await connect(*args, **kwargs)
+            if result[0]:
+                packet = await receive()
+                self.assertEqual(packet["type"], "welcome")
+                welcome.append(packet)
+                inventory = await receive()
+                self.assertEqual(inventory, {"type": "pepero_status", "remaining": 0})
+                socket.initial_inventory = inventory
+                freeze = await receive()
+                self.assertEqual(freeze["type"], "campus_freeze")
+                self.assertIs(freeze["paused"], False)
+                self.assertIsInstance(freeze["revision"], int)
+                self.assertIsInstance(freeze["message"], str)
+            return result
+        async def receive_ready(*args, **kwargs):
+            return welcome.pop(0) if welcome else await receive(*args, **kwargs)
+        socket.connect = connect_ready
+        socket.receive_json_from = receive_ready
+        return socket
 
     @asynccontextmanager
     async def connections(self, *clients):

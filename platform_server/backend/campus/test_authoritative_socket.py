@@ -191,7 +191,9 @@ class AuthoritativeSocketTests(TransactionTestCase):
         from ad_bridge.placements import transfer_identity
         from .motion import world
 
-        x, y = world('campus').objects['campus-roof-stairs']['interactionPoint']
+        portal = next(p for p in world('campus').data['portals'] if p['objectId'] == 'campus-roof-stairs')
+        x, y = portal['x'] + portal['w']/2, portal['y'] + portal['h']/2
+        self.assertTrue(world('campus').walkable(x, y))
         await database_sync_to_async(Position.objects.filter(profile_id=self.user.pk).update)(
             last_position={"floor": "campus", "x": x, "y": y, "dir": "down"})
         socket = self.socket()

@@ -28,9 +28,11 @@
     section.querySelector("[data-frames-empty]").hidden = shown > 0 && Boolean(section.dataset.any);
   };
 
-  // src = 모든 구성에 그릴 이미지(고른 파일·광고 만들기의 소재). 없으면 구성마다 자기 소재(data-src — 구성별 소재), 그것도 없으면 처음 이미지(data-source)
-  const draw = (section, src) => {
-    section.dataset.drawn = src || "";
+  // own = {구성 ID: 이미지} 그 구성에만 그릴 이미지(광고 만들기의 구성별 소재). 없으면 src = 모든 구성에 그릴 이미지(고른 파일·광고 만들기의 소재),
+  // 그것도 없으면 구성마다 자기 소재(data-src — 구성별 소재), 그것도 없으면 처음 이미지(data-source)
+  const key = (src, own) => `${src || ""} ${JSON.stringify(own || {})}`;
+  const draw = (section, src, own) => {
+    section.dataset.drawn = key(src, own);
     let any = false;
     section.querySelectorAll("figure.frame").forEach((figure) => {
       const box = figure.querySelector(".frame-box"), out = figure.querySelector(".frame-note");
@@ -44,7 +46,7 @@
       }
       img.hidden = true;
       out.textContent = "";
-      const shown = src || figure.dataset.src || section.dataset.source;
+      const shown = (own && own[figure.dataset.slot]) || src || figure.dataset.src || section.dataset.source;
       if (shown) any = true;
       if (!fit || !shown) return;  // 표시 정보가 없는 구성은 이름과 안내만
       img.onload = () => { img.hidden = false; out.textContent = note(fit, img.naturalWidth, img.naturalHeight, Number(width), Number(height)); };
@@ -70,6 +72,6 @@
     draw(section);
   });
 
-  // 광고 만들기가 고른 소재(등록된 소재·새로 올리기)가 바뀔 때 부른다(ad_create.js). 같은 이미지면 다시 그리지 않는다
-  window.ConsoleFrames = { draw: (src) => sections.forEach((s) => { if (s.dataset.drawn !== (src || "")) draw(s, src); }) };
+  // 광고 만들기가 고른 소재(등록된 소재·새로 올리기·구성별 소재)가 바뀔 때 부른다(ad_create.js). 같은 이미지면 다시 그리지 않는다
+  window.ConsoleFrames = { draw: (src, own) => sections.forEach((s) => { if (s.dataset.drawn !== key(src, own)) draw(s, src, own); }) };
 })();

@@ -1725,6 +1725,22 @@ components:
         creative_id:
           description: 함께 보내면 등록된 소재를 같은 요청에서 연결·선택한다(재사용). 새 소재는 먼저 `POST /creatives`로 올린다.
           $ref: "#/components/schemas/Uuid"
+        slot_creatives:
+          type: array
+          description: |
+            구성별 노출 소재(설계 §10 "구성별 노출 소재" ⑤, SCR-2). 함께 보내면 같은 요청에서 그 구성의 소재를 고른다 — `PUT /ad-groups/{ad_group_id}/slots/{slot_id}/creative` 와
+            같은 규칙(내 보관하지 않은 소재, 아니면 404 / `slot_ids` 에 없는 구성이면 400)이고, 하나라도 거절되면 광고그룹을 만들지 않는다. 없는 구성은 `creative_id` 를 쓴다.
+            같은 `slot_id` 는 한 번만 온다(둘이면 400 — `uniqueItems` 는 항목 전체가 같을 때만 막는다). 지정은 보낸 순서대로 한다(이력·이벤트 순서).
+          uniqueItems: true
+          items:
+            type: object
+            required: [slot_id, creative_id]
+            additionalProperties: false
+            properties:
+              slot_id:
+                $ref: "#/components/schemas/Uuid"
+              creative_id:
+                $ref: "#/components/schemas/Uuid"
 
     AdGroupUpdate:
       type: object

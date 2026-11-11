@@ -53,6 +53,13 @@ def get_item(mapping, key):
 
 
 @register.filter
+def slot_pick(form, slot_id):
+    """광고 만들기의 그 구성 소재 칸(`slot_creative_<구성 ID>` — 백엔드 AdCreateForm.SLOT_PICK). 등록된 소재가 없어 칸이 없으면 None."""
+    name = f"slot_creative_{slot_id}"
+    return form[name] if name in form.fields else None
+
+
+@register.filter
 def domain(url):
     """이동 주소의 도메인(관리자 화면에서 눈에 띄게 보인다 — 피싱 주소를 알아보게). 해석하지 못하면 빈 문자열."""
     try:

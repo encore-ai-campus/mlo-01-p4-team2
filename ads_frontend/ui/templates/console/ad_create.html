@@ -88,6 +88,15 @@
           <div class="field dropzone">{{ form.image.as_field_group }}</div>
           <p class="helptext">PNG · JPEG / 최대 {{ max_bytes|filesizeformat }} / 움직이는 이미지 제외. ‘구성별 적용금액 계산’을 누르면 고른 이미지는 다시 골라야 합니다. 올린 소재는 <a href="{% url 'creative_list' %}">소재</a>에도 남아 다른 광고에 다시 쓸 수 있습니다.</p>
         </div>
+        {% if form.has_creatives %}
+        <fieldset class="slot-picks">
+          <legend>구성별 소재(선택)</legend>
+          <p class="helptext">구성마다 다른 등록 소재를 고를 수 있습니다. ‘기본 소재’인 구성에는 위에서 고르거나 올린 소재가 나갑니다. 노출할 구성으로 고른 구성에만 적용되고, 만든 뒤에도 광고 상세에서 바꿀 수 있습니다.</p>
+          {% for s in slots %}{% with f=form|slot_pick:s.slot_id %}{% if f %}
+          <div class="field" data-slot-pick-row="{{ s.slot_id }}">{{ f.as_field_group }}</div>
+          {% endif %}{% endwith %}{% endfor %}
+        </fieldset>
+        {% endif %}
         <div class="notice warning">승인 없이 바로 집행돼요<span class="detail">집행하면 광고와 소재가 한 번에 만들어지고 바로 나갈 수 있습니다. 하나라도 거절되면 아무것도 만들지 않습니다.</span></div>
       </section>
     </section>

@@ -868,9 +868,10 @@ def _part(prefix, create, *args, **kwargs):
         raise
 
 
-def create_ad(user, campaign_id, ad_group, creative=None, creative_id=None, now=None, request_key=None):
+def create_ad(user, campaign_id, ad_group, creative=None, creative_id=None, now=None, request_key=None, slot_creatives=None):
     """**이미 있는** 캠페인에 광고(광고그룹 + 입찰)와 소재를 한 트랜잭션으로 만든다(6-9c·6-9d, 설계 §10 "광고 만들기 흐름" — 캠페인은 `create_campaign` 으로 따로). 소재는 `creative`(새로 올리기 —
-    `create_creative` 의 인자) 또는 `creative_id`(등록된 소재 재사용) 중 하나이고, 광고그룹에 연결·선택된다. 입력 오류의 위치는 `/ad_group/…`·`/creative/…`.
+    `create_creative` 의 인자) 또는 `creative_id`(등록된 소재 재사용) 중 하나이고, 광고그룹에 연결·선택된다(기본 소재). 입력 오류의 위치는 `/ad_group/…`·`/creative/…`·`/slot_creatives/…`.
+    `slot_creatives`: {구성 ID: 등록된 소재 ID} 구성별 노출 소재(설계 §10 "구성별 노출 소재" ⑤) — 같은 트랜잭션에서 `select_slot_creative` 와 같은 규칙·이력으로 고른다(없는 구성은 기본 소재).
     `request_key` 는 광고그룹 행에 저장한다 — 같은 키로는 한 번만 만든다(두 번 누름·동시 제출·응답 실패 뒤 재시도는 처음 것을 `duplicate=True` 로)."""
     require_advertiser(user)  # 입력 검사·요청 키 조회보다 먼저 — 광고주가 아니면 입력과 상관없이 403(6-13b R9)
     now = _now(now)
@@ -891,6 +892,8 @@ def create_ad(user, campaign_id, ad_group, creative=None, creative_id=None, now=
                 _part("/creative", link_creative, user, g.ad_group_id, creative_id, now=now)
             else:
                 _part("/creative", create_creative, user, g.ad_group_id, now=now, **creative)
+            for slot_id, chosen in (slot_creatives or {}).items():  # 기본 소재 뒤 — 잠금 순서 캠페인 → 광고그룹 → 구성 연결 → 소재(이미 쥔 행은 다시 기다리지 않는다)
+                _part("/slot_creatives", select_slot_creative, user, g.ad_group_id, slot_id, chosen, now=now)
             _part("/ad_group", _link_segments, AdGroup.objects.get(pk=g.ad_group_id), list(g.slot_ids), list(g.segment_ids))  # 소재 잠금 뒤 — 카탈로그가 마지막
             if request_key is not None:
                 AdGroup.objects.filter(pk=g.ad_group_id).update(request_key=request_key)  # 동시에 같은 키가 오면 여기서 유일 제약이 막는다

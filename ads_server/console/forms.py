@@ -143,6 +143,7 @@ class AdCreateForm(forms.Form):
         "/ad_group/name": "group_name", "/ad_group/slot_ids": "slot_ids", "/ad_group/segment_ids": "segment_ids", "/ad_group/bid_amount": "bid_amount",
         "/creative": "creative_source", "/creative/title": "title", "/creative/redirect_url": "redirect_url",
     }
+    SLOT_PICK = "slot_creative_"  # 구성별 소재 칸 이름 = 이것 + 구성 ID(설계 §10 "구성별 노출 소재" ⑤)
 
     def __init__(self, *args, campaigns=(), slots=(), creatives=(), segments=(), **kwargs):
         super().__init__(*args, **kwargs)
@@ -153,6 +154,15 @@ class AdCreateForm(forms.Form):
         self.has_creatives = bool(creatives)  # 없으면 화면이 고르는 칸을 그리지 않는다
         self.fields["creative_id"].choices = [("", "고르세요")] + creatives
         self.fields["image"].widget.attrs["data-max-bytes"] = settings.ASSET_MAX_BYTES
+        for s in slots if creatives else ():  # 구성마다 '기본 소재'(위의 소재) 또는 등록된 소재 하나 — 등록된 소재가 없으면 칸이 없다
+            self.fields[self.SLOT_PICK + str(s.slot_id)] = forms.ChoiceField(label=f"{s.media_name} · {s.name}", required=False,
+                                                                            choices=[("", "기본 소재")] + creatives, widget=forms.Select(attrs={"data-slot-pick": str(s.slot_id)}))
+
+    def slot_creatives(self):
+        """{구성 ID: 소재 ID} 고른 구성에서 '기본 소재'가 아닌 것만(고르지 않은 구성의 칸은 버린다 — JS 가 없으면 모든 구성의 칸이 보인다).
+        보낸 구성 순서대로 중복 없이 — 같은 시각에 쓰는 이력·이벤트·감사의 순서가 실행마다 같게(리뷰 N1)."""
+        chosen = dict.fromkeys(self.cleaned_data.get("slot_ids") or ())
+        return {slot_id: self.cleaned_data[self.SLOT_PICK + slot_id] for slot_id in chosen if self.cleaned_data.get(self.SLOT_PICK + slot_id)}
 
     def clean(self):
         """어느 쪽 소재인지에 따라 그쪽 입력이 있는지만 본다(입력 모양 — 제목·주소·이미지 규칙은 서비스가 본다)."""

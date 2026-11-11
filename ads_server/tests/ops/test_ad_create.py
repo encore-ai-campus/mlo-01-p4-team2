@@ -15,7 +15,8 @@ from django.urls import reverse
 
 from billing.models import LedgerEntry
 from campaigns import api as campaigns
-from campaigns.models import AdGroup, Campaign, Creative
+from campaigns.models import AdGroup, Campaign, ChangeLog, Creative
+from foundation.errors import InvalidRequest
 from foundation.models import AuditLog
 from masters import api as masters
 from records import api as records
@@ -166,6 +167,47 @@ class AdCreatePageTests(Cases, AdCreateBase, TestCase):
         self.assertRedirects(r, reverse("ad_group_detail", args=[group.ad_group_id]), fetch_redirect_response=False)
         self.assertEqual(group.creative_id, self.w.creative.creative_id)
         self.assertEqual(Creative.objects.filter(owner=self.w.adv).count(), 1)  # 새 소재를 만들지 않았다
+
+    def case_each_slot_can_get_its_own_registered_creative_when_creating(self):
+        """구성별 노출 소재 ⑤(SCR-2): 광고 만들기에서 고른 구성마다 '기본 소재'(위의 소재) 또는 등록된 소재 하나 — 같은 집행에서 연결·지정된다(이력·감사는
+        광고 상세에서 고를 때와 같다). 고르지 않은 구성의 칸과 '기본 소재'는 지정하지 않는다. 남의 소재·보관한 소재는 폼이, 이 광고의 구성이 아닌 것은 서비스가 거절하고 아무것도 남지 않는다."""
+        wide = campaigns.create_creative(self.w.adv, None, "가로", "https://wide.example/landing", png_file((9, 9, 9)))
+        html = self.client.get(URL).content.decode()
+        picks = html.split("<legend>구성별 소재(선택)</legend>")[1].split("</fieldset>")[0]
+        for slot in (self.w.slot, self.click_slot):  # 구성마다 칸 하나 — 처음 값은 '기본 소재'
+            self.assertRegex(picks, rf'<div class="field" data-slot-pick-row="{slot.slot_id}">\s*<label for="id_slot_creative_{slot.slot_id}">{re.escape(slot.media_name)} · {re.escape(slot.name)}</label>')
+            self.assertRegex(picks, rf'<select name="slot_creative_{slot.slot_id}"[^>]* data-slot-pick="{slot.slot_id}"[^>]*>\s*<option value="" selected>기본 소재</option>')
+        self.assertEqual(picks.count(f'<option value="{wide.creative_id}">가로</option>'), 2)
+        both = [str(self.w.slot.slot_id), str(self.click_slot.slot_id)]
+        r = self.client.post(URL, self.fields(slot_ids=both, **{f"slot_creative_{self.click_slot.slot_id}": str(wide.creative_id), f"slot_creative_{self.w.slot.slot_id}": ""}))
+        group = self.created().get()
+        self.assertRedirects(r, reverse("ad_group_detail", args=[group.ad_group_id]), fetch_redirect_response=False)
+        self.assertEqual((group.creative.title, campaigns.get_ad_group(self.w.adv, group.ad_group_id).slot_creative_ids),
+                         ("제목", ((self.click_slot.slot_id, wide.creative_id),)))  # 기본 소재는 새로 올린 것, 클릭 위치만 '가로'
+        self.assertEqual([f.creative_id for f in campaigns.candidate_facts_for_slot(self.click_slot.slot_id) if f.ad_group_id == group.ad_group_id], [wide.creative_id])
+        self.assertEqual((ChangeLog.objects.filter(target_id=group.ad_group_id, change_type="SLOT_CREATIVE_SELECTED").count(),
+                          AuditLog.objects.filter(action="ad_group.slot_creative_selected", target_id=str(group.ad_group_id)).count()), (1, 1))
+        self.assertIn("console/ad_create.js", html)
+        r = self.client.post(URL, self.fields(group_name="한 구성", **{f"slot_creative_{self.click_slot.slot_id}": str(wide.creative_id)}))  # 클릭 위치는 고르지 않았다
+        one = AdGroup.objects.get(name="한 구성")
+        self.assertEqual(campaigns.get_ad_group(self.w.adv, one.ad_group_id).slot_creative_ids, ())  # 고르지 않은 구성의 칸은 버린다
+        for order in ([self.click_slot, self.w.slot], [self.w.slot, self.click_slot]):  # 둘을 지정하면 이력은 보낸 구성 순서대로(리뷰 N1 — 같은 시각이라 실행마다 같아야 한다)
+            name = f"순서 {order[0].name}"
+            self.client.post(URL, self.fields(group_name=name, slot_ids=[str(s.slot_id) for s in order], **{f"slot_creative_{s.slot_id}": str(wide.creative_id) for s in order}))
+            rows = ChangeLog.objects.filter(target_id=AdGroup.objects.get(name=name).ad_group_id, change_type="SLOT_CREATIVE_SELECTED").order_by("change_id")
+            self.assertEqual([str(r.new_value["slot_id"]) for r in rows], [str(s.slot_id) for s in order])
+        other = World(ends_in=None)
+        gone = campaigns.create_creative(self.w.adv, None, "지운 것", "https://gone.example/", png_file((7, 7, 7)))
+        campaigns.archive_creative(self.w.adv, gone.creative_id)
+        for creative_id in (str(other.creative.creative_id), str(gone.creative_id), str(uuid.uuid4())):  # 위조한 폼: 남의 소재·보관한 소재·없는 소재
+            with self.subTest(creative_id):
+                self.assertEqual(self.client.post(URL, self.fields(group_name="위조", slot_ids=both, **{f"slot_creative_{self.click_slot.slot_id}": creative_id})).status_code, 400)
+        self.assertFalse(AdGroup.objects.filter(name="위조").exists())
+        with self.assertRaises(InvalidRequest) as caught:  # 서비스: 이 광고의 구성이 아닌 지정은 400, 광고도 만들지 않는다
+            campaigns.create_ad(self.w.adv, self.w.campaign.campaign_id, {"name": "서비스", "slot_ids": [self.w.slot.slot_id], "bid_amount": 250},
+                                creative_id=self.w.creative.creative_id, slot_creatives={str(self.click_slot.slot_id): wide.creative_id})
+        self.assertEqual(caught.exception.errors[0]["pointer"], "/slot_creatives/slot_id")
+        self.assertFalse(AdGroup.objects.filter(name="서비스").exists())
 
     def case_the_campaign_in_the_link_is_preselected_and_only_mine_are_offered(self):
         other = World(ends_in=None)

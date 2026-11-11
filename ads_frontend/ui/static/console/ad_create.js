@@ -24,12 +24,24 @@
   const frameSource = () => {
     const source = (form.querySelector('input[name="creative_source"]:checked') || {}).value;
     if (source === "existing") {
-      const img = existing && existing.value ? form.querySelector(`.creative-preview [data-creative="${CSS.escape(existing.value)}"] img`) : null;
-      return img ? img.getAttribute("src") : "";
+      return imageOf(existing && existing.value);
     }
     return preview && !preview.hidden ? preview.src : "";
   };
-  const showFrames = () => { if (window.ConsoleFrames) window.ConsoleFrames.draw(frameSource()); };
+  // 2-2) 구성별 소재(설계 §10 "구성별 노출 소재" ⑤): 고른 구성의 칸만 보이고, 고른 등록 소재는 그 구성의 틀에 그린다
+  const imageOf = (id) => {
+    const img = id ? form.querySelector(`.creative-preview [data-creative="${CSS.escape(id)}"] img`) : null;
+    return img ? img.getAttribute("src") : "";
+  };
+  const picks = () => {
+    const chosen = new Set([...form.querySelectorAll('input[name="slot_ids"]:checked')].map((c) => c.value));
+    form.querySelectorAll("[data-slot-pick-row]").forEach((row) => { row.hidden = !chosen.has(row.dataset.slotPickRow); });
+    return [...form.querySelectorAll("select[data-slot-pick]")].filter((select) => select.value && chosen.has(select.dataset.slotPick));
+  };
+  const showFrames = () => {
+    const own = Object.fromEntries(picks().map((select) => [select.dataset.slotPick, imageOf(select.value)]));
+    if (window.ConsoleFrames) window.ConsoleFrames.draw(frameSource(), own);
+  };
 
   // 3) 아래 띠·확인 창의 요약(캠페인·구성·입찰·소재)
   const summary = document.getElementById("ad-summary");
@@ -48,6 +60,8 @@
       ["구성 · 입찰", `${slots.length ? slots.join(", ") : "구성 없음"} · ${bid > 0 ? `${bid.toLocaleString()} P` : "입찰 없음"}`],
       ["소재", creative],
     ];
+    const own = picks().map((select) => `${select.closest(".field").querySelector("label").textContent.replace(/:$/, "")}: ${select.selectedOptions[0].textContent}`);
+    if (own.length) rows.push(["구성별 소재", own.join(", ")]);
     summary.replaceChildren(...rows.map(([term, text]) => {
       const row = document.createElement("div");
       const dt = document.createElement("dt"); dt.textContent = term;

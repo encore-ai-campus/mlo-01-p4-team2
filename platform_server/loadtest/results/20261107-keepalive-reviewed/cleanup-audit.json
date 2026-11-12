@@ -1,0 +1,11 @@
+{
+  "containers": {
+    "final-r2-it-pg-20261107": "exited",
+    "keepalive-review-move-20261107": "exited",
+    "keepalive-review-service-20261107": "exited"
+  },
+  "busy_owned_ports": [],
+  "remaining_owned_application_processes": [],
+  "tested_source_drift": [],
+  "db_original_state_restored": true
+}

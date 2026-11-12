@@ -1,0 +1,20 @@
+{"name": "fixtures", "args": ["reset_scenarios"], "exit": 0, "started": 1794065508.266436, "ended": 1794065509.813885}
+{"name": "owned_fixture", "args": ["learning_baseline"], "exit": 0, "started": 1794065509.933078, "ended": 1794065511.4110851}
+{"name": "scenarios", "args": [], "exit": 1, "started": 1794065511.528631, "ended": 1794065658.438563}
+{"name": "fixtures", "args": ["audit"], "exit": 0, "started": 1794065658.664715, "ended": 1794065660.300172}
+{"name": "owned_fixture", "args": ["audit"], "exit": 0, "started": 1794065660.418985, "ended": 1794065661.96385}
+{"name": "fixtures", "args": ["casual"], "exit": 0, "started": 1794065662.0822039, "ended": 1794065663.990925}
+{"name": "benchmark", "args": ["walk", "180"], "exit": 0, "started": 1794065664.11099, "ended": 1794065878.166123}
+{"name": "fixtures", "args": ["casual"], "exit": 0, "started": 1794065878.391961, "ended": 1794065880.3869529}
+{"name": "benchmark", "args": ["real", "180"], "exit": 0, "started": 1794065880.506206, "ended": 1794066096.170068}
+{"name": "owned_fixture", "args": ["receipt_reset"], "exit": 0, "started": 1794066096.389575, "ended": 1794066098.0903628}
+{"name": "owned_fixture", "args": ["tickets"], "exit": 0, "started": 1794066098.208609, "ended": 1794066099.6865878}
+{"name": "receipt_protocol", "args": [], "exit": 0, "started": 1794066099.8085718, "ended": 1794066119.739948}
+{"name": "owned_fixture", "args": ["browser_reset"], "exit": 0, "started": 1794066119.862206, "ended": 1794066121.341362}
+{"name": "receipt_browser", "args": [], "exit": 1, "started": 1794066121.462374, "ended": 1794066143.817846}
+{"name": "owned_fixture", "args": ["browser_reset"], "exit": 0, "started": 1794066620.8581839, "ended": 1794066622.350776}
+{"name": "receipt_browser", "args": [], "exit": 1, "started": 1794066622.467555, "ended": 1794066627.964427}
+{"name": "owned_fixture", "args": ["browser_reset"], "exit": 0, "started": 1794066887.2350879, "ended": 1794066888.732228}
+{"name": "receipt_browser", "args": [], "exit": 0, "started": 1794066888.8514502, "ended": 1794066907.9833589}
+{"name": "admission", "args": [], "exit": 0, "started": 1794066908.194332, "ended": 1794066926.927841}
+{"name": "security", "args": [], "exit": 0, "started": 1794066927.051763, "ended": 1794066929.657484}

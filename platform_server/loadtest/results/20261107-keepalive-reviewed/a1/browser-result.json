@@ -1,0 +1,310 @@
+{
+  "checks": [
+    {
+      "name": "actual_map_and_both_websockets_loaded",
+      "passed": true
+    },
+    {
+      "name": "opening_investigation_does_not_preload_status",
+      "passed": true
+    },
+    {
+      "name": "first_investigation_receipt_received",
+      "passed": true
+    },
+    {
+      "name": "success_ui_shown_while_status_is_pending",
+      "passed": true
+    },
+    {
+      "name": "lost_receipt_offers_same_request_retry",
+      "passed": true
+    },
+    {
+      "name": "same_uuid_and_original_receipt_recovered",
+      "passed": true
+    },
+    {
+      "name": "one_saved_play_matches_client",
+      "passed": true
+    },
+    {
+      "name": "start_ui_survives_status_failure",
+      "passed": true
+    },
+    {
+      "name": "result_saved_despite_failed_snapshot",
+      "passed": true
+    },
+    {
+      "name": "client_retains_result_for_retry",
+      "passed": true
+    },
+    {
+      "name": "same_play_token_and_result_resent",
+      "passed": true
+    },
+    {
+      "name": "finish_retry_preserves_one_record_and_timestamp",
+      "passed": true
+    },
+    {
+      "name": "client_receives_updated_mission_state",
+      "passed": true
+    },
+    {
+      "name": "reload_restores_db_progress_without_new_play",
+      "passed": true
+    },
+    {
+      "name": "no_uncaught_javascript_exceptions",
+      "passed": true
+    }
+  ],
+  "http": [
+    {
+      "path": "/accounts/session/status/",
+      "method": "GET",
+      "phase": "initial",
+      "status": 200,
+      "ms": 229.59999990463257,
+      "hasState": false
+    },
+    {
+      "path": "/api/campus/freeze/",
+      "method": "GET",
+      "phase": "initial",
+      "status": 200,
+      "ms": 227.20000004768372,
+      "hasState": false
+    },
+    {
+      "path": "/api/learning/wallet/",
+      "method": "GET",
+      "phase": "initial",
+      "status": 200,
+      "ms": 205.20000004768372,
+      "hasState": false
+    },
+    {
+      "path": "/static/campus/minigames/timer.html",
+      "method": "GET",
+      "phase": "initial",
+      "status": 200,
+      "ms": 145.5,
+      "hasState": false
+    },
+    {
+      "path": "/api/community/notices/",
+      "method": "GET",
+      "phase": "initial",
+      "status": 200,
+      "ms": 108.70000004768372,
+      "hasState": false
+    },
+    {
+      "path": "/static/campus/minigames/typing.html",
+      "method": "GET",
+      "phase": "initial",
+      "status": 200,
+      "ms": 3,
+      "hasState": false
+    },
+    {
+      "path": "/api/event-main/status/",
+      "method": "GET",
+      "phase": "initial",
+      "status": 200,
+      "ms": 49.40000009536743,
+      "hasState": false
+    },
+    {
+      "path": "/static/campus/minigames/term_match.html",
+      "method": "GET",
+      "phase": "initial",
+      "status": 200,
+      "ms": 1.7000000476837158,
+      "hasState": false
+    },
+    {
+      "path": "/static/campus/event-games/sql-memory.html",
+      "method": "GET",
+      "phase": "initial",
+      "status": 200,
+      "ms": 1.4000000953674316,
+      "hasState": false
+    },
+    {
+      "path": "/static/campus/event-games/card.html",
+      "method": "GET",
+      "phase": "initial",
+      "status": 200,
+      "ms": 1.3999998569488525,
+      "hasState": false
+    },
+    {
+      "path": "/api/event-main/action/",
+      "method": "POST",
+      "action": "notice",
+      "phase": "initial",
+      "status": 200,
+      "ms": 50.60000014305115,
+      "hasState": true
+    },
+    {
+      "path": "/api/event-story/achievements/",
+      "method": "GET",
+      "phase": "initial",
+      "status": 200,
+      "ms": 35.90000009536743,
+      "hasState": false
+    },
+    {
+      "path": "/api/messages/status/",
+      "method": "GET",
+      "phase": "initial",
+      "status": 200,
+      "ms": 40.299999952316284,
+      "hasState": false
+    },
+    {
+      "path": "/api/event-main/status/",
+      "method": "GET",
+      "phase": "initial",
+      "status": 200,
+      "ms": 47.799999952316284,
+      "hasState": false
+    },
+    {
+      "path": "/api/event-main/action/",
+      "method": "POST",
+      "action": "notice",
+      "phase": "initial",
+      "status": 200,
+      "ms": 36.19999980926514,
+      "hasState": true
+    },
+    {
+      "path": "/api/event-story/achievements/",
+      "method": "GET",
+      "phase": "initial",
+      "status": 200,
+      "ms": 23.899999856948853,
+      "hasState": false
+    },
+    {
+      "path": "/api/messages/status/",
+      "method": "GET",
+      "phase": "investigate-delay",
+      "status": 200,
+      "ms": 29,
+      "hasState": false
+    },
+    {
+      "path": "/accounts/session/activity/",
+      "method": "POST",
+      "phase": "investigate-delay",
+      "status": 200,
+      "ms": 29.09999990463257,
+      "hasState": false
+    },
+    {
+      "path": "/api/event-main/action/",
+      "method": "POST",
+      "action": "investigate",
+      "phase": "investigate-delay",
+      "status": 200,
+      "ms": 59.299999952316284,
+      "first": true,
+      "hasState": false
+    },
+    {
+      "path": "/api/event-main/status/",
+      "method": "GET",
+      "phase": "investigate-delay",
+      "status": 200,
+      "ms": 2037.0999999046326,
+      "hasState": false
+    },
+    {
+      "path": "/api/event-main/status/",
+      "method": "GET",
+      "phase": "start-loss",
+      "status": 200,
+      "ms": 66.20000004768372,
+      "hasState": false
+    },
+    {
+      "path": "/api/event-main/status/",
+      "method": "GET",
+      "phase": "start-loss",
+      "status": 200,
+      "ms": 50.799999952316284,
+      "hasState": false
+    },
+    {
+      "path": "/api/event-main/action/",
+      "method": "POST",
+      "action": "game_start",
+      "phase": "start-loss",
+      "status": 200,
+      "ms": 63.39999985694885,
+      "play": "48a67fcb-9557-4fe9-aaed-f33e5b6171e4",
+      "playStatus": "RUNNING",
+      "hasState": false,
+      "request_uuid": "80c2ae58-f73d-43af-912a-f7673f05db0c",
+      "injectedLoss": true
+    },
+    {
+      "path": "/api/event-main/action/",
+      "method": "POST",
+      "action": "game_start",
+      "phase": "start-loss",
+      "status": 200,
+      "ms": 50.09999990463257,
+      "play": "48a67fcb-9557-4fe9-aaed-f33e5b6171e4",
+      "playStatus": "RUNNING",
+      "hasState": false,
+      "request_uuid": "80c2ae58-f73d-43af-912a-f7673f05db0c"
+    },
+    {
+      "path": "/api/event-main/status/",
+      "method": "GET",
+      "phase": "start-loss",
+      "status": 500,
+      "ms": 50.5,
+      "hasState": false
+    },
+    {
+      "path": "/api/campus/freeze/",
+      "method": "GET",
+      "phase": "finish-status-failure",
+      "status": 200,
+      "ms": 23.200000047683716,
+      "hasState": false
+    },
+    {
+      "path": "/api/event-main/action/",
+      "method": "POST",
+      "action": "game_finish",
+      "phase": "finish-status-failure",
+      "status": 500,
+      "ms": 48.59999990463257,
+      "hasState": false
+    },
+    {
+      "path": "/api/event-main/action/",
+      "method": "POST",
+      "action": "game_finish",
+      "phase": "finish-status-failure",
+      "status": 200,
+      "ms": 41.89999985694885,
+      "hasState": true
+    }
+  ],
+  "chrome": "Chrome/156.0.8078.81",
+  "jsErrors": [],
+  "actualBrowser": true,
+  "lossInjection": "fetch rejects after actual POST body was read; raw connection body loss is tested separately",
+  "windowOverride": true
+}

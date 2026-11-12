@@ -10,7 +10,7 @@
   const isAllowed=code=>/^Key[A-Z]$/.test(code)||/^Digit[0-9]$/.test(code)||/^Numpad[0-9]$/.test(code)||/^Arrow(Up|Down|Left|Right)$/.test(code)||['Space','ShiftLeft','ShiftRight','ControlLeft','ControlRight','Backquote','Minus','Equal','BracketLeft','BracketRight','Backslash','Semicolon','Quote','Comma','Period','Slash'].includes(code);
   let bindings={...defaults};
   try{const saved=JSON.parse(localStorage.getItem(storageKey)||'null');if(saved&&actions.every(a=>isAllowed(saved[a]))&&new Set(actions.map(a=>saved[a])).size===actions.length)bindings={...saved};}catch{}
-  const keyName=code=>code==='Space'?'Space':code.startsWith('Key')?code.slice(3):code.startsWith('Digit')?code.slice(5):code.startsWith('Numpad')?'Num '+code.slice(6):code.startsWith('Arrow')?'↑↓←→'[['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(code)]:code.replace(/(Left|Right)$/,'');
+  const keyName=code=>/^Control(Left|Right)?$/.test(code)?'Ctrl':code==='Space'?'Space':code.startsWith('Key')?code.slice(3):code.startsWith('Digit')?code.slice(5):code.startsWith('Numpad')?'Num '+code.slice(6):code.startsWith('Arrow')?'↑↓←→'[['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(code)]:code.replace(/(Left|Right)$/,'');
   function physical(event){
     const code=event.code||'';
     if(code)return code;

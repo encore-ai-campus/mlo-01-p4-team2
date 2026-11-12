@@ -1,4 +1,8 @@
 (() => {
+  const mobileNotice = document.querySelector('#mobile-pc-notice');
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (mobileNotice && isMobile) mobileNotice.hidden = false;
   const password = document.querySelector('#id_password');
   const toggle = document.querySelector('.password-toggle');
   toggle.addEventListener('click', () => {

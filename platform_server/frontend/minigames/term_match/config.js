@@ -1,6 +1,6 @@
 // 개발자 설정: 시간은 모두 밀리초(ms). 바꾼 뒤 npm run build를 실행하세요.
 export const GAME_CONFIG = Object.freeze({
-  timeLimitMs: 11110,       // 라운드별 제한 시간 (미리보기 제외)
+  timeLimitMs: 40000,       // 라운드별 제한 시간 (미리보기 제외)
   totalRounds: 1,          // 반드시 끝까지 진행할 N라운드 (1 또는 10 등)
   requiredWins: 1,         // 최종 통과에 필요한 M회 성공 (1 <= M <= N)
   maxMistakes: 5,          // 서로 다른 두 카드를 고른 횟수. 도달 즉시 라운드 실패

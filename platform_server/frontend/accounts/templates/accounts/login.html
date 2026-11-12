@@ -7,8 +7,8 @@
   <meta name="theme-color" content="#006d70">
   <link rel="icon" type="image/png" href="{% static 'campus/assets/logo.png' %}">
   <title>로그인 · PLAYDATA 캠퍼스</title>
-  <link rel="stylesheet" href="{% static 'accounts/login.css' %}?v={{ login_css_version }}">
-  <script src="{% static 'accounts/login.js' %}?v=20261020-1" defer></script>
+  <link rel="stylesheet" href="{% static 'accounts/login.css' %}?v={{ login_css_version }}-mobile-1">
+  <script src="{% static 'accounts/login.js' %}?v=20261110-mobile-1" defer></script>
 </head>
 <body class="login-page">
   <div class="login-sparkles" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
@@ -19,6 +19,11 @@
       <div class="login-brand">
         <div class="login-logo-tile"><img class="login-logo" src="{% static 'campus/assets/logo.png' %}?v={{ login_logo_version }}" alt="" aria-hidden="true"></div>
         <h1 id="login-title">PLAYDATA<span>VIRTUAL CAMPUS</span></h1>
+      </div>
+      <div id="mobile-pc-notice" class="mobile-pc-notice" role="note" hidden>
+        <strong>💻 PC 접속을 권장합니다.</strong>
+
+        <span>bootcampmetaverse.site</span>
       </div>
       {% if session_expired_message %}<p class="login-notice" role="status">{{ session_expired_message }}</p>{% endif %}
       <form method="post" action="{% url 'accounts:login' %}" class="login-form">

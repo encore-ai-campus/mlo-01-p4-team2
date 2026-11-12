@@ -7,7 +7,7 @@ async function visit(path) {
   path=resolve(path);if(modules.has(path))return;modules.set(path,'');
   let source=await readFile(path,'utf8');
   for(const match of source.matchAll(/^import .*? from '([^']+)';$/gm)) await visit(resolve(dirname(path),match[1]));
-  source=source.replace(/^import .*? from '[^']+';\n/gm,'').replace(/^export /gm,'');
+  source=source.replace(/^import .*? from '[^']+';\r?\n/gm,'').replace(/^export /gm,'');
   modules.set(path,source);
 }
 await visit('src/app.js');

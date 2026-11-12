@@ -1,0 +1,10 @@
+{"script": "switch.py", "args": ["baseline"], "exit": 0, "at": 1793944449.34796}
+{"script": "fixtures.py", "args": ["casual"], "exit": 0, "at": 1793944449.9812338}
+{"script": "benchmark.py", "args": ["walk"], "exit": 0, "at": 1793944664.5547452}
+{"script": "fixtures.py", "args": ["casual"], "exit": 0, "at": 1793944665.373705}
+{"script": "benchmark.py", "args": ["real"], "exit": 0, "at": 1793944880.933978}
+{"script": "fixtures.py", "args": ["casual"], "exit": 0, "at": 1793944881.820352}
+{"script": "admission.py", "args": [], "exit": 0, "at": 1793944899.913939}
+{"script": "fixtures.py", "args": ["reset_scenarios"], "exit": 0, "at": 1793944900.584685}
+{"script": "scenarios.py", "args": [], "exit": 1, "at": 1793945052.262507}
+{"script": "fixtures.py", "args": ["audit"], "exit": 0, "at": 1793945052.819715}

@@ -1,0 +1,14 @@
+{
+  "report_sha256": "ea490ed5d679af9e481ad7ca7322c959499cbac94b504e7030d88e4b5883b9c2",
+  "scope": "20:50 frozen snapshot; superseded by r2 after concurrent source changes",
+  "reviewers": [
+    {
+      "agent": "conn128_review1",
+      "decision": "approved"
+    },
+    {
+      "agent": "final_review2",
+      "decision": "approved"
+    }
+  ]
+}

@@ -1,0 +1,1577 @@
+[
+  {
+    "user": 0,
+    "file": "achievements.css",
+    "status": 200,
+    "bytes": 15111,
+    "ms": 0.565
+  },
+  {
+    "user": 0,
+    "file": "achievements.js",
+    "status": 200,
+    "bytes": 6648,
+    "ms": 0.51
+  },
+  {
+    "user": 0,
+    "file": "ad-visibility.js",
+    "status": 200,
+    "bytes": 1746,
+    "ms": 0.143
+  },
+  {
+    "user": 0,
+    "file": "assets/achievements/ad-impression.png",
+    "status": 200,
+    "bytes": 1647387,
+    "ms": 0.677
+  },
+  {
+    "user": 0,
+    "file": "assets/achievements/all-subjects.png",
+    "status": 200,
+    "bytes": 1681341,
+    "ms": 1.005
+  },
+  {
+    "user": 0,
+    "file": "assets/achievements/code-typing.png",
+    "status": 200,
+    "bytes": 1642370,
+    "ms": 1.821
+  },
+  {
+    "user": 0,
+    "file": "assets/achievements/cs-intermediate.png",
+    "status": 200,
+    "bytes": 1640043,
+    "ms": 0.919
+  },
+  {
+    "user": 0,
+    "file": "assets/achievements/detective-notebook-worn-v1.prompt.txt",
+    "status": 200,
+    "bytes": 361,
+    "ms": 0.782
+  },
+  {
+    "user": 0,
+    "file": "assets/achievements/detective-notebook-worn-v1.webp",
+    "status": 200,
+    "bytes": 267234,
+    "ms": 0.172
+  },
+  {
+    "user": 0,
+    "file": "assets/achievements/fragile-pepero-v1.prompt.txt",
+    "status": 200,
+    "bytes": 896,
+    "ms": 0.083
+  },
+  {
+    "user": 0,
+    "file": "assets/achievements/fragile-pepero-v1.webp",
+    "status": 200,
+    "bytes": 58260,
+    "ms": 0.117
+  },
+  {
+    "user": 0,
+    "file": "assets/achievements/kkuwang-last-bite-gift-v1.webp",
+    "status": 200,
+    "bytes": 83686,
+    "ms": 0.111
+  },
+  {
+    "user": 0,
+    "file": "assets/achievements/manager-greeting.png",
+    "status": 200,
+    "bytes": 1746538,
+    "ms": 0.817
+  },
+  {
+    "user": 0,
+    "file": "assets/achievements/manager-poking.png",
+    "status": 200,
+    "bytes": 1825891,
+    "ms": 0.795
+  },
+  {
+    "user": 0,
+    "file": "assets/achievements/python-intermediate.png",
+    "status": 200,
+    "bytes": 1638699,
+    "ms": 0.83
+  },
+  {
+    "user": 0,
+    "file": "assets/achievements/secret-recipe.png",
+    "status": 200,
+    "bytes": 384521,
+    "ms": 0.922
+  },
+  {
+    "user": 0,
+    "file": "assets/achievements/sql-intermediate.png",
+    "status": 200,
+    "bytes": 1745486,
+    "ms": 0.735
+  },
+  {
+    "user": 0,
+    "file": "assets/achievements/term-match.png",
+    "status": 200,
+    "bytes": 1775974,
+    "ms": 1.318
+  },
+  {
+    "user": 0,
+    "file": "assets/achievements/timer.png",
+    "status": 200,
+    "bytes": 1678002,
+    "ms": 0.806
+  },
+  {
+    "user": 0,
+    "file": "assets/blueprint.png",
+    "status": 200,
+    "bytes": 45737,
+    "ms": 0.224
+  },
+  {
+    "user": 0,
+    "file": "assets/books.png",
+    "status": 200,
+    "bytes": 578529,
+    "ms": 0.32
+  },
+  {
+    "user": 0,
+    "file": "assets/campus-map.png",
+    "status": 200,
+    "bytes": 3160540,
+    "ms": 1.749
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/female-1-guard-v1.webp",
+    "status": 200,
+    "bytes": 286848,
+    "ms": 1.767
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/female-1-idle-v1.png",
+    "status": 200,
+    "bytes": 71881,
+    "ms": 0.285
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/female-1-preview.png",
+    "status": 200,
+    "bytes": 16619,
+    "ms": 0.089
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/female-1-walk-v5.png",
+    "status": 200,
+    "bytes": 228102,
+    "ms": 0.254
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/female-2-guard-v1.webp",
+    "status": 200,
+    "bytes": 359532,
+    "ms": 0.373
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/female-2-idle-v1.png",
+    "status": 200,
+    "bytes": 73360,
+    "ms": 0.373
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/female-2-preview.png",
+    "status": 200,
+    "bytes": 18234,
+    "ms": 0.108
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/female-2-walk-v5.png",
+    "status": 200,
+    "bytes": 232932,
+    "ms": 0.205
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/female-face.png",
+    "status": 200,
+    "bytes": 1431336,
+    "ms": 0.616
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/idle-v1-generation.json",
+    "status": 200,
+    "bytes": 5217,
+    "ms": 0.613
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/male-1-guard-v1.webp",
+    "status": 200,
+    "bytes": 297496,
+    "ms": 0.226
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/male-1-idle-v1.png",
+    "status": 200,
+    "bytes": 67536,
+    "ms": 0.227
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/male-1-preview.png",
+    "status": 200,
+    "bytes": 17301,
+    "ms": 0.138
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/male-1-walk-v5.png",
+    "status": 200,
+    "bytes": 236697,
+    "ms": 0.2
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/male-2-guard-v1.webp",
+    "status": 200,
+    "bytes": 317160,
+    "ms": 0.178
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/male-2-idle-v1.png",
+    "status": 200,
+    "bytes": 68025,
+    "ms": 0.243
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/male-2-preview.png",
+    "status": 200,
+    "bytes": 19652,
+    "ms": 0.102
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/male-2-walk-v5.png",
+    "status": 200,
+    "bytes": 241718,
+    "ms": 0.293
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/male-face.png",
+    "status": 200,
+    "bytes": 1373073,
+    "ms": 0.693
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/manager-huiae-idle-v1.png",
+    "status": 200,
+    "bytes": 596192,
+    "ms": 0.679
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/manager-jeonghun-idle-v1.png",
+    "status": 200,
+    "bytes": 504385,
+    "ms": 0.545
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/manager-songhee-idle-v1.png",
+    "status": 200,
+    "bytes": 591842,
+    "ms": 0.332
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/manager-suhyeon-idle-v1.png",
+    "status": 200,
+    "bytes": 64458,
+    "ms": 0.398
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/manager-yebin-idle-v1.png",
+    "status": 200,
+    "bytes": 73149,
+    "ms": 0.203
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/manager-yeongseok-idle-v1.png",
+    "status": 200,
+    "bytes": 60808,
+    "ms": 0.225
+  },
+  {
+    "user": 0,
+    "file": "assets/characters/manager-yuhyeong-idle-v1.png",
+    "status": 200,
+    "bytes": 61623,
+    "ms": 0.183
+  },
+  {
+    "user": 0,
+    "file": "assets/consult.png",
+    "status": 200,
+    "bytes": 236197,
+    "ms": 0.24
+  },
+  {
+    "user": 0,
+    "file": "assets/encore-time-logo.png",
+    "status": 200,
+    "bytes": 680646,
+    "ms": 0.258
+  },
+  {
+    "user": 0,
+    "file": "assets/fonts/PressStart2P-OFL.txt",
+    "status": 200,
+    "bytes": 4413,
+    "ms": 0.314
+  },
+  {
+    "user": 0,
+    "file": "assets/fonts/PressStart2P-Regular.ttf",
+    "status": 200,
+    "bytes": 118204,
+    "ms": 0.131
+  },
+  {
+    "user": 0,
+    "file": "assets/guide/campus-20261020.png",
+    "status": 200,
+    "bytes": 609427,
+    "ms": 0.348
+  },
+  {
+    "user": 0,
+    "file": "assets/guide/campus.jpg",
+    "status": 200,
+    "bytes": 123381,
+    "ms": 0.347
+  },
+  {
+    "user": 0,
+    "file": "assets/guide/classroom-20261020.png",
+    "status": 200,
+    "bytes": 70372,
+    "ms": 0.165
+  },
+  {
+    "user": 0,
+    "file": "assets/guide/classroom.jpg",
+    "status": 200,
+    "bytes": 70141,
+    "ms": 0.13
+  },
+  {
+    "user": 0,
+    "file": "assets/guide/community-20261020.png",
+    "status": 200,
+    "bytes": 108389,
+    "ms": 0.169
+  },
+  {
+    "user": 0,
+    "file": "assets/guide/community.jpg",
+    "status": 200,
+    "bytes": 50034,
+    "ms": 0.16
+  },
+  {
+    "user": 0,
+    "file": "assets/guide/floor-movement-20261020.png",
+    "status": 200,
+    "bytes": 546913,
+    "ms": 0.418
+  },
+  {
+    "user": 0,
+    "file": "assets/guide/floor-movement.jpg",
+    "status": 200,
+    "bytes": 81165,
+    "ms": 0.26
+  },
+  {
+    "user": 0,
+    "file": "assets/guide/pepero-campus-20261023.png",
+    "status": 200,
+    "bytes": 1027648,
+    "ms": 0.415
+  },
+  {
+    "user": 0,
+    "file": "assets/guide/pepero-refill-20261023.png",
+    "status": 200,
+    "bytes": 897980,
+    "ms": 0.525
+  },
+  {
+    "user": 0,
+    "file": "assets/guide/pepero-rooftop-20261023.png",
+    "status": 200,
+    "bytes": 959239,
+    "ms": 0.666
+  },
+  {
+    "user": 0,
+    "file": "assets/guide/points-20261020.png",
+    "status": 200,
+    "bytes": 611681,
+    "ms": 0.454
+  },
+  {
+    "user": 0,
+    "file": "assets/guide/points.jpg",
+    "status": 200,
+    "bytes": 122057,
+    "ms": 0.329
+  },
+  {
+    "user": 0,
+    "file": "assets/guide/quiz-20261020.png",
+    "status": 200,
+    "bytes": 201223,
+    "ms": 0.195
+  },
+  {
+    "user": 0,
+    "file": "assets/guide/quiz.jpg",
+    "status": 200,
+    "bytes": 56951,
+    "ms": 0.155
+  },
+  {
+    "user": 0,
+    "file": "assets/guide/rooftop-20261020.png",
+    "status": 200,
+    "bytes": 604428,
+    "ms": 0.328
+  },
+  {
+    "user": 0,
+    "file": "assets/guide/rooftop.jpg",
+    "status": 200,
+    "bytes": 129604,
+    "ms": 0.123
+  },
+  {
+    "user": 0,
+    "file": "assets/guide/settings-20261020.png",
+    "status": 200,
+    "bytes": 223673,
+    "ms": 0.238
+  },
+  {
+    "user": 0,
+    "file": "assets/guide/settings.jpg",
+    "status": 200,
+    "bytes": 53418,
+    "ms": 0.282
+  },
+  {
+    "user": 0,
+    "file": "assets/guide-kkuwang-detective-v1.png",
+    "status": 200,
+    "bytes": 935784,
+    "ms": 0.402
+  },
+  {
+    "user": 0,
+    "file": "assets/guide-kkuwang-refined-v3.png",
+    "status": 200,
+    "bytes": 716485,
+    "ms": 0.45
+  },
+  {
+    "user": 0,
+    "file": "assets/kkuwang-chat-happy.png",
+    "status": 200,
+    "bytes": 2555403,
+    "ms": 1.073
+  },
+  {
+    "user": 0,
+    "file": "assets/kkuwang-chat-sheet.png",
+    "status": 200,
+    "bytes": 2169693,
+    "ms": 1.929
+  },
+  {
+    "user": 0,
+    "file": "assets/kkuwang-cover-head-v1.webp",
+    "status": 200,
+    "bytes": 57624,
+    "ms": 0.949
+  },
+  {
+    "user": 0,
+    "file": "assets/login-foliage.png",
+    "status": 200,
+    "bytes": 1463230,
+    "ms": 0.474
+  },
+  {
+    "user": 0,
+    "file": "assets/login-quokka.png",
+    "status": 200,
+    "bytes": 1811797,
+    "ms": 1.019
+  },
+  {
+    "user": 0,
+    "file": "assets/logo.png",
+    "status": 200,
+    "bytes": 556959,
+    "ms": 0.631
+  },
+  {
+    "user": 0,
+    "file": "assets/lounge1.png",
+    "status": 200,
+    "bytes": 377306,
+    "ms": 0.253
+  },
+  {
+    "user": 0,
+    "file": "assets/lounge2.png",
+    "status": 200,
+    "bytes": 137914,
+    "ms": 0.135
+  },
+  {
+    "user": 0,
+    "file": "assets/lunch-wheel-stand.svg",
+    "status": 200,
+    "bytes": 1390,
+    "ms": 0.19
+  },
+  {
+    "user": 0,
+    "file": "assets/minigames/pairing-garden-east-v1.png",
+    "status": 200,
+    "bytes": 662281,
+    "ms": 0.25
+  },
+  {
+    "user": 0,
+    "file": "assets/minigames/pairing-garden-east-v1.prompt.txt",
+    "status": 200,
+    "bytes": 1759,
+    "ms": 0.142
+  },
+  {
+    "user": 0,
+    "file": "assets/minigames/pairing-garden-east-v2.prompt.txt",
+    "status": 200,
+    "bytes": 1111,
+    "ms": 0.085
+  },
+  {
+    "user": 0,
+    "file": "assets/minigames/pairing-garden-east-v2.webp",
+    "status": 200,
+    "bytes": 121892,
+    "ms": 0.182
+  },
+  {
+    "user": 0,
+    "file": "assets/minigames/timer-station-east-v1.webp",
+    "status": 200,
+    "bytes": 68848,
+    "ms": 0.199
+  },
+  {
+    "user": 0,
+    "file": "assets/minigames/timer-station-v1.webp",
+    "status": 200,
+    "bytes": 69804,
+    "ms": 0.144
+  },
+  {
+    "user": 0,
+    "file": "assets/minigames/typing-station-east-v1.webp",
+    "status": 200,
+    "bytes": 80900,
+    "ms": 0.173
+  },
+  {
+    "user": 0,
+    "file": "assets/minigames/typing-station-v1.webp",
+    "status": 200,
+    "bytes": 81544,
+    "ms": 0.15
+  },
+  {
+    "user": 0,
+    "file": "assets/mission-rooms/workshop-coating-v1.webp",
+    "status": 200,
+    "bytes": 165014,
+    "ms": 0.204
+  },
+  {
+    "user": 0,
+    "file": "assets/mission-rooms/workshop-coating-v2.webp",
+    "status": 200,
+    "bytes": 149614,
+    "ms": 0.181
+  },
+  {
+    "user": 0,
+    "file": "assets/mission-rooms/workshop-ingredients-v1.webp",
+    "status": 200,
+    "bytes": 201854,
+    "ms": 0.28
+  },
+  {
+    "user": 0,
+    "file": "assets/mission-rooms/workshop-ingredients-v2.webp",
+    "status": 200,
+    "bytes": 183442,
+    "ms": 0.171
+  },
+  {
+    "user": 0,
+    "file": "assets/mission-rooms/workshop-topping-v1.webp",
+    "status": 200,
+    "bytes": 192848,
+    "ms": 0.21
+  },
+  {
+    "user": 0,
+    "file": "assets/mission-rooms/workshop-topping-v2.webp",
+    "status": 200,
+    "bytes": 209772,
+    "ms": 0.153
+  },
+  {
+    "user": 0,
+    "file": "assets/mission-rooms/workshop-wrapping-v1.webp",
+    "status": 200,
+    "bytes": 182782,
+    "ms": 0.234
+  },
+  {
+    "user": 0,
+    "file": "assets/mission-rooms/workshop-wrapping-v2.webp",
+    "status": 200,
+    "bytes": 188756,
+    "ms": 0.14
+  },
+  {
+    "user": 0,
+    "file": "assets/point-coin.svg",
+    "status": 200,
+    "bytes": 1270,
+    "ms": 0.138
+  },
+  {
+    "user": 0,
+    "file": "assets/recipe-card-atlas-v1.webp",
+    "status": 200,
+    "bytes": 195394,
+    "ms": 0.175
+  },
+  {
+    "user": 0,
+    "file": "assets/roof-slides/playdata-community-20261016.png",
+    "status": 200,
+    "bytes": 2644702,
+    "ms": 1.02
+  },
+  {
+    "user": 0,
+    "file": "assets/roof-slides/playdata-learning-20261016.png",
+    "status": 200,
+    "bytes": 2559860,
+    "ms": 1.628
+  },
+  {
+    "user": 0,
+    "file": "assets/roof-slides/playdata-poke-20261016.png",
+    "status": 200,
+    "bytes": 2376483,
+    "ms": 1.669
+  },
+  {
+    "user": 0,
+    "file": "assets/roof-slides/playdata-together-20261016.png",
+    "status": 200,
+    "bytes": 2418191,
+    "ms": 1.561
+  },
+  {
+    "user": 0,
+    "file": "assets/rooftop-ad.svg",
+    "status": 200,
+    "bytes": 1192,
+    "ms": 0.823
+  },
+  {
+    "user": 0,
+    "file": "assets/rooftop-event-poster.jpg",
+    "status": 200,
+    "bytes": 875850,
+    "ms": 0.343
+  },
+  {
+    "user": 0,
+    "file": "assets/rooftop-map.png",
+    "status": 200,
+    "bytes": 9238278,
+    "ms": 3.242
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/asset-notes.json",
+    "status": 200,
+    "bytes": 3717,
+    "ms": 3.022
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/cart.png",
+    "status": 200,
+    "bytes": 2306287,
+    "ms": 0.893
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/gifts.png",
+    "status": 200,
+    "bytes": 2425614,
+    "ms": 1.556
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/monument.png",
+    "status": 200,
+    "bytes": 2012930,
+    "ms": 1.118
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/previews/avatar-combo-prompts.json",
+    "status": 200,
+    "bytes": 2828,
+    "ms": 0.578
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/previews/direction-atlas.json",
+    "status": 200,
+    "bytes": 4954,
+    "ms": 0.133
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/previews/direction-prompts.json",
+    "status": 200,
+    "bytes": 9491,
+    "ms": 0.251
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/previews/female-1-back-combo-v3.png",
+    "status": 200,
+    "bytes": 1986477,
+    "ms": 0.775
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/previews/female-1-combo-v2.png",
+    "status": 200,
+    "bytes": 1970130,
+    "ms": 1.158
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/previews/female-1-front-combo-v3.png",
+    "status": 200,
+    "bytes": 2077980,
+    "ms": 0.985
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/previews/female-2-back-combo-v3.png",
+    "status": 200,
+    "bytes": 1945529,
+    "ms": 1.443
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/previews/female-2-combo-v2.png",
+    "status": 200,
+    "bytes": 1999100,
+    "ms": 1.424
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/previews/female-2-front-combo-v3.png",
+    "status": 200,
+    "bytes": 2053370,
+    "ms": 1.49
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/previews/male-1-back-combo-v3.png",
+    "status": 200,
+    "bytes": 1844114,
+    "ms": 1.412
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/previews/male-1-front-combo-v3.png",
+    "status": 200,
+    "bytes": 1963804,
+    "ms": 1.356
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/previews/male-2-back-combo-v3.png",
+    "status": 200,
+    "bytes": 1796926,
+    "ms": 1.334
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/previews/male-2-combo-v2.png",
+    "status": 200,
+    "bytes": 1931286,
+    "ms": 1.541
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/previews/male-2-front-combo-v3.png",
+    "status": 200,
+    "bytes": 1952344,
+    "ms": 1.163
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/previews/mint-combo-v2-prompt.txt",
+    "status": 200,
+    "bytes": 2270,
+    "ms": 0.793
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/previews/mint-combo-v2.png",
+    "status": 200,
+    "bytes": 1841993,
+    "ms": 0.757
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/previews/mint-swing-v1-prompt.txt",
+    "status": 200,
+    "bytes": 2232,
+    "ms": 0.71
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/previews/mint-swing-v1.png",
+    "status": 200,
+    "bytes": 844736,
+    "ms": 0.482
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/recipe-note.png",
+    "status": 200,
+    "bytes": 1887106,
+    "ms": 1.075
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/reference/cafe.png",
+    "status": 200,
+    "bytes": 1176762,
+    "ms": 0.796
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/reference/flowerbox.png",
+    "status": 200,
+    "bytes": 2034594,
+    "ms": 1.113
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/reference/gate.png",
+    "status": 200,
+    "bytes": 980555,
+    "ms": 1.094
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/reference/hero.png",
+    "status": 200,
+    "bytes": 1766328,
+    "ms": 0.908
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/reference/manifest.json",
+    "status": 200,
+    "bytes": 942,
+    "ms": 0.67
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/reference/pedestal.png",
+    "status": 200,
+    "bytes": 1247557,
+    "ms": 0.747
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/reference/stall.png",
+    "status": 200,
+    "bytes": 1845661,
+    "ms": 1.511
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/reference/workbench.png",
+    "status": 200,
+    "bytes": 1903553,
+    "ms": 1.465
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/refill-chest.png",
+    "status": 200,
+    "bytes": 2128693,
+    "ms": 1.447
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/secret-recipe-pixel-v1.prompt.txt",
+    "status": 200,
+    "bytes": 289,
+    "ms": 0.824
+  },
+  {
+    "user": 0,
+    "file": "assets/seasonal/pepero/secret-recipe-pixel-v1.webp",
+    "status": 200,
+    "bytes": 49398,
+    "ms": 0.277
+  },
+  {
+    "user": 0,
+    "file": "avatars.css",
+    "status": 200,
+    "bytes": 396,
+    "ms": 0.151
+  },
+  {
+    "user": 0,
+    "file": "avatars.js",
+    "status": 200,
+    "bytes": 2448,
+    "ms": 0.158
+  },
+  {
+    "user": 0,
+    "file": "board-shortcut.css",
+    "status": 200,
+    "bytes": 2677,
+    "ms": 0.112
+  },
+  {
+    "user": 0,
+    "file": "booth-assets.js",
+    "status": 200,
+    "bytes": 16053,
+    "ms": 0.107
+  },
+  {
+    "user": 0,
+    "file": "booth-panel.js",
+    "status": 200,
+    "bytes": 8312,
+    "ms": 0.097
+  },
+  {
+    "user": 0,
+    "file": "campus-ads.js",
+    "status": 200,
+    "bytes": 6887,
+    "ms": 0.104
+  },
+  {
+    "user": 0,
+    "file": "campus-background.js",
+    "status": 200,
+    "bytes": 4225,
+    "ms": 0.15
+  },
+  {
+    "user": 0,
+    "file": "campus-brand.css",
+    "status": 200,
+    "bytes": 10087,
+    "ms": 0.18
+  },
+  {
+    "user": 0,
+    "file": "campus-freeze.js",
+    "status": 200,
+    "bytes": 7162,
+    "ms": 0.127
+  },
+  {
+    "user": 0,
+    "file": "campus-guide.css",
+    "status": 200,
+    "bytes": 6979,
+    "ms": 0.114
+  },
+  {
+    "user": 0,
+    "file": "campus-guide.js",
+    "status": 200,
+    "bytes": 12794,
+    "ms": 0.117
+  },
+  {
+    "user": 0,
+    "file": "campus-layout.css",
+    "status": 200,
+    "bytes": 7114,
+    "ms": 0.13
+  },
+  {
+    "user": 0,
+    "file": "campus-snb.css",
+    "status": 200,
+    "bytes": 19416,
+    "ms": 0.142
+  },
+  {
+    "user": 0,
+    "file": "campus-snb.js",
+    "status": 200,
+    "bytes": 6840,
+    "ms": 0.153
+  },
+  {
+    "user": 0,
+    "file": "campus-space-guide.css",
+    "status": 200,
+    "bytes": 3916,
+    "ms": 0.09
+  },
+  {
+    "user": 0,
+    "file": "campus-space-guide.js",
+    "status": 200,
+    "bytes": 3455,
+    "ms": 0.118
+  },
+  {
+    "user": 0,
+    "file": "campus-world-actions.js",
+    "status": 200,
+    "bytes": 4921,
+    "ms": 0.113
+  },
+  {
+    "user": 0,
+    "file": "campus.js",
+    "status": 200,
+    "bytes": 35999,
+    "ms": 0.097
+  },
+  {
+    "user": 0,
+    "file": "community.css",
+    "status": 200,
+    "bytes": 17860,
+    "ms": 0.104
+  },
+  {
+    "user": 0,
+    "file": "community.js",
+    "status": 200,
+    "bytes": 25643,
+    "ms": 0.122
+  },
+  {
+    "user": 0,
+    "file": "easter-egg-erd.html",
+    "status": 200,
+    "bytes": 53748,
+    "ms": 0.128
+  },
+  {
+    "user": 0,
+    "file": "event-games/card.html",
+    "status": 200,
+    "bytes": 70250,
+    "ms": 0.149
+  },
+  {
+    "user": 0,
+    "file": "event-games/sql-memory.html",
+    "status": 200,
+    "bytes": 22609,
+    "ms": 0.14
+  },
+  {
+    "user": 0,
+    "file": "event-games/timer.857197c07c59157f.html",
+    "status": 200,
+    "bytes": 38624,
+    "ms": 0.161
+  },
+  {
+    "user": 0,
+    "file": "event-games/timer.html",
+    "status": 200,
+    "bytes": 39159,
+    "ms": 0.115
+  },
+  {
+    "user": 0,
+    "file": "event-games/typing.93cd848777ae3cd7.html",
+    "status": 200,
+    "bytes": 49771,
+    "ms": 0.134
+  },
+  {
+    "user": 0,
+    "file": "event-games/typing.html",
+    "status": 200,
+    "bytes": 50306,
+    "ms": 0.118
+  },
+  {
+    "user": 0,
+    "file": "event-map.js",
+    "status": 200,
+    "bytes": 66298,
+    "ms": 0.154
+  },
+  {
+    "user": 0,
+    "file": "floor-transition-portal.js",
+    "status": 200,
+    "bytes": 3232,
+    "ms": 0.125
+  },
+  {
+    "user": 0,
+    "file": "floor-transition.css",
+    "status": 200,
+    "bytes": 4033,
+    "ms": 0.121
+  },
+  {
+    "user": 0,
+    "file": "floor-transition.js",
+    "status": 200,
+    "bytes": 6977,
+    "ms": 0.136
+  },
+  {
+    "user": 0,
+    "file": "game-booth.html",
+    "status": 200,
+    "bytes": 22477,
+    "ms": 0.169
+  },
+  {
+    "user": 0,
+    "file": "index.html",
+    "status": 200,
+    "bytes": 59973,
+    "ms": 0.126
+  },
+  {
+    "user": 0,
+    "file": "isometric.js",
+    "status": 200,
+    "bytes": 98053,
+    "ms": 0.171
+  },
+  {
+    "user": 0,
+    "file": "jump.js",
+    "status": 200,
+    "bytes": 3225,
+    "ms": 0.109
+  },
+  {
+    "user": 0,
+    "file": "keyboard.js",
+    "status": 200,
+    "bytes": 5418,
+    "ms": 0.136
+  },
+  {
+    "user": 0,
+    "file": "last-bite-dialogue.js",
+    "status": 200,
+    "bytes": 2064,
+    "ms": 0.102
+  },
+  {
+    "user": 0,
+    "file": "lunch-wheel.css",
+    "status": 200,
+    "bytes": 3223,
+    "ms": 0.183
+  },
+  {
+    "user": 0,
+    "file": "lunch-wheel.js",
+    "status": 200,
+    "bytes": 5778,
+    "ms": 0.122
+  },
+  {
+    "user": 0,
+    "file": "main-quest.css",
+    "status": 200,
+    "bytes": 17844,
+    "ms": 0.119
+  },
+  {
+    "user": 0,
+    "file": "main-quest.js",
+    "status": 200,
+    "bytes": 63559,
+    "ms": 0.155
+  },
+  {
+    "user": 0,
+    "file": "map-data.js",
+    "status": 200,
+    "bytes": 20255,
+    "ms": 0.138
+  },
+  {
+    "user": 0,
+    "file": "messages.css",
+    "status": 200,
+    "bytes": 4184,
+    "ms": 0.086
+  },
+  {
+    "user": 0,
+    "file": "messages.js",
+    "status": 200,
+    "bytes": 13180,
+    "ms": 0.158
+  },
+  {
+    "user": 0,
+    "file": "minigames/term_match.html",
+    "status": 200,
+    "bytes": 74272,
+    "ms": 0.225
+  },
+  {
+    "user": 0,
+    "file": "minigames/timer.html",
+    "status": 200,
+    "bytes": 38370,
+    "ms": 0.24
+  },
+  {
+    "user": 0,
+    "file": "minigames/typing.html",
+    "status": 200,
+    "bytes": 51122,
+    "ms": 0.146
+  },
+  {
+    "user": 0,
+    "file": "minigames.css",
+    "status": 200,
+    "bytes": 545,
+    "ms": 0.123
+  },
+  {
+    "user": 0,
+    "file": "minigames.js",
+    "status": 200,
+    "bytes": 5638,
+    "ms": 0.112
+  },
+  {
+    "user": 0,
+    "file": "mission-room-map.js",
+    "status": 200,
+    "bytes": 14020,
+    "ms": 0.13
+  },
+  {
+    "user": 0,
+    "file": "navigation.js",
+    "status": 200,
+    "bytes": 3234,
+    "ms": 0.1
+  },
+  {
+    "user": 0,
+    "file": "notice-notifications.css",
+    "status": 200,
+    "bytes": 3479,
+    "ms": 0.114
+  },
+  {
+    "user": 0,
+    "file": "notice-notifications.js",
+    "status": 200,
+    "bytes": 6291,
+    "ms": 0.132
+  },
+  {
+    "user": 0,
+    "file": "pepero-layout.js",
+    "status": 200,
+    "bytes": 7689,
+    "ms": 0.245
+  },
+  {
+    "user": 0,
+    "file": "pepero-play-preview.html",
+    "status": 200,
+    "bytes": 3366,
+    "ms": 0.171
+  },
+  {
+    "user": 0,
+    "file": "pepero-preview.html",
+    "status": 200,
+    "bytes": 8008,
+    "ms": 0.117
+  },
+  {
+    "user": 0,
+    "file": "pepero-swing-preview.html",
+    "status": 200,
+    "bytes": 7704,
+    "ms": 0.132
+  },
+  {
+    "user": 0,
+    "file": "pepero-swing.js",
+    "status": 200,
+    "bytes": 7615,
+    "ms": 0.138
+  },
+  {
+    "user": 0,
+    "file": "pepero-theme.css",
+    "status": 200,
+    "bytes": 3374,
+    "ms": 0.164
+  },
+  {
+    "user": 0,
+    "file": "pepero-theme.js",
+    "status": 200,
+    "bytes": 22337,
+    "ms": 0.105
+  },
+  {
+    "user": 0,
+    "file": "point-wallet.css",
+    "status": 200,
+    "bytes": 5077,
+    "ms": 0.104
+  },
+  {
+    "user": 0,
+    "file": "point-wallet.js",
+    "status": 200,
+    "bytes": 9125,
+    "ms": 0.091
+  },
+  {
+    "user": 0,
+    "file": "poke.css",
+    "status": 200,
+    "bytes": 1047,
+    "ms": 0.102
+  },
+  {
+    "user": 0,
+    "file": "poke.js",
+    "status": 200,
+    "bytes": 21266,
+    "ms": 0.12
+  },
+  {
+    "user": 0,
+    "file": "presence.js",
+    "status": 200,
+    "bytes": 26004,
+    "ms": 0.146
+  },
+  {
+    "user": 0,
+    "file": "quest-dialogue.css",
+    "status": 200,
+    "bytes": 8160,
+    "ms": 0.099
+  },
+  {
+    "user": 0,
+    "file": "quest-dialogue.js",
+    "status": 200,
+    "bytes": 5872,
+    "ms": 0.106
+  },
+  {
+    "user": 0,
+    "file": "quest-topping.css",
+    "status": 200,
+    "bytes": 4083,
+    "ms": 0.103
+  },
+  {
+    "user": 0,
+    "file": "quest-topping.js",
+    "status": 200,
+    "bytes": 9927,
+    "ms": 0.118
+  },
+  {
+    "user": 0,
+    "file": "recipe-discovery.css",
+    "status": 200,
+    "bytes": 1736,
+    "ms": 0.094
+  },
+  {
+    "user": 0,
+    "file": "recipe-discovery.js",
+    "status": 200,
+    "bytes": 2771,
+    "ms": 0.09
+  },
+  {
+    "user": 0,
+    "file": "roof-slideshow-config.js",
+    "status": 200,
+    "bytes": 427,
+    "ms": 0.141
+  },
+  {
+    "user": 0,
+    "file": "roof-slideshow.js",
+    "status": 200,
+    "bytes": 5555,
+    "ms": 0.148
+  },
+  {
+    "user": 0,
+    "file": "rooftop-city.js",
+    "status": 200,
+    "bytes": 9602,
+    "ms": 0.11
+  },
+  {
+    "user": 0,
+    "file": "rooftop-data.js",
+    "status": 200,
+    "bytes": 11597,
+    "ms": 0.114
+  },
+  {
+    "user": 0,
+    "file": "session-policy.css",
+    "status": 200,
+    "bytes": 1298,
+    "ms": 0.107
+  },
+  {
+    "user": 0,
+    "file": "session-policy.js",
+    "status": 200,
+    "bytes": 8098,
+    "ms": 0.092
+  },
+  {
+    "user": 0,
+    "file": "social.css",
+    "status": 200,
+    "bytes": 8072,
+    "ms": 0.096
+  },
+  {
+    "user": 0,
+    "file": "social.js",
+    "status": 200,
+    "bytes": 20913,
+    "ms": 0.109
+  },
+  {
+    "user": 0,
+    "file": "stair-motion.js",
+    "status": 200,
+    "bytes": 5325,
+    "ms": 0.116
+  },
+  {
+    "user": 0,
+    "file": "story.css",
+    "status": 200,
+    "bytes": 5232,
+    "ms": 0.125
+  },
+  {
+    "user": 0,
+    "file": "story.js",
+    "status": 200,
+    "bytes": 22071,
+    "ms": 0.117
+  },
+  {
+    "user": 0,
+    "file": "style.css",
+    "status": 200,
+    "bytes": 23113,
+    "ms": 0.202
+  },
+  {
+    "user": 0,
+    "file": "swing-combo.js",
+    "status": 200,
+    "bytes": 1196,
+    "ms": 0.109
+  }
+]

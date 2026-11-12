@@ -1,0 +1,57 @@
+[
+  {
+    "role": "jobs",
+    "pid": 48028,
+    "marker": "/private/tmp/platform-final-integration-20261107/runtime.py"
+  },
+  {
+    "role": "front-movement",
+    "pid": 48029,
+    "marker": "port=9601"
+  },
+  {
+    "role": "front-service",
+    "pid": 48030,
+    "marker": "port=9602"
+  },
+  {
+    "role": "movement-9751",
+    "pid": 48986,
+    "marker": "port=9751"
+  },
+  {
+    "role": "movement-9752",
+    "pid": 48987,
+    "marker": "port=9752"
+  },
+  {
+    "role": "movement-9753",
+    "pid": 48988,
+    "marker": "port=9753"
+  },
+  {
+    "role": "movement-9754",
+    "pid": 48989,
+    "marker": "port=9754"
+  },
+  {
+    "role": "service-9761",
+    "pid": 48990,
+    "marker": "port=9761"
+  },
+  {
+    "role": "service-9762",
+    "pid": 48991,
+    "marker": "port=9762"
+  },
+  {
+    "role": "service-9763",
+    "pid": 48992,
+    "marker": "port=9763"
+  },
+  {
+    "role": "service-9764",
+    "pid": 48993,
+    "marker": "port=9764"
+  }
+]

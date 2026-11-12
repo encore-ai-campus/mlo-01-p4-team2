@@ -1,0 +1,4586 @@
+{
+  "metrics": {
+    "functional_all": {
+      "name": "기능 요청 전체",
+      "n": 7800,
+      "success": 7200,
+      "handled": 600,
+      "errors": 0,
+      "no_response": 0,
+      "p95_ms": 1003.34,
+      "p99_ms": 3541.87
+    },
+    "main_start": {
+      "name": "main_start",
+      "n": 600,
+      "success": 600,
+      "handled": 0,
+      "errors": 0,
+      "no_response": 0,
+      "p95_ms": 535.13,
+      "p99_ms": 586.42
+    },
+    "main_finish": {
+      "name": "main_finish",
+      "n": 600,
+      "success": 500,
+      "handled": 100,
+      "errors": 0,
+      "no_response": 0,
+      "p95_ms": 459.99,
+      "p99_ms": 600.64
+    },
+    "main_deliver": {
+      "name": "main_deliver",
+      "n": 100,
+      "success": 100,
+      "handled": 0,
+      "errors": 0,
+      "no_response": 0,
+      "p95_ms": 284.51,
+      "p99_ms": 313.41
+    },
+    "recipe_finish": {
+      "name": "recipe_finish",
+      "n": 100,
+      "success": 100,
+      "handled": 0,
+      "errors": 0,
+      "no_response": 0,
+      "p95_ms": 871.04,
+      "p99_ms": 916.27
+    },
+    "learning_start": {
+      "name": "learning_start",
+      "n": 100,
+      "success": 100,
+      "handled": 0,
+      "errors": 0,
+      "no_response": 0,
+      "p95_ms": 2357.07,
+      "p99_ms": 2458.22
+    },
+    "learning_question": {
+      "name": "learning_question",
+      "n": 1000,
+      "success": 1000,
+      "handled": 0,
+      "errors": 0,
+      "no_response": 0,
+      "p95_ms": 964.47,
+      "p99_ms": 3629.56
+    },
+    "learning_answer": {
+      "name": "learning_answer",
+      "n": 1000,
+      "success": 1000,
+      "handled": 0,
+      "errors": 0,
+      "no_response": 0,
+      "p95_ms": 1175.97,
+      "p99_ms": 3955.96
+    },
+    "learning_answer_retry": {
+      "name": "learning_answer_retry",
+      "n": 1000,
+      "success": 1000,
+      "handled": 0,
+      "errors": 0,
+      "no_response": 0,
+      "p95_ms": 922.35,
+      "p99_ms": 3883.71
+    },
+    "learning_complete": {
+      "name": "learning_complete",
+      "n": 100,
+      "success": 100,
+      "handled": 0,
+      "errors": 0,
+      "no_response": 0,
+      "p95_ms": 3634.14,
+      "p99_ms": 7078.79
+    },
+    "timer_result": {
+      "name": "timer_result",
+      "n": 100,
+      "success": 100,
+      "handled": 0,
+      "errors": 0,
+      "no_response": 0,
+      "p95_ms": 903.95,
+      "p99_ms": 926.18
+    },
+    "typing_result": {
+      "name": "typing_result",
+      "n": 100,
+      "success": 100,
+      "handled": 0,
+      "errors": 0,
+      "no_response": 0,
+      "p95_ms": 1002.67,
+      "p99_ms": 1057.88
+    },
+    "pairing_result": {
+      "name": "pairing_result",
+      "n": 100,
+      "success": 100,
+      "handled": 0,
+      "errors": 0,
+      "no_response": 0,
+      "p95_ms": 1021.63,
+      "p99_ms": 1101.95
+    },
+    "receipt_all": {
+      "name": "재전송·응답 복구 요청",
+      "n": 832,
+      "success": 830,
+      "handled": 2,
+      "errors": 0,
+      "no_response": 0,
+      "p95_ms": 865.12,
+      "p99_ms": 1211.18
+    },
+    "security": {
+      "name": "security",
+      "n": 419,
+      "success": 419,
+      "handled": 0,
+      "errors": 0,
+      "no_response": 0,
+      "p95_ms": 1553.07,
+      "p99_ms": 1624.4
+    },
+    "admission": {
+      "name": "admission",
+      "n": 1000,
+      "success": 1000,
+      "handled": 0,
+      "errors": 0,
+      "no_response": 0,
+      "p95_ms": 691.62,
+      "p99_ms": 763.94
+    }
+  },
+  "mixed": {
+    "walk": {
+      "http": {
+        "name": "walk HTTP",
+        "n": 3502,
+        "success": 3502,
+        "handled": 0,
+        "errors": 0,
+        "no_response": 0,
+        "p95_ms": 90.38,
+        "p99_ms": 217.0
+      },
+      "chat": {
+        "name": "walk 채팅",
+        "n": 1119,
+        "success": 1119,
+        "handled": 0,
+        "errors": 0,
+        "no_response": 0,
+        "p95_ms": 122.61,
+        "p99_ms": 287.67
+      },
+      "control": {
+        "name": "walk 제어",
+        "n": 708,
+        "success": 708,
+        "handled": 0,
+        "errors": 0,
+        "no_response": 0,
+        "p95_ms": 6.24,
+        "p99_ms": 38.28
+      },
+      "movement": {
+        "n": 983,
+        "p95_ms": 8.4,
+        "p99_ms": 68.23
+      },
+      "normal_rejection_reasons": {},
+      "measured_socket_closes": 0,
+      "chrome_js_errors": [],
+      "chrome_socket_closes": [],
+      "drain": [
+        {
+          "worker": 0,
+          "pending_at_end": 0,
+          "drain_seconds": 0.000695542199537158,
+          "unresolved": 0,
+          "generation_stopped_epoch": 1794054206.5799773
+        },
+        {
+          "worker": 1,
+          "pending_at_end": 0,
+          "drain_seconds": 0.0006360409315675497,
+          "unresolved": 0,
+          "generation_stopped_epoch": 1794054206.5584009
+        }
+      ],
+      "unexpected": [],
+      "generator_cutoff_counters": 4,
+      "apis": {
+        "/accounts/session/activity/": {
+          "name": "/accounts/session/activity/",
+          "n": 932,
+          "success": 932,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 99.87,
+          "p99_ms": 286.48
+        },
+        "/api/board/menu/": {
+          "name": "/api/board/menu/",
+          "n": 145,
+          "success": 145,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 89.31,
+          "p99_ms": 289.16
+        },
+        "/api/campus/freeze/": {
+          "name": "/api/campus/freeze/",
+          "n": 12,
+          "success": 12,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 45.4,
+          "p99_ms": 45.4
+        },
+        "/api/campus/lunch/spin/": {
+          "name": "/api/campus/lunch/spin/",
+          "n": 70,
+          "success": 70,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 84.22,
+          "p99_ms": 144.53
+        },
+        "/api/community/": {
+          "name": "/api/community/",
+          "n": 136,
+          "success": 136,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 104.67,
+          "p99_ms": 345.49
+        },
+        "/api/community/notices/": {
+          "name": "/api/community/notices/",
+          "n": 6,
+          "success": 6,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 47.3,
+          "p99_ms": 47.3
+        },
+        "/api/community/posts/?page=1": {
+          "name": "/api/community/posts/?page=1",
+          "n": 136,
+          "success": 136,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 87.77,
+          "p99_ms": 102.5
+        },
+        "/api/event-main/ranking/": {
+          "name": "/api/event-main/ranking/",
+          "n": 356,
+          "success": 356,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 74.6,
+          "p99_ms": 179.11
+        },
+        "/api/event-main/status/": {
+          "name": "/api/event-main/status/",
+          "n": 356,
+          "success": 356,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 113.54,
+          "p99_ms": 209.42
+        },
+        "/api/event-story/achievements/": {
+          "name": "/api/event-story/achievements/",
+          "n": 364,
+          "success": 364,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 71.39,
+          "p99_ms": 192.53
+        },
+        "/api/event-story/recipe/status/": {
+          "name": "/api/event-story/recipe/status/",
+          "n": 356,
+          "success": 356,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 69.81,
+          "p99_ms": 199.24
+        },
+        "/api/learning/wallet/": {
+          "name": "/api/learning/wallet/",
+          "n": 141,
+          "success": 141,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 78.44,
+          "p99_ms": 253.99
+        },
+        "/api/learning/wallet/history/": {
+          "name": "/api/learning/wallet/history/",
+          "n": 141,
+          "success": 141,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 66.9,
+          "p99_ms": 160.2
+        },
+        "/api/messages/conversations/": {
+          "name": "/api/messages/conversations/",
+          "n": 141,
+          "success": 141,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 74.05,
+          "p99_ms": 156.04
+        },
+        "/api/messages/recipients/?q=%EB%B6%80%ED%95%98": {
+          "name": "/api/messages/recipients/?q=%EB%B6%80%ED%95%98",
+          "n": 69,
+          "success": 69,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 99.97,
+          "p99_ms": 188.86
+        },
+        "/api/messages/status/": {
+          "name": "/api/messages/status/",
+          "n": 141,
+          "success": 141,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 96.84,
+          "p99_ms": 177.59
+        }
+      }
+    },
+    "real": {
+      "http": {
+        "name": "real HTTP",
+        "n": 5474,
+        "success": 5474,
+        "handled": 0,
+        "errors": 0,
+        "no_response": 0,
+        "p95_ms": 314.51,
+        "p99_ms": 571.96
+      },
+      "chat": {
+        "name": "real 채팅",
+        "n": 1432,
+        "success": 1432,
+        "handled": 0,
+        "errors": 0,
+        "no_response": 0,
+        "p95_ms": 371.47,
+        "p99_ms": 600.07
+      },
+      "control": {
+        "name": "real 제어",
+        "n": 10073,
+        "success": 10015,
+        "handled": 58,
+        "errors": 0,
+        "no_response": 0,
+        "p95_ms": 142.44,
+        "p99_ms": 356.15
+      },
+      "movement": {
+        "n": 114080,
+        "p95_ms": 59.28,
+        "p99_ms": 128.74
+      },
+      "normal_rejection_reasons": {
+        "부스 중앙의 E 표시 가까이로 이동해 주세요.": 15,
+        "착지한 뒤 다시 점프해 주세요.": 27,
+        "현재 공간에서 다시 점프해 주세요.": 14,
+        "학습 영역이나 출입구 가까이에서 이용해 주세요.": 2
+      },
+      "measured_socket_closes": 0,
+      "chrome_js_errors": [],
+      "chrome_socket_closes": [],
+      "drain": [
+        {
+          "worker": 0,
+          "pending_at_end": 1,
+          "drain_seconds": 0.023152250098064542,
+          "unresolved": 0,
+          "generation_stopped_epoch": 1794054484.474301
+        },
+        {
+          "worker": 1,
+          "pending_at_end": 0,
+          "drain_seconds": 0.0021682921797037125,
+          "unresolved": 0,
+          "generation_stopped_epoch": 1794054484.4744885
+        }
+      ],
+      "unexpected": [],
+      "generator_cutoff_counters": 0,
+      "apis": {
+        "/accounts/session/activity/": {
+          "name": "/accounts/session/activity/",
+          "n": 1170,
+          "success": 1170,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 241.51,
+          "p99_ms": 372.44
+        },
+        "/api/board/menu/": {
+          "name": "/api/board/menu/",
+          "n": 149,
+          "success": 149,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 132.8,
+          "p99_ms": 147.65
+        },
+        "/api/campus/freeze/": {
+          "name": "/api/campus/freeze/",
+          "n": 12,
+          "success": 12,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 127.4,
+          "p99_ms": 127.4
+        },
+        "/api/campus/lunch/spin/": {
+          "name": "/api/campus/lunch/spin/",
+          "n": 73,
+          "success": 73,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 303.61,
+          "p99_ms": 366.34
+        },
+        "/api/community/": {
+          "name": "/api/community/",
+          "n": 170,
+          "success": 170,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 215.36,
+          "p99_ms": 467.2
+        },
+        "/api/community/notices/": {
+          "name": "/api/community/notices/",
+          "n": 6,
+          "success": 6,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 84,
+          "p99_ms": 84
+        },
+        "/api/community/posts/?page=1": {
+          "name": "/api/community/posts/?page=1",
+          "n": 170,
+          "success": 170,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 214.66,
+          "p99_ms": 314.05
+        },
+        "/api/event-main/ranking/": {
+          "name": "/api/event-main/ranking/",
+          "n": 423,
+          "success": 423,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 216.97,
+          "p99_ms": 380.28
+        },
+        "/api/event-main/status/": {
+          "name": "/api/event-main/status/",
+          "n": 423,
+          "success": 423,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 262.54,
+          "p99_ms": 514.32
+        },
+        "/api/event-story/achievements/": {
+          "name": "/api/event-story/achievements/",
+          "n": 432,
+          "success": 432,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 227.23,
+          "p99_ms": 308.7
+        },
+        "/api/event-story/recipe/status/": {
+          "name": "/api/event-story/recipe/status/",
+          "n": 424,
+          "success": 424,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 181.0,
+          "p99_ms": 330.62
+        },
+        "/api/learning/csrf/": {
+          "name": "/api/learning/csrf/",
+          "n": 361,
+          "success": 361,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 178.67,
+          "p99_ms": 216.24
+        },
+        "/api/learning/sessions/": {
+          "name": "/api/learning/sessions/",
+          "n": 184,
+          "success": 184,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 836.09,
+          "p99_ms": 1329.59
+        },
+        "/api/learning/sessions/130/questions/1/answers/": {
+          "name": "/api/learning/sessions/130/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 191.78,
+          "p99_ms": 191.78
+        },
+        "/api/learning/sessions/131/questions/1/answers/": {
+          "name": "/api/learning/sessions/131/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 133.7,
+          "p99_ms": 133.7
+        },
+        "/api/learning/sessions/132/questions/1/answers/": {
+          "name": "/api/learning/sessions/132/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 151.37,
+          "p99_ms": 151.37
+        },
+        "/api/learning/sessions/133/questions/1/": {
+          "name": "/api/learning/sessions/133/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 139.01,
+          "p99_ms": 139.01
+        },
+        "/api/learning/sessions/133/questions/1/answers/": {
+          "name": "/api/learning/sessions/133/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 776.82,
+          "p99_ms": 776.82
+        },
+        "/api/learning/sessions/134/questions/1/": {
+          "name": "/api/learning/sessions/134/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 103.8,
+          "p99_ms": 103.8
+        },
+        "/api/learning/sessions/134/questions/1/answers/": {
+          "name": "/api/learning/sessions/134/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 654.93,
+          "p99_ms": 654.93
+        },
+        "/api/learning/sessions/135/questions/1/": {
+          "name": "/api/learning/sessions/135/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 88.94,
+          "p99_ms": 88.94
+        },
+        "/api/learning/sessions/135/questions/1/answers/": {
+          "name": "/api/learning/sessions/135/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 771.2,
+          "p99_ms": 771.2
+        },
+        "/api/learning/sessions/136/questions/1/": {
+          "name": "/api/learning/sessions/136/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 41.71,
+          "p99_ms": 41.71
+        },
+        "/api/learning/sessions/136/questions/1/answers/": {
+          "name": "/api/learning/sessions/136/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 197.47,
+          "p99_ms": 197.47
+        },
+        "/api/learning/sessions/137/questions/1/": {
+          "name": "/api/learning/sessions/137/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 282.03,
+          "p99_ms": 282.03
+        },
+        "/api/learning/sessions/137/questions/1/answers/": {
+          "name": "/api/learning/sessions/137/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 130.03,
+          "p99_ms": 130.03
+        },
+        "/api/learning/sessions/138/questions/1/": {
+          "name": "/api/learning/sessions/138/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 181.12,
+          "p99_ms": 181.12
+        },
+        "/api/learning/sessions/138/questions/1/answers/": {
+          "name": "/api/learning/sessions/138/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 255.33,
+          "p99_ms": 255.33
+        },
+        "/api/learning/sessions/139/questions/1/": {
+          "name": "/api/learning/sessions/139/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 83.42,
+          "p99_ms": 83.42
+        },
+        "/api/learning/sessions/139/questions/1/answers/": {
+          "name": "/api/learning/sessions/139/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 162.61,
+          "p99_ms": 162.61
+        },
+        "/api/learning/sessions/140/questions/1/": {
+          "name": "/api/learning/sessions/140/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 59.07,
+          "p99_ms": 59.07
+        },
+        "/api/learning/sessions/140/questions/1/answers/": {
+          "name": "/api/learning/sessions/140/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 185.13,
+          "p99_ms": 185.13
+        },
+        "/api/learning/sessions/141/questions/1/": {
+          "name": "/api/learning/sessions/141/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 58.6,
+          "p99_ms": 58.6
+        },
+        "/api/learning/sessions/141/questions/1/answers/": {
+          "name": "/api/learning/sessions/141/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 137.97,
+          "p99_ms": 137.97
+        },
+        "/api/learning/sessions/142/questions/1/": {
+          "name": "/api/learning/sessions/142/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 66.07,
+          "p99_ms": 66.07
+        },
+        "/api/learning/sessions/142/questions/1/answers/": {
+          "name": "/api/learning/sessions/142/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 150.85,
+          "p99_ms": 150.85
+        },
+        "/api/learning/sessions/143/questions/1/": {
+          "name": "/api/learning/sessions/143/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 31.09,
+          "p99_ms": 31.09
+        },
+        "/api/learning/sessions/143/questions/1/answers/": {
+          "name": "/api/learning/sessions/143/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 98.49,
+          "p99_ms": 98.49
+        },
+        "/api/learning/sessions/144/questions/1/": {
+          "name": "/api/learning/sessions/144/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 110.29,
+          "p99_ms": 110.29
+        },
+        "/api/learning/sessions/144/questions/1/answers/": {
+          "name": "/api/learning/sessions/144/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 522.18,
+          "p99_ms": 522.18
+        },
+        "/api/learning/sessions/145/questions/1/": {
+          "name": "/api/learning/sessions/145/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 65.02,
+          "p99_ms": 65.02
+        },
+        "/api/learning/sessions/145/questions/1/answers/": {
+          "name": "/api/learning/sessions/145/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 211.79,
+          "p99_ms": 211.79
+        },
+        "/api/learning/sessions/146/questions/1/": {
+          "name": "/api/learning/sessions/146/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 66.43,
+          "p99_ms": 66.43
+        },
+        "/api/learning/sessions/146/questions/1/answers/": {
+          "name": "/api/learning/sessions/146/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 183.74,
+          "p99_ms": 183.74
+        },
+        "/api/learning/sessions/147/questions/1/": {
+          "name": "/api/learning/sessions/147/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 48.55,
+          "p99_ms": 48.55
+        },
+        "/api/learning/sessions/147/questions/1/answers/": {
+          "name": "/api/learning/sessions/147/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 170.24,
+          "p99_ms": 170.24
+        },
+        "/api/learning/sessions/148/questions/1/": {
+          "name": "/api/learning/sessions/148/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 79.09,
+          "p99_ms": 79.09
+        },
+        "/api/learning/sessions/148/questions/1/answers/": {
+          "name": "/api/learning/sessions/148/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 132.92,
+          "p99_ms": 132.92
+        },
+        "/api/learning/sessions/149/questions/1/": {
+          "name": "/api/learning/sessions/149/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 52.78,
+          "p99_ms": 52.78
+        },
+        "/api/learning/sessions/149/questions/1/answers/": {
+          "name": "/api/learning/sessions/149/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 203.29,
+          "p99_ms": 203.29
+        },
+        "/api/learning/sessions/150/questions/1/": {
+          "name": "/api/learning/sessions/150/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 73.37,
+          "p99_ms": 73.37
+        },
+        "/api/learning/sessions/150/questions/1/answers/": {
+          "name": "/api/learning/sessions/150/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 139.73,
+          "p99_ms": 139.73
+        },
+        "/api/learning/sessions/151/questions/1/": {
+          "name": "/api/learning/sessions/151/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 64.59,
+          "p99_ms": 64.59
+        },
+        "/api/learning/sessions/151/questions/1/answers/": {
+          "name": "/api/learning/sessions/151/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 83.43,
+          "p99_ms": 83.43
+        },
+        "/api/learning/sessions/152/questions/1/": {
+          "name": "/api/learning/sessions/152/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 70.53,
+          "p99_ms": 70.53
+        },
+        "/api/learning/sessions/152/questions/1/answers/": {
+          "name": "/api/learning/sessions/152/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 129.29,
+          "p99_ms": 129.29
+        },
+        "/api/learning/sessions/153/questions/1/": {
+          "name": "/api/learning/sessions/153/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 191.63,
+          "p99_ms": 191.63
+        },
+        "/api/learning/sessions/153/questions/1/answers/": {
+          "name": "/api/learning/sessions/153/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 109.47,
+          "p99_ms": 109.47
+        },
+        "/api/learning/sessions/154/questions/1/": {
+          "name": "/api/learning/sessions/154/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 118.7,
+          "p99_ms": 118.7
+        },
+        "/api/learning/sessions/154/questions/1/answers/": {
+          "name": "/api/learning/sessions/154/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 147.48,
+          "p99_ms": 147.48
+        },
+        "/api/learning/sessions/155/questions/1/": {
+          "name": "/api/learning/sessions/155/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 60.84,
+          "p99_ms": 60.84
+        },
+        "/api/learning/sessions/155/questions/1/answers/": {
+          "name": "/api/learning/sessions/155/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 247.42,
+          "p99_ms": 247.42
+        },
+        "/api/learning/sessions/156/questions/1/": {
+          "name": "/api/learning/sessions/156/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 37.81,
+          "p99_ms": 37.81
+        },
+        "/api/learning/sessions/156/questions/1/answers/": {
+          "name": "/api/learning/sessions/156/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 322.25,
+          "p99_ms": 322.25
+        },
+        "/api/learning/sessions/157/questions/1/": {
+          "name": "/api/learning/sessions/157/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 59.84,
+          "p99_ms": 59.84
+        },
+        "/api/learning/sessions/157/questions/1/answers/": {
+          "name": "/api/learning/sessions/157/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 190.23,
+          "p99_ms": 190.23
+        },
+        "/api/learning/sessions/158/questions/1/": {
+          "name": "/api/learning/sessions/158/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 29.75,
+          "p99_ms": 29.75
+        },
+        "/api/learning/sessions/158/questions/1/answers/": {
+          "name": "/api/learning/sessions/158/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 202.42,
+          "p99_ms": 202.42
+        },
+        "/api/learning/sessions/159/questions/1/": {
+          "name": "/api/learning/sessions/159/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 77.67,
+          "p99_ms": 77.67
+        },
+        "/api/learning/sessions/159/questions/1/answers/": {
+          "name": "/api/learning/sessions/159/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 298.49,
+          "p99_ms": 298.49
+        },
+        "/api/learning/sessions/160/questions/1/": {
+          "name": "/api/learning/sessions/160/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 78.56,
+          "p99_ms": 78.56
+        },
+        "/api/learning/sessions/160/questions/1/answers/": {
+          "name": "/api/learning/sessions/160/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 275.37,
+          "p99_ms": 275.37
+        },
+        "/api/learning/sessions/161/questions/1/": {
+          "name": "/api/learning/sessions/161/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 46.63,
+          "p99_ms": 46.63
+        },
+        "/api/learning/sessions/161/questions/1/answers/": {
+          "name": "/api/learning/sessions/161/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 186.31,
+          "p99_ms": 186.31
+        },
+        "/api/learning/sessions/162/questions/1/": {
+          "name": "/api/learning/sessions/162/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 93.92,
+          "p99_ms": 93.92
+        },
+        "/api/learning/sessions/162/questions/1/answers/": {
+          "name": "/api/learning/sessions/162/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 280.6,
+          "p99_ms": 280.6
+        },
+        "/api/learning/sessions/163/questions/1/": {
+          "name": "/api/learning/sessions/163/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 71.69,
+          "p99_ms": 71.69
+        },
+        "/api/learning/sessions/163/questions/1/answers/": {
+          "name": "/api/learning/sessions/163/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 218.54,
+          "p99_ms": 218.54
+        },
+        "/api/learning/sessions/164/questions/1/": {
+          "name": "/api/learning/sessions/164/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 123.34,
+          "p99_ms": 123.34
+        },
+        "/api/learning/sessions/164/questions/1/answers/": {
+          "name": "/api/learning/sessions/164/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 421.69,
+          "p99_ms": 421.69
+        },
+        "/api/learning/sessions/165/questions/1/": {
+          "name": "/api/learning/sessions/165/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 36.8,
+          "p99_ms": 36.8
+        },
+        "/api/learning/sessions/165/questions/1/answers/": {
+          "name": "/api/learning/sessions/165/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 631.03,
+          "p99_ms": 631.03
+        },
+        "/api/learning/sessions/166/questions/1/": {
+          "name": "/api/learning/sessions/166/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 169.93,
+          "p99_ms": 169.93
+        },
+        "/api/learning/sessions/166/questions/1/answers/": {
+          "name": "/api/learning/sessions/166/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 473.38,
+          "p99_ms": 473.38
+        },
+        "/api/learning/sessions/167/questions/1/": {
+          "name": "/api/learning/sessions/167/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 145.87,
+          "p99_ms": 145.87
+        },
+        "/api/learning/sessions/167/questions/1/answers/": {
+          "name": "/api/learning/sessions/167/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 523.52,
+          "p99_ms": 523.52
+        },
+        "/api/learning/sessions/168/questions/1/": {
+          "name": "/api/learning/sessions/168/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 73.9,
+          "p99_ms": 73.9
+        },
+        "/api/learning/sessions/168/questions/1/answers/": {
+          "name": "/api/learning/sessions/168/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 257.01,
+          "p99_ms": 257.01
+        },
+        "/api/learning/sessions/169/questions/1/": {
+          "name": "/api/learning/sessions/169/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 48.64,
+          "p99_ms": 48.64
+        },
+        "/api/learning/sessions/169/questions/1/answers/": {
+          "name": "/api/learning/sessions/169/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 497.94,
+          "p99_ms": 497.94
+        },
+        "/api/learning/sessions/170/questions/1/": {
+          "name": "/api/learning/sessions/170/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 376.51,
+          "p99_ms": 376.51
+        },
+        "/api/learning/sessions/170/questions/1/answers/": {
+          "name": "/api/learning/sessions/170/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 156.77,
+          "p99_ms": 156.77
+        },
+        "/api/learning/sessions/171/questions/1/": {
+          "name": "/api/learning/sessions/171/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 284.57,
+          "p99_ms": 284.57
+        },
+        "/api/learning/sessions/171/questions/1/answers/": {
+          "name": "/api/learning/sessions/171/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 165.22,
+          "p99_ms": 165.22
+        },
+        "/api/learning/sessions/172/questions/1/": {
+          "name": "/api/learning/sessions/172/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 61.77,
+          "p99_ms": 61.77
+        },
+        "/api/learning/sessions/172/questions/1/answers/": {
+          "name": "/api/learning/sessions/172/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 361.53,
+          "p99_ms": 361.53
+        },
+        "/api/learning/sessions/173/questions/1/": {
+          "name": "/api/learning/sessions/173/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 60.56,
+          "p99_ms": 60.56
+        },
+        "/api/learning/sessions/173/questions/1/answers/": {
+          "name": "/api/learning/sessions/173/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 232.89,
+          "p99_ms": 232.89
+        },
+        "/api/learning/sessions/174/questions/1/": {
+          "name": "/api/learning/sessions/174/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 39.32,
+          "p99_ms": 39.32
+        },
+        "/api/learning/sessions/174/questions/1/answers/": {
+          "name": "/api/learning/sessions/174/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 313.05,
+          "p99_ms": 313.05
+        },
+        "/api/learning/sessions/175/questions/1/": {
+          "name": "/api/learning/sessions/175/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 94.18,
+          "p99_ms": 94.18
+        },
+        "/api/learning/sessions/175/questions/1/answers/": {
+          "name": "/api/learning/sessions/175/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 159.79,
+          "p99_ms": 159.79
+        },
+        "/api/learning/sessions/176/questions/1/": {
+          "name": "/api/learning/sessions/176/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 94.72,
+          "p99_ms": 94.72
+        },
+        "/api/learning/sessions/176/questions/1/answers/": {
+          "name": "/api/learning/sessions/176/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 173.3,
+          "p99_ms": 173.3
+        },
+        "/api/learning/sessions/177/questions/1/": {
+          "name": "/api/learning/sessions/177/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 62.86,
+          "p99_ms": 62.86
+        },
+        "/api/learning/sessions/177/questions/1/answers/": {
+          "name": "/api/learning/sessions/177/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 76.22,
+          "p99_ms": 76.22
+        },
+        "/api/learning/sessions/178/questions/1/": {
+          "name": "/api/learning/sessions/178/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 65.01,
+          "p99_ms": 65.01
+        },
+        "/api/learning/sessions/178/questions/1/answers/": {
+          "name": "/api/learning/sessions/178/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 241.93,
+          "p99_ms": 241.93
+        },
+        "/api/learning/sessions/179/questions/1/": {
+          "name": "/api/learning/sessions/179/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 47.67,
+          "p99_ms": 47.67
+        },
+        "/api/learning/sessions/179/questions/1/answers/": {
+          "name": "/api/learning/sessions/179/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 205.73,
+          "p99_ms": 205.73
+        },
+        "/api/learning/sessions/180/questions/1/": {
+          "name": "/api/learning/sessions/180/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 50.45,
+          "p99_ms": 50.45
+        },
+        "/api/learning/sessions/180/questions/1/answers/": {
+          "name": "/api/learning/sessions/180/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 150.37,
+          "p99_ms": 150.37
+        },
+        "/api/learning/sessions/181/questions/1/": {
+          "name": "/api/learning/sessions/181/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 67.11,
+          "p99_ms": 67.11
+        },
+        "/api/learning/sessions/181/questions/1/answers/": {
+          "name": "/api/learning/sessions/181/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 407.02,
+          "p99_ms": 407.02
+        },
+        "/api/learning/sessions/182/questions/1/": {
+          "name": "/api/learning/sessions/182/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 81.31,
+          "p99_ms": 81.31
+        },
+        "/api/learning/sessions/182/questions/1/answers/": {
+          "name": "/api/learning/sessions/182/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 108.18,
+          "p99_ms": 108.18
+        },
+        "/api/learning/sessions/183/questions/1/": {
+          "name": "/api/learning/sessions/183/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 52.02,
+          "p99_ms": 52.02
+        },
+        "/api/learning/sessions/183/questions/1/answers/": {
+          "name": "/api/learning/sessions/183/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 177.7,
+          "p99_ms": 177.7
+        },
+        "/api/learning/sessions/184/questions/1/": {
+          "name": "/api/learning/sessions/184/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 78.44,
+          "p99_ms": 78.44
+        },
+        "/api/learning/sessions/184/questions/1/answers/": {
+          "name": "/api/learning/sessions/184/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 137.48,
+          "p99_ms": 137.48
+        },
+        "/api/learning/sessions/185/questions/1/": {
+          "name": "/api/learning/sessions/185/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 58.91,
+          "p99_ms": 58.91
+        },
+        "/api/learning/sessions/185/questions/1/answers/": {
+          "name": "/api/learning/sessions/185/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 184.16,
+          "p99_ms": 184.16
+        },
+        "/api/learning/sessions/186/questions/1/": {
+          "name": "/api/learning/sessions/186/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 39.37,
+          "p99_ms": 39.37
+        },
+        "/api/learning/sessions/186/questions/1/answers/": {
+          "name": "/api/learning/sessions/186/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 188.36,
+          "p99_ms": 188.36
+        },
+        "/api/learning/sessions/187/questions/1/": {
+          "name": "/api/learning/sessions/187/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 68.56,
+          "p99_ms": 68.56
+        },
+        "/api/learning/sessions/187/questions/1/answers/": {
+          "name": "/api/learning/sessions/187/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 273.48,
+          "p99_ms": 273.48
+        },
+        "/api/learning/sessions/188/questions/1/": {
+          "name": "/api/learning/sessions/188/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 330.34,
+          "p99_ms": 330.34
+        },
+        "/api/learning/sessions/188/questions/1/answers/": {
+          "name": "/api/learning/sessions/188/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 116.81,
+          "p99_ms": 116.81
+        },
+        "/api/learning/sessions/189/questions/1/": {
+          "name": "/api/learning/sessions/189/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 114.02,
+          "p99_ms": 114.02
+        },
+        "/api/learning/sessions/189/questions/1/answers/": {
+          "name": "/api/learning/sessions/189/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 114.74,
+          "p99_ms": 114.74
+        },
+        "/api/learning/sessions/190/questions/1/": {
+          "name": "/api/learning/sessions/190/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 94.17,
+          "p99_ms": 94.17
+        },
+        "/api/learning/sessions/190/questions/1/answers/": {
+          "name": "/api/learning/sessions/190/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 202.23,
+          "p99_ms": 202.23
+        },
+        "/api/learning/sessions/191/questions/1/": {
+          "name": "/api/learning/sessions/191/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 91.03,
+          "p99_ms": 91.03
+        },
+        "/api/learning/sessions/191/questions/1/answers/": {
+          "name": "/api/learning/sessions/191/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 78.12,
+          "p99_ms": 78.12
+        },
+        "/api/learning/sessions/192/questions/1/": {
+          "name": "/api/learning/sessions/192/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 65.26,
+          "p99_ms": 65.26
+        },
+        "/api/learning/sessions/192/questions/1/answers/": {
+          "name": "/api/learning/sessions/192/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 116.55,
+          "p99_ms": 116.55
+        },
+        "/api/learning/sessions/193/questions/1/": {
+          "name": "/api/learning/sessions/193/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 57.54,
+          "p99_ms": 57.54
+        },
+        "/api/learning/sessions/193/questions/1/answers/": {
+          "name": "/api/learning/sessions/193/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 100.36,
+          "p99_ms": 100.36
+        },
+        "/api/learning/sessions/194/questions/1/": {
+          "name": "/api/learning/sessions/194/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 59.52,
+          "p99_ms": 59.52
+        },
+        "/api/learning/sessions/194/questions/1/answers/": {
+          "name": "/api/learning/sessions/194/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 143.25,
+          "p99_ms": 143.25
+        },
+        "/api/learning/sessions/195/questions/1/": {
+          "name": "/api/learning/sessions/195/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 74.32,
+          "p99_ms": 74.32
+        },
+        "/api/learning/sessions/195/questions/1/answers/": {
+          "name": "/api/learning/sessions/195/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 194.47,
+          "p99_ms": 194.47
+        },
+        "/api/learning/sessions/196/questions/1/": {
+          "name": "/api/learning/sessions/196/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 40.0,
+          "p99_ms": 40.0
+        },
+        "/api/learning/sessions/196/questions/1/answers/": {
+          "name": "/api/learning/sessions/196/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 180.18,
+          "p99_ms": 180.18
+        },
+        "/api/learning/sessions/197/questions/1/": {
+          "name": "/api/learning/sessions/197/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 44.07,
+          "p99_ms": 44.07
+        },
+        "/api/learning/sessions/197/questions/1/answers/": {
+          "name": "/api/learning/sessions/197/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 208.47,
+          "p99_ms": 208.47
+        },
+        "/api/learning/sessions/198/questions/1/": {
+          "name": "/api/learning/sessions/198/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 83.14,
+          "p99_ms": 83.14
+        },
+        "/api/learning/sessions/198/questions/1/answers/": {
+          "name": "/api/learning/sessions/198/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 895.83,
+          "p99_ms": 895.83
+        },
+        "/api/learning/sessions/199/questions/1/": {
+          "name": "/api/learning/sessions/199/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 62.2,
+          "p99_ms": 62.2
+        },
+        "/api/learning/sessions/199/questions/1/answers/": {
+          "name": "/api/learning/sessions/199/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 489.59,
+          "p99_ms": 489.59
+        },
+        "/api/learning/sessions/200/questions/1/": {
+          "name": "/api/learning/sessions/200/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 95.96,
+          "p99_ms": 95.96
+        },
+        "/api/learning/sessions/200/questions/1/answers/": {
+          "name": "/api/learning/sessions/200/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 337.78,
+          "p99_ms": 337.78
+        },
+        "/api/learning/sessions/201/questions/1/": {
+          "name": "/api/learning/sessions/201/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 50.72,
+          "p99_ms": 50.72
+        },
+        "/api/learning/sessions/201/questions/1/answers/": {
+          "name": "/api/learning/sessions/201/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 155.11,
+          "p99_ms": 155.11
+        },
+        "/api/learning/sessions/202/questions/1/": {
+          "name": "/api/learning/sessions/202/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 105.64,
+          "p99_ms": 105.64
+        },
+        "/api/learning/sessions/202/questions/1/answers/": {
+          "name": "/api/learning/sessions/202/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 277.22,
+          "p99_ms": 277.22
+        },
+        "/api/learning/sessions/203/questions/1/": {
+          "name": "/api/learning/sessions/203/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 97.98,
+          "p99_ms": 97.98
+        },
+        "/api/learning/sessions/203/questions/1/answers/": {
+          "name": "/api/learning/sessions/203/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 183.9,
+          "p99_ms": 183.9
+        },
+        "/api/learning/sessions/204/questions/1/": {
+          "name": "/api/learning/sessions/204/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 80.48,
+          "p99_ms": 80.48
+        },
+        "/api/learning/sessions/204/questions/1/answers/": {
+          "name": "/api/learning/sessions/204/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 104.13,
+          "p99_ms": 104.13
+        },
+        "/api/learning/sessions/205/questions/1/": {
+          "name": "/api/learning/sessions/205/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 149.01,
+          "p99_ms": 149.01
+        },
+        "/api/learning/sessions/205/questions/1/answers/": {
+          "name": "/api/learning/sessions/205/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 148.35,
+          "p99_ms": 148.35
+        },
+        "/api/learning/sessions/206/questions/1/": {
+          "name": "/api/learning/sessions/206/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 77.36,
+          "p99_ms": 77.36
+        },
+        "/api/learning/sessions/206/questions/1/answers/": {
+          "name": "/api/learning/sessions/206/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 250.93,
+          "p99_ms": 250.93
+        },
+        "/api/learning/sessions/207/questions/1/": {
+          "name": "/api/learning/sessions/207/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 76.58,
+          "p99_ms": 76.58
+        },
+        "/api/learning/sessions/207/questions/1/answers/": {
+          "name": "/api/learning/sessions/207/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 191.59,
+          "p99_ms": 191.59
+        },
+        "/api/learning/sessions/208/questions/1/": {
+          "name": "/api/learning/sessions/208/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 86.41,
+          "p99_ms": 86.41
+        },
+        "/api/learning/sessions/208/questions/1/answers/": {
+          "name": "/api/learning/sessions/208/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 261.09,
+          "p99_ms": 261.09
+        },
+        "/api/learning/sessions/209/questions/1/": {
+          "name": "/api/learning/sessions/209/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 158.9,
+          "p99_ms": 158.9
+        },
+        "/api/learning/sessions/209/questions/1/answers/": {
+          "name": "/api/learning/sessions/209/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 167.89,
+          "p99_ms": 167.89
+        },
+        "/api/learning/sessions/210/questions/1/": {
+          "name": "/api/learning/sessions/210/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 131.64,
+          "p99_ms": 131.64
+        },
+        "/api/learning/sessions/210/questions/1/answers/": {
+          "name": "/api/learning/sessions/210/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 119.06,
+          "p99_ms": 119.06
+        },
+        "/api/learning/sessions/211/questions/1/": {
+          "name": "/api/learning/sessions/211/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 49.99,
+          "p99_ms": 49.99
+        },
+        "/api/learning/sessions/211/questions/1/answers/": {
+          "name": "/api/learning/sessions/211/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 390.54,
+          "p99_ms": 390.54
+        },
+        "/api/learning/sessions/212/questions/1/": {
+          "name": "/api/learning/sessions/212/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 93.31,
+          "p99_ms": 93.31
+        },
+        "/api/learning/sessions/212/questions/1/answers/": {
+          "name": "/api/learning/sessions/212/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 117.65,
+          "p99_ms": 117.65
+        },
+        "/api/learning/sessions/213/questions/1/": {
+          "name": "/api/learning/sessions/213/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 86.57,
+          "p99_ms": 86.57
+        },
+        "/api/learning/sessions/213/questions/1/answers/": {
+          "name": "/api/learning/sessions/213/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 218.86,
+          "p99_ms": 218.86
+        },
+        "/api/learning/sessions/214/questions/1/": {
+          "name": "/api/learning/sessions/214/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 80.83,
+          "p99_ms": 80.83
+        },
+        "/api/learning/sessions/214/questions/1/answers/": {
+          "name": "/api/learning/sessions/214/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 106.06,
+          "p99_ms": 106.06
+        },
+        "/api/learning/sessions/215/questions/1/": {
+          "name": "/api/learning/sessions/215/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 73.39,
+          "p99_ms": 73.39
+        },
+        "/api/learning/sessions/215/questions/1/answers/": {
+          "name": "/api/learning/sessions/215/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 87.9,
+          "p99_ms": 87.9
+        },
+        "/api/learning/sessions/216/questions/1/": {
+          "name": "/api/learning/sessions/216/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 94.74,
+          "p99_ms": 94.74
+        },
+        "/api/learning/sessions/216/questions/1/answers/": {
+          "name": "/api/learning/sessions/216/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 233.12,
+          "p99_ms": 233.12
+        },
+        "/api/learning/sessions/217/questions/1/": {
+          "name": "/api/learning/sessions/217/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 61.71,
+          "p99_ms": 61.71
+        },
+        "/api/learning/sessions/217/questions/1/answers/": {
+          "name": "/api/learning/sessions/217/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 355.96,
+          "p99_ms": 355.96
+        },
+        "/api/learning/sessions/218/questions/1/": {
+          "name": "/api/learning/sessions/218/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 122.96,
+          "p99_ms": 122.96
+        },
+        "/api/learning/sessions/218/questions/1/answers/": {
+          "name": "/api/learning/sessions/218/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 143.4,
+          "p99_ms": 143.4
+        },
+        "/api/learning/sessions/219/questions/1/": {
+          "name": "/api/learning/sessions/219/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 72.99,
+          "p99_ms": 72.99
+        },
+        "/api/learning/sessions/219/questions/1/answers/": {
+          "name": "/api/learning/sessions/219/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 207.64,
+          "p99_ms": 207.64
+        },
+        "/api/learning/sessions/220/questions/1/": {
+          "name": "/api/learning/sessions/220/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 38.93,
+          "p99_ms": 38.93
+        },
+        "/api/learning/sessions/220/questions/1/answers/": {
+          "name": "/api/learning/sessions/220/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 130.36,
+          "p99_ms": 130.36
+        },
+        "/api/learning/sessions/221/questions/1/": {
+          "name": "/api/learning/sessions/221/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 111.51,
+          "p99_ms": 111.51
+        },
+        "/api/learning/sessions/221/questions/1/answers/": {
+          "name": "/api/learning/sessions/221/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 156.61,
+          "p99_ms": 156.61
+        },
+        "/api/learning/sessions/222/questions/1/": {
+          "name": "/api/learning/sessions/222/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 73.13,
+          "p99_ms": 73.13
+        },
+        "/api/learning/sessions/222/questions/1/answers/": {
+          "name": "/api/learning/sessions/222/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 370.9,
+          "p99_ms": 370.9
+        },
+        "/api/learning/sessions/223/questions/1/": {
+          "name": "/api/learning/sessions/223/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 115.96,
+          "p99_ms": 115.96
+        },
+        "/api/learning/sessions/223/questions/1/answers/": {
+          "name": "/api/learning/sessions/223/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 98.73,
+          "p99_ms": 98.73
+        },
+        "/api/learning/sessions/224/questions/1/": {
+          "name": "/api/learning/sessions/224/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 54.07,
+          "p99_ms": 54.07
+        },
+        "/api/learning/sessions/224/questions/1/answers/": {
+          "name": "/api/learning/sessions/224/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 214.99,
+          "p99_ms": 214.99
+        },
+        "/api/learning/sessions/225/questions/1/": {
+          "name": "/api/learning/sessions/225/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 72.88,
+          "p99_ms": 72.88
+        },
+        "/api/learning/sessions/225/questions/1/answers/": {
+          "name": "/api/learning/sessions/225/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 218.12,
+          "p99_ms": 218.12
+        },
+        "/api/learning/sessions/226/questions/1/": {
+          "name": "/api/learning/sessions/226/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 81.03,
+          "p99_ms": 81.03
+        },
+        "/api/learning/sessions/226/questions/1/answers/": {
+          "name": "/api/learning/sessions/226/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 164.34,
+          "p99_ms": 164.34
+        },
+        "/api/learning/sessions/227/questions/1/": {
+          "name": "/api/learning/sessions/227/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 66.62,
+          "p99_ms": 66.62
+        },
+        "/api/learning/sessions/227/questions/1/answers/": {
+          "name": "/api/learning/sessions/227/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 117.75,
+          "p99_ms": 117.75
+        },
+        "/api/learning/sessions/228/questions/1/": {
+          "name": "/api/learning/sessions/228/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 85.25,
+          "p99_ms": 85.25
+        },
+        "/api/learning/sessions/228/questions/1/answers/": {
+          "name": "/api/learning/sessions/228/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 119.52,
+          "p99_ms": 119.52
+        },
+        "/api/learning/sessions/229/questions/1/": {
+          "name": "/api/learning/sessions/229/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 197.81,
+          "p99_ms": 197.81
+        },
+        "/api/learning/sessions/229/questions/1/answers/": {
+          "name": "/api/learning/sessions/229/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 255.17,
+          "p99_ms": 255.17
+        },
+        "/api/learning/sessions/230/questions/1/": {
+          "name": "/api/learning/sessions/230/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 57.25,
+          "p99_ms": 57.25
+        },
+        "/api/learning/sessions/230/questions/1/answers/": {
+          "name": "/api/learning/sessions/230/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 255.91,
+          "p99_ms": 255.91
+        },
+        "/api/learning/sessions/231/questions/1/": {
+          "name": "/api/learning/sessions/231/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 53.2,
+          "p99_ms": 53.2
+        },
+        "/api/learning/sessions/231/questions/1/answers/": {
+          "name": "/api/learning/sessions/231/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 407.38,
+          "p99_ms": 407.38
+        },
+        "/api/learning/sessions/232/questions/1/": {
+          "name": "/api/learning/sessions/232/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 166.73,
+          "p99_ms": 166.73
+        },
+        "/api/learning/sessions/232/questions/1/answers/": {
+          "name": "/api/learning/sessions/232/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 379.58,
+          "p99_ms": 379.58
+        },
+        "/api/learning/sessions/233/questions/1/": {
+          "name": "/api/learning/sessions/233/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 118.22,
+          "p99_ms": 118.22
+        },
+        "/api/learning/sessions/233/questions/1/answers/": {
+          "name": "/api/learning/sessions/233/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 408.3,
+          "p99_ms": 408.3
+        },
+        "/api/learning/sessions/234/questions/1/": {
+          "name": "/api/learning/sessions/234/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 53.83,
+          "p99_ms": 53.83
+        },
+        "/api/learning/sessions/234/questions/1/answers/": {
+          "name": "/api/learning/sessions/234/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 151.51,
+          "p99_ms": 151.51
+        },
+        "/api/learning/sessions/235/questions/1/": {
+          "name": "/api/learning/sessions/235/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 63.35,
+          "p99_ms": 63.35
+        },
+        "/api/learning/sessions/235/questions/1/answers/": {
+          "name": "/api/learning/sessions/235/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 258.2,
+          "p99_ms": 258.2
+        },
+        "/api/learning/sessions/236/questions/1/": {
+          "name": "/api/learning/sessions/236/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 158.31,
+          "p99_ms": 158.31
+        },
+        "/api/learning/sessions/236/questions/1/answers/": {
+          "name": "/api/learning/sessions/236/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 362.29,
+          "p99_ms": 362.29
+        },
+        "/api/learning/sessions/237/questions/1/": {
+          "name": "/api/learning/sessions/237/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 144.88,
+          "p99_ms": 144.88
+        },
+        "/api/learning/sessions/237/questions/1/answers/": {
+          "name": "/api/learning/sessions/237/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 138.46,
+          "p99_ms": 138.46
+        },
+        "/api/learning/sessions/238/questions/1/": {
+          "name": "/api/learning/sessions/238/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 111.13,
+          "p99_ms": 111.13
+        },
+        "/api/learning/sessions/238/questions/1/answers/": {
+          "name": "/api/learning/sessions/238/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 413.57,
+          "p99_ms": 413.57
+        },
+        "/api/learning/sessions/239/questions/1/": {
+          "name": "/api/learning/sessions/239/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 163.75,
+          "p99_ms": 163.75
+        },
+        "/api/learning/sessions/239/questions/1/answers/": {
+          "name": "/api/learning/sessions/239/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 204.3,
+          "p99_ms": 204.3
+        },
+        "/api/learning/sessions/240/questions/1/": {
+          "name": "/api/learning/sessions/240/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 388.57,
+          "p99_ms": 388.57
+        },
+        "/api/learning/sessions/240/questions/1/answers/": {
+          "name": "/api/learning/sessions/240/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 246.77,
+          "p99_ms": 246.77
+        },
+        "/api/learning/sessions/241/questions/1/": {
+          "name": "/api/learning/sessions/241/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 118.64,
+          "p99_ms": 118.64
+        },
+        "/api/learning/sessions/241/questions/1/answers/": {
+          "name": "/api/learning/sessions/241/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 248.41,
+          "p99_ms": 248.41
+        },
+        "/api/learning/sessions/242/questions/1/": {
+          "name": "/api/learning/sessions/242/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 107.85,
+          "p99_ms": 107.85
+        },
+        "/api/learning/sessions/242/questions/1/answers/": {
+          "name": "/api/learning/sessions/242/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 323.04,
+          "p99_ms": 323.04
+        },
+        "/api/learning/sessions/243/questions/1/": {
+          "name": "/api/learning/sessions/243/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 104.52,
+          "p99_ms": 104.52
+        },
+        "/api/learning/sessions/243/questions/1/answers/": {
+          "name": "/api/learning/sessions/243/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 191.37,
+          "p99_ms": 191.37
+        },
+        "/api/learning/sessions/244/questions/1/": {
+          "name": "/api/learning/sessions/244/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 50.7,
+          "p99_ms": 50.7
+        },
+        "/api/learning/sessions/244/questions/1/answers/": {
+          "name": "/api/learning/sessions/244/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 301.89,
+          "p99_ms": 301.89
+        },
+        "/api/learning/sessions/245/questions/1/": {
+          "name": "/api/learning/sessions/245/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 68.09,
+          "p99_ms": 68.09
+        },
+        "/api/learning/sessions/245/questions/1/answers/": {
+          "name": "/api/learning/sessions/245/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 145.45,
+          "p99_ms": 145.45
+        },
+        "/api/learning/sessions/246/questions/1/": {
+          "name": "/api/learning/sessions/246/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 80.15,
+          "p99_ms": 80.15
+        },
+        "/api/learning/sessions/246/questions/1/answers/": {
+          "name": "/api/learning/sessions/246/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 73.01,
+          "p99_ms": 73.01
+        },
+        "/api/learning/sessions/247/questions/1/": {
+          "name": "/api/learning/sessions/247/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 33.45,
+          "p99_ms": 33.45
+        },
+        "/api/learning/sessions/247/questions/1/answers/": {
+          "name": "/api/learning/sessions/247/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 165.99,
+          "p99_ms": 165.99
+        },
+        "/api/learning/sessions/248/questions/1/": {
+          "name": "/api/learning/sessions/248/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 71.24,
+          "p99_ms": 71.24
+        },
+        "/api/learning/sessions/248/questions/1/answers/": {
+          "name": "/api/learning/sessions/248/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 148.07,
+          "p99_ms": 148.07
+        },
+        "/api/learning/sessions/249/questions/1/": {
+          "name": "/api/learning/sessions/249/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 79.54,
+          "p99_ms": 79.54
+        },
+        "/api/learning/sessions/249/questions/1/answers/": {
+          "name": "/api/learning/sessions/249/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 200.04,
+          "p99_ms": 200.04
+        },
+        "/api/learning/sessions/250/questions/1/": {
+          "name": "/api/learning/sessions/250/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 69.17,
+          "p99_ms": 69.17
+        },
+        "/api/learning/sessions/250/questions/1/answers/": {
+          "name": "/api/learning/sessions/250/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 506.35,
+          "p99_ms": 506.35
+        },
+        "/api/learning/sessions/251/questions/1/": {
+          "name": "/api/learning/sessions/251/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 73.91,
+          "p99_ms": 73.91
+        },
+        "/api/learning/sessions/251/questions/1/answers/": {
+          "name": "/api/learning/sessions/251/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 587.41,
+          "p99_ms": 587.41
+        },
+        "/api/learning/sessions/252/questions/1/": {
+          "name": "/api/learning/sessions/252/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 40.94,
+          "p99_ms": 40.94
+        },
+        "/api/learning/sessions/252/questions/1/answers/": {
+          "name": "/api/learning/sessions/252/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 586.23,
+          "p99_ms": 586.23
+        },
+        "/api/learning/sessions/253/questions/1/": {
+          "name": "/api/learning/sessions/253/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 147.81,
+          "p99_ms": 147.81
+        },
+        "/api/learning/sessions/253/questions/1/answers/": {
+          "name": "/api/learning/sessions/253/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 381.86,
+          "p99_ms": 381.86
+        },
+        "/api/learning/sessions/254/questions/1/": {
+          "name": "/api/learning/sessions/254/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 84.96,
+          "p99_ms": 84.96
+        },
+        "/api/learning/sessions/254/questions/1/answers/": {
+          "name": "/api/learning/sessions/254/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 222.16,
+          "p99_ms": 222.16
+        },
+        "/api/learning/sessions/255/questions/1/": {
+          "name": "/api/learning/sessions/255/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 162.34,
+          "p99_ms": 162.34
+        },
+        "/api/learning/sessions/255/questions/1/answers/": {
+          "name": "/api/learning/sessions/255/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 315.09,
+          "p99_ms": 315.09
+        },
+        "/api/learning/sessions/256/questions/1/": {
+          "name": "/api/learning/sessions/256/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 113.37,
+          "p99_ms": 113.37
+        },
+        "/api/learning/sessions/256/questions/1/answers/": {
+          "name": "/api/learning/sessions/256/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 89.93,
+          "p99_ms": 89.93
+        },
+        "/api/learning/sessions/257/questions/1/": {
+          "name": "/api/learning/sessions/257/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 146.61,
+          "p99_ms": 146.61
+        },
+        "/api/learning/sessions/257/questions/1/answers/": {
+          "name": "/api/learning/sessions/257/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 115.7,
+          "p99_ms": 115.7
+        },
+        "/api/learning/sessions/258/questions/1/": {
+          "name": "/api/learning/sessions/258/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 127.37,
+          "p99_ms": 127.37
+        },
+        "/api/learning/sessions/258/questions/1/answers/": {
+          "name": "/api/learning/sessions/258/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 278.53,
+          "p99_ms": 278.53
+        },
+        "/api/learning/sessions/259/questions/1/": {
+          "name": "/api/learning/sessions/259/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 109.4,
+          "p99_ms": 109.4
+        },
+        "/api/learning/sessions/259/questions/1/answers/": {
+          "name": "/api/learning/sessions/259/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 149.87,
+          "p99_ms": 149.87
+        },
+        "/api/learning/sessions/260/questions/1/": {
+          "name": "/api/learning/sessions/260/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 191.29,
+          "p99_ms": 191.29
+        },
+        "/api/learning/sessions/260/questions/1/answers/": {
+          "name": "/api/learning/sessions/260/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 137.37,
+          "p99_ms": 137.37
+        },
+        "/api/learning/sessions/261/questions/1/": {
+          "name": "/api/learning/sessions/261/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 151.01,
+          "p99_ms": 151.01
+        },
+        "/api/learning/sessions/261/questions/1/answers/": {
+          "name": "/api/learning/sessions/261/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 148.27,
+          "p99_ms": 148.27
+        },
+        "/api/learning/sessions/262/questions/1/": {
+          "name": "/api/learning/sessions/262/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 144.74,
+          "p99_ms": 144.74
+        },
+        "/api/learning/sessions/262/questions/1/answers/": {
+          "name": "/api/learning/sessions/262/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 188.68,
+          "p99_ms": 188.68
+        },
+        "/api/learning/sessions/263/questions/1/": {
+          "name": "/api/learning/sessions/263/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 120.53,
+          "p99_ms": 120.53
+        },
+        "/api/learning/sessions/263/questions/1/answers/": {
+          "name": "/api/learning/sessions/263/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 216.49,
+          "p99_ms": 216.49
+        },
+        "/api/learning/sessions/264/questions/1/": {
+          "name": "/api/learning/sessions/264/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 186.5,
+          "p99_ms": 186.5
+        },
+        "/api/learning/sessions/264/questions/1/answers/": {
+          "name": "/api/learning/sessions/264/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 271.33,
+          "p99_ms": 271.33
+        },
+        "/api/learning/sessions/265/questions/1/": {
+          "name": "/api/learning/sessions/265/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 104.48,
+          "p99_ms": 104.48
+        },
+        "/api/learning/sessions/265/questions/1/answers/": {
+          "name": "/api/learning/sessions/265/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 179.7,
+          "p99_ms": 179.7
+        },
+        "/api/learning/sessions/266/questions/1/": {
+          "name": "/api/learning/sessions/266/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 131.62,
+          "p99_ms": 131.62
+        },
+        "/api/learning/sessions/266/questions/1/answers/": {
+          "name": "/api/learning/sessions/266/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 109.69,
+          "p99_ms": 109.69
+        },
+        "/api/learning/sessions/267/questions/1/": {
+          "name": "/api/learning/sessions/267/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 140.92,
+          "p99_ms": 140.92
+        },
+        "/api/learning/sessions/267/questions/1/answers/": {
+          "name": "/api/learning/sessions/267/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 123.22,
+          "p99_ms": 123.22
+        },
+        "/api/learning/sessions/268/questions/1/": {
+          "name": "/api/learning/sessions/268/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 161.61,
+          "p99_ms": 161.61
+        },
+        "/api/learning/sessions/268/questions/1/answers/": {
+          "name": "/api/learning/sessions/268/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 192.42,
+          "p99_ms": 192.42
+        },
+        "/api/learning/sessions/269/questions/1/": {
+          "name": "/api/learning/sessions/269/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 114.94,
+          "p99_ms": 114.94
+        },
+        "/api/learning/sessions/269/questions/1/answers/": {
+          "name": "/api/learning/sessions/269/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 148.02,
+          "p99_ms": 148.02
+        },
+        "/api/learning/sessions/270/questions/1/": {
+          "name": "/api/learning/sessions/270/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 82.32,
+          "p99_ms": 82.32
+        },
+        "/api/learning/sessions/270/questions/1/answers/": {
+          "name": "/api/learning/sessions/270/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 224.06,
+          "p99_ms": 224.06
+        },
+        "/api/learning/sessions/271/questions/1/": {
+          "name": "/api/learning/sessions/271/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 60.13,
+          "p99_ms": 60.13
+        },
+        "/api/learning/sessions/271/questions/1/answers/": {
+          "name": "/api/learning/sessions/271/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 154.41,
+          "p99_ms": 154.41
+        },
+        "/api/learning/sessions/272/questions/1/": {
+          "name": "/api/learning/sessions/272/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 77.28,
+          "p99_ms": 77.28
+        },
+        "/api/learning/sessions/272/questions/1/answers/": {
+          "name": "/api/learning/sessions/272/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 216.84,
+          "p99_ms": 216.84
+        },
+        "/api/learning/sessions/273/questions/1/": {
+          "name": "/api/learning/sessions/273/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 46.38,
+          "p99_ms": 46.38
+        },
+        "/api/learning/sessions/273/questions/1/answers/": {
+          "name": "/api/learning/sessions/273/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 160.73,
+          "p99_ms": 160.73
+        },
+        "/api/learning/sessions/274/questions/1/": {
+          "name": "/api/learning/sessions/274/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 56.27,
+          "p99_ms": 56.27
+        },
+        "/api/learning/sessions/274/questions/1/answers/": {
+          "name": "/api/learning/sessions/274/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 211.1,
+          "p99_ms": 211.1
+        },
+        "/api/learning/sessions/275/questions/1/": {
+          "name": "/api/learning/sessions/275/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 93.33,
+          "p99_ms": 93.33
+        },
+        "/api/learning/sessions/275/questions/1/answers/": {
+          "name": "/api/learning/sessions/275/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 284.17,
+          "p99_ms": 284.17
+        },
+        "/api/learning/sessions/276/questions/1/": {
+          "name": "/api/learning/sessions/276/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 80.31,
+          "p99_ms": 80.31
+        },
+        "/api/learning/sessions/276/questions/1/answers/": {
+          "name": "/api/learning/sessions/276/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 158.93,
+          "p99_ms": 158.93
+        },
+        "/api/learning/sessions/277/questions/1/": {
+          "name": "/api/learning/sessions/277/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 52.56,
+          "p99_ms": 52.56
+        },
+        "/api/learning/sessions/277/questions/1/answers/": {
+          "name": "/api/learning/sessions/277/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 104.14,
+          "p99_ms": 104.14
+        },
+        "/api/learning/sessions/278/questions/1/": {
+          "name": "/api/learning/sessions/278/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 87.6,
+          "p99_ms": 87.6
+        },
+        "/api/learning/sessions/278/questions/1/answers/": {
+          "name": "/api/learning/sessions/278/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 220.08,
+          "p99_ms": 220.08
+        },
+        "/api/learning/sessions/279/questions/1/": {
+          "name": "/api/learning/sessions/279/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 62.23,
+          "p99_ms": 62.23
+        },
+        "/api/learning/sessions/279/questions/1/answers/": {
+          "name": "/api/learning/sessions/279/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 94.42,
+          "p99_ms": 94.42
+        },
+        "/api/learning/sessions/280/questions/1/": {
+          "name": "/api/learning/sessions/280/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 65.46,
+          "p99_ms": 65.46
+        },
+        "/api/learning/sessions/280/questions/1/answers/": {
+          "name": "/api/learning/sessions/280/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 135.59,
+          "p99_ms": 135.59
+        },
+        "/api/learning/sessions/281/questions/1/": {
+          "name": "/api/learning/sessions/281/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 65.64,
+          "p99_ms": 65.64
+        },
+        "/api/learning/sessions/281/questions/1/answers/": {
+          "name": "/api/learning/sessions/281/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 296.2,
+          "p99_ms": 296.2
+        },
+        "/api/learning/sessions/282/questions/1/": {
+          "name": "/api/learning/sessions/282/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 117.11,
+          "p99_ms": 117.11
+        },
+        "/api/learning/sessions/282/questions/1/answers/": {
+          "name": "/api/learning/sessions/282/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 151.02,
+          "p99_ms": 151.02
+        },
+        "/api/learning/sessions/283/questions/1/": {
+          "name": "/api/learning/sessions/283/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 70.5,
+          "p99_ms": 70.5
+        },
+        "/api/learning/sessions/283/questions/1/answers/": {
+          "name": "/api/learning/sessions/283/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 111.24,
+          "p99_ms": 111.24
+        },
+        "/api/learning/sessions/284/questions/1/": {
+          "name": "/api/learning/sessions/284/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 107.96,
+          "p99_ms": 107.96
+        },
+        "/api/learning/sessions/284/questions/1/answers/": {
+          "name": "/api/learning/sessions/284/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 156.78,
+          "p99_ms": 156.78
+        },
+        "/api/learning/sessions/285/questions/1/": {
+          "name": "/api/learning/sessions/285/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 84.8,
+          "p99_ms": 84.8
+        },
+        "/api/learning/sessions/285/questions/1/answers/": {
+          "name": "/api/learning/sessions/285/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 208.46,
+          "p99_ms": 208.46
+        },
+        "/api/learning/sessions/286/questions/1/": {
+          "name": "/api/learning/sessions/286/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 59.54,
+          "p99_ms": 59.54
+        },
+        "/api/learning/sessions/286/questions/1/answers/": {
+          "name": "/api/learning/sessions/286/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 260.9,
+          "p99_ms": 260.9
+        },
+        "/api/learning/sessions/287/questions/1/": {
+          "name": "/api/learning/sessions/287/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 49.45,
+          "p99_ms": 49.45
+        },
+        "/api/learning/sessions/287/questions/1/answers/": {
+          "name": "/api/learning/sessions/287/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 150.89,
+          "p99_ms": 150.89
+        },
+        "/api/learning/sessions/288/questions/1/": {
+          "name": "/api/learning/sessions/288/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 86.66,
+          "p99_ms": 86.66
+        },
+        "/api/learning/sessions/288/questions/1/answers/": {
+          "name": "/api/learning/sessions/288/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 173.93,
+          "p99_ms": 173.93
+        },
+        "/api/learning/sessions/289/questions/1/": {
+          "name": "/api/learning/sessions/289/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 89.35,
+          "p99_ms": 89.35
+        },
+        "/api/learning/sessions/289/questions/1/answers/": {
+          "name": "/api/learning/sessions/289/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 151.9,
+          "p99_ms": 151.9
+        },
+        "/api/learning/sessions/290/questions/1/": {
+          "name": "/api/learning/sessions/290/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 43.39,
+          "p99_ms": 43.39
+        },
+        "/api/learning/sessions/290/questions/1/answers/": {
+          "name": "/api/learning/sessions/290/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 147.23,
+          "p99_ms": 147.23
+        },
+        "/api/learning/sessions/291/questions/1/": {
+          "name": "/api/learning/sessions/291/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 69.09,
+          "p99_ms": 69.09
+        },
+        "/api/learning/sessions/291/questions/1/answers/": {
+          "name": "/api/learning/sessions/291/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 315.39,
+          "p99_ms": 315.39
+        },
+        "/api/learning/sessions/292/questions/1/": {
+          "name": "/api/learning/sessions/292/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 32.87,
+          "p99_ms": 32.87
+        },
+        "/api/learning/sessions/292/questions/1/answers/": {
+          "name": "/api/learning/sessions/292/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 224.05,
+          "p99_ms": 224.05
+        },
+        "/api/learning/sessions/293/questions/1/": {
+          "name": "/api/learning/sessions/293/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 93.41,
+          "p99_ms": 93.41
+        },
+        "/api/learning/sessions/293/questions/1/answers/": {
+          "name": "/api/learning/sessions/293/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 191.77,
+          "p99_ms": 191.77
+        },
+        "/api/learning/sessions/294/questions/1/": {
+          "name": "/api/learning/sessions/294/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 47.73,
+          "p99_ms": 47.73
+        },
+        "/api/learning/sessions/294/questions/1/answers/": {
+          "name": "/api/learning/sessions/294/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 100.2,
+          "p99_ms": 100.2
+        },
+        "/api/learning/sessions/295/questions/1/": {
+          "name": "/api/learning/sessions/295/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 131.7,
+          "p99_ms": 131.7
+        },
+        "/api/learning/sessions/295/questions/1/answers/": {
+          "name": "/api/learning/sessions/295/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 150.37,
+          "p99_ms": 150.37
+        },
+        "/api/learning/sessions/296/questions/1/": {
+          "name": "/api/learning/sessions/296/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 78.31,
+          "p99_ms": 78.31
+        },
+        "/api/learning/sessions/296/questions/1/answers/": {
+          "name": "/api/learning/sessions/296/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 125.45,
+          "p99_ms": 125.45
+        },
+        "/api/learning/sessions/297/questions/1/": {
+          "name": "/api/learning/sessions/297/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 51.74,
+          "p99_ms": 51.74
+        },
+        "/api/learning/sessions/297/questions/1/answers/": {
+          "name": "/api/learning/sessions/297/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 122.26,
+          "p99_ms": 122.26
+        },
+        "/api/learning/sessions/298/questions/1/": {
+          "name": "/api/learning/sessions/298/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 53.5,
+          "p99_ms": 53.5
+        },
+        "/api/learning/sessions/298/questions/1/answers/": {
+          "name": "/api/learning/sessions/298/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 188.69,
+          "p99_ms": 188.69
+        },
+        "/api/learning/sessions/299/questions/1/": {
+          "name": "/api/learning/sessions/299/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 116.1,
+          "p99_ms": 116.1
+        },
+        "/api/learning/sessions/299/questions/1/answers/": {
+          "name": "/api/learning/sessions/299/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 132.79,
+          "p99_ms": 132.79
+        },
+        "/api/learning/sessions/300/questions/1/": {
+          "name": "/api/learning/sessions/300/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 53.77,
+          "p99_ms": 53.77
+        },
+        "/api/learning/sessions/300/questions/1/answers/": {
+          "name": "/api/learning/sessions/300/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 142.94,
+          "p99_ms": 142.94
+        },
+        "/api/learning/sessions/301/questions/1/": {
+          "name": "/api/learning/sessions/301/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 53.22,
+          "p99_ms": 53.22
+        },
+        "/api/learning/sessions/301/questions/1/answers/": {
+          "name": "/api/learning/sessions/301/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 188.56,
+          "p99_ms": 188.56
+        },
+        "/api/learning/sessions/302/questions/1/": {
+          "name": "/api/learning/sessions/302/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 84.65,
+          "p99_ms": 84.65
+        },
+        "/api/learning/sessions/302/questions/1/answers/": {
+          "name": "/api/learning/sessions/302/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 227.02,
+          "p99_ms": 227.02
+        },
+        "/api/learning/sessions/303/questions/1/": {
+          "name": "/api/learning/sessions/303/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 59.34,
+          "p99_ms": 59.34
+        },
+        "/api/learning/sessions/303/questions/1/answers/": {
+          "name": "/api/learning/sessions/303/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 201.75,
+          "p99_ms": 201.75
+        },
+        "/api/learning/sessions/304/questions/1/": {
+          "name": "/api/learning/sessions/304/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 79.4,
+          "p99_ms": 79.4
+        },
+        "/api/learning/sessions/304/questions/1/answers/": {
+          "name": "/api/learning/sessions/304/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 153.71,
+          "p99_ms": 153.71
+        },
+        "/api/learning/sessions/305/questions/1/": {
+          "name": "/api/learning/sessions/305/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 72.79,
+          "p99_ms": 72.79
+        },
+        "/api/learning/sessions/305/questions/1/answers/": {
+          "name": "/api/learning/sessions/305/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 121.21,
+          "p99_ms": 121.21
+        },
+        "/api/learning/sessions/306/questions/1/": {
+          "name": "/api/learning/sessions/306/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 74.19,
+          "p99_ms": 74.19
+        },
+        "/api/learning/sessions/306/questions/1/answers/": {
+          "name": "/api/learning/sessions/306/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 199.79,
+          "p99_ms": 199.79
+        },
+        "/api/learning/sessions/307/questions/1/": {
+          "name": "/api/learning/sessions/307/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 119.0,
+          "p99_ms": 119.0
+        },
+        "/api/learning/sessions/307/questions/1/answers/": {
+          "name": "/api/learning/sessions/307/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 151.83,
+          "p99_ms": 151.83
+        },
+        "/api/learning/sessions/308/questions/1/": {
+          "name": "/api/learning/sessions/308/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 106.42,
+          "p99_ms": 106.42
+        },
+        "/api/learning/sessions/308/questions/1/answers/": {
+          "name": "/api/learning/sessions/308/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 206.25,
+          "p99_ms": 206.25
+        },
+        "/api/learning/sessions/309/questions/1/": {
+          "name": "/api/learning/sessions/309/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 48.88,
+          "p99_ms": 48.88
+        },
+        "/api/learning/sessions/309/questions/1/answers/": {
+          "name": "/api/learning/sessions/309/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 149.98,
+          "p99_ms": 149.98
+        },
+        "/api/learning/sessions/310/questions/1/": {
+          "name": "/api/learning/sessions/310/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 79.62,
+          "p99_ms": 79.62
+        },
+        "/api/learning/sessions/310/questions/1/answers/": {
+          "name": "/api/learning/sessions/310/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 180.98,
+          "p99_ms": 180.98
+        },
+        "/api/learning/sessions/311/questions/1/": {
+          "name": "/api/learning/sessions/311/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 40.25,
+          "p99_ms": 40.25
+        },
+        "/api/learning/sessions/311/questions/1/answers/": {
+          "name": "/api/learning/sessions/311/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 146.68,
+          "p99_ms": 146.68
+        },
+        "/api/learning/sessions/312/questions/1/": {
+          "name": "/api/learning/sessions/312/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 41.06,
+          "p99_ms": 41.06
+        },
+        "/api/learning/sessions/312/questions/1/answers/": {
+          "name": "/api/learning/sessions/312/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 301.89,
+          "p99_ms": 301.89
+        },
+        "/api/learning/sessions/313/questions/1/": {
+          "name": "/api/learning/sessions/313/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 117.64,
+          "p99_ms": 117.64
+        },
+        "/api/learning/sessions/313/questions/1/answers/": {
+          "name": "/api/learning/sessions/313/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 293.55,
+          "p99_ms": 293.55
+        },
+        "/api/learning/sessions/314/questions/1/": {
+          "name": "/api/learning/sessions/314/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 44.97,
+          "p99_ms": 44.97
+        },
+        "/api/learning/sessions/314/questions/1/answers/": {
+          "name": "/api/learning/sessions/314/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 173.23,
+          "p99_ms": 173.23
+        },
+        "/api/learning/sessions/315/questions/1/": {
+          "name": "/api/learning/sessions/315/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 111.99,
+          "p99_ms": 111.99
+        },
+        "/api/learning/sessions/315/questions/1/answers/": {
+          "name": "/api/learning/sessions/315/questions/1/answers/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 200.02,
+          "p99_ms": 200.02
+        },
+        "/api/learning/sessions/316/questions/1/": {
+          "name": "/api/learning/sessions/316/questions/1/",
+          "n": 1,
+          "success": 1,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 130.03,
+          "p99_ms": 130.03
+        },
+        "/api/learning/wallet/": {
+          "name": "/api/learning/wallet/",
+          "n": 516,
+          "success": 516,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 168.85,
+          "p99_ms": 315.44
+        },
+        "/api/learning/wallet/history/": {
+          "name": "/api/learning/wallet/history/",
+          "n": 155,
+          "success": 155,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 197.67,
+          "p99_ms": 510.97
+        },
+        "/api/messages/conversations/": {
+          "name": "/api/messages/conversations/",
+          "n": 171,
+          "success": 171,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 189.2,
+          "p99_ms": 421.61
+        },
+        "/api/messages/recipients/?q=%EB%B6%80%ED%95%98": {
+          "name": "/api/messages/recipients/?q=%EB%B6%80%ED%95%98",
+          "n": 94,
+          "success": 94,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 284.94,
+          "p99_ms": 689.73
+        },
+        "/api/messages/status/": {
+          "name": "/api/messages/status/",
+          "n": 171,
+          "success": 171,
+          "handled": 0,
+          "errors": 0,
+          "no_response": 0,
+          "p95_ms": 196.12,
+          "p99_ms": 289.8
+        }
+      }
+    }
+  },
+  "checks": {
+    "functional": {
+      "cases": 1800,
+      "passed": 1800,
+      "failed": 0,
+      "phases": 18
+    },
+    "receipt": {
+      "cases": 50,
+      "passed": 50
+    },
+    "browser": {
+      "cases": 15,
+      "passed": 15
+    },
+    "security": {
+      "cases": 419,
+      "passed": 419,
+      "failed": 0
+    },
+    "admission": {
+      "cases": 1000,
+      "passed": 1000,
+      "failed": 0
+    },
+    "backend": {
+      "cases": 796,
+      "passed": 739,
+      "failed": 56,
+      "skipped": 1,
+      "failure_events": {
+        "assertions": 27,
+        "errors": 30
+      }
+    },
+    "frontend": {
+      "cases": 263,
+      "passed": 263,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "diagnostics": {
+    "failed_test_ids": [
+      "ad_bridge.tests.test_routing.MediaRoutingTests.test_manual_401_recovery_uses_saved_portal_slot",
+      "ad_bridge.tests.test_routing.MediaRoutingTests.test_mixed_retry_batch_keeps_keys_reaction_ids_and_subjects",
+      "ad_bridge.tests.test_routing.MediaRoutingTests.test_production_retry_command_uses_routed_client",
+      "ad_bridge.tests.test_routing.MediaRoutingTests.test_single_media_configuration_keeps_legacy_behavior",
+      "ad_bridge.tests.test_routing.MediaRoutingTests.test_unknown_decision_does_not_fall_back_to_a_different_media",
+      "campus.test_authoritative_socket.AuthoritativeSocketTests.test_transfer_approval_returns_a_user_bound_ad_token_before_moving",
+      "campus.test_continuous_poke.ContinuousPokeTests.test_audience_join_and_leave_only_update_affected_sockets",
+      "campus.test_continuous_poke.ContinuousPokeTests.test_direction_changes_are_throttled_and_keep_the_same_stream",
+      "campus.test_continuous_poke.ContinuousPokeTests.test_effects_ride_each_recipients_batch_and_a_broken_socket_does_not_stop_the_others",
+      "campus.test_continuous_poke.ContinuousPokeTests.test_heartbeats_reuse_scope_but_cannot_carry_it_into_a_classroom",
+      "campus.test_continuous_poke.ContinuousPokeTests.test_holding_sends_one_start_and_four_hits_per_second_without_database_reads",
+      "campus.test_continuous_poke.ContinuousPokeTests.test_input_lease_stops_a_missing_keyup",
+      "campus.test_continuous_poke.ContinuousPokeTests.test_misses_have_no_repeated_network_packets",
+      "campus.test_continuous_poke.ContinuousPokeTests.test_private_npc_hits_only_reach_the_owner",
+      "campus.test_continuous_poke.ContinuousPokeTests.test_scope_change_stops_the_old_hold",
+      "campus.test_continuous_poke.ContinuousPokeTests.test_session_checks_remain_in_the_periodic_guard",
+      "campus.test_jump.JumpControlTests.test_jump_reaches_the_same_floor_nearby_and_never_private_classrooms",
+      "campus.test_load_reduction.IdleTrafficTests.test_a_slow_position_save_does_not_stall_walking",
+      "campus.test_load_reduction.IdleTrafficTests.test_socket_database_calls_reuse_one_connection",
+      "campus.test_motion.ServerMotionTests.test_ad_transfer_approval_is_stable_and_does_not_move_early",
+      "campus.test_motion.ServerMotionTests.test_floor_transfer_must_be_offered_near_a_portal_before_commit",
+      "campus.test_poke.PokeControlTests.test_control_broadcasts_without_a_position_write",
+      "campus.test_poke.PokeControlTests.test_cooldown_rejects_a_second_request",
+      "campus.test_poke.PokeControlTests.test_last_diagonal_survives_releasing_keys",
+      "campus.test_poke.PokeControlTests.test_other_floor_and_private_occupants_are_excluded",
+      "campus.test_poke.PokeControlTests.test_private_classroom_effect_is_only_sent_to_its_owner",
+      "campus.test_positions.PositionSocketTests.test_idle_checkpoint_saves_without_closing_the_socket",
+      "campus.test_positions.PositionSocketTests.test_last_frame_bypasses_throttle_and_survives_a_fresh_room",
+      "campus.test_positions.PositionSocketTests.test_revoked_socket_cannot_overwrite_the_logout_snapshot",
+      "campus.test_positions.PositionSocketTests.test_rooftop_switch_saves_immediately_and_restores_floor",
+      "campus.test_positions.PositionSocketTests.test_stale_tab_disconnect_cannot_overwrite_newer_rooftop_position",
+      "campus.test_reconnect_transitions.ReconnectSocketTests.test_live_old_socket_is_replaced_and_late_disconnect_keeps_new_player",
+      "campus.test_session_policy.SessionSocketTests.test_a_server_close_leaves_its_code_and_policy_reason",
+      "campus.test_session_policy.SessionSocketTests.test_continuous_movement_cannot_extend_maximum_login_lifetime",
+      "campus.test_session_policy.SessionSocketTests.test_expiry_in_http_saves_latest_position_and_closes_all_session_tabs",
+      "campus.test_session_policy.SessionSocketTests.test_server_guard_expires_without_client_logout_or_activity_requests",
+      "campus.test_session_policy.SessionSocketTests.test_socket_pings_do_not_extend_idle_and_expiry_closes_the_socket",
+      "campus.test_single_login.SingleLoginSocketTests.test_new_browser_closes_all_old_tabs_and_restores_latest_position",
+      "campus.tests.CampusSocketTests.test_disconnect_removes_avatar_and_later_connection_has_no_ghost",
+      "campus.tests.CampusSocketTests.test_door_request_from_an_old_tab_is_ignored",
+      "campus.tests.CampusSocketTests.test_expanded_world_positions_and_boundary_validation",
+      "campus.tests.CampusSocketTests.test_heartbeat_keeps_idle_clients_connected_and_rate_limits_movement",
+      "campus.tests.CampusSocketTests.test_invalid_positions_and_fields_do_not_broadcast_or_crash",
+      "campus.tests.CampusSocketTests.test_join_snapshot_and_fractional_movement_use_server_identity",
+      "campus.tests.CampusSocketTests.test_logout_in_another_tab_revokes_socket_and_announces_leave",
+      "campus.tests.CampusSocketTests.test_nickname_change_is_published_to_existing_connections",
+      "campus.tests.CampusSocketTests.test_outfit_change_is_shared_with_peers_and_the_open_map",
+      "campus.tests.CampusSocketTests.test_oversized_and_malformed_payloads_close_without_ghosts",
+      "campus.tests.CampusSocketTests.test_public_chat_is_rejected_on_the_movement_alias",
+      "campus.tests.CampusSocketTests.test_rooftop_floor_and_return_to_campus_are_shared",
+      "campus.tests.CampusSocketTests.test_same_session_tab_replaces_old_presence",
+      "campus.tests.CampusSocketTests.test_stopping_and_room_teleport_are_broadcast",
+      "campus.tests.CampusSocketTests.test_unknown_floors_and_rooftop_out_of_bounds_positions_are_rejected",
+      "learning.tests.test_campus_integration.CampusLearningIntegrationTests.test_standalone_map_has_no_server_template_tags",
+      "tests.test_recipe_live.RecipeLiveTests.test_real_guide_proof_csrf_both_endings_and_persistent_single_reward",
+      "tests.test_recipe_live.RecipeLiveTests.test_real_socket_note_proof_and_http_acquisition"
+    ],
+    "fixture_contract_mismatches": 55,
+    "reproduced_latency_criterion": {
+      "tests": 1,
+      "full_suite_gap_seconds": 0.403432667,
+      "isolated_gap_seconds": 0.3626014171168208,
+      "limit_seconds": 0.3
+    },
+    "isolated_retest": {
+      "cases": 2,
+      "passed": 0,
+      "failed": 2,
+      "reconnect_failure_before_new_connect": true
+    },
+    "normal_errors_excluded": true
+  },
+  "assets": [
+    {
+      "label": "one-user-all",
+      "users": 1,
+      "parallel_per_user": 1,
+      "files_per_user": 227,
+      "bytes_per_user": 117596063,
+      "requests": 227,
+      "success": 227,
+      "errors": 0,
+      "completed_users": 1,
+      "successful_users": 1,
+      "user_start_spread_ms": 0.0,
+      "downloaded_bytes": 117596063,
+      "elapsed_seconds": 0.095,
+      "user_seconds_p50": 0.095,
+      "user_seconds_p95": 0.095,
+      "user_seconds_max": 0.095,
+      "request_ms_p95": 1.117,
+      "request_ms_p99": 2.574,
+      "status_counts": {
+        "200": 227
+      },
+      "nginx_cpu_one_core_pct_mean": 50.42,
+      "nginx_cpu_one_core_pct_peak": 0,
+      "nginx_rss_mib_peak": 12.0,
+      "generator_rss_mib_peak": 81.33,
+      "generator_monitor_overrun_ms_max": 0,
+      "health_probe_count": 1,
+      "health_probe_errors": 0,
+      "health_probe_ms_p95": 3.539
+    },
+    {
+      "label": "100-users-code",
+      "users": 100,
+      "parallel_per_user": 1,
+      "files_per_user": 89,
+      "bytes_per_user": 1435632,
+      "requests": 8900,
+      "success": 8900,
+      "errors": 0,
+      "completed_users": 100,
+      "successful_users": 100,
+      "user_start_spread_ms": 0.881,
+      "downloaded_bytes": 143563200,
+      "elapsed_seconds": 0.42,
+      "user_seconds_p50": 0.395,
+      "user_seconds_p95": 0.419,
+      "user_seconds_max": 0.419,
+      "request_ms_p95": 10.73,
+      "request_ms_p99": 18.585,
+      "status_counts": {
+        "200": 8900
+      },
+      "nginx_cpu_one_core_pct_mean": 72.42,
+      "nginx_cpu_one_core_pct_peak": 87.07,
+      "nginx_rss_mib_peak": 12.14,
+      "generator_rss_mib_peak": 84.44,
+      "generator_monitor_overrun_ms_max": 0,
+      "health_probe_count": 2,
+      "health_probe_errors": 0,
+      "health_probe_ms_p95": 3.762
+    },
+    {
+      "label": "100-users-all",
+      "users": 100,
+      "parallel_per_user": 1,
+      "files_per_user": 227,
+      "bytes_per_user": 117596063,
+      "requests": 22700,
+      "success": 22700,
+      "errors": 0,
+      "completed_users": 100,
+      "successful_users": 100,
+      "user_start_spread_ms": 0.931,
+      "downloaded_bytes": 11759606300,
+      "elapsed_seconds": 4.173,
+      "user_seconds_p50": 4.115,
+      "user_seconds_p95": 4.168,
+      "user_seconds_max": 4.173,
+      "request_ms_p95": 55.637,
+      "request_ms_p99": 85.63,
+      "status_counts": {
+        "200": 22700
+      },
+      "nginx_cpu_one_core_pct_mean": 91.03,
+      "nginx_cpu_one_core_pct_peak": 99.95,
+      "nginx_rss_mib_peak": 8.94,
+      "generator_rss_mib_peak": 47.42,
+      "generator_monitor_overrun_ms_max": 0,
+      "health_probe_count": 17,
+      "health_probe_errors": 0,
+      "health_probe_ms_p95": 84.652
+    }
+  ],
+  "integrity": {
+    "question_bank": 3580,
+    "main_completed": 100,
+    "rank_unique_contiguous": true,
+    "egg_completed": 7,
+    "duplicate_egg_accounts": 0,
+    "duplicate_egg_owners": 0,
+    "missing_egg_metadata": 0,
+    "play_session_owner_mismatches": 0,
+    "duplicate_main_start_requests": 0,
+    "duplicate_answer_requests": 0,
+    "answer_owner_mismatches": 0,
+    "answer_session_owner_mismatches": 0,
+    "choice_question_mismatches": 0,
+    "incorrect_answer_rewards": 0,
+    "ledger_owner_mismatches": 0,
+    "wallet_ledger_sum_mismatches": 0,
+    "reward_policy_mismatches": 0,
+    "learning_completed": 100,
+    "answers": 1215,
+    "ledger_rows": 1018,
+    "recipe_completed": 100
+  },
+  "source_manifest_unchanged": true,
+  "gateway": {
+    "502": 0,
+    "504": 0
+  },
+  "scope": {
+    "accounts": 100,
+    "movement_workers": 4,
+    "service_workers": 4,
+    "jobs": 1,
+    "pool_min": 1,
+    "pool_max": 10,
+    "front_backlog": 128,
+    "mixed_seconds_each": 180,
+    "mixed_protocol_accounts": 99,
+    "mixed_chrome_accounts": 1,
+    "window_override": true,
+    "percentile": "nearest rank over complete started requests; incomplete population yields null"
+  }
+}

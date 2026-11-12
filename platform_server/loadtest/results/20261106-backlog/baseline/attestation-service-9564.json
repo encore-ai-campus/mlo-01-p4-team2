@@ -1,0 +1,16 @@
+{
+  "worker": "service-9564",
+  "pid": 79886,
+  "database": "backlog_final_baseline_v2_20261106",
+  "db_port": "55480",
+  "movement_redis": "redis://127.0.0.1:56397/0",
+  "service_redis": "redis://127.0.0.1:56398/0",
+  "secret_fingerprint": "REDACTED",
+  "debug": false,
+  "event_window_override": true,
+  "pool_options": {
+    "min_size": 1,
+    "max_size": 10
+  },
+  "connection_max_age": 0
+}

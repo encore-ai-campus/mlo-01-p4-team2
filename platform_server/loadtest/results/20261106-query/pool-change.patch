@@ -1,0 +1,117 @@
+diff --git a/.env.example b/.env.example
+index 063f6c9..2204506 100644
+--- a/.env.example
++++ b/.env.example
+@@ -8,6 +8,8 @@ DATABASE_ENGINE=postgresql
+ # POSTGRES_PASSWORD=
+ # POSTGRES_HOST=127.0.0.1
+ # POSTGRES_PORT=5432
++# 프로세스별 연결 풀 상한. 기본 10, 0은 풀 미사용.
++# POSTGRES_POOL_MAX_SIZE=10
+ 
+ 
+ # Existing product policy: fixed 8-hour maximum and 30-minute idle expiry.
+diff --git a/backend/.env.example b/backend/.env.example
+index c9c8b61..0e84505 100644
+--- a/backend/.env.example
++++ b/backend/.env.example
+@@ -22,6 +22,8 @@ DATABASE_ENGINE=postgresql
+ # POSTGRES_PASSWORD=
+ # POSTGRES_HOST=127.0.0.1
+ # POSTGRES_PORT=5432
++# 프로세스별 연결 풀 상한. 기본 10, 0은 풀 미사용.
++# POSTGRES_POOL_MAX_SIZE=10
+ 
+ 
+ 
+diff --git a/backend/campus/socket_db.py b/backend/campus/socket_db.py
+index 8422427..93a9f81 100644
+--- a/backend/campus/socket_db.py
++++ b/backend/campus/socket_db.py
+@@ -1,9 +1,6 @@
+-"""소켓의 DB 호출을 스레드 하나·연결 하나로(계획 docs/metaverse-optimization-plan.md 4f).
++"""소켓 DB 작업을 프로세스별 스레드 하나에서 순서대로 처리한다.
+ 
+-Channels 의 `database_sync_to_async` 는 ASGI 의 `CONN_MAX_AGE=0` 때문에 호출마다 DB 연결을 새로 연다. 운영에서는 연결마다 라우터와
+-TLS 핸드셰이크를 해서, 부하 시험에서 백엔드 CPU 의 가장 큰 몫이 이것이었다(20명: 운영 코어 70% 중 약 36%p).
+-소켓의 DB 호출은 원래도 스레드 하나에서 차례로 돌았으므로(thread_sensitive) 그 순서는 그대로 두고, 그 스레드의 연결만 이어 쓴다.
+-연결이 끊기거나 오류가 나면 다음 호출 전에 Django 가 닫고 새로 연다(건강 검사). HTTP 요청의 연결 정책은 바꾸지 않는다.
++풀을 쓰면 작업이 끝날 때 연결을 반환한다. 풀을 쓰지 않으면 기존 연결을 재사용한다.
+ """
+ import asyncio
+ import functools
+@@ -19,7 +16,10 @@ _executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="campus-socket-
+ def _call(fn, args, kwargs):
+     keep_thread_connection()  # 이 스레드의 연결만 이어 쓴다(HTTP 요청은 그대로)
+     close_old_connections()  # 오래됐거나 오류가 난 연결만 닫는다
+-    return fn(*args, **kwargs)
++    try:
++        return fn(*args, **kwargs)
++    finally:
++        close_old_connections()  # 풀 연결은 성공·실패 모두 반환한다.
+ 
+ 
+ async def run(fn, *args, **kwargs):
+diff --git a/backend/config/connections.py b/backend/config/connections.py
+index 05960ad..fefcb22 100644
+--- a/backend/config/connections.py
++++ b/backend/config/connections.py
+@@ -1,9 +1,4 @@
+-"""한 스레드가 DB 연결을 이어 쓰게 한다(계획 docs/metaverse-optimization-plan.md 4d·4f).
+-
+-ASGI 는 `CONN_MAX_AGE=0` 이라 연결을 쓰고 바로 닫고, 다음에 새로 연다. 운영에서는 새 연결마다 라우터와 TLS 핸드셰이크를 해서 비싸다.
+-이 설정은 **부른 스레드의 연결 객체에만** 적용된다(HTTP 요청·다른 스레드는 그대로). 연결이 끊기거나 오류가 나면
+-`close_old_connections()` 가 닫고 다음에 새로 연다(건강 검사).
+-"""
++"""풀을 쓰지 않을 때만 소켓 작업 스레드의 연결을 60초간 재사용한다."""
+ from django.db import connections
+ 
+ KEEP_SECONDS = 60
+@@ -11,5 +6,7 @@ KEEP_SECONDS = 60
+ 
+ def keep_thread_connection():
+     database = connections["default"]
++    if database.settings_dict.get("OPTIONS", {}).get("pool"):
++        return  # 풀은 CONN_MAX_AGE=0으로 연결을 반환한다.
+     if database.settings_dict.get("CONN_MAX_AGE") != KEEP_SECONDS:
+         database.settings_dict = {**database.settings_dict, "CONN_MAX_AGE": KEEP_SECONDS, "CONN_HEALTH_CHECKS": True}
+diff --git a/backend/config/settings.py b/backend/config/settings.py
+index 61a3345..5b4b49c 100644
+--- a/backend/config/settings.py
++++ b/backend/config/settings.py
+@@ -92,6 +92,12 @@ if DATABASE_ENGINE in {"postgresql", "postgres", "pgsql"}:
+         "CONN_MAX_AGE": 0,
+         "OPTIONS": {"connect_timeout": 5},
+     }}
++    pool_max_size = int(os.environ.get("POSTGRES_POOL_MAX_SIZE", "10"))
++    if pool_max_size < 0:
++        raise ValueError("POSTGRES_POOL_MAX_SIZE must be nonnegative; 0 disables pooling.")
++    if pool_max_size:
++        DATABASES["default"]["OPTIONS"]["pool"] = {"min_size": 1, "max_size": pool_max_size}
++        DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
+ elif DATABASE_ENGINE == "mysql":
+     DATABASES = {"default": {
+         "ENGINE": "django.db.backends.mysql",
+diff --git a/backend/requirements.txt b/backend/requirements.txt
+index 5be1d1b..685b001 100644
+--- a/backend/requirements.txt
++++ b/backend/requirements.txt
+@@ -5,4 +5,4 @@ redis>=8.1,<9
+ Pillow>=12.0,<13.0
+ python-dotenv>=1.0,<2.0
+ xxhash>=3.5,<4.0
+-psycopg[binary]>=3.2,<3.3
++psycopg[binary,pool]>=3.2,<3.3
+diff --git a/deploy/onprem/.env.example b/deploy/onprem/.env.example
+index 04869c3..cc5a79a 100644
+--- a/deploy/onprem/.env.example
++++ b/deploy/onprem/.env.example
+@@ -11,6 +11,8 @@ POSTGRES_PORT=5432
+ POSTGRES_DB=playdata_campus
+ POSTGRES_USER=platform_app
+ POSTGRES_PASSWORD=replace-with-the-external-database-password
++# 4+4 앱과 jobs 1개의 풀 상한 합계는 90개다. 관리용 연결 여유도 확보한다.
++POSTGRES_POOL_MAX_SIZE=10
+ 
+ # Existing code requires both stores from both PCs and service jobs.
+ # Each URL must name the same physical Redis store on both PCs.

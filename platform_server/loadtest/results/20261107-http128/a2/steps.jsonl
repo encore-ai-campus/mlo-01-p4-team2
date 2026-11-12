@@ -1,0 +1,4 @@
+{"script": "refresh_sessions.py", "args": [], "exit": 0, "at": 1794031239.390769}
+{"script": "launch.py", "args": ["--open"], "exit": 0, "at": 1794031243.5225449}
+{"script": "fixtures.py", "args": ["reset_scenarios"], "exit": 0, "at": 1794031246.306325}
+{"script": "scenarios.py", "args": ["--learning-only"], "exit": 0, "at": 1794031284.213283}

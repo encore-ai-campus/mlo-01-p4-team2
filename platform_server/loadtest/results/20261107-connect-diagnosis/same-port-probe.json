@@ -1,0 +1,42 @@
+[
+  {
+    "source_port": 43000,
+    "server_time_wait_before": [
+      "tcp4       0      0  127.0.0.1.8116         127.0.0.1.43000        TIME_WAIT    408239  146988  54600      0 02131 00000004 0000000001068c28 00000080 01000900      0      0 000001"
+    ],
+    "connect_initial_errno": 36,
+    "connected": false,
+    "elapsed_ms": 5001.761709107086,
+    "tcp_state": 2
+  },
+  {
+    "source_port": 43001,
+    "server_time_wait_before": [
+      "tcp4       0      0  127.0.0.1.8116         127.0.0.1.43001        TIME_WAIT    408239  146988  54600      0 02131 00000004 0000000001068c37 00000080 01000900      0      0 000001"
+    ],
+    "connect_initial_errno": 36,
+    "connected": false,
+    "elapsed_ms": 5003.369665937498,
+    "tcp_state": 2
+  },
+  {
+    "source_port": 43002,
+    "server_time_wait_before": [
+      "tcp4       0      0  127.0.0.1.8116         127.0.0.1.43002        TIME_WAIT    408239  146988  54600      0 02131 00000004 0000000001069369 00000080 01000900      0      0 000001"
+    ],
+    "connect_initial_errno": 36,
+    "connected": false,
+    "elapsed_ms": 5006.256207823753,
+    "tcp_state": 2
+  },
+  {
+    "source_port": 43003,
+    "server_time_wait_before": [
+      "tcp4       0      0  127.0.0.1.8116         127.0.0.1.43003        TIME_WAIT    408239  146988  54600      0 02131 00000004 000000000106937a 00000080 01000900      0      0 000001"
+    ],
+    "connect_initial_errno": 36,
+    "connected": false,
+    "elapsed_ms": 5004.610209027305,
+    "tcp_state": 2
+  }
+]

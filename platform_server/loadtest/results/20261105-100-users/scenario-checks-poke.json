@@ -1,0 +1,58 @@
+[
+  {
+    "phase": "connect:private_poke",
+    "users": 100,
+    "seconds": 2.14,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "refill:private_poke",
+    "users": 100,
+    "seconds": 0.54,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "travel:private_poke",
+    "users": 100,
+    "seconds": 1.54,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "walk:room1",
+    "users": 100,
+    "seconds": 2.44,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "enter:room1",
+    "users": 100,
+    "seconds": 0.68,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "walk:private_manager",
+    "users": 100,
+    "seconds": 1.77,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "poke:eleventh_manager_hit",
+    "users": 100,
+    "seconds": 3.0,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "close:private_poke",
+    "users": 100,
+    "seconds": 0.01,
+    "passed": 100,
+    "errors": {}
+  }
+]

@@ -1,0 +1,26 @@
+{
+  "worker_attestations": 9,
+  "backend_isolation": [
+    {
+      "port": 9761,
+      "worker": "service-9761",
+      "status": 200
+    },
+    {
+      "port": 9762,
+      "worker": "service-9762",
+      "status": 200
+    },
+    {
+      "port": 9763,
+      "worker": "service-9763",
+      "status": 200
+    },
+    {
+      "port": 9764,
+      "worker": "service-9764",
+      "status": 200
+    }
+  ],
+  "question_bank_source": "full 3580 questions"
+}

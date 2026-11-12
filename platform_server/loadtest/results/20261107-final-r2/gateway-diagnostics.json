@@ -1,0 +1,43 @@
+{
+  "scope": "functional learning; before mixed phases",
+  "requests": 3176,
+  "success": 3162,
+  "errors": 14,
+  "by_action": {
+    "learning:answer": {
+      "requests": 996,
+      "success": 992,
+      "errors": 4
+    },
+    "learning:answer_retry": {
+      "requests": 992,
+      "success": 988,
+      "errors": 4
+    },
+    "learning:complete": {
+      "requests": 90,
+      "success": 86,
+      "errors": 4
+    },
+    "learning:question": {
+      "requests": 998,
+      "success": 996,
+      "errors": 2
+    },
+    "learning:start": {
+      "requests": 100,
+      "success": 100,
+      "errors": 0
+    }
+  },
+  "client_504_accounts": 14,
+  "entry_direct_cause": "8116 -> HTTP Front 9602: connection establishment exceeded 5 seconds",
+  "internal_connect_timeouts": 6,
+  "internal_final_statuses": {
+    "201": 4,
+    "200": 2
+  },
+  "internal_recovered_requests_distinct_from_client_504": true,
+  "root_cause": "not isolated; logs do not distinguish SQL, pool, scheduler, accept backlog or host pressure",
+  "independent_reviewer": "start_receipt_test"
+}

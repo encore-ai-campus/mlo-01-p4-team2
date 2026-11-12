@@ -1,0 +1,35 @@
+[
+  {
+    "at": 1065503.887069708,
+    "nginx_cpu_seconds": 0.01,
+    "nginx_rss_mib": 11.234375,
+    "generator_cpu_seconds": 0.39,
+    "generator_rss_mib": 85.46875,
+    "nginx_pids": [
+      44180,
+      44181
+    ]
+  },
+  {
+    "at": 1065503.919001083,
+    "nginx_cpu_seconds": 0.01,
+    "nginx_rss_mib": 11.53125,
+    "generator_cpu_seconds": 0.4,
+    "generator_rss_mib": 86.140625,
+    "nginx_pids": [
+      44180,
+      44181
+    ]
+  },
+  {
+    "at": 1065503.989305291,
+    "nginx_cpu_seconds": 0.060000000000000005,
+    "nginx_rss_mib": 11.84375,
+    "generator_cpu_seconds": 0.41,
+    "generator_rss_mib": 86.109375,
+    "nginx_pids": [
+      44180,
+      44181
+    ]
+  }
+]

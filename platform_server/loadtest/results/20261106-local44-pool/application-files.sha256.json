@@ -1,0 +1,10 @@
+{
+  "backend/config/settings.py": "73846be0da324176f1714c4b923736ac49f6dc36fe7447f54bfe58f4fba5b559",
+  "backend/config/connections.py": "86e4af17172ebd00e1ba0d9ccc0c48030247d12e3a9a8c32d2f1c3d79d6ad12b",
+  "backend/campus/socket_db.py": "742986caecb2a1ecfae147d043aaee8ba1783ee9822c4cd8f6b4e6c645254100",
+  "backend/requirements.txt": "e03764f9141d2f0ef0e23ec17575167d909e968f75b4a086d39c9fa20cce0071",
+  "backend/tests/test_connection_pool.py": "65ef3ebb2f707100315697f1b8c111be3d3df9222e8de718765dd07dd56f2c0e",
+  ".env.example": "1dd73e3ad242956a404215d22e61414f07db6037d2d4ee7ddc4447a1e234ff49",
+  "backend/.env.example": "db816a24f24afc471ba15ef607509d655d5474f951cdcce8f9e54bffab24abe0",
+  "deploy/onprem/.env.example": "a2fcec955fd3478bb6c936a2f835d7bde6768e9f5e019fd53e7c4fbc88f053c9"
+}

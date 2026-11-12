@@ -1,0 +1,27 @@
+{
+  "status": "approved",
+  "rounds": [
+    {
+      "round": 1,
+      "report_sha256": "a3eef343a5d4e57852d736319ae556cbeb6aabc2d0460297b92b30419144c984",
+      "decisions": [
+        {
+          "agent": "/root/stress_report_review",
+          "decision": "approved",
+          "report_sha256": "a3eef343a5d4e57852d736319ae556cbeb6aabc2d0460297b92b30419144c984",
+          "metadata_change_allowed": "Review status line only after both approvals.",
+          "findings": "요청 수·P95·참여 계정·예외 레코드·보안·경로·해시 검산. 필수 수정 없음."
+        },
+        {
+          "agent": "/root/stress_report_review2",
+          "decision": "approved",
+          "report_sha256": "a3eef343a5d4e57852d736319ae556cbeb6aabc2d0460297b92b30419144c984",
+          "metadata_change_allowed": "Review status line only after both approvals.",
+          "findings": "원본 P95·참여 계정·보안 검사·예외 레코드 독립 검산. 경로와 한계 설명 정확. 필수 수정 없음."
+        }
+      ]
+    }
+  ],
+  "final_sha256": "1c6a1acb3c036813d39ef268764420a5ac305ff736b2ad6e155b41598d4df7ee",
+  "finalized_at": "2026-11-06T17:00:53+09:00"
+}

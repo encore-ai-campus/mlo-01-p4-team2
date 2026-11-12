@@ -1,0 +1,25 @@
+{
+  "rounds": [
+    {
+      "round": 1,
+      "document_sha256": "5ee42d456ec48471584ad49e5e61e8af495932a902d2ffea6033b4f5bbc65814",
+      "reviews": {
+        "stress_report_review": "REJECTED: clarify read-only recalculation and separate WebSocket reconnect from HTTP state checks",
+        "stress_report_review2": "APPROVED"
+      }
+    },
+    {
+      "round": 2,
+      "document_sha256": "1229789add327af42f604a0adc6fb07876a3b0e5d33471bc6943ded697a6f170",
+      "reviews": {
+        "stress_report_review": "APPROVED: both requested wording corrections verified; offline recalculation passed",
+        "stress_report_review2": "APPROVED: full report and corrections reviewed; P95, sample counts and hashes verified"
+      }
+    }
+  ],
+  "both_approved": true,
+  "approved_at": "2026-11-06T10:50:35+09:00",
+  "meaning": "Report approval only. Operational acceptance remains withheld.",
+  "finalization_changes": "Only approval metadata and review record links added after both reviewers approved round 2.",
+  "final_document_sha256": "d766d300ed1aae3ba2fa5882d5d04af0ab10be0b2902d333044e64831a7c9d70"
+}

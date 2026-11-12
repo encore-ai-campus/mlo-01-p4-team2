@@ -1,0 +1,128 @@
+[
+  {
+    "phase": "connect:timer",
+    "users": 100,
+    "seconds": 0.82,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "standalone:timer",
+    "users": 100,
+    "seconds": 13.53,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "far_guide_rejection:timer",
+    "users": 100,
+    "seconds": 0.2,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "disconnect:timer",
+    "users": 100,
+    "seconds": 0.01,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "connect:typing",
+    "users": 100,
+    "seconds": 0.81,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "standalone:typing",
+    "users": 100,
+    "seconds": 5.04,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "far_guide_rejection:typing",
+    "users": 100,
+    "seconds": 0.17,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "disconnect:typing",
+    "users": 100,
+    "seconds": 0.01,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "connect:term_match",
+    "users": 100,
+    "seconds": 0.8,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "standalone:term_match",
+    "users": 100,
+    "seconds": 8.4,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "far_guide_rejection:term_match",
+    "users": 100,
+    "seconds": 0.18,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "main_games_and_final_rank",
+    "users": 100,
+    "seconds": 70.95,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "recipe_full_branches",
+    "users": 100,
+    "seconds": 4.78,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "learning_all_subjects_and_types",
+    "users": 100,
+    "seconds": 30.64,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "disconnect:final",
+    "users": 100,
+    "seconds": 0.03,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "reconnect:restore",
+    "users": 100,
+    "seconds": 0.99,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "state_after_reconnect",
+    "users": 100,
+    "seconds": 2.97,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "disconnect:cleanup",
+    "users": 100,
+    "seconds": 0.01,
+    "passed": 100,
+    "errors": {}
+  }
+]

@@ -1,0 +1,76 @@
+[
+  {
+    "phase": "connect:npc",
+    "users": 100,
+    "seconds": 3.99,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "pepero_refill",
+    "users": 100,
+    "seconds": 0.27,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "quick_travel:market",
+    "users": 100,
+    "seconds": 0.26,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "walk:manager",
+    "users": 100,
+    "seconds": 1.84,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "manager_greet",
+    "users": 100,
+    "seconds": 1.54,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "manager_poke_with_inventory",
+    "users": 100,
+    "seconds": 3.35,
+    "passed": 99,
+    "errors": {
+      "unblocked hit required": 1
+    }
+  },
+  {
+    "phase": "quick_travel:gallery",
+    "users": 100,
+    "seconds": 0.24,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "walk:guide",
+    "users": 100,
+    "seconds": 5.01,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "guide_talk_one_remaining",
+    "users": 100,
+    "seconds": 1.14,
+    "passed": 99,
+    "errors": {
+      "server inventory=10": 1
+    }
+  },
+  {
+    "phase": "close:npc",
+    "users": 100,
+    "seconds": 0.01,
+    "passed": 100,
+    "errors": {}
+  }
+]

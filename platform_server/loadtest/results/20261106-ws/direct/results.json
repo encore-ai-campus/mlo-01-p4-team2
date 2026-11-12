@@ -1,0 +1,3596 @@
+{
+  "percentile_method": "nearest rank: ceil(p*N), 1-based",
+  "casual": {
+    "generator_summary": {
+      "measured_s": 180,
+      "users": 99,
+      "moving": 0.2,
+      "client": "new",
+      "behavior": "walk",
+      "mix": "",
+      "hold_ms": 100,
+      "welcomed": 99,
+      "actions_per_user_s": 0.0,
+      "actions_per_s": {},
+      "action_errors": {},
+      "action_ms": {
+        "chat": {
+          "n": 1127,
+          "p50": 27.3,
+          "p95": 59.3,
+          "p99": 142.7,
+          "max": 470.0
+        },
+        "jump": {
+          "n": 741,
+          "p50": 0.9,
+          "p95": 2.4,
+          "p99": 7.9,
+          "max": 267.6
+        },
+        "panel:community": {
+          "n": 144,
+          "p50": 40.1,
+          "p95": 80.5,
+          "p99": 143.4,
+          "max": 146.3
+        },
+        "panel:dm_send": {
+          "n": 75,
+          "p50": 86.8,
+          "p95": 170.4,
+          "p99": 175.8,
+          "max": 175.8
+        },
+        "panel:lunch": {
+          "n": 60,
+          "p50": 21.5,
+          "p95": 37.4,
+          "p99": 47.2,
+          "max": 47.2
+        },
+        "panel:menu": {
+          "n": 142,
+          "p50": 17.2,
+          "p95": 29.6,
+          "p99": 72.6,
+          "max": 131.7
+        },
+        "panel:messages": {
+          "n": 138,
+          "p50": 46.3,
+          "p95": 82.9,
+          "p99": 152.6,
+          "max": 237.2
+        },
+        "panel:wallet": {
+          "n": 150,
+          "p50": 38.0,
+          "p95": 67.7,
+          "p99": 93.8,
+          "max": 113.1
+        }
+      },
+      "errands": {},
+      "recv_per_s": {
+        "control_result": 4.1,
+        "control_state": 290.1,
+        "jump": 207.9,
+        "moves": 948.2,
+        "poke_hit": 32.1,
+        "poke_state": 160.0,
+        "pong": 19.8
+      },
+      "recv_total_per_s": 1662.2,
+      "sent_per_s": {
+        "chat": 6.3,
+        "control": 4.1,
+        "input": 210.6,
+        "ping": 19.8
+      },
+      "own_state_gap_ms": {
+        "n": 49759,
+        "p50": 34.0,
+        "p95": 35.5,
+        "p99": 40.0,
+        "max": 3099.3
+      },
+      "input_to_moving_ms": {
+        "n": 938,
+        "p50": 1.1,
+        "p95": 3.6,
+        "p99": 19.8,
+        "max": 43.7
+      },
+      "peer_move_gap_ms": {
+        "n": 45495,
+        "p50": 103.5,
+        "p95": 109.6,
+        "p99": 203.1,
+        "max": 511.7
+      },
+      "http_per_s": 19.5,
+      "http_ms": {
+        "n": 3516,
+        "p50": 21.7,
+        "p95": 45.2,
+        "p99": 78.1,
+        "max": 261.1
+      },
+      "http_ms_by_path": {
+        "/accounts/session/activity/": {
+          "n": 920,
+          "p50": 22.1,
+          "p95": 40.1,
+          "p99": 70.7,
+          "max": 159.8
+        },
+        "/api/event-main/ranking/": {
+          "n": 345,
+          "p50": 19.8,
+          "p95": 35.3,
+          "p99": 65.3,
+          "max": 96.1
+        },
+        "/api/event-main/status/": {
+          "n": 345,
+          "p50": 28.2,
+          "p95": 49.4,
+          "p99": 117.1,
+          "max": 261.1
+        },
+        "/api/event-story/achievements/": {
+          "n": 345,
+          "p50": 21.5,
+          "p95": 37.9,
+          "p99": 63.4,
+          "max": 85.3
+        },
+        "/api/event-story/recipe/status/": {
+          "n": 345,
+          "p50": 19.7,
+          "p95": 30.4,
+          "p99": 53.8,
+          "max": 201.1
+        },
+        "community": {
+          "n": 288,
+          "p50": 19.5,
+          "p95": 38.6,
+          "p99": 56.6,
+          "max": 115.6
+        },
+        "dm_send": {
+          "n": 150,
+          "p50": 42.3,
+          "p95": 82.7,
+          "p99": 108.6,
+          "max": 111.4
+        },
+        "lunch": {
+          "n": 60,
+          "p50": 21.2,
+          "p95": 36.9,
+          "p99": 46.8,
+          "max": 46.8
+        },
+        "menu": {
+          "n": 142,
+          "p50": 16.8,
+          "p95": 29.3,
+          "p99": 72.3,
+          "max": 131.5
+        },
+        "messages": {
+          "n": 276,
+          "p50": 21.7,
+          "p95": 44.6,
+          "p99": 83.6,
+          "max": 147.0
+        },
+        "wallet": {
+          "n": 300,
+          "p50": 18.4,
+          "p95": 34.4,
+          "p99": 66.9,
+          "max": 70.0
+        }
+      },
+      "http_status": {
+        "wallet 200": 300,
+        "/accounts/session/activity/ 200": 920,
+        "messages 200": 276,
+        "/api/event-main/status/ 200": 345,
+        "/api/event-main/ranking/ 200": 345,
+        "/api/event-story/achievements/ 200": 345,
+        "/api/event-story/recipe/status/ 200": 345,
+        "menu 200": 142,
+        "lunch 200": 60,
+        "community 200": 288,
+        "dm_send 200": 75,
+        "dm_send 201": 75
+      },
+      "closes": {},
+      "generator_loop_lag_ms": {
+        "n": 3583,
+        "p50": 0.2,
+        "p95": 0.9,
+        "p99": 3.9,
+        "max": 135.3
+      }
+    },
+    "reference_movement_ms": {
+      "input_to_first_moving_state_estimate": {
+        "n": 938,
+        "p50": 1.1,
+        "p95": 3.6,
+        "p99": 19.75,
+        "max": 43.7
+      },
+      "own_state_interval": {
+        "n": 49759,
+        "p50": 33.97,
+        "p95": 35.47,
+        "p99": 40.03,
+        "max": 3099.34
+      },
+      "other_player_update_interval": {
+        "n": 45495,
+        "p50": 103.5,
+        "p95": 109.56,
+        "p99": 203.08,
+        "max": 511.71
+      },
+      "generator_event_loop_lag": {
+        "n": 3583,
+        "p50": 0.24,
+        "p95": 0.87,
+        "p99": 3.91,
+        "max": 135.34
+      }
+    },
+    "http_ms": {
+      "/accounts/session/activity/": {
+        "n": 920,
+        "p50": 22.14,
+        "p95": 39.65,
+        "p99": 70.68,
+        "max": 159.78
+      },
+      "/api/event-main/ranking/": {
+        "n": 345,
+        "p50": 19.83,
+        "p95": 35.31,
+        "p99": 65.32,
+        "max": 96.07
+      },
+      "/api/event-main/status/": {
+        "n": 345,
+        "p50": 28.15,
+        "p95": 49.42,
+        "p99": 117.1,
+        "max": 261.06
+      },
+      "/api/event-story/achievements/": {
+        "n": 345,
+        "p50": 21.52,
+        "p95": 37.93,
+        "p99": 63.39,
+        "max": 85.29
+      },
+      "/api/event-story/recipe/status/": {
+        "n": 345,
+        "p50": 19.7,
+        "p95": 30.43,
+        "p99": 53.76,
+        "max": 201.07
+      },
+      "community": {
+        "n": 288,
+        "p50": 19.41,
+        "p95": 38.57,
+        "p99": 56.56,
+        "max": 115.58
+      },
+      "dm_send": {
+        "n": 150,
+        "p50": 42.3,
+        "p95": 82.73,
+        "p99": 108.55,
+        "max": 111.42
+      },
+      "lunch": {
+        "n": 60,
+        "p50": 20.95,
+        "p95": 34.91,
+        "p99": 46.83,
+        "max": 46.83
+      },
+      "menu": {
+        "n": 142,
+        "p50": 16.75,
+        "p95": 29.26,
+        "p99": 72.35,
+        "max": 131.51
+      },
+      "messages": {
+        "n": 276,
+        "p50": 21.69,
+        "p95": 44.62,
+        "p99": 83.58,
+        "max": 147.0
+      },
+      "wallet": {
+        "n": 300,
+        "p50": 18.37,
+        "p95": 33.72,
+        "p99": 66.63,
+        "max": 70.04
+      }
+    },
+    "controls": {
+      "jump": {
+        "started": 741,
+        "outcomes": {
+          "ok": 741
+        },
+        "response_ms": {
+          "n": 741,
+          "p50": 0.91,
+          "p95": 2.42,
+          "p99": 7.94,
+          "max": 267.64
+        },
+        "p95_lower_bound_ms": 2.42,
+        "late_responses": 0,
+        "no_response_at_end": 0
+      }
+    },
+    "chat": {
+      "started": 1127,
+      "outcomes": {
+        "ok": 1127
+      },
+      "response_ms": {
+        "n": 1127,
+        "p50": 27.34,
+        "p95": 59.29,
+        "p99": 142.68,
+        "max": 469.98
+      },
+      "p95_lower_bound_ms": 59.29,
+      "late_responses": 0,
+      "no_response_at_end": 0
+    },
+    "http_all_ms": {
+      "n": 3516,
+      "p50": 21.66,
+      "p95": 45.19,
+      "p99": 78.12,
+      "max": 261.06
+    },
+    "http_statuses": {
+      "wallet 200": 300,
+      "/accounts/session/activity/ 200": 920,
+      "messages 200": 276,
+      "/api/event-main/status/ 200": 345,
+      "/api/event-main/ranking/ 200": 345,
+      "/api/event-story/achievements/ 200": 345,
+      "/api/event-story/recipe/status/ 200": 345,
+      "menu 200": 142,
+      "lunch 200": 60,
+      "community 200": 288,
+      "dm_send 200": 75,
+      "dm_send 201": 75
+    },
+    "http_unexpected": 0,
+    "window_utc_epoch": [
+      1793951318.632704,
+      1793951498.909641
+    ],
+    "resources": {
+      "cluster_client_connections_max": 25,
+      "samples": 85,
+      "db_connections_max": 25,
+      "db_active_max": 2,
+      "db_lock_waiters_max": 0,
+      "movement_connections_max": {
+        "9551": 25,
+        "9552": 25,
+        "9553": 25,
+        "9554": 25
+      },
+      "rss_mib_max": {
+        "front-movement": 30.5,
+        "front-service": 63.2,
+        "jobs": 43.4,
+        "movement": 92.3,
+        "service": 97.0
+      },
+      "redis_ops_max": {
+        "movement": 185,
+        "service": 24
+      }
+    },
+    "http_started": {
+      "started": 3516,
+      "outcomes": {
+        "200": 3441,
+        "201": 75
+      },
+      "response_ms": {
+        "n": 3516,
+        "p50": 21.66,
+        "p95": 45.19,
+        "p99": 78.12,
+        "max": 261.06
+      },
+      "late_responses": 0,
+      "no_response_at_end": 0,
+      "timing_origin": "fetch network execution; executor queue excluded",
+      "client_total_ms": {
+        "n": 3516,
+        "p50": 21.97,
+        "p95": 45.82,
+        "p99": 79.46,
+        "max": 282.17
+      }
+    },
+    "http_by_started": {
+      "/accounts/session/activity/": {
+        "started": 920,
+        "outcomes": {
+          "200": 920
+        },
+        "response_ms": {
+          "n": 920,
+          "p50": 22.14,
+          "p95": 39.65,
+          "p99": 70.68,
+          "max": 159.78
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "/api/event-main/ranking/": {
+        "started": 345,
+        "outcomes": {
+          "200": 345
+        },
+        "response_ms": {
+          "n": 345,
+          "p50": 19.83,
+          "p95": 35.31,
+          "p99": 65.32,
+          "max": 96.07
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "/api/event-main/status/": {
+        "started": 345,
+        "outcomes": {
+          "200": 345
+        },
+        "response_ms": {
+          "n": 345,
+          "p50": 28.15,
+          "p95": 49.42,
+          "p99": 117.1,
+          "max": 261.06
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "/api/event-story/achievements/": {
+        "started": 345,
+        "outcomes": {
+          "200": 345
+        },
+        "response_ms": {
+          "n": 345,
+          "p50": 21.52,
+          "p95": 37.93,
+          "p99": 63.39,
+          "max": 85.29
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "/api/event-story/recipe/status/": {
+        "started": 345,
+        "outcomes": {
+          "200": 345
+        },
+        "response_ms": {
+          "n": 345,
+          "p50": 19.7,
+          "p95": 30.43,
+          "p99": 53.76,
+          "max": 201.07
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "community": {
+        "started": 288,
+        "outcomes": {
+          "200": 288
+        },
+        "response_ms": {
+          "n": 288,
+          "p50": 19.41,
+          "p95": 38.57,
+          "p99": 56.56,
+          "max": 115.58
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "dm_send": {
+        "started": 150,
+        "outcomes": {
+          "200": 75,
+          "201": 75
+        },
+        "response_ms": {
+          "n": 150,
+          "p50": 42.3,
+          "p95": 82.73,
+          "p99": 108.55,
+          "max": 111.42
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "lunch": {
+        "started": 60,
+        "outcomes": {
+          "200": 60
+        },
+        "response_ms": {
+          "n": 60,
+          "p50": 20.95,
+          "p95": 34.91,
+          "p99": 46.83,
+          "max": 46.83
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "menu": {
+        "started": 142,
+        "outcomes": {
+          "200": 142
+        },
+        "response_ms": {
+          "n": 142,
+          "p50": 16.75,
+          "p95": 29.26,
+          "p99": 72.35,
+          "max": 131.51
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "messages": {
+        "started": 276,
+        "outcomes": {
+          "200": 276
+        },
+        "response_ms": {
+          "n": 276,
+          "p50": 21.69,
+          "p95": 44.62,
+          "p99": 83.58,
+          "max": 147.0
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "wallet": {
+        "started": 300,
+        "outcomes": {
+          "200": 300
+        },
+        "response_ms": {
+          "n": 300,
+          "p50": 18.37,
+          "p95": 33.72,
+          "p99": 66.63,
+          "max": 70.04
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      }
+    },
+    "upstreams": {
+      "8098:127.0.0.1:9563:200": 1086,
+      "8098:127.0.0.1:9563:201": 19,
+      "8098:127.0.0.1:9562:200": 765,
+      "8098:127.0.0.1:9561:200": 894,
+      "8098:127.0.0.1:9564:200": 732,
+      "8098:127.0.0.1:9561:201": 27,
+      "8098:127.0.0.1:9562:201": 13,
+      "8098:127.0.0.1:9564:201": 16
+    },
+    "chrome": {
+      "version": {
+        "protocolVersion": "1.3",
+        "product": "Chrome/156.0.8078.81",
+        "revision": "@060bedfb508f73250e93aeb9ca8149b3958995d8",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+        "jsVersion": "15.6.75.27"
+      },
+      "js_errors": [],
+      "headless": true,
+      "visibility": "visible",
+      "canvases": 5,
+      "protocol_users": 99,
+      "chrome_users": 1,
+      "total_accounts": 100,
+      "frames_ms": {
+        "n": 10815,
+        "p50": 16.7,
+        "p95": 16.7,
+        "p99": 16.8,
+        "max": 16.8
+      },
+      "http_ms": {
+        "n": 39,
+        "p50": 21.5,
+        "p95": 40.5,
+        "p99": 71.3,
+        "max": 71.3
+      },
+      "http_statuses": {
+        "200": 39
+      },
+      "wsOpened": [
+        "/ws/movement/",
+        "/ws/chat/"
+      ],
+      "wsClosed": [],
+      "welcome": true,
+      "http_terminal": {
+        "attempts": 39,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 39
+        },
+        "response_success": 39,
+        "purpose": "normal",
+        "success": 39,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 39,
+          "p50": 21.5,
+          "p95": 40.5,
+          "p99": 71.3,
+          "max": 71.3
+        }
+      }
+    },
+    "http_terminal": {
+      "attempts": 3516,
+      "business_rejected": 0,
+      "server_error": 0,
+      "network_error": 0,
+      "timeout": 0,
+      "unresolved": 0,
+      "status_counts": {
+        "200": 3441,
+        "201": 75
+      },
+      "response_success": 3516,
+      "purpose": "normal",
+      "success": 3516,
+      "errors": 0,
+      "terminal_ms": {
+        "n": 3516,
+        "p50": 21.97,
+        "p95": 45.82,
+        "p99": 79.46,
+        "max": 282.17
+      }
+    },
+    "api_requests": {
+      "GET /api/board/menu/": {
+        "attempts": 142,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 142
+        },
+        "response_success": 142,
+        "purpose": "normal",
+        "success": 142,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 142,
+          "p50": 17.16,
+          "p95": 29.53,
+          "p99": 72.62,
+          "max": 131.72
+        }
+      },
+      "GET /api/community/": {
+        "attempts": 144,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 144
+        },
+        "response_success": 144,
+        "purpose": "normal",
+        "success": 144,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 144,
+          "p50": 19.8,
+          "p95": 41.17,
+          "p99": 102.92,
+          "max": 118.75
+        }
+      },
+      "GET /api/community/posts/": {
+        "attempts": 144,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 144
+        },
+        "response_success": 144,
+        "purpose": "normal",
+        "success": 144,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 144,
+          "p50": 19.62,
+          "p95": 38.23,
+          "p99": 48.38,
+          "max": 57.21
+        }
+      },
+      "GET /api/event-main/ranking/": {
+        "attempts": 345,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 345
+        },
+        "response_success": 345,
+        "purpose": "normal",
+        "success": 345,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 345,
+          "p50": 20.09,
+          "p95": 36.33,
+          "p99": 65.89,
+          "max": 160.83
+        }
+      },
+      "GET /api/event-main/status/": {
+        "attempts": 345,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 345
+        },
+        "response_success": 345,
+        "purpose": "normal",
+        "success": 345,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 345,
+          "p50": 28.49,
+          "p95": 49.92,
+          "p99": 121.2,
+          "max": 282.17
+        }
+      },
+      "GET /api/event-story/achievements/": {
+        "attempts": 345,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 345
+        },
+        "response_success": 345,
+        "purpose": "normal",
+        "success": 345,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 345,
+          "p50": 21.86,
+          "p95": 38.52,
+          "p99": 65.74,
+          "max": 85.75
+        }
+      },
+      "GET /api/event-story/recipe/status/": {
+        "attempts": 345,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 345
+        },
+        "response_success": 345,
+        "purpose": "normal",
+        "success": 345,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 345,
+          "p50": 20.02,
+          "p95": 31.03,
+          "p99": 54.18,
+          "max": 248.62
+        }
+      },
+      "GET /api/learning/wallet/": {
+        "attempts": 150,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 150
+        },
+        "response_success": 150,
+        "purpose": "normal",
+        "success": 150,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 150,
+          "p50": 18.6,
+          "p95": 33.45,
+          "p99": 68.71,
+          "max": 70.76
+        }
+      },
+      "GET /api/learning/wallet/history/": {
+        "attempts": 150,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 150
+        },
+        "response_success": 150,
+        "purpose": "normal",
+        "success": 150,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 150,
+          "p50": 18.6,
+          "p95": 35.82,
+          "p99": 43.46,
+          "max": 67.24
+        }
+      },
+      "GET /api/messages/conversations/": {
+        "attempts": 138,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 138
+        },
+        "response_success": 138,
+        "purpose": "normal",
+        "success": 138,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 138,
+          "p50": 23.76,
+          "p95": 48.43,
+          "p99": 84.05,
+          "max": 111.07
+        }
+      },
+      "GET /api/messages/recipients/": {
+        "attempts": 75,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 75
+        },
+        "response_success": 75,
+        "purpose": "normal",
+        "success": 75,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 75,
+          "p50": 46.87,
+          "p95": 99.97,
+          "p99": 112.52,
+          "max": 112.52
+        }
+      },
+      "GET /api/messages/status/": {
+        "attempts": 138,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 138
+        },
+        "response_success": 138,
+        "purpose": "normal",
+        "success": 138,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 138,
+          "p50": 20.15,
+          "p95": 37.13,
+          "p99": 79.6,
+          "max": 152.96
+        }
+      },
+      "POST /accounts/session/activity/": {
+        "attempts": 920,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 920
+        },
+        "response_success": 920,
+        "purpose": "normal",
+        "success": 920,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 920,
+          "p50": 22.49,
+          "p95": 40.8,
+          "p99": 73.15,
+          "max": 160.32
+        }
+      },
+      "POST /api/campus/lunch/spin/": {
+        "attempts": 60,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 60
+        },
+        "response_success": 60,
+        "purpose": "normal",
+        "success": 60,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 60,
+          "p50": 21.31,
+          "p95": 35.86,
+          "p99": 47.19,
+          "max": 47.19
+        }
+      },
+      "POST /api/messages/send/": {
+        "attempts": 75,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "201": 75
+        },
+        "response_success": 75,
+        "purpose": "normal",
+        "success": 75,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 75,
+          "p50": 37.73,
+          "p95": 70.31,
+          "p99": 94.91,
+          "max": 94.91
+        }
+      }
+    },
+    "control_terminal": {
+      "jump": {
+        "attempts": 741,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "ok": 741
+        },
+        "response_success": 741,
+        "purpose": "normal",
+        "success": 741,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 741,
+          "p50": 0.91,
+          "p95": 2.42,
+          "p99": 7.94,
+          "max": 267.64
+        }
+      }
+    },
+    "chat_terminal": {
+      "attempts": 1127,
+      "business_rejected": 0,
+      "server_error": 0,
+      "network_error": 0,
+      "timeout": 0,
+      "unresolved": 0,
+      "status_counts": {
+        "ok": 1127
+      },
+      "response_success": 1127,
+      "purpose": "normal",
+      "success": 1127,
+      "errors": 0,
+      "terminal_ms": {
+        "n": 1127,
+        "p50": 27.34,
+        "p95": 59.29,
+        "p99": 142.68,
+        "max": 469.98
+      }
+    },
+    "drain_reports": [
+      {
+        "worker": 0,
+        "pending_at_end": 0,
+        "drain_seconds": 0.0005753750447183847,
+        "unresolved": 0,
+        "generation_stopped_epoch": 1793951498.5336964
+      },
+      {
+        "worker": 1,
+        "pending_at_end": 0,
+        "drain_seconds": 0.0005306670209392905,
+        "unresolved": 0,
+        "generation_stopped_epoch": 1793951498.5247707
+      }
+    ],
+    "combined_http_terminal": {
+      "attempts": 3555,
+      "business_rejected": 0,
+      "server_error": 0,
+      "network_error": 0,
+      "timeout": 0,
+      "unresolved": 0,
+      "status_counts": {
+        "200": 3480,
+        "201": 75
+      },
+      "response_success": 3555,
+      "purpose": "normal",
+      "success": 3555,
+      "errors": 0,
+      "terminal_ms": {
+        "n": 3555,
+        "p50": 21.97,
+        "p95": 45.79,
+        "p99": 79.46,
+        "max": 282.17
+      }
+    },
+    "combined_api_requests": {
+      "GET /api/board/menu/": {
+        "attempts": 142,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 142
+        },
+        "response_success": 142,
+        "purpose": "normal",
+        "success": 142,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 142,
+          "p50": 17.16,
+          "p95": 29.53,
+          "p99": 72.62,
+          "max": 131.72
+        }
+      },
+      "GET /api/campus/freeze/": {
+        "attempts": 12,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 12
+        },
+        "response_success": 12,
+        "purpose": "normal",
+        "success": 12,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 12,
+          "p50": 17.9,
+          "p95": 34.3,
+          "p99": 34.3,
+          "max": 34.3
+        }
+      },
+      "GET /api/community/": {
+        "attempts": 144,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 144
+        },
+        "response_success": 144,
+        "purpose": "normal",
+        "success": 144,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 144,
+          "p50": 19.8,
+          "p95": 41.17,
+          "p99": 102.92,
+          "max": 118.75
+        }
+      },
+      "GET /api/community/notices/": {
+        "attempts": 6,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 6
+        },
+        "response_success": 6,
+        "purpose": "normal",
+        "success": 6,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 6,
+          "p50": 18.8,
+          "p95": 33.3,
+          "p99": 33.3,
+          "max": 33.3
+        }
+      },
+      "GET /api/community/posts/": {
+        "attempts": 144,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 144
+        },
+        "response_success": 144,
+        "purpose": "normal",
+        "success": 144,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 144,
+          "p50": 19.62,
+          "p95": 38.23,
+          "p99": 48.38,
+          "max": 57.21
+        }
+      },
+      "GET /api/event-main/ranking/": {
+        "attempts": 345,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 345
+        },
+        "response_success": 345,
+        "purpose": "normal",
+        "success": 345,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 345,
+          "p50": 20.09,
+          "p95": 36.33,
+          "p99": 65.89,
+          "max": 160.83
+        }
+      },
+      "GET /api/event-main/status/": {
+        "attempts": 345,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 345
+        },
+        "response_success": 345,
+        "purpose": "normal",
+        "success": 345,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 345,
+          "p50": 28.49,
+          "p95": 49.92,
+          "p99": 121.2,
+          "max": 282.17
+        }
+      },
+      "GET /api/event-story/achievements/": {
+        "attempts": 354,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 354
+        },
+        "response_success": 354,
+        "purpose": "normal",
+        "success": 354,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 354,
+          "p50": 21.9,
+          "p95": 38.61,
+          "p99": 65.74,
+          "max": 85.75
+        }
+      },
+      "GET /api/event-story/recipe/status/": {
+        "attempts": 345,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 345
+        },
+        "response_success": 345,
+        "purpose": "normal",
+        "success": 345,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 345,
+          "p50": 20.02,
+          "p95": 31.03,
+          "p99": 54.18,
+          "max": 248.62
+        }
+      },
+      "GET /api/learning/wallet/": {
+        "attempts": 150,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 150
+        },
+        "response_success": 150,
+        "purpose": "normal",
+        "success": 150,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 150,
+          "p50": 18.6,
+          "p95": 33.45,
+          "p99": 68.71,
+          "max": 70.76
+        }
+      },
+      "GET /api/learning/wallet/history/": {
+        "attempts": 150,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 150
+        },
+        "response_success": 150,
+        "purpose": "normal",
+        "success": 150,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 150,
+          "p50": 18.6,
+          "p95": 35.82,
+          "p99": 43.46,
+          "max": 67.24
+        }
+      },
+      "GET /api/messages/conversations/": {
+        "attempts": 138,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 138
+        },
+        "response_success": 138,
+        "purpose": "normal",
+        "success": 138,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 138,
+          "p50": 23.76,
+          "p95": 48.43,
+          "p99": 84.05,
+          "max": 111.07
+        }
+      },
+      "GET /api/messages/recipients/": {
+        "attempts": 75,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 75
+        },
+        "response_success": 75,
+        "purpose": "normal",
+        "success": 75,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 75,
+          "p50": 46.87,
+          "p95": 99.97,
+          "p99": 112.52,
+          "max": 112.52
+        }
+      },
+      "GET /api/messages/status/": {
+        "attempts": 138,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 138
+        },
+        "response_success": 138,
+        "purpose": "normal",
+        "success": 138,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 138,
+          "p50": 20.15,
+          "p95": 37.13,
+          "p99": 79.6,
+          "max": 152.96
+        }
+      },
+      "POST /accounts/session/activity/": {
+        "attempts": 932,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 932
+        },
+        "response_success": 932,
+        "purpose": "normal",
+        "success": 932,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 932,
+          "p50": 22.49,
+          "p95": 40.88,
+          "p99": 73.15,
+          "max": 160.32
+        }
+      },
+      "POST /api/campus/lunch/spin/": {
+        "attempts": 60,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 60
+        },
+        "response_success": 60,
+        "purpose": "normal",
+        "success": 60,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 60,
+          "p50": 21.31,
+          "p95": 35.86,
+          "p99": 47.19,
+          "max": 47.19
+        }
+      },
+      "POST /api/messages/send/": {
+        "attempts": 75,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "201": 75
+        },
+        "response_success": 75,
+        "purpose": "normal",
+        "success": 75,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 75,
+          "p50": 37.73,
+          "p95": 70.31,
+          "p99": 94.91,
+          "max": 94.91
+        }
+      }
+    }
+  },
+  "stress": {
+    "generator_summary": {
+      "measured_s": 180,
+      "users": 99,
+      "moving": 0.2,
+      "client": "new",
+      "behavior": "real",
+      "mix": "",
+      "hold_ms": 100,
+      "welcomed": 99,
+      "actions_per_user_s": 9.2,
+      "actions_per_s": {
+        "booth": 0.1,
+        "chat": 7.8,
+        "interact": 4.2,
+        "jump": 49.2,
+        "learning": 1.2,
+        "move": 706.7,
+        "panel": 6.3,
+        "poke": 133.7,
+        "transfer": 1.5
+      },
+      "action_errors": {
+        "open_booth: 부스 중앙의 E 표시 가까이로 이동해 주세요.": 14,
+        "jump: 현재 공간에서 다시 점프해 주세요.": 12,
+        "jump: 착지한 뒤 다시 점프해 주세요.": 4,
+        "interact: 학습 영역이나 출입구 가까이에서 이용해 주세요.": 1
+      },
+      "action_ms": {
+        "begin_transfer": {
+          "n": 278,
+          "p50": 27.9,
+          "p95": 140.2,
+          "p99": 221.7,
+          "max": 484.1
+        },
+        "chat": {
+          "n": 1411,
+          "p50": 68.9,
+          "p95": 188.6,
+          "p99": 287.8,
+          "max": 805.0
+        },
+        "interact": {
+          "n": 750,
+          "p50": 30.8,
+          "p95": 143.7,
+          "p99": 243.5,
+          "max": 652.6
+        },
+        "jump": {
+          "n": 8847,
+          "p50": 2.4,
+          "p95": 30.4,
+          "p99": 116.3,
+          "max": 512.3
+        },
+        "open_booth": {
+          "n": 24,
+          "p50": 20.6,
+          "p95": 59.5,
+          "p99": 61.3,
+          "max": 61.3
+        },
+        "panel:community": {
+          "n": 164,
+          "p50": 107.4,
+          "p95": 271.4,
+          "p99": 404.9,
+          "max": 620.2
+        },
+        "panel:dm_send": {
+          "n": 72,
+          "p50": 212.3,
+          "p95": 485.3,
+          "p99": 551.4,
+          "max": 551.4
+        },
+        "panel:lunch": {
+          "n": 90,
+          "p50": 51.4,
+          "p95": 137.6,
+          "p99": 288.1,
+          "max": 288.1
+        },
+        "panel:menu": {
+          "n": 135,
+          "p50": 40.4,
+          "p95": 108.2,
+          "p99": 143.1,
+          "max": 158.1
+        },
+        "panel:messages": {
+          "n": 151,
+          "p50": 118.1,
+          "p95": 293.0,
+          "p99": 515.1,
+          "max": 603.5
+        },
+        "panel:wallet": {
+          "n": 156,
+          "p50": 91.1,
+          "p95": 193.3,
+          "p99": 279.2,
+          "max": 506.1
+        },
+        "transfer": {
+          "n": 276,
+          "p50": 76.3,
+          "p95": 258.4,
+          "p99": 579.4,
+          "max": 739.6
+        }
+      },
+      "errands": {
+        "booth": 24,
+        "classroom_enter": 228,
+        "classroom_exit": 379,
+        "learning": 220,
+        "stuck": 885,
+        "transfer": 276
+      },
+      "recv_per_s": {
+        "control_event": 1.5,
+        "control_result": 56.5,
+        "control_state": 2352.6,
+        "jump": 1751.0,
+        "moves": 853.8,
+        "poke_hit": 535.9,
+        "poke_state": 3147.8,
+        "pong": 19.8
+      },
+      "recv_total_per_s": 8719.0,
+      "sent_per_s": {
+        "chat": 7.8,
+        "control": 56.5,
+        "input": 1286.3,
+        "ping": 19.8
+      },
+      "own_state_gap_ms": {
+        "n": 295430,
+        "p50": 34.1,
+        "p95": 45.0,
+        "p99": 72.2,
+        "max": 315.4
+      },
+      "input_to_moving_ms": {
+        "n": 117459,
+        "p50": 17.7,
+        "p95": 38.3,
+        "p99": 73.1,
+        "max": 346.0
+      },
+      "peer_move_gap_ms": {
+        "n": 422927,
+        "p50": 111.2,
+        "p95": 158.0,
+        "p99": 235.3,
+        "max": 600.5
+      },
+      "http_per_s": 29.9,
+      "http_ms": {
+        "n": 5379,
+        "p50": 55.3,
+        "p95": 265.2,
+        "p99": 1010.6,
+        "max": 1597.4
+      },
+      "http_ms_by_path": {
+        "/accounts/session/activity/": {
+          "n": 1165,
+          "p50": 60.0,
+          "p95": 131.8,
+          "p99": 207.2,
+          "max": 319.9
+        },
+        "/api/event-main/ranking/": {
+          "n": 377,
+          "p50": 50.3,
+          "p95": 102.0,
+          "p99": 144.5,
+          "max": 287.0
+        },
+        "/api/event-main/status/": {
+          "n": 376,
+          "p50": 62.9,
+          "p95": 143.8,
+          "p99": 190.8,
+          "max": 227.9
+        },
+        "/api/event-story/achievements/": {
+          "n": 377,
+          "p50": 52.3,
+          "p95": 111.6,
+          "p99": 139.5,
+          "max": 214.5
+        },
+        "/api/event-story/recipe/status/": {
+          "n": 378,
+          "p50": 48.8,
+          "p95": 107.6,
+          "p99": 139.2,
+          "max": 155.6
+        },
+        "community": {
+          "n": 327,
+          "p50": 48.2,
+          "p95": 118.4,
+          "p99": 174.5,
+          "max": 242.6
+        },
+        "dm_send": {
+          "n": 143,
+          "p50": 103.4,
+          "p95": 213.9,
+          "p99": 285.1,
+          "max": 321.7
+        },
+        "learning": {
+          "n": 1398,
+          "p50": 58.6,
+          "p95": 917.8,
+          "p99": 1259.2,
+          "max": 1597.4
+        },
+        "lunch": {
+          "n": 89,
+          "p50": 49.1,
+          "p95": 99.7,
+          "p99": 194.4,
+          "max": 194.4
+        },
+        "menu": {
+          "n": 135,
+          "p50": 37.9,
+          "p95": 93.3,
+          "p99": 130.2,
+          "max": 138.2
+        },
+        "messages": {
+          "n": 302,
+          "p50": 52.6,
+          "p95": 138.2,
+          "p99": 330.6,
+          "max": 456.4
+        },
+        "wallet": {
+          "n": 312,
+          "p50": 41.5,
+          "p95": 91.7,
+          "p99": 126.2,
+          "max": 156.0
+        }
+      },
+      "http_status": {
+        "lunch 200": 89,
+        "/accounts/session/activity/ 200": 1165,
+        "dm_send 201": 72,
+        "learning 200": 958,
+        "learning 201": 440,
+        "community 200": 327,
+        "/api/event-main/status/ 200": 376,
+        "/api/event-main/ranking/ 200": 377,
+        "/api/event-story/achievements/ 200": 377,
+        "/api/event-story/recipe/status/ 200": 378,
+        "dm_send 200": 71,
+        "messages 200": 302,
+        "wallet 200": 312,
+        "menu 200": 135
+      },
+      "closes": {},
+      "generator_loop_lag_ms": {
+        "n": 3495,
+        "p50": 0.4,
+        "p95": 12.1,
+        "p99": 53.5,
+        "max": 334.1
+      }
+    },
+    "reference_movement_ms": {
+      "input_to_first_moving_state_estimate": {
+        "n": 117459,
+        "p50": 17.72,
+        "p95": 38.29,
+        "p99": 73.06,
+        "max": 345.95
+      },
+      "own_state_interval": {
+        "n": 295430,
+        "p50": 34.13,
+        "p95": 44.98,
+        "p99": 72.16,
+        "max": 315.36
+      },
+      "other_player_update_interval": {
+        "n": 422927,
+        "p50": 111.2,
+        "p95": 158.0,
+        "p99": 235.26,
+        "max": 600.45
+      },
+      "generator_event_loop_lag": {
+        "n": 3495,
+        "p50": 0.38,
+        "p95": 12.13,
+        "p99": 53.5,
+        "max": 334.06
+      }
+    },
+    "http_ms": {
+      "/accounts/session/activity/": {
+        "n": 1165,
+        "p50": 60.04,
+        "p95": 131.76,
+        "p99": 207.18,
+        "max": 319.9
+      },
+      "/api/event-main/ranking/": {
+        "n": 377,
+        "p50": 50.34,
+        "p95": 101.99,
+        "p99": 144.51,
+        "max": 287.04
+      },
+      "/api/event-main/status/": {
+        "n": 376,
+        "p50": 62.83,
+        "p95": 143.84,
+        "p99": 190.84,
+        "max": 227.88
+      },
+      "/api/event-story/achievements/": {
+        "n": 377,
+        "p50": 52.31,
+        "p95": 111.55,
+        "p99": 139.45,
+        "max": 214.49
+      },
+      "/api/event-story/recipe/status/": {
+        "n": 378,
+        "p50": 48.75,
+        "p95": 107.63,
+        "p99": 139.21,
+        "max": 155.64
+      },
+      "community": {
+        "n": 327,
+        "p50": 48.18,
+        "p95": 118.44,
+        "p99": 174.55,
+        "max": 242.6
+      },
+      "dm_send": {
+        "n": 143,
+        "p50": 103.41,
+        "p95": 213.9,
+        "p99": 285.11,
+        "max": 321.67
+      },
+      "learning": {
+        "n": 1398,
+        "p50": 58.6,
+        "p95": 917.81,
+        "p99": 1259.16,
+        "max": 1597.43
+      },
+      "lunch": {
+        "n": 89,
+        "p50": 49.08,
+        "p95": 99.67,
+        "p99": 194.41,
+        "max": 194.41
+      },
+      "menu": {
+        "n": 135,
+        "p50": 37.89,
+        "p95": 93.31,
+        "p99": 130.15,
+        "max": 138.25
+      },
+      "messages": {
+        "n": 302,
+        "p50": 52.57,
+        "p95": 138.17,
+        "p99": 330.6,
+        "max": 456.42
+      },
+      "wallet": {
+        "n": 312,
+        "p50": 41.45,
+        "p95": 91.71,
+        "p99": 126.19,
+        "max": 156.04
+      }
+    },
+    "controls": {
+      "begin_transfer": {
+        "started": 278,
+        "outcomes": {
+          "ok": 278
+        },
+        "response_ms": {
+          "n": 278,
+          "p50": 27.79,
+          "p95": 140.24,
+          "p99": 221.73,
+          "max": 484.07
+        },
+        "p95_lower_bound_ms": 140.24,
+        "late_responses": 0,
+        "no_response_at_end": 0
+      },
+      "interact": {
+        "started": 750,
+        "outcomes": {
+          "ok": 749,
+          "rejected": 1
+        },
+        "response_ms": {
+          "n": 750,
+          "p50": 30.79,
+          "p95": 143.71,
+          "p99": 243.48,
+          "max": 652.57
+        },
+        "p95_lower_bound_ms": 143.71,
+        "late_responses": 0,
+        "no_response_at_end": 0
+      },
+      "jump": {
+        "started": 8847,
+        "outcomes": {
+          "ok": 8831,
+          "rejected": 16
+        },
+        "response_ms": {
+          "n": 8847,
+          "p50": 2.4,
+          "p95": 30.37,
+          "p99": 116.33,
+          "max": 512.26
+        },
+        "p95_lower_bound_ms": 30.37,
+        "late_responses": 0,
+        "no_response_at_end": 0
+      },
+      "open_booth": {
+        "started": 24,
+        "outcomes": {
+          "rejected": 14,
+          "ok": 10
+        },
+        "response_ms": {
+          "n": 24,
+          "p50": 20.32,
+          "p95": 59.47,
+          "p99": 61.26,
+          "max": 61.26
+        },
+        "p95_lower_bound_ms": 59.47,
+        "late_responses": 0,
+        "no_response_at_end": 0
+      },
+      "transfer": {
+        "started": 276,
+        "outcomes": {
+          "ok": 276
+        },
+        "response_ms": {
+          "n": 276,
+          "p50": 76.16,
+          "p95": 258.36,
+          "p99": 579.44,
+          "max": 739.58
+        },
+        "p95_lower_bound_ms": 258.36,
+        "late_responses": 0,
+        "no_response_at_end": 0
+      }
+    },
+    "chat": {
+      "started": 1407,
+      "outcomes": {
+        "ok": 1407
+      },
+      "response_ms": {
+        "n": 1407,
+        "p50": 68.57,
+        "p95": 185.75,
+        "p99": 270.9,
+        "max": 529.35
+      },
+      "p95_lower_bound_ms": 185.75,
+      "late_responses": 0,
+      "no_response_at_end": 0
+    },
+    "http_all_ms": {
+      "n": 5379,
+      "p50": 55.3,
+      "p95": 265.2,
+      "p99": 1010.64,
+      "max": 1597.43
+    },
+    "http_statuses": {
+      "lunch 200": 89,
+      "/accounts/session/activity/ 200": 1165,
+      "dm_send 201": 72,
+      "learning 200": 958,
+      "learning 201": 440,
+      "community 200": 327,
+      "/api/event-main/status/ 200": 376,
+      "/api/event-main/ranking/ 200": 377,
+      "/api/event-story/achievements/ 200": 377,
+      "/api/event-story/recipe/status/ 200": 378,
+      "dm_send 200": 71,
+      "messages 200": 302,
+      "wallet 200": 312,
+      "menu 200": 135
+    },
+    "http_unexpected": 0,
+    "window_utc_epoch": [
+      1793951534.3853152,
+      1793951714.524699
+    ],
+    "resources": {
+      "cluster_client_connections_max": 41,
+      "samples": 84,
+      "db_connections_max": 41,
+      "db_active_max": 4,
+      "db_lock_waiters_max": 0,
+      "movement_connections_max": {
+        "9551": 25,
+        "9552": 25,
+        "9553": 25,
+        "9554": 25
+      },
+      "rss_mib_max": {
+        "front-movement": 16.8,
+        "front-service": 66.4,
+        "jobs": 35.9,
+        "movement": 76.3,
+        "service": 101.6
+      },
+      "redis_ops_max": {
+        "movement": 824,
+        "service": 30
+      }
+    },
+    "http_started": {
+      "started": 5379,
+      "outcomes": {
+        "200": 4867,
+        "201": 512
+      },
+      "response_ms": {
+        "n": 5379,
+        "p50": 55.3,
+        "p95": 265.2,
+        "p99": 1010.64,
+        "max": 1597.43
+      },
+      "late_responses": 0,
+      "no_response_at_end": 0,
+      "timing_origin": "fetch network execution; executor queue excluded",
+      "client_total_ms": {
+        "n": 5379,
+        "p50": 57.63,
+        "p95": 285.82,
+        "p99": 1014.38,
+        "max": 1598.03
+      }
+    },
+    "http_by_started": {
+      "/accounts/session/activity/": {
+        "started": 1165,
+        "outcomes": {
+          "200": 1165
+        },
+        "response_ms": {
+          "n": 1165,
+          "p50": 60.04,
+          "p95": 131.76,
+          "p99": 207.18,
+          "max": 319.9
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "/api/event-main/ranking/": {
+        "started": 377,
+        "outcomes": {
+          "200": 377
+        },
+        "response_ms": {
+          "n": 377,
+          "p50": 50.34,
+          "p95": 101.99,
+          "p99": 144.51,
+          "max": 287.04
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "/api/event-main/status/": {
+        "started": 376,
+        "outcomes": {
+          "200": 376
+        },
+        "response_ms": {
+          "n": 376,
+          "p50": 62.83,
+          "p95": 143.84,
+          "p99": 190.84,
+          "max": 227.88
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "/api/event-story/achievements/": {
+        "started": 377,
+        "outcomes": {
+          "200": 377
+        },
+        "response_ms": {
+          "n": 377,
+          "p50": 52.31,
+          "p95": 111.55,
+          "p99": 139.45,
+          "max": 214.49
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "/api/event-story/recipe/status/": {
+        "started": 378,
+        "outcomes": {
+          "200": 378
+        },
+        "response_ms": {
+          "n": 378,
+          "p50": 48.75,
+          "p95": 107.63,
+          "p99": 139.21,
+          "max": 155.64
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "community": {
+        "started": 327,
+        "outcomes": {
+          "200": 327
+        },
+        "response_ms": {
+          "n": 327,
+          "p50": 48.18,
+          "p95": 118.44,
+          "p99": 174.55,
+          "max": 242.6
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "dm_send": {
+        "started": 143,
+        "outcomes": {
+          "200": 71,
+          "201": 72
+        },
+        "response_ms": {
+          "n": 143,
+          "p50": 103.41,
+          "p95": 213.9,
+          "p99": 285.11,
+          "max": 321.67
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "learning": {
+        "started": 1398,
+        "outcomes": {
+          "200": 958,
+          "201": 440
+        },
+        "response_ms": {
+          "n": 1398,
+          "p50": 58.6,
+          "p95": 917.81,
+          "p99": 1259.16,
+          "max": 1597.43
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "lunch": {
+        "started": 89,
+        "outcomes": {
+          "200": 89
+        },
+        "response_ms": {
+          "n": 89,
+          "p50": 49.08,
+          "p95": 99.67,
+          "p99": 194.41,
+          "max": 194.41
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "menu": {
+        "started": 135,
+        "outcomes": {
+          "200": 135
+        },
+        "response_ms": {
+          "n": 135,
+          "p50": 37.89,
+          "p95": 93.31,
+          "p99": 130.15,
+          "max": 138.25
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "messages": {
+        "started": 302,
+        "outcomes": {
+          "200": 302
+        },
+        "response_ms": {
+          "n": 302,
+          "p50": 52.57,
+          "p95": 138.17,
+          "p99": 330.6,
+          "max": 456.42
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      },
+      "wallet": {
+        "started": 312,
+        "outcomes": {
+          "200": 312
+        },
+        "response_ms": {
+          "n": 312,
+          "p50": 41.45,
+          "p95": 91.71,
+          "p99": 126.19,
+          "max": 156.04
+        },
+        "late_responses": 0,
+        "no_response_at_end": 0,
+        "timing_origin": "fetch network execution; executor queue excluded"
+      }
+    },
+    "upstreams": {
+      "8098:127.0.0.1:9563:200": 1553,
+      "8098:127.0.0.1:9564:200": 960,
+      "8098:127.0.0.1:9561:200": 1335,
+      "8098:127.0.0.1:9562:200": 1063,
+      "8098:127.0.0.1:9563:201": 153,
+      "8098:127.0.0.1:9562:201": 120,
+      "8098:127.0.0.1:9561:201": 128,
+      "8098:127.0.0.1:9564:201": 112
+    },
+    "chrome": {
+      "version": {
+        "protocolVersion": "1.3",
+        "product": "Chrome/156.0.8078.81",
+        "revision": "@060bedfb508f73250e93aeb9ca8149b3958995d8",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+        "jsVersion": "15.6.75.27"
+      },
+      "js_errors": [],
+      "headless": true,
+      "visibility": "visible",
+      "canvases": 5,
+      "protocol_users": 99,
+      "chrome_users": 1,
+      "total_accounts": 100,
+      "frames_ms": {
+        "n": 10807,
+        "p50": 16.7,
+        "p95": 16.7,
+        "p99": 16.8,
+        "max": 33.2
+      },
+      "http_ms": {
+        "n": 38,
+        "p50": 42.5,
+        "p95": 106.5,
+        "p99": 168.2,
+        "max": 168.2
+      },
+      "http_statuses": {
+        "200": 38
+      },
+      "wsOpened": [
+        "/ws/movement/",
+        "/ws/chat/"
+      ],
+      "wsClosed": [],
+      "welcome": true,
+      "http_terminal": {
+        "attempts": 38,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 38
+        },
+        "response_success": 38,
+        "purpose": "normal",
+        "success": 38,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 38,
+          "p50": 42.5,
+          "p95": 106.5,
+          "p99": 168.2,
+          "max": 168.2
+        }
+      }
+    },
+    "http_terminal": {
+      "attempts": 5379,
+      "business_rejected": 0,
+      "server_error": 0,
+      "network_error": 0,
+      "timeout": 0,
+      "unresolved": 0,
+      "status_counts": {
+        "200": 4867,
+        "201": 512
+      },
+      "response_success": 5379,
+      "purpose": "normal",
+      "success": 5379,
+      "errors": 0,
+      "terminal_ms": {
+        "n": 5379,
+        "p50": 57.63,
+        "p95": 285.82,
+        "p99": 1014.38,
+        "max": 1598.03
+      }
+    },
+    "api_requests": {
+      "GET /api/board/menu/": {
+        "attempts": 135,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 135
+        },
+        "response_success": 135,
+        "purpose": "normal",
+        "success": 135,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 135,
+          "p50": 40.39,
+          "p95": 108.15,
+          "p99": 143.07,
+          "max": 151.25
+        }
+      },
+      "GET /api/community/": {
+        "attempts": 163,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 163
+        },
+        "response_success": 163,
+        "purpose": "normal",
+        "success": 163,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 163,
+          "p50": 49.81,
+          "p95": 167.69,
+          "p99": 269.75,
+          "max": 285.83
+        }
+      },
+      "GET /api/community/posts/": {
+        "attempts": 164,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 164
+        },
+        "response_success": 164,
+        "purpose": "normal",
+        "success": 164,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 164,
+          "p50": 52.01,
+          "p95": 123.53,
+          "p99": 159.37,
+          "max": 350.4
+        }
+      },
+      "GET /api/event-main/ranking/": {
+        "attempts": 377,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 377
+        },
+        "response_success": 377,
+        "purpose": "normal",
+        "success": 377,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 377,
+          "p50": 52.94,
+          "p95": 111.66,
+          "p99": 188.95,
+          "max": 297.64
+        }
+      },
+      "GET /api/event-main/status/": {
+        "attempts": 376,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 376
+        },
+        "response_success": 376,
+        "purpose": "normal",
+        "success": 376,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 376,
+          "p50": 64.37,
+          "p95": 160.28,
+          "p99": 218.21,
+          "max": 437.37
+        }
+      },
+      "GET /api/event-story/achievements/": {
+        "attempts": 377,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 377
+        },
+        "response_success": 377,
+        "purpose": "normal",
+        "success": 377,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 377,
+          "p50": 54.49,
+          "p95": 116.24,
+          "p99": 154.79,
+          "max": 279.62
+        }
+      },
+      "GET /api/event-story/recipe/status/": {
+        "attempts": 378,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 378
+        },
+        "response_success": 378,
+        "purpose": "normal",
+        "success": 378,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 378,
+          "p50": 50.98,
+          "p95": 119.52,
+          "p99": 153.07,
+          "max": 171.68
+        }
+      },
+      "GET /api/learning/csrf/": {
+        "attempts": 370,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 370
+        },
+        "response_success": 370,
+        "purpose": "normal",
+        "success": 370,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 370,
+          "p50": 38.43,
+          "p95": 104.84,
+          "p99": 131.12,
+          "max": 158.75
+        }
+      },
+      "GET /api/learning/sessions/:session_id/questions/:order/": {
+        "attempts": 218,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 218
+        },
+        "response_success": 218,
+        "purpose": "normal",
+        "success": 218,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 218,
+          "p50": 62.16,
+          "p95": 148.96,
+          "p99": 198.34,
+          "max": 232.58
+        }
+      },
+      "GET /api/learning/wallet/": {
+        "attempts": 526,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 526
+        },
+        "response_success": 526,
+        "purpose": "normal",
+        "success": 526,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 526,
+          "p50": 40.89,
+          "p95": 104.14,
+          "p99": 163.17,
+          "max": 350.09
+        }
+      },
+      "GET /api/learning/wallet/history/": {
+        "attempts": 156,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 156
+        },
+        "response_success": 156,
+        "purpose": "normal",
+        "success": 156,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 156,
+          "p50": 43.8,
+          "p95": 119.33,
+          "p99": 157.2,
+          "max": 167.82
+        }
+      },
+      "GET /api/messages/conversations/": {
+        "attempts": 151,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 151
+        },
+        "response_success": 151,
+        "purpose": "normal",
+        "success": 151,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 151,
+          "p50": 68.97,
+          "p95": 200.84,
+          "p99": 433.49,
+          "max": 457.42
+        }
+      },
+      "GET /api/messages/recipients/": {
+        "attempts": 71,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 71
+        },
+        "response_success": 71,
+        "purpose": "normal",
+        "success": 71,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 71,
+          "p50": 105.88,
+          "p95": 224.21,
+          "p99": 308.16,
+          "max": 308.16
+        }
+      },
+      "GET /api/messages/status/": {
+        "attempts": 151,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 151
+        },
+        "response_success": 151,
+        "purpose": "normal",
+        "success": 151,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 151,
+          "p50": 44.96,
+          "p95": 120.94,
+          "p99": 145.93,
+          "max": 149.5
+        }
+      },
+      "POST /accounts/session/activity/": {
+        "attempts": 1165,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 1165
+        },
+        "response_success": 1165,
+        "purpose": "normal",
+        "success": 1165,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 1165,
+          "p50": 63.87,
+          "p95": 152.32,
+          "p99": 217.07,
+          "max": 320.18
+        }
+      },
+      "POST /api/campus/lunch/spin/": {
+        "attempts": 89,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 89
+        },
+        "response_success": 89,
+        "purpose": "normal",
+        "success": 89,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 89,
+          "p50": 51.02,
+          "p95": 116.61,
+          "p99": 245.09,
+          "max": 245.09
+        }
+      },
+      "POST /api/learning/sessions/": {
+        "attempts": 218,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "201": 218
+        },
+        "response_success": 218,
+        "purpose": "normal",
+        "success": 218,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 218,
+          "p50": 731.26,
+          "p95": 1314.66,
+          "p99": 1501.83,
+          "max": 1598.03
+        }
+      },
+      "POST /api/learning/sessions/:session_id/questions/:order/answers/": {
+        "attempts": 222,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "201": 222
+        },
+        "response_success": 222,
+        "purpose": "normal",
+        "success": 222,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 222,
+          "p50": 171.57,
+          "p95": 351.41,
+          "p99": 574.31,
+          "max": 683.94
+        }
+      },
+      "POST /api/messages/send/": {
+        "attempts": 72,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "201": 72
+        },
+        "response_success": 72,
+        "purpose": "normal",
+        "success": 72,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 72,
+          "p50": 103.86,
+          "p95": 221.93,
+          "p99": 323.0,
+          "max": 323.0
+        }
+      }
+    },
+    "control_terminal": {
+      "begin_transfer": {
+        "attempts": 278,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "ok": 278
+        },
+        "response_success": 278,
+        "purpose": "normal",
+        "success": 278,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 278,
+          "p50": 27.79,
+          "p95": 140.24,
+          "p99": 221.73,
+          "max": 484.07
+        }
+      },
+      "interact": {
+        "attempts": 750,
+        "business_rejected": 1,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "ok": 749,
+          "rejected": 1
+        },
+        "response_success": 749,
+        "purpose": "normal",
+        "success": 749,
+        "errors": 1,
+        "terminal_ms": {
+          "n": 750,
+          "p50": 30.79,
+          "p95": 143.71,
+          "p99": 243.48,
+          "max": 652.57
+        }
+      },
+      "jump": {
+        "attempts": 8847,
+        "business_rejected": 16,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "ok": 8831,
+          "rejected": 16
+        },
+        "response_success": 8831,
+        "purpose": "normal",
+        "success": 8831,
+        "errors": 16,
+        "terminal_ms": {
+          "n": 8847,
+          "p50": 2.4,
+          "p95": 30.37,
+          "p99": 116.33,
+          "max": 512.26
+        }
+      },
+      "open_booth": {
+        "attempts": 24,
+        "business_rejected": 14,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "rejected": 14,
+          "ok": 10
+        },
+        "response_success": 10,
+        "purpose": "normal",
+        "success": 10,
+        "errors": 14,
+        "terminal_ms": {
+          "n": 24,
+          "p50": 20.32,
+          "p95": 59.47,
+          "p99": 61.26,
+          "max": 61.26
+        }
+      },
+      "transfer": {
+        "attempts": 276,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "ok": 276
+        },
+        "response_success": 276,
+        "purpose": "normal",
+        "success": 276,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 276,
+          "p50": 76.16,
+          "p95": 258.36,
+          "p99": 579.44,
+          "max": 739.58
+        }
+      }
+    },
+    "chat_terminal": {
+      "attempts": 1407,
+      "business_rejected": 0,
+      "server_error": 0,
+      "network_error": 0,
+      "timeout": 0,
+      "unresolved": 0,
+      "status_counts": {
+        "ok": 1407
+      },
+      "response_success": 1407,
+      "purpose": "normal",
+      "success": 1407,
+      "errors": 0,
+      "terminal_ms": {
+        "n": 1407,
+        "p50": 68.57,
+        "p95": 185.75,
+        "p99": 270.9,
+        "max": 529.35
+      }
+    },
+    "drain_reports": [
+      {
+        "worker": 0,
+        "pending_at_end": 2,
+        "drain_seconds": 0.06793237500824034,
+        "unresolved": 0,
+        "generation_stopped_epoch": 1793951714.269851
+      },
+      {
+        "worker": 1,
+        "pending_at_end": 2,
+        "drain_seconds": 0.04320574994198978,
+        "unresolved": 0,
+        "generation_stopped_epoch": 1793951714.2484205
+      }
+    ],
+    "combined_http_terminal": {
+      "attempts": 5417,
+      "business_rejected": 0,
+      "server_error": 0,
+      "network_error": 0,
+      "timeout": 0,
+      "unresolved": 0,
+      "status_counts": {
+        "200": 4905,
+        "201": 512
+      },
+      "response_success": 5417,
+      "purpose": "normal",
+      "success": 5417,
+      "errors": 0,
+      "terminal_ms": {
+        "n": 5417,
+        "p50": 57.46,
+        "p95": 284.62,
+        "p99": 1013.54,
+        "max": 1598.03
+      }
+    },
+    "combined_api_requests": {
+      "GET /api/board/menu/": {
+        "attempts": 135,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 135
+        },
+        "response_success": 135,
+        "purpose": "normal",
+        "success": 135,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 135,
+          "p50": 40.39,
+          "p95": 108.15,
+          "p99": 143.07,
+          "max": 151.25
+        }
+      },
+      "GET /api/campus/freeze/": {
+        "attempts": 12,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 12
+        },
+        "response_success": 12,
+        "purpose": "normal",
+        "success": 12,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 12,
+          "p50": 32.8,
+          "p95": 98.8,
+          "p99": 98.8,
+          "max": 98.8
+        }
+      },
+      "GET /api/community/": {
+        "attempts": 163,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 163
+        },
+        "response_success": 163,
+        "purpose": "normal",
+        "success": 163,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 163,
+          "p50": 49.81,
+          "p95": 167.69,
+          "p99": 269.75,
+          "max": 285.83
+        }
+      },
+      "GET /api/community/notices/": {
+        "attempts": 6,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 6
+        },
+        "response_success": 6,
+        "purpose": "normal",
+        "success": 6,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 6,
+          "p50": 39.4,
+          "p95": 74.4,
+          "p99": 74.4,
+          "max": 74.4
+        }
+      },
+      "GET /api/community/posts/": {
+        "attempts": 164,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 164
+        },
+        "response_success": 164,
+        "purpose": "normal",
+        "success": 164,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 164,
+          "p50": 52.01,
+          "p95": 123.53,
+          "p99": 159.37,
+          "max": 350.4
+        }
+      },
+      "GET /api/event-main/ranking/": {
+        "attempts": 377,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 377
+        },
+        "response_success": 377,
+        "purpose": "normal",
+        "success": 377,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 377,
+          "p50": 52.94,
+          "p95": 111.66,
+          "p99": 188.95,
+          "max": 297.64
+        }
+      },
+      "GET /api/event-main/status/": {
+        "attempts": 376,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 376
+        },
+        "response_success": 376,
+        "purpose": "normal",
+        "success": 376,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 376,
+          "p50": 64.37,
+          "p95": 160.28,
+          "p99": 218.21,
+          "max": 437.37
+        }
+      },
+      "GET /api/event-story/achievements/": {
+        "attempts": 385,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 385
+        },
+        "response_success": 385,
+        "purpose": "normal",
+        "success": 385,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 385,
+          "p50": 53.96,
+          "p95": 113.86,
+          "p99": 154.79,
+          "max": 279.62
+        }
+      },
+      "GET /api/event-story/recipe/status/": {
+        "attempts": 378,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 378
+        },
+        "response_success": 378,
+        "purpose": "normal",
+        "success": 378,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 378,
+          "p50": 50.98,
+          "p95": 119.52,
+          "p99": 153.07,
+          "max": 171.68
+        }
+      },
+      "GET /api/learning/csrf/": {
+        "attempts": 370,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 370
+        },
+        "response_success": 370,
+        "purpose": "normal",
+        "success": 370,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 370,
+          "p50": 38.43,
+          "p95": 104.84,
+          "p99": 131.12,
+          "max": 158.75
+        }
+      },
+      "GET /api/learning/sessions/:session_id/questions/:order/": {
+        "attempts": 218,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 218
+        },
+        "response_success": 218,
+        "purpose": "normal",
+        "success": 218,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 218,
+          "p50": 62.16,
+          "p95": 148.96,
+          "p99": 198.34,
+          "max": 232.58
+        }
+      },
+      "GET /api/learning/wallet/": {
+        "attempts": 526,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 526
+        },
+        "response_success": 526,
+        "purpose": "normal",
+        "success": 526,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 526,
+          "p50": 40.89,
+          "p95": 104.14,
+          "p99": 163.17,
+          "max": 350.09
+        }
+      },
+      "GET /api/learning/wallet/history/": {
+        "attempts": 156,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 156
+        },
+        "response_success": 156,
+        "purpose": "normal",
+        "success": 156,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 156,
+          "p50": 43.8,
+          "p95": 119.33,
+          "p99": 157.2,
+          "max": 167.82
+        }
+      },
+      "GET /api/messages/conversations/": {
+        "attempts": 151,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 151
+        },
+        "response_success": 151,
+        "purpose": "normal",
+        "success": 151,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 151,
+          "p50": 68.97,
+          "p95": 200.84,
+          "p99": 433.49,
+          "max": 457.42
+        }
+      },
+      "GET /api/messages/recipients/": {
+        "attempts": 71,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 71
+        },
+        "response_success": 71,
+        "purpose": "normal",
+        "success": 71,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 71,
+          "p50": 105.88,
+          "p95": 224.21,
+          "p99": 308.16,
+          "max": 308.16
+        }
+      },
+      "GET /api/messages/status/": {
+        "attempts": 151,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 151
+        },
+        "response_success": 151,
+        "purpose": "normal",
+        "success": 151,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 151,
+          "p50": 44.96,
+          "p95": 120.94,
+          "p99": 145.93,
+          "max": 149.5
+        }
+      },
+      "POST /accounts/session/activity/": {
+        "attempts": 1177,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 1177
+        },
+        "response_success": 1177,
+        "purpose": "normal",
+        "success": 1177,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 1177,
+          "p50": 63.51,
+          "p95": 152.62,
+          "p99": 217.07,
+          "max": 320.18
+        }
+      },
+      "POST /api/campus/lunch/spin/": {
+        "attempts": 89,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "200": 89
+        },
+        "response_success": 89,
+        "purpose": "normal",
+        "success": 89,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 89,
+          "p50": 51.02,
+          "p95": 116.61,
+          "p99": 245.09,
+          "max": 245.09
+        }
+      },
+      "POST /api/learning/sessions/": {
+        "attempts": 218,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "201": 218
+        },
+        "response_success": 218,
+        "purpose": "normal",
+        "success": 218,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 218,
+          "p50": 731.26,
+          "p95": 1314.66,
+          "p99": 1501.83,
+          "max": 1598.03
+        }
+      },
+      "POST /api/learning/sessions/:session_id/questions/:order/answers/": {
+        "attempts": 222,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "201": 222
+        },
+        "response_success": 222,
+        "purpose": "normal",
+        "success": 222,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 222,
+          "p50": 171.57,
+          "p95": 351.41,
+          "p99": 574.31,
+          "max": 683.94
+        }
+      },
+      "POST /api/messages/send/": {
+        "attempts": 72,
+        "business_rejected": 0,
+        "server_error": 0,
+        "network_error": 0,
+        "timeout": 0,
+        "unresolved": 0,
+        "status_counts": {
+          "201": 72
+        },
+        "response_success": 72,
+        "purpose": "normal",
+        "success": 72,
+        "errors": 0,
+        "terminal_ms": {
+          "n": 72,
+          "p50": 103.86,
+          "p95": 221.93,
+          "p99": 323.0,
+          "max": 323.0
+        }
+      }
+    }
+  },
+  "admission": {
+    "attempts": 1000,
+    "statuses": {
+      "101": 1000
+    },
+    "welcomed": 1000,
+    "response_ms": {
+      "n": 1000,
+      "p50": 482.03,
+      "p95": 630.19,
+      "p99": 680.26,
+      "max": 713.1
+    },
+    "welcome_ms": {
+      "n": 1000,
+      "p50": 482.03,
+      "p95": 630.19,
+      "p99": 680.26,
+      "max": 713.1
+    },
+    "rounds": {
+      "0": {
+        "101": 100
+      },
+      "1": {
+        "101": 100
+      },
+      "2": {
+        "101": 100
+      },
+      "3": {
+        "101": 100
+      },
+      "4": {
+        "101": 100
+      },
+      "5": {
+        "101": 100
+      },
+      "6": {
+        "101": 100
+      },
+      "7": {
+        "101": 100
+      },
+      "8": {
+        "101": 100
+      },
+      "9": {
+        "101": 100
+      }
+    },
+    "requests": {
+      "attempts": 1000,
+      "business_rejected": 0,
+      "server_error": 0,
+      "network_error": 0,
+      "timeout": 0,
+      "unresolved": 0,
+      "status_counts": {
+        "101": 1000
+      },
+      "response_success": 1000,
+      "purpose": "normal",
+      "success": 1000,
+      "errors": 0,
+      "terminal_ms": {
+        "n": 1000,
+        "p50": 482.03,
+        "p95": 630.19,
+        "p99": 680.26,
+        "max": 713.1
+      }
+    }
+  },
+  "game_results": {},
+  "scenario_http": {
+    "responses": 0,
+    "statuses": {},
+    "server_5xx": 0
+  },
+  "award_requests": {},
+  "scenario_requests": {},
+  "scenario_routes": {},
+  "normal_scenario_requests": {},
+  "validation_requests": {},
+  "scenario_not_reached": {},
+  "all_phases_connections": {
+    "cluster_max": 41,
+    "by_worker_max": {
+      "query-monitor": 1,
+      "query-movement-9551": 2,
+      "query-movement-9552": 2,
+      "query-movement-9553": 2,
+      "query-movement-9554": 2,
+      "query-service-9561": 8,
+      "query-service-9562": 10,
+      "query-service-9563": 8,
+      "query-service-9564": 6
+    }
+  },
+  "pool_stats": {
+    "movement-9551": {
+      "configured_max": 10,
+      "pool_size_max": 2,
+      "waiting_max": 0,
+      "queued_requests_counter_max": 1,
+      "wait_ms_counter_max": 45,
+      "requests_errors_max": 0
+    },
+    "movement-9552": {
+      "configured_max": 10,
+      "pool_size_max": 2,
+      "waiting_max": 0,
+      "queued_requests_counter_max": 1,
+      "wait_ms_counter_max": 19,
+      "requests_errors_max": 0
+    },
+    "movement-9553": {
+      "configured_max": 10,
+      "pool_size_max": 2,
+      "waiting_max": 0,
+      "queued_requests_counter_max": 1,
+      "wait_ms_counter_max": 38,
+      "requests_errors_max": 0
+    },
+    "movement-9554": {
+      "configured_max": 10,
+      "pool_size_max": 2,
+      "waiting_max": 0,
+      "queued_requests_counter_max": 1,
+      "wait_ms_counter_max": 16,
+      "requests_errors_max": 0
+    },
+    "service-9561": {
+      "configured_max": 10,
+      "pool_size_max": 8,
+      "waiting_max": 1,
+      "queued_requests_counter_max": 10,
+      "wait_ms_counter_max": 347,
+      "requests_errors_max": 0
+    },
+    "service-9562": {
+      "configured_max": 10,
+      "pool_size_max": 10,
+      "waiting_max": 0,
+      "queued_requests_counter_max": 13,
+      "wait_ms_counter_max": 478,
+      "requests_errors_max": 0
+    },
+    "service-9563": {
+      "configured_max": 10,
+      "pool_size_max": 8,
+      "waiting_max": 1,
+      "queued_requests_counter_max": 12,
+      "wait_ms_counter_max": 458,
+      "requests_errors_max": 0
+    },
+    "service-9564": {
+      "configured_max": 10,
+      "pool_size_max": 6,
+      "waiting_max": 1,
+      "queued_requests_counter_max": 8,
+      "wait_ms_counter_max": 210,
+      "requests_errors_max": 0
+    }
+  }
+}

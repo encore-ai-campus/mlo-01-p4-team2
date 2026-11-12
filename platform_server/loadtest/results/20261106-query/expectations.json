@@ -1,0 +1,167 @@
+{
+  "source_sha256": "282cd74faf136f127eb9be85bb555b913759e471fa38f956b6a5ec9f6e9d8582",
+  "validations": {
+    "typing:over_limit": {
+      "purpose": "validation",
+      "statuses": [
+        400
+      ],
+      "fields": {
+        "error_message": "타이핑은 11.11초 안에 완료해야 해요."
+      }
+    },
+    "ws:guide_talk": {
+      "purpose": "validation",
+      "statuses": [
+        "rejected"
+      ],
+      "fields": {
+        "error_message": "18층 꾸왕이 가까이에서 대화해 주세요."
+      }
+    },
+    "main:game_finish:topping": {
+      "purpose": "validation",
+      "statuses": [
+        200
+      ],
+      "fields": {
+        "success": false
+      }
+    }
+  },
+  "normal_actions": {
+    "main:game_finish:kkuwang_touch": {
+      "purpose": "normal",
+      "statuses": [
+        200,
+        201
+      ],
+      "fields": {
+        "success": null
+      }
+    },
+    "main:game_finish:sql_memory": {
+      "purpose": "normal",
+      "statuses": [
+        200,
+        201
+      ],
+      "fields": {
+        "success": true
+      }
+    },
+    "term_match:result": {
+      "purpose": "normal",
+      "statuses": [
+        200,
+        201
+      ],
+      "fields": {
+        "game_status": "SUCCESS"
+      }
+    },
+    "typing:result": {
+      "purpose": "normal",
+      "statuses": [
+        200,
+        201
+      ],
+      "fields": {
+        "game_status": "SUCCESS"
+      }
+    },
+    "timer:result": {
+      "purpose": "normal",
+      "statuses": [
+        200,
+        201
+      ],
+      "fields": {
+        "game_status": "SUCCESS"
+      }
+    },
+    "term_match:retry": {
+      "purpose": "normal",
+      "statuses": [
+        200,
+        201
+      ],
+      "fields": {
+        "game_status": "SUCCESS"
+      }
+    },
+    "timer:retry": {
+      "purpose": "normal",
+      "statuses": [
+        200,
+        201
+      ],
+      "fields": {
+        "game_status": "SUCCESS"
+      }
+    },
+    "typing:interrupt": {
+      "purpose": "normal",
+      "statuses": [
+        200,
+        201
+      ],
+      "fields": {
+        "game_status": "INTERRUPTED"
+      }
+    },
+    "main:game_finish:wrapping": {
+      "purpose": "normal",
+      "statuses": [
+        200,
+        201
+      ],
+      "fields": {
+        "success": true
+      }
+    },
+    "main:game_finish:card_match": {
+      "purpose": "normal",
+      "statuses": [
+        200,
+        201
+      ],
+      "fields": {
+        "success": true
+      }
+    },
+    "main:game_finish:coating": {
+      "purpose": "normal",
+      "statuses": [
+        200,
+        201
+      ],
+      "fields": {
+        "success": true
+      }
+    },
+    "typing:retry": {
+      "purpose": "normal",
+      "statuses": [
+        200,
+        201
+      ],
+      "fields": {
+        "game_status": "SUCCESS"
+      }
+    }
+  },
+  "normal_http_statuses": [
+    200,
+    201
+  ],
+  "normal_control_statuses": [
+    "ok"
+  ],
+  "normal_chat_statuses": [
+    "ok"
+  ],
+  "normal_connect_statuses": [
+    101
+  ]
+}

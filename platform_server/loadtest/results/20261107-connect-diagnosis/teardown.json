@@ -1,0 +1,9 @@
+{
+  "owned_listeners_remaining": [],
+  "containers": {
+    "connect-diag-move-20261107": "exited",
+    "connect-diag-service-20261107": "exited",
+    "final-r2-it-pg-20261107": "exited"
+  },
+  "postgres_restored_to_initial_exited_state": true
+}

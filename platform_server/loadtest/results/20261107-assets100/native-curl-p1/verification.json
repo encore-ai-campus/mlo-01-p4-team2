@@ -1,0 +1,31 @@
+{
+  "checks": [
+    {
+      "case": "one-user-all",
+      "users": 1,
+      "requests": 225,
+      "each_file_size_checked": true,
+      "every_user_received_complete_manifest": true,
+      "curl_exit_codes_all_zero": true
+    },
+    {
+      "case": "100-users-code",
+      "users": 100,
+      "requests": 8700,
+      "each_file_size_checked": true,
+      "every_user_received_complete_manifest": true,
+      "curl_exit_codes_all_zero": true
+    },
+    {
+      "case": "100-users-all",
+      "users": 100,
+      "requests": 22500,
+      "each_file_size_checked": true,
+      "every_user_received_complete_manifest": true,
+      "curl_exit_codes_all_zero": true
+    }
+  ],
+  "nginx_error_log_empty": true,
+  "test_nginx_stopped": true,
+  "assets_changed_since_test_manifest": []
+}

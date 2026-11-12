@@ -1,0 +1,148 @@
+[
+  {
+    "phase": "connect:timer",
+    "users": 100,
+    "seconds": 0.82,
+    "passed": 96,
+    "errors": {
+      "server rejected WebSocket connection: HTTP 502": 4
+    }
+  },
+  {
+    "phase": "standalone:timer",
+    "users": 100,
+    "seconds": 13.69,
+    "passed": 96,
+    "errors": {
+      "prerequisite_connection_failed": 4
+    }
+  },
+  {
+    "phase": "far_guide_rejection:timer",
+    "users": 100,
+    "seconds": 0.2,
+    "passed": 96,
+    "errors": {
+      "prerequisite_connection_failed": 4
+    }
+  },
+  {
+    "phase": "disconnect:timer",
+    "users": 100,
+    "seconds": 0.01,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "connect:typing",
+    "users": 100,
+    "seconds": 0.78,
+    "passed": 90,
+    "errors": {
+      "server rejected WebSocket connection: HTTP 502": 10
+    }
+  },
+  {
+    "phase": "standalone:typing",
+    "users": 100,
+    "seconds": 4.79,
+    "passed": 90,
+    "errors": {
+      "prerequisite_connection_failed": 10
+    }
+  },
+  {
+    "phase": "far_guide_rejection:typing",
+    "users": 100,
+    "seconds": 0.22,
+    "passed": 90,
+    "errors": {
+      "prerequisite_connection_failed": 10
+    }
+  },
+  {
+    "phase": "disconnect:typing",
+    "users": 100,
+    "seconds": 0.01,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "connect:term_match",
+    "users": 100,
+    "seconds": 0.74,
+    "passed": 86,
+    "errors": {
+      "server rejected WebSocket connection: HTTP 502": 14
+    }
+  },
+  {
+    "phase": "standalone:term_match",
+    "users": 100,
+    "seconds": 8.49,
+    "passed": 86,
+    "errors": {
+      "prerequisite_connection_failed": 14
+    }
+  },
+  {
+    "phase": "far_guide_rejection:term_match",
+    "users": 100,
+    "seconds": 0.21,
+    "passed": 86,
+    "errors": {
+      "prerequisite_connection_failed": 14
+    }
+  },
+  {
+    "phase": "main_games_and_final_rank",
+    "users": 100,
+    "seconds": 69.08,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "recipe_full_branches",
+    "users": 100,
+    "seconds": 4.0,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "learning_all_subjects_and_types",
+    "users": 100,
+    "seconds": 25.78,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "disconnect:final",
+    "users": 100,
+    "seconds": 0.02,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "reconnect:restore",
+    "users": 100,
+    "seconds": 0.84,
+    "passed": 78,
+    "errors": {
+      "server rejected WebSocket connection: HTTP 502": 22
+    }
+  },
+  {
+    "phase": "state_after_reconnect",
+    "users": 100,
+    "seconds": 2.06,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "disconnect:cleanup",
+    "users": 100,
+    "seconds": 0.01,
+    "passed": 100,
+    "errors": {}
+  }
+]

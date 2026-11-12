@@ -1,0 +1,2661 @@
+{
+  "percentile_method": "nearest rank: ceil(p*N), 1-based",
+  "stress": {
+    "generator_summary": {
+      "measured_s": 180,
+      "users": 100,
+      "moving": 0.2,
+      "client": "new",
+      "behavior": "real",
+      "mix": "",
+      "hold_ms": 100,
+      "welcomed": 100,
+      "actions_per_user_s": 9.61,
+      "actions_per_s": {
+        "chat": 8.4,
+        "interact": 0.5,
+        "jump": 53.3,
+        "learning": 0.0,
+        "move": 745.7,
+        "panel": 6.5,
+        "poke": 147.1,
+        "transfer": 0.0
+      },
+      "action_errors": {
+        "jump: 응답 없음(10초)": 8263,
+        "jump: 착지한 뒤 다시 점프해 주세요.": 1550,
+        "jump: 현재 공간에서 다시 점프해 주세요.": 657,
+        "interact: 응답 없음(10초)": 55,
+        "interact: 학습 영역이나 출입구 가까이에서 이용해 주세요.": 53,
+        "begin_transfer: 응답 없음(10초)": 5,
+        "cancel_transfer: 응답 없음(10초)": 2
+      },
+      "action_ms": {
+        "begin_transfer": {
+          "n": 6,
+          "p50": 15251.3,
+          "p95": 44648.3,
+          "p99": 44648.3,
+          "max": 44648.3
+        },
+        "cancel_transfer": {
+          "n": 4,
+          "p50": 15105.4,
+          "p95": 36044.7,
+          "p99": 36044.7,
+          "max": 36044.7
+        },
+        "chat": {
+          "n": 1343,
+          "p50": 2461.3,
+          "p95": 20436.3,
+          "p99": 34024.4,
+          "max": 58166.1
+        },
+        "interact": {
+          "n": 78,
+          "p50": 15859.2,
+          "p95": 53038.1,
+          "p99": 61034.5,
+          "max": 61034.5
+        },
+        "jump": {
+          "n": 8239,
+          "p50": 32059.0,
+          "p95": 55378.4,
+          "p99": 60392.1,
+          "max": 67578.2
+        },
+        "panel:community": {
+          "n": 149,
+          "p50": 786.3,
+          "p95": 1641.0,
+          "p99": 1872.5,
+          "max": 1924.8
+        },
+        "panel:dm_send": {
+          "n": 81,
+          "p50": 1006.9,
+          "p95": 1971.1,
+          "p99": 2270.5,
+          "max": 2270.5
+        },
+        "panel:lunch": {
+          "n": 60,
+          "p50": 365.9,
+          "p95": 642.6,
+          "p99": 919.7,
+          "max": 919.7
+        },
+        "panel:menu": {
+          "n": 148,
+          "p50": 387.1,
+          "p95": 799.3,
+          "p99": 950.7,
+          "max": 1011.2
+        },
+        "panel:messages": {
+          "n": 159,
+          "p50": 743.2,
+          "p95": 1503.8,
+          "p99": 1885.4,
+          "max": 1992.2
+        },
+        "panel:wallet": {
+          "n": 168,
+          "p50": 784.8,
+          "p95": 1455.9,
+          "p99": 1871.8,
+          "max": 1900.3
+        },
+        "transfer": {
+          "n": 2,
+          "p50": 6232.3,
+          "p95": 6232.3,
+          "p99": 6232.3,
+          "max": 6232.3
+        }
+      },
+      "errands": {
+        "classroom_enter": 41,
+        "classroom_exit": 9,
+        "learning": 2,
+        "stuck": 7429,
+        "timeout:booth": 1,
+        "timeout:portal": 31,
+        "transfer": 2
+      },
+      "recv_per_s": {
+        "control_event": 0.0,
+        "control_result": 46.3,
+        "control_state": 613.7,
+        "jump": 208.7,
+        "moves": 624.0,
+        "poke_hit": 103.0,
+        "poke_state": 645.6,
+        "pong": 17.3
+      },
+      "recv_total_per_s": 2258.6,
+      "sent_per_s": {
+        "chat": 8.4,
+        "control": 53.8,
+        "input": 1396.8,
+        "ping": 20.0
+      },
+      "own_state_gap_ms": {
+        "n": 45217,
+        "p50": 56.9,
+        "p95": 104.4,
+        "p99": 145.3,
+        "max": 353.6
+      },
+      "input_to_moving_ms": {
+        "n": 47950,
+        "p50": 38.0,
+        "p95": 119.6,
+        "p99": 200.1,
+        "max": 481.1
+      },
+      "peer_move_gap_ms": {
+        "n": 44180,
+        "p50": 140.0,
+        "p95": 1059.9,
+        "p99": 2455.4,
+        "max": 3191.5
+      },
+      "http_per_s": 22.7,
+      "http_ms": {
+        "n": 4086,
+        "p50": 415.5,
+        "p95": 826.5,
+        "p99": 998.6,
+        "max": 1342.8
+      },
+      "http_ms_by_path": {
+        "/accounts/session/activity/": {
+          "n": 1165,
+          "p50": 399.4,
+          "p95": 794.2,
+          "p99": 961.9,
+          "max": 1056.3
+        },
+        "/api/event-main/ranking/": {
+          "n": 392,
+          "p50": 460.0,
+          "p95": 877.2,
+          "p99": 1032.4,
+          "max": 1076.9
+        },
+        "/api/event-main/status/": {
+          "n": 395,
+          "p50": 558.2,
+          "p95": 939.0,
+          "p99": 1099.3,
+          "max": 1151.1
+        },
+        "/api/event-story/achievements/": {
+          "n": 392,
+          "p50": 396.2,
+          "p95": 795.1,
+          "p99": 982.9,
+          "max": 1051.0
+        },
+        "/api/event-story/recipe/status/": {
+          "n": 391,
+          "p50": 359.6,
+          "p95": 765.0,
+          "p99": 913.6,
+          "max": 1013.8
+        },
+        "community": {
+          "n": 299,
+          "p50": 379.7,
+          "p95": 774.5,
+          "p99": 997.7,
+          "max": 1052.7
+        },
+        "dm_send": {
+          "n": 162,
+          "p50": 475.8,
+          "p95": 999.0,
+          "p99": 1320.7,
+          "max": 1342.8
+        },
+        "learning": {
+          "n": 28,
+          "p50": 327.7,
+          "p95": 895.5,
+          "p99": 1054.6,
+          "max": 1054.6
+        },
+        "lunch": {
+          "n": 60,
+          "p50": 364.6,
+          "p95": 642.3,
+          "p99": 919.3,
+          "max": 919.3
+        },
+        "menu": {
+          "n": 148,
+          "p50": 386.8,
+          "p95": 799.1,
+          "p99": 950.4,
+          "max": 1010.8
+        },
+        "messages": {
+          "n": 318,
+          "p50": 378.8,
+          "p95": 730.8,
+          "p99": 961.7,
+          "max": 998.6
+        },
+        "wallet": {
+          "n": 336,
+          "p50": 383.2,
+          "p95": 776.8,
+          "p99": 920.1,
+          "max": 992.6
+        }
+      },
+      "http_status": {
+        "/api/event-main/status/ 200": 395,
+        "messages 200": 318,
+        "/api/event-main/ranking/ 200": 392,
+        "/api/event-story/achievements/ 200": 392,
+        "/api/event-story/recipe/status/ 200": 391,
+        "/accounts/session/activity/ 200": 1165,
+        "wallet 200": 336,
+        "menu 200": 148,
+        "dm_send 200": 81,
+        "dm_send 201": 81,
+        "community 200": 299,
+        "learning 200": 24,
+        "learning 201": 4,
+        "lunch 200": 60
+      },
+      "closes": {},
+      "generator_loop_lag_ms": {
+        "n": 3592,
+        "p50": 0.1,
+        "p95": 0.7,
+        "p99": 3.0,
+        "max": 28.3
+      }
+    },
+    "reference_movement_ms": {
+      "input_to_first_moving_state_estimate": {
+        "n": 47950,
+        "p50": 37.99,
+        "p95": 119.55,
+        "p99": 200.12,
+        "max": 481.11
+      },
+      "own_state_interval": {
+        "n": 45217,
+        "p50": 56.88,
+        "p95": 104.43,
+        "p99": 145.32,
+        "max": 353.58
+      },
+      "other_player_update_interval": {
+        "n": 44180,
+        "p50": 139.97,
+        "p95": 1059.93,
+        "p99": 2455.43,
+        "max": 3191.52
+      },
+      "generator_event_loop_lag": {
+        "n": 3592,
+        "p50": 0.13,
+        "p95": 0.66,
+        "p99": 2.98,
+        "max": 28.3
+      }
+    },
+    "http_ms": {
+      "/accounts/session/activity/": {
+        "n": 1165,
+        "p50": 399.41,
+        "p95": 794.18,
+        "p99": 961.9,
+        "max": 1056.32
+      },
+      "/api/event-main/ranking/": {
+        "n": 392,
+        "p50": 458.84,
+        "p95": 877.25,
+        "p99": 1032.41,
+        "max": 1076.87
+      },
+      "/api/event-main/status/": {
+        "n": 395,
+        "p50": 558.17,
+        "p95": 939.04,
+        "p99": 1099.3,
+        "max": 1151.12
+      },
+      "/api/event-story/achievements/": {
+        "n": 392,
+        "p50": 395.13,
+        "p95": 795.13,
+        "p99": 982.86,
+        "max": 1050.95
+      },
+      "/api/event-story/recipe/status/": {
+        "n": 391,
+        "p50": 359.61,
+        "p95": 764.97,
+        "p99": 913.58,
+        "max": 1013.79
+      },
+      "community": {
+        "n": 299,
+        "p50": 379.68,
+        "p95": 774.47,
+        "p99": 997.7,
+        "max": 1052.7
+      },
+      "dm_send": {
+        "n": 162,
+        "p50": 469.28,
+        "p95": 998.96,
+        "p99": 1320.74,
+        "max": 1342.75
+      },
+      "learning": {
+        "n": 28,
+        "p50": 323.79,
+        "p95": 895.53,
+        "p99": 1054.61,
+        "max": 1054.61
+      },
+      "lunch": {
+        "n": 60,
+        "p50": 364.51,
+        "p95": 638.11,
+        "p99": 919.3,
+        "max": 919.3
+      },
+      "menu": {
+        "n": 148,
+        "p50": 382.55,
+        "p95": 799.09,
+        "p99": 950.37,
+        "max": 1010.78
+      },
+      "messages": {
+        "n": 318,
+        "p50": 377.63,
+        "p95": 730.8,
+        "p99": 961.72,
+        "max": 998.57
+      },
+      "wallet": {
+        "n": 336,
+        "p50": 381.9,
+        "p95": 776.84,
+        "p99": 920.06,
+        "max": 992.63
+      }
+    },
+    "controls": {
+      "begin_transfer": {
+        "started": 8,
+        "outcomes": {
+          "ok": 2,
+          "timeout": 5,
+          "pending": 1
+        },
+        "response_ms": {
+          "n": 6,
+          "p50": 14128.48,
+          "p95": 44648.21,
+          "p99": 44648.21,
+          "max": 44648.21
+        },
+        "p95_lower_bound_ms": 44648.21,
+        "late_responses": 4,
+        "no_response_at_end": 2
+      },
+      "cancel_transfer": {
+        "started": 5,
+        "outcomes": {
+          "timeout": 2,
+          "pending": 1,
+          "ok": 2
+        },
+        "response_ms": {
+          "n": 4,
+          "p50": 8360.21,
+          "p95": 36044.6,
+          "p99": 36044.6,
+          "max": 36044.6
+        },
+        "p95_lower_bound_ms": 36044.6,
+        "late_responses": 2,
+        "no_response_at_end": 1
+      },
+      "interact": {
+        "started": 84,
+        "outcomes": {
+          "ok": 20,
+          "timeout": 55,
+          "pending": 3,
+          "rejected": 6
+        },
+        "response_ms": {
+          "n": 78,
+          "p50": 15106.47,
+          "p95": 53038.04,
+          "p99": 61034.48,
+          "max": 61034.48
+        },
+        "p95_lower_bound_ms": 51627.68,
+        "late_responses": 52,
+        "no_response_at_end": 6
+      },
+      "jump": {
+        "started": 9590,
+        "outcomes": {
+          "rejected": 427,
+          "timeout": 8048,
+          "ok": 591,
+          "pending": 524
+        },
+        "response_ms": {
+          "n": 7912,
+          "p50": 33406.83,
+          "p95": 55589.99,
+          "p99": 60554.43,
+          "max": 67578.13
+        },
+        "p95_lower_bound_ms": 54709.13,
+        "late_responses": 6894,
+        "no_response_at_end": 1678
+      },
+      "transfer": {
+        "started": 2,
+        "outcomes": {
+          "ok": 2
+        },
+        "response_ms": {
+          "n": 2,
+          "p50": 4350.49,
+          "p95": 6232.21,
+          "p99": 6232.21,
+          "max": 6232.21
+        },
+        "p95_lower_bound_ms": 6232.21,
+        "late_responses": 0,
+        "no_response_at_end": 0
+      }
+    },
+    "chat": {
+      "started": 1511,
+      "outcomes": {
+        "ok": 1285,
+        "pending": 226
+      },
+      "response_ms": {
+        "n": 1285,
+        "p50": 2346.22,
+        "p95": 18943.94,
+        "p99": 31023.51,
+        "max": 44660.58
+      },
+      "p95_lower_bound_ms": 16186.32,
+      "late_responses": 0,
+      "no_response_at_end": 226
+    },
+    "http_all_ms": {
+      "n": 4086,
+      "p50": 415.28,
+      "p95": 826.48,
+      "p99": 998.57,
+      "max": 1342.75
+    },
+    "http_statuses": {
+      "/api/event-main/status/ 200": 395,
+      "messages 200": 318,
+      "/api/event-main/ranking/ 200": 392,
+      "/api/event-story/achievements/ 200": 392,
+      "/api/event-story/recipe/status/ 200": 391,
+      "/accounts/session/activity/ 200": 1165,
+      "wallet 200": 336,
+      "menu 200": 148,
+      "dm_send 200": 81,
+      "dm_send 201": 81,
+      "community 200": 299,
+      "learning 200": 24,
+      "learning 201": 4,
+      "lunch 200": 60
+    },
+    "http_unexpected": 0,
+    "window_utc_epoch": [
+      1793881569.672257,
+      1793881749.709513
+    ],
+    "resources": {
+      "samples": 89,
+      "db_connections_max": 29,
+      "db_active_max": 3,
+      "processes": {
+        "backend": {
+          "cpu_percent": {
+            "n": 89,
+            "p50": 85.9,
+            "p95": 96.8,
+            "p99": 102.5,
+            "max": 102.5
+          },
+          "rss_mib_max": 156.8
+        },
+        "frontend": {
+          "cpu_percent": {
+            "n": 89,
+            "p50": 60.0,
+            "p95": 62.8,
+            "p99": 65.1,
+            "max": 65.1
+          },
+          "rss_mib_max": 142.4
+        }
+      }
+    }
+  },
+  "casual": {
+    "generator_summary": {
+      "measured_s": 180,
+      "users": 100,
+      "moving": 0.2,
+      "client": "new",
+      "behavior": "walk",
+      "mix": "",
+      "hold_ms": 100,
+      "welcomed": 100,
+      "actions_per_user_s": 0.0,
+      "actions_per_s": {},
+      "action_errors": {},
+      "action_ms": {
+        "chat": {
+          "n": 1146,
+          "p50": 80.9,
+          "p95": 419.2,
+          "p99": 1370.1,
+          "max": 2074.1
+        },
+        "jump": {
+          "n": 694,
+          "p50": 3.8,
+          "p95": 51.0,
+          "p99": 298.4,
+          "max": 759.5
+        },
+        "panel:community": {
+          "n": 144,
+          "p50": 94.9,
+          "p95": 259.1,
+          "p99": 337.9,
+          "max": 378.2
+        },
+        "panel:dm_send": {
+          "n": 88,
+          "p50": 148.6,
+          "p95": 379.4,
+          "p99": 493.0,
+          "max": 493.0
+        },
+        "panel:lunch": {
+          "n": 76,
+          "p50": 52.5,
+          "p95": 127.5,
+          "p99": 253.7,
+          "max": 253.7
+        },
+        "panel:menu": {
+          "n": 125,
+          "p50": 42.8,
+          "p95": 134.4,
+          "p99": 206.1,
+          "max": 360.8
+        },
+        "panel:messages": {
+          "n": 162,
+          "p50": 132.6,
+          "p95": 343.5,
+          "p99": 488.6,
+          "max": 647.7
+        },
+        "panel:wallet": {
+          "n": 147,
+          "p50": 91.1,
+          "p95": 241.3,
+          "p99": 369.8,
+          "max": 394.0
+        }
+      },
+      "errands": {},
+      "recv_per_s": {
+        "control_result": 3.9,
+        "control_state": 259.2,
+        "jump": 173.9,
+        "moves": 915.1,
+        "poke_hit": 18.1,
+        "poke_state": 111.4,
+        "pong": 20.0
+      },
+      "recv_total_per_s": 1501.7,
+      "sent_per_s": {
+        "chat": 6.3,
+        "control": 3.9,
+        "input": 213.3,
+        "ping": 20.0
+      },
+      "own_state_gap_ms": {
+        "n": 44439,
+        "p50": 34.6,
+        "p95": 58.7,
+        "p99": 85.3,
+        "max": 1775.8
+      },
+      "input_to_moving_ms": {
+        "n": 927,
+        "p50": 4.5,
+        "p95": 43.1,
+        "p99": 99.9,
+        "max": 1851.2
+      },
+      "peer_move_gap_ms": {
+        "n": 40272,
+        "p50": 105.5,
+        "p95": 144.0,
+        "p99": 231.3,
+        "max": 735.9
+      },
+      "http_per_s": 19.6,
+      "http_ms": {
+        "n": 3528,
+        "p50": 59.7,
+        "p95": 200.7,
+        "p99": 301.9,
+        "max": 628.4
+      },
+      "http_ms_by_path": {
+        "/accounts/session/activity/": {
+          "n": 926,
+          "p50": 50.1,
+          "p95": 149.5,
+          "p99": 232.6,
+          "max": 346.9
+        },
+        "/api/event-main/ranking/": {
+          "n": 330,
+          "p50": 99.6,
+          "p95": 227.9,
+          "p99": 344.7,
+          "max": 368.9
+        },
+        "/api/event-main/status/": {
+          "n": 329,
+          "p50": 156.0,
+          "p95": 320.9,
+          "p99": 458.2,
+          "max": 628.4
+        },
+        "/api/event-story/achievements/": {
+          "n": 330,
+          "p50": 50.1,
+          "p95": 138.3,
+          "p99": 211.6,
+          "max": 241.1
+        },
+        "/api/event-story/recipe/status/": {
+          "n": 330,
+          "p50": 44.8,
+          "p95": 123.9,
+          "p99": 189.0,
+          "max": 248.7
+        },
+        "community": {
+          "n": 288,
+          "p50": 44.9,
+          "p95": 140.8,
+          "p99": 198.7,
+          "max": 233.1
+        },
+        "dm_send": {
+          "n": 176,
+          "p50": 78.8,
+          "p95": 196.7,
+          "p99": 283.3,
+          "max": 318.9
+        },
+        "lunch": {
+          "n": 76,
+          "p50": 52.3,
+          "p95": 127.3,
+          "p99": 253.4,
+          "max": 253.4
+        },
+        "menu": {
+          "n": 125,
+          "p50": 42.6,
+          "p95": 134.0,
+          "p99": 205.7,
+          "max": 347.6
+        },
+        "messages": {
+          "n": 324,
+          "p50": 58.4,
+          "p95": 199.6,
+          "p99": 274.6,
+          "max": 420.8
+        },
+        "wallet": {
+          "n": 294,
+          "p50": 42.7,
+          "p95": 134.7,
+          "p99": 202.7,
+          "max": 228.3
+        }
+      },
+      "http_status": {
+        "community 200": 288,
+        "/accounts/session/activity/ 200": 926,
+        "wallet 200": 294,
+        "messages 200": 324,
+        "/api/event-main/status/ 200": 329,
+        "/api/event-main/ranking/ 200": 330,
+        "/api/event-story/achievements/ 200": 330,
+        "/api/event-story/recipe/status/ 200": 330,
+        "dm_send 200": 88,
+        "dm_send 201": 88,
+        "lunch 200": 76,
+        "menu 200": 125
+      },
+      "closes": {},
+      "generator_loop_lag_ms": {
+        "n": 3588,
+        "p50": 0.2,
+        "p95": 0.9,
+        "p99": 3.7,
+        "max": 108.9
+      }
+    },
+    "reference_movement_ms": {
+      "input_to_first_moving_state_estimate": {
+        "n": 927,
+        "p50": 4.53,
+        "p95": 43.12,
+        "p99": 99.88,
+        "max": 1851.19
+      },
+      "own_state_interval": {
+        "n": 44439,
+        "p50": 34.6,
+        "p95": 58.65,
+        "p99": 85.3,
+        "max": 1775.82
+      },
+      "other_player_update_interval": {
+        "n": 40272,
+        "p50": 105.5,
+        "p95": 144.03,
+        "p99": 231.31,
+        "max": 735.92
+      },
+      "generator_event_loop_lag": {
+        "n": 3588,
+        "p50": 0.22,
+        "p95": 0.89,
+        "p99": 3.72,
+        "max": 108.89
+      }
+    },
+    "http_ms": {
+      "/accounts/session/activity/": {
+        "n": 926,
+        "p50": 49.97,
+        "p95": 149.47,
+        "p99": 232.57,
+        "max": 346.86
+      },
+      "/api/event-main/ranking/": {
+        "n": 330,
+        "p50": 99.62,
+        "p95": 227.92,
+        "p99": 344.72,
+        "max": 368.89
+      },
+      "/api/event-main/status/": {
+        "n": 329,
+        "p50": 155.98,
+        "p95": 320.91,
+        "p99": 458.22,
+        "max": 628.39
+      },
+      "/api/event-story/achievements/": {
+        "n": 330,
+        "p50": 49.85,
+        "p95": 138.32,
+        "p99": 211.56,
+        "max": 241.13
+      },
+      "/api/event-story/recipe/status/": {
+        "n": 330,
+        "p50": 44.29,
+        "p95": 123.91,
+        "p99": 188.97,
+        "max": 248.73
+      },
+      "community": {
+        "n": 288,
+        "p50": 44.87,
+        "p95": 140.77,
+        "p99": 198.7,
+        "max": 233.13
+      },
+      "dm_send": {
+        "n": 176,
+        "p50": 77.92,
+        "p95": 196.72,
+        "p99": 283.32,
+        "max": 318.87
+      },
+      "lunch": {
+        "n": 76,
+        "p50": 52.24,
+        "p95": 127.3,
+        "p99": 253.43,
+        "max": 253.43
+      },
+      "menu": {
+        "n": 125,
+        "p50": 42.55,
+        "p95": 134.04,
+        "p99": 205.72,
+        "max": 347.56
+      },
+      "messages": {
+        "n": 324,
+        "p50": 57.91,
+        "p95": 199.61,
+        "p99": 274.64,
+        "max": 420.77
+      },
+      "wallet": {
+        "n": 294,
+        "p50": 42.71,
+        "p95": 134.69,
+        "p99": 202.74,
+        "max": 228.29
+      }
+    },
+    "controls": {
+      "jump": {
+        "started": 694,
+        "outcomes": {
+          "ok": 694
+        },
+        "response_ms": {
+          "n": 694,
+          "p50": 3.71,
+          "p95": 50.97,
+          "p99": 298.38,
+          "max": 759.34
+        },
+        "p95_lower_bound_ms": 50.97,
+        "late_responses": 0,
+        "no_response_at_end": 0
+      }
+    },
+    "chat": {
+      "started": 1143,
+      "outcomes": {
+        "ok": 1143
+      },
+      "response_ms": {
+        "n": 1143,
+        "p50": 80.65,
+        "p95": 419.22,
+        "p99": 1370.13,
+        "max": 2074.12
+      },
+      "p95_lower_bound_ms": 419.22,
+      "late_responses": 0,
+      "no_response_at_end": 0
+    },
+    "http_all_ms": {
+      "n": 3528,
+      "p50": 59.72,
+      "p95": 200.75,
+      "p99": 301.91,
+      "max": 628.39
+    },
+    "http_statuses": {
+      "community 200": 288,
+      "/accounts/session/activity/ 200": 926,
+      "wallet 200": 294,
+      "messages 200": 324,
+      "/api/event-main/status/ 200": 329,
+      "/api/event-main/ranking/ 200": 330,
+      "/api/event-story/achievements/ 200": 330,
+      "/api/event-story/recipe/status/ 200": 330,
+      "dm_send 200": 88,
+      "dm_send 201": 88,
+      "lunch 200": 76,
+      "menu 200": 125
+    },
+    "http_unexpected": 0,
+    "window_utc_epoch": [
+      1793881803.636571,
+      1793881983.831197
+    ],
+    "resources": {
+      "samples": 89,
+      "db_connections_max": 9,
+      "db_active_max": 2,
+      "processes": {
+        "backend": {
+          "cpu_percent": {
+            "n": 89,
+            "p50": 51.7,
+            "p95": 65.7,
+            "p99": 74.2,
+            "max": 74.2
+          },
+          "rss_mib_max": 139.0
+        },
+        "frontend": {
+          "cpu_percent": {
+            "n": 89,
+            "p50": 25.0,
+            "p95": 29.0,
+            "p99": 31.1,
+            "max": 31.1
+          },
+          "rss_mib_max": 97.5
+        }
+      }
+    }
+  },
+  "scenarios": {
+    "achievements:restore": {
+      "n": 98,
+      "p50": 1053.67,
+      "p95": 1172.23,
+      "p99": 1326.84,
+      "max": 1326.84,
+      "unexpected": 0,
+      "statuses": {
+        "200": 98
+      }
+    },
+    "learning:answer": {
+      "n": 980,
+      "p50": 2888.25,
+      "p95": 3352.77,
+      "p99": 3482.35,
+      "max": 3540.12,
+      "unexpected": 0,
+      "statuses": {
+        "201": 980
+      }
+    },
+    "learning:answer_retry": {
+      "n": 980,
+      "p50": 1256.74,
+      "p95": 2345.24,
+      "p99": 2507.01,
+      "max": 2995.75,
+      "unexpected": 0,
+      "statuses": {
+        "201": 980
+      }
+    },
+    "learning:complete": {
+      "n": 98,
+      "p50": 2177.59,
+      "p95": 2527.89,
+      "p99": 2847.53,
+      "max": 2847.53,
+      "unexpected": 0,
+      "statuses": {
+        "200": 98
+      }
+    },
+    "learning:question": {
+      "n": 980,
+      "p50": 1227.17,
+      "p95": 1777.86,
+      "p99": 1930.27,
+      "max": 2026.58,
+      "unexpected": 0,
+      "statuses": {
+        "200": 980
+      }
+    },
+    "learning:start": {
+      "n": 100,
+      "p50": 10870.71,
+      "p95": 11040.14,
+      "p99": 11255.76,
+      "max": 11258.92,
+      "unexpected": 2,
+      "statuses": {
+        "500": 2,
+        "201": 98
+      }
+    },
+    "main:deliver": {
+      "n": 196,
+      "p50": 3588.42,
+      "p95": 5227.74,
+      "p99": 5299.91,
+      "max": 5300.87,
+      "unexpected": 0,
+      "statuses": {
+        "200": 196
+      }
+    },
+    "main:game_finish:card_match": {
+      "n": 98,
+      "p50": 2177.89,
+      "p95": 3081.05,
+      "p99": 3452.3,
+      "max": 3452.3,
+      "unexpected": 0,
+      "statuses": {
+        "200": 98
+      }
+    },
+    "main:game_finish:coating": {
+      "n": 98,
+      "p50": 1016.8,
+      "p95": 2919.48,
+      "p99": 3426.46,
+      "max": 3426.46,
+      "unexpected": 0,
+      "statuses": {
+        "200": 98
+      }
+    },
+    "main:game_finish:kkuwang_touch": {
+      "n": 98,
+      "p50": 1612.54,
+      "p95": 2775.69,
+      "p99": 2831.98,
+      "max": 2831.98,
+      "unexpected": 0,
+      "statuses": {
+        "200": 98
+      }
+    },
+    "main:game_finish:sql_memory": {
+      "n": 98,
+      "p50": 2378.95,
+      "p95": 3777.3,
+      "p99": 4432.42,
+      "max": 4432.42,
+      "unexpected": 0,
+      "statuses": {
+        "200": 98
+      }
+    },
+    "main:game_finish:topping": {
+      "n": 98,
+      "p50": 643.24,
+      "p95": 2855.41,
+      "p99": 2993.67,
+      "max": 2993.67,
+      "unexpected": 0,
+      "statuses": {
+        "200": 98
+      }
+    },
+    "main:game_finish:wrapping": {
+      "n": 98,
+      "p50": 782.0,
+      "p95": 2909.8,
+      "p99": 3154.36,
+      "max": 3154.36,
+      "unexpected": 0,
+      "statuses": {
+        "200": 98
+      }
+    },
+    "main:game_start:card_match": {
+      "n": 98,
+      "p50": 2636.43,
+      "p95": 3801.89,
+      "p99": 4091.54,
+      "max": 4091.54,
+      "unexpected": 0,
+      "statuses": {
+        "200": 98
+      }
+    },
+    "main:game_start:coating": {
+      "n": 98,
+      "p50": 2054.74,
+      "p95": 3416.61,
+      "p99": 3807.24,
+      "max": 3807.24,
+      "unexpected": 0,
+      "statuses": {
+        "200": 98
+      }
+    },
+    "main:game_start:kkuwang_touch": {
+      "n": 98,
+      "p50": 2519.13,
+      "p95": 3758.09,
+      "p99": 4343.1,
+      "max": 4343.1,
+      "unexpected": 0,
+      "statuses": {
+        "200": 98
+      }
+    },
+    "main:game_start:sql_memory": {
+      "n": 98,
+      "p50": 2969.17,
+      "p95": 4418.88,
+      "p99": 4525.19,
+      "max": 4525.19,
+      "unexpected": 0,
+      "statuses": {
+        "200": 98
+      }
+    },
+    "main:game_start:topping": {
+      "n": 98,
+      "p50": 958.59,
+      "p95": 2867.12,
+      "p99": 4112.43,
+      "max": 4112.43,
+      "unexpected": 0,
+      "statuses": {
+        "200": 98
+      }
+    },
+    "main:game_start:wrapping": {
+      "n": 98,
+      "p50": 573.31,
+      "p95": 2683.08,
+      "p99": 3207.52,
+      "max": 3207.52,
+      "unexpected": 0,
+      "statuses": {
+        "200": 98
+      }
+    },
+    "main:investigate": {
+      "n": 100,
+      "p50": 3365.55,
+      "p95": 4236.99,
+      "p99": 4335.5,
+      "max": 4335.89,
+      "unexpected": 2,
+      "statuses": {
+        "200": 98,
+        "500": 2
+      }
+    },
+    "main:restore": {
+      "n": 100,
+      "p50": 3407.59,
+      "p95": 3480.58,
+      "p99": 3481.47,
+      "max": 3482.19,
+      "unexpected": 2,
+      "statuses": {
+        "200": 98,
+        "500": 2
+      }
+    },
+    "main:room1_briefing": {
+      "n": 98,
+      "p50": 3123.2,
+      "p95": 4444.96,
+      "p99": 4549.96,
+      "max": 4549.96,
+      "unexpected": 0,
+      "statuses": {
+        "200": 98
+      }
+    },
+    "main:sql_answer": {
+      "n": 98,
+      "p50": 3145.89,
+      "p95": 4091.26,
+      "p99": 4408.95,
+      "max": 4408.95,
+      "unexpected": 0,
+      "statuses": {
+        "200": 98
+      }
+    },
+    "recipe:acquire": {
+      "n": 100,
+      "p50": 1465.61,
+      "p95": 2156.11,
+      "p99": 2205.72,
+      "max": 2221.57,
+      "unexpected": 4,
+      "statuses": {
+        "200": 96,
+        "500": 2,
+        "409": 2
+      }
+    },
+    "recipe:defer": {
+      "n": 96,
+      "p50": 1502.34,
+      "p95": 1602.19,
+      "p99": 1737.35,
+      "max": 1737.35,
+      "unexpected": 0,
+      "statuses": {
+        "200": 96
+      }
+    },
+    "recipe:finish": {
+      "n": 96,
+      "p50": 2256.67,
+      "p95": 2486.22,
+      "p99": 2549.79,
+      "max": 2549.79,
+      "unexpected": 0,
+      "statuses": {
+        "200": 96
+      }
+    },
+    "recipe:recognize": {
+      "n": 96,
+      "p50": 1509.71,
+      "p95": 1860.61,
+      "p99": 1961.73,
+      "max": 1961.73,
+      "unexpected": 0,
+      "statuses": {
+        "200": 96
+      }
+    },
+    "recipe:restore": {
+      "n": 194,
+      "p50": 696.58,
+      "p95": 1120.29,
+      "p99": 1187.56,
+      "max": 1218.51,
+      "unexpected": 0,
+      "statuses": {
+        "200": 194
+      }
+    },
+    "recipe:start": {
+      "n": 96,
+      "p50": 1457.75,
+      "p95": 1533.63,
+      "p99": 1551.97,
+      "max": 1551.97,
+      "unexpected": 0,
+      "statuses": {
+        "200": 96
+      }
+    },
+    "recipe:topping": {
+      "n": 96,
+      "p50": 1407.25,
+      "p95": 1504.68,
+      "p99": 1667.01,
+      "max": 1667.01,
+      "unexpected": 0,
+      "statuses": {
+        "200": 96
+      }
+    },
+    "term_match:result": {
+      "n": 100,
+      "p50": 1542.59,
+      "p95": 2018.38,
+      "p99": 2073.6,
+      "max": 2080.99,
+      "unexpected": 0,
+      "statuses": {
+        "200": 100
+      }
+    },
+    "term_match:retry": {
+      "n": 100,
+      "p50": 1376.29,
+      "p95": 1951.19,
+      "p99": 2009.21,
+      "max": 2044.41,
+      "unexpected": 0,
+      "statuses": {
+        "200": 100
+      }
+    },
+    "timer:result": {
+      "n": 100,
+      "p50": 1589.27,
+      "p95": 1867.58,
+      "p99": 1889.48,
+      "max": 1906.63,
+      "unexpected": 0,
+      "statuses": {
+        "200": 100
+      }
+    },
+    "timer:retry": {
+      "n": 100,
+      "p50": 1186.53,
+      "p95": 1765.47,
+      "p99": 1861.97,
+      "max": 1912.28,
+      "unexpected": 0,
+      "statuses": {
+        "200": 100
+      }
+    },
+    "typing:interrupt": {
+      "n": 100,
+      "p50": 70.57,
+      "p95": 133.12,
+      "p99": 157.09,
+      "max": 158.92,
+      "unexpected": 0,
+      "statuses": {
+        "200": 100
+      }
+    },
+    "typing:over_limit": {
+      "n": 100,
+      "p50": 61.67,
+      "p95": 95.42,
+      "p99": 126.42,
+      "max": 144.74,
+      "unexpected": 0,
+      "statuses": {
+        "400": 100
+      }
+    },
+    "typing:result": {
+      "n": 100,
+      "p50": 1109.43,
+      "p95": 1405.8,
+      "p99": 1451.27,
+      "max": 1479.25,
+      "unexpected": 0,
+      "statuses": {
+        "200": 100
+      }
+    },
+    "typing:retry": {
+      "n": 100,
+      "p50": 927.6,
+      "p95": 1372.7,
+      "p99": 1436.2,
+      "max": 1445.22,
+      "unexpected": 0,
+      "statuses": {
+        "200": 100
+      }
+    },
+    "ws:game_start": {
+      "n": 400,
+      "p50": 1458.51,
+      "p95": 4643.88,
+      "p99": 5005.68,
+      "max": 5046.13,
+      "unexpected": 0,
+      "statuses": {
+        "ok": 400
+      }
+    },
+    "ws:guide_talk": {
+      "n": 300,
+      "p50": 369.33,
+      "p95": 710.54,
+      "p99": 777.21,
+      "max": 793.85,
+      "unexpected": 0,
+      "statuses": {
+        "rejected": 300
+      }
+    },
+    "ws_connect": {
+      "n": 400,
+      "p50": 1647.52,
+      "p95": 2047.04,
+      "p99": 2087.73,
+      "max": 2122.36,
+      "unexpected": 0,
+      "statuses": {
+        "101": 400
+      }
+    }
+  },
+  "checks": [
+    {
+      "phase": "connect:timer",
+      "users": 100,
+      "seconds": 2.12,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "standalone:timer",
+      "users": 100,
+      "seconds": 15.69,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "far_guide_rejection:timer",
+      "users": 100,
+      "seconds": 0.55,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "disconnect:timer",
+      "users": 100,
+      "seconds": 0.01,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "connect:typing",
+      "users": 100,
+      "seconds": 2.1,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "standalone:typing",
+      "users": 100,
+      "seconds": 10.46,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "far_guide_rejection:typing",
+      "users": 100,
+      "seconds": 0.8,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "disconnect:typing",
+      "users": 100,
+      "seconds": 0.01,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "connect:term_match",
+      "users": 100,
+      "seconds": 2.14,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "standalone:term_match",
+      "users": 100,
+      "seconds": 10.52,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "far_guide_rejection:term_match",
+      "users": 100,
+      "seconds": 0.53,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "main_games_and_final_rank",
+      "users": 100,
+      "seconds": 98.1,
+      "passed": 98,
+      "errors": {
+        "main:investigate: 500 {'error': 'non-json response'}": 2
+      }
+    },
+    {
+      "phase": "recipe_full_branches",
+      "users": 100,
+      "seconds": 10.64,
+      "passed": 96,
+      "errors": {
+        "recipe:acquire: 409 {'error': 'main_quest_required', 'message': '메인 미션을 완료하면 주울 것 같이 생겼어요'}": 2,
+        "recipe:acquire: 500 {'error': 'non-json response'}": 2
+      }
+    },
+    {
+      "phase": "learning_all_subjects_and_types",
+      "users": 100,
+      "seconds": 69.18,
+      "passed": 98,
+      "errors": {
+        "learning:start: 500 {'error': 'non-json response'}": 2
+      }
+    },
+    {
+      "phase": "disconnect:final",
+      "users": 100,
+      "seconds": 0.02,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "reconnect:restore",
+      "users": 100,
+      "seconds": 2.12,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "state_after_reconnect",
+      "users": 100,
+      "seconds": 5.59,
+      "passed": 98,
+      "errors": {
+        "main:restore: 500 {'error': 'non-json response'}": 2
+      }
+    },
+    {
+      "phase": "disconnect:cleanup",
+      "users": 100,
+      "seconds": 0.01,
+      "passed": 100,
+      "errors": {}
+    }
+  ],
+  "npc": {
+    "ws:guide_talk": {
+      "n": 99,
+      "p50": 1362.71,
+      "p95": 2147.77,
+      "p99": 2235.5,
+      "max": 2235.5,
+      "unexpected": 0,
+      "statuses": {
+        "ok": 99
+      }
+    },
+    "ws:manager_greet": {
+      "n": 100,
+      "p50": 1605.89,
+      "p95": 2418.96,
+      "p99": 2495.86,
+      "max": 2512.64,
+      "unexpected": 0,
+      "statuses": {
+        "ok": 100
+      }
+    },
+    "ws:pepero_refill": {
+      "n": 100,
+      "p50": 316.56,
+      "p95": 587.46,
+      "p99": 587.5,
+      "max": 587.5,
+      "unexpected": 0,
+      "statuses": {
+        "ok": 100
+      }
+    },
+    "ws:poke": {
+      "n": 892,
+      "p50": 367.03,
+      "p95": 1857.65,
+      "p99": 2086.01,
+      "max": 2130.93,
+      "unexpected": 0,
+      "statuses": {
+        "ok": 892
+      }
+    },
+    "ws:quick_travel": {
+      "n": 200,
+      "p50": 308.68,
+      "p95": 562.13,
+      "p99": 592.87,
+      "max": 602.85,
+      "unexpected": 0,
+      "statuses": {
+        "ok": 200
+      }
+    },
+    "ws_connect": {
+      "n": 100,
+      "p50": 1696.21,
+      "p95": 2077.89,
+      "p99": 2113.0,
+      "max": 2123.8,
+      "unexpected": 0,
+      "statuses": {
+        "101": 100
+      }
+    }
+  },
+  "npc_checks": [
+    {
+      "phase": "connect:npc",
+      "users": 100,
+      "seconds": 2.15,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "pepero_refill",
+      "users": 100,
+      "seconds": 0.6,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "quick_travel:market",
+      "users": 100,
+      "seconds": 0.57,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "walk:manager",
+      "users": 100,
+      "seconds": 1.77,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "manager_greet",
+      "users": 100,
+      "seconds": 2.52,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "manager_poke_with_inventory",
+      "users": 100,
+      "seconds": 9.01,
+      "passed": 99,
+      "errors": {
+        "unblocked hit required": 1
+      }
+    },
+    {
+      "phase": "quick_travel:gallery",
+      "users": 100,
+      "seconds": 0.61,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "walk:guide",
+      "users": 100,
+      "seconds": 6.65,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "guide_talk_one_remaining",
+      "users": 100,
+      "seconds": 2.24,
+      "passed": 99,
+      "errors": {
+        "server inventory=10": 1
+      }
+    },
+    {
+      "phase": "close:npc",
+      "users": 100,
+      "seconds": 0.01,
+      "passed": 100,
+      "errors": {}
+    }
+  ],
+  "audit": {
+    "egg_count": 10,
+    "duplicate_users": [],
+    "duplicate_eggs": [],
+    "invalid_egg_metadata": 0,
+    "egg_order_not_one": 0,
+    "eggs_missing_session": 0,
+    "main_completed": 98,
+    "main_rank_unique": true,
+    "main_ranks_contiguous": true,
+    "main_missing_session": 0,
+    "recipe_completed": 96,
+    "plays": {
+      "FAILED": 98,
+      "INTERRUPTED": 100,
+      "SUCCESS": 692,
+      "FINISHED": 98
+    },
+    "learning_completed": 195,
+    "answers": 2269,
+    "ledger_rows": 2243
+  },
+  "regression": {
+    "backend_exit": 1,
+    "frontend_exit": 0
+  },
+  "persistence": {
+    "accounts": 100,
+    "http_concurrency": 10,
+    "passed": 100,
+    "errors": [],
+    "progress_and_history_unchanged": true,
+    "before": {
+      "event_progress": {
+        "rows": 1008,
+        "sha256": "cbc3bd7a7fd59ff5c622ba66c74d035986d3d30ace9f12995bffb8798887865f"
+      },
+      "event_story_storyprogress": {
+        "rows": 196,
+        "sha256": "726e16a4458db448265fd5a4b3736b90af3c98d6aad9bd1578927c885b79c976"
+      },
+      "event_story_storyrecord": {
+        "rows": 676,
+        "sha256": "a3731f6bcaeba1fff1e345d766ebaed05ed54d3c8aa1b60854628af6d96b0e71"
+      }
+    },
+    "after": {
+      "event_progress": {
+        "rows": 1008,
+        "sha256": "cbc3bd7a7fd59ff5c622ba66c74d035986d3d30ace9f12995bffb8798887865f"
+      },
+      "event_story_storyprogress": {
+        "rows": 196,
+        "sha256": "726e16a4458db448265fd5a4b3736b90af3c98d6aad9bd1578927c885b79c976"
+      },
+      "event_story_storyrecord": {
+        "rows": 676,
+        "sha256": "a3731f6bcaeba1fff1e345d766ebaed05ed54d3c8aa1b60854628af6d96b0e71"
+      }
+    }
+  },
+  "hardware": {
+    "platform": "macOS-14.6.1-arm64-arm-64bit",
+    "python": "3.12.11",
+    "cpu": "Apple M1 Pro",
+    "logical_cpus": "8",
+    "memory_bytes": "17179869184"
+  },
+  "live_db": {
+    "max_connections": "100",
+    "shared_buffers": "32MB",
+    "postgres_version": "17.7 (Debian 17.7-3.pgdg12+1)",
+    "question_counts": [
+      [
+        "cs",
+        "advanced",
+        "fill_blank",
+        200
+      ],
+      [
+        "cs",
+        "advanced",
+        "multiple_choice",
+        200
+      ],
+      [
+        "cs",
+        "beginner",
+        "fill_blank",
+        200
+      ],
+      [
+        "cs",
+        "beginner",
+        "multiple_choice",
+        200
+      ],
+      [
+        "cs",
+        "intermediate",
+        "fill_blank",
+        200
+      ],
+      [
+        "cs",
+        "intermediate",
+        "multiple_choice",
+        200
+      ],
+      [
+        "python",
+        "advanced",
+        "fill_blank",
+        200
+      ],
+      [
+        "python",
+        "advanced",
+        "multiple_choice",
+        200
+      ],
+      [
+        "python",
+        "beginner",
+        "fill_blank",
+        200
+      ],
+      [
+        "python",
+        "beginner",
+        "multiple_choice",
+        200
+      ],
+      [
+        "python",
+        "intermediate",
+        "fill_blank",
+        200
+      ],
+      [
+        "python",
+        "intermediate",
+        "multiple_choice",
+        200
+      ],
+      [
+        "sql",
+        "advanced",
+        "fill_blank",
+        200
+      ],
+      [
+        "sql",
+        "advanced",
+        "multiple_choice",
+        200
+      ],
+      [
+        "sql",
+        "beginner",
+        "fill_blank",
+        200
+      ],
+      [
+        "sql",
+        "beginner",
+        "multiple_choice",
+        200
+      ],
+      [
+        "sql",
+        "intermediate",
+        "fill_blank",
+        200
+      ],
+      [
+        "sql",
+        "intermediate",
+        "multiple_choice",
+        200
+      ]
+    ]
+  },
+  "test_db": {
+    "max_connections": "100",
+    "shared_buffers": "128MB",
+    "server_version": "17.7 (Debian 17.7-3.pgdg12+1)"
+  },
+  "bank_counts": [
+    {
+      "subject": "cs",
+      "difficulty": "advanced",
+      "question_type": "fill_blank",
+      "n": 200
+    },
+    {
+      "subject": "cs",
+      "difficulty": "advanced",
+      "question_type": "multiple_choice",
+      "n": 200
+    },
+    {
+      "subject": "cs",
+      "difficulty": "beginner",
+      "question_type": "fill_blank",
+      "n": 200
+    },
+    {
+      "subject": "cs",
+      "difficulty": "beginner",
+      "question_type": "multiple_choice",
+      "n": 200
+    },
+    {
+      "subject": "cs",
+      "difficulty": "intermediate",
+      "question_type": "fill_blank",
+      "n": 200
+    },
+    {
+      "subject": "cs",
+      "difficulty": "intermediate",
+      "question_type": "multiple_choice",
+      "n": 200
+    },
+    {
+      "subject": "python",
+      "difficulty": "advanced",
+      "question_type": "fill_blank",
+      "n": 200
+    },
+    {
+      "subject": "python",
+      "difficulty": "advanced",
+      "question_type": "multiple_choice",
+      "n": 200
+    },
+    {
+      "subject": "python",
+      "difficulty": "beginner",
+      "question_type": "fill_blank",
+      "n": 200
+    },
+    {
+      "subject": "python",
+      "difficulty": "beginner",
+      "question_type": "multiple_choice",
+      "n": 200
+    },
+    {
+      "subject": "python",
+      "difficulty": "intermediate",
+      "question_type": "fill_blank",
+      "n": 200
+    },
+    {
+      "subject": "python",
+      "difficulty": "intermediate",
+      "question_type": "multiple_choice",
+      "n": 200
+    },
+    {
+      "subject": "sql",
+      "difficulty": "advanced",
+      "question_type": "fill_blank",
+      "n": 200
+    },
+    {
+      "subject": "sql",
+      "difficulty": "advanced",
+      "question_type": "multiple_choice",
+      "n": 200
+    },
+    {
+      "subject": "sql",
+      "difficulty": "beginner",
+      "question_type": "fill_blank",
+      "n": 200
+    },
+    {
+      "subject": "sql",
+      "difficulty": "beginner",
+      "question_type": "multiple_choice",
+      "n": 200
+    },
+    {
+      "subject": "sql",
+      "difficulty": "intermediate",
+      "question_type": "fill_blank",
+      "n": 200
+    },
+    {
+      "subject": "sql",
+      "difficulty": "intermediate",
+      "question_type": "multiple_choice",
+      "n": 200
+    }
+  ],
+  "award_requests": {
+    "timer:result": {
+      "new_awards": 1,
+      "new_award_ms": {
+        "n": 1,
+        "p50": 133.21,
+        "p95": 133.21,
+        "p99": 133.21,
+        "max": 133.21
+      },
+      "no_award_ms": {
+        "n": 99,
+        "p50": 1591.75,
+        "p95": 1868.17,
+        "p99": 1906.63,
+        "max": 1906.63
+      }
+    },
+    "timer:retry": {
+      "new_awards": 0,
+      "new_award_ms": null,
+      "no_award_ms": {
+        "n": 100,
+        "p50": 1186.53,
+        "p95": 1765.47,
+        "p99": 1861.97,
+        "max": 1912.28
+      }
+    },
+    "typing:result": {
+      "new_awards": 1,
+      "new_award_ms": {
+        "n": 1,
+        "p50": 117.66,
+        "p95": 117.66,
+        "p99": 117.66,
+        "max": 117.66
+      },
+      "no_award_ms": {
+        "n": 99,
+        "p50": 1137.9,
+        "p95": 1426.87,
+        "p99": 1479.25,
+        "max": 1479.25
+      }
+    },
+    "typing:retry": {
+      "new_awards": 0,
+      "new_award_ms": null,
+      "no_award_ms": {
+        "n": 100,
+        "p50": 927.6,
+        "p95": 1372.7,
+        "p99": 1436.2,
+        "max": 1445.22
+      }
+    },
+    "typing:interrupt": {
+      "new_awards": 0,
+      "new_award_ms": null,
+      "no_award_ms": {
+        "n": 100,
+        "p50": 70.57,
+        "p95": 133.12,
+        "p99": 157.09,
+        "max": 158.92
+      }
+    },
+    "term_match:result": {
+      "new_awards": 1,
+      "new_award_ms": {
+        "n": 1,
+        "p50": 156.31,
+        "p95": 156.31,
+        "p99": 156.31,
+        "max": 156.31
+      },
+      "no_award_ms": {
+        "n": 99,
+        "p50": 1545.39,
+        "p95": 2027.95,
+        "p99": 2080.99,
+        "max": 2080.99
+      }
+    },
+    "term_match:retry": {
+      "new_awards": 0,
+      "new_award_ms": null,
+      "no_award_ms": {
+        "n": 100,
+        "p50": 1376.29,
+        "p95": 1951.19,
+        "p99": 2009.21,
+        "max": 2044.41
+      }
+    },
+    "recipe:finish": {
+      "new_awards": 1,
+      "new_award_ms": {
+        "n": 1,
+        "p50": 1424.89,
+        "p95": 1424.89,
+        "p99": 1424.89,
+        "max": 1424.89
+      },
+      "no_award_ms": {
+        "n": 95,
+        "p50": 2266.3,
+        "p95": 2486.22,
+        "p99": 2549.79,
+        "max": 2549.79
+      }
+    },
+    "learning:complete": {
+      "new_awards": 3,
+      "new_award_ms": {
+        "n": 3,
+        "p50": 2625.36,
+        "p95": 2847.53,
+        "p99": 2847.53,
+        "max": 2847.53
+      },
+      "no_award_ms": {
+        "n": 95,
+        "p50": 2173.43,
+        "p95": 2503.96,
+        "p99": 2716.95,
+        "max": 2716.95
+      }
+    },
+    "ws:manager_greet": {
+      "new_awards": 1,
+      "new_award_ms": {
+        "n": 1,
+        "p50": 721.15,
+        "p95": 721.15,
+        "p99": 721.15,
+        "max": 721.15
+      },
+      "no_award_ms": {
+        "n": 99,
+        "p50": 1623.12,
+        "p95": 2436.14,
+        "p99": 2512.64,
+        "max": 2512.64
+      }
+    },
+    "ws:guide_talk": {
+      "new_awards": 1,
+      "new_award_ms": {
+        "n": 1,
+        "p50": 602.86,
+        "p95": 602.86,
+        "p99": 602.86,
+        "max": 602.86
+      },
+      "no_award_ms": {
+        "n": 98,
+        "p50": 1362.71,
+        "p95": 2147.77,
+        "p99": 2235.5,
+        "max": 2235.5
+      }
+    }
+  },
+  "private_poke": {
+    "ws:mission_room_enter": {
+      "n": 100,
+      "p50": 342.35,
+      "p95": 639.95,
+      "p99": 669.36,
+      "max": 674.62,
+      "unexpected": 0,
+      "statuses": {
+        "ok": 100
+      }
+    },
+    "ws:pepero_refill": {
+      "n": 100,
+      "p50": 281.04,
+      "p95": 539.87,
+      "p99": 539.88,
+      "max": 539.88,
+      "unexpected": 0,
+      "statuses": {
+        "ok": 100
+      }
+    },
+    "ws:poke": {
+      "n": 100,
+      "p50": 1601.35,
+      "p95": 2472.5,
+      "p99": 2981.79,
+      "max": 2999.88,
+      "unexpected": 0,
+      "statuses": {
+        "ok": 100
+      }
+    },
+    "ws:quick_travel": {
+      "n": 100,
+      "p50": 1051.55,
+      "p95": 1491.81,
+      "p99": 1530.83,
+      "max": 1540.13,
+      "unexpected": 0,
+      "statuses": {
+        "ok": 100
+      }
+    },
+    "ws_connect": {
+      "n": 100,
+      "p50": 1702.92,
+      "p95": 2071.8,
+      "p99": 2108.69,
+      "max": 2117.76,
+      "unexpected": 0,
+      "statuses": {
+        "101": 100
+      }
+    }
+  },
+  "private_poke_checks": [
+    {
+      "phase": "connect:private_poke",
+      "users": 100,
+      "seconds": 2.14,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "refill:private_poke",
+      "users": 100,
+      "seconds": 0.54,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "travel:private_poke",
+      "users": 100,
+      "seconds": 1.54,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "walk:room1",
+      "users": 100,
+      "seconds": 2.44,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "enter:room1",
+      "users": 100,
+      "seconds": 0.68,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "walk:private_manager",
+      "users": 100,
+      "seconds": 1.77,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "poke:eleventh_manager_hit",
+      "users": 100,
+      "seconds": 3.0,
+      "passed": 100,
+      "errors": {}
+    },
+    {
+      "phase": "close:private_poke",
+      "users": 100,
+      "seconds": 0.01,
+      "passed": 100,
+      "errors": {}
+    }
+  ],
+  "diagnostic_http": {
+    "/api/event-main/ranking/": {
+      "n": 10,
+      "sql_counts": [
+        33,
+        34
+      ],
+      "sql_ms": {
+        "n": 10,
+        "p50": 20.5,
+        "p95": 23.79,
+        "p99": 23.79,
+        "max": 23.79
+      },
+      "handler_ms": {
+        "n": 10,
+        "p50": 37.96,
+        "p95": 41.47,
+        "p99": 41.47,
+        "max": 41.47
+      },
+      "profile_reads": [
+        25
+      ]
+    },
+    "/api/event-main/status/": {
+      "n": 10,
+      "sql_counts": [
+        62,
+        63
+      ],
+      "sql_ms": {
+        "n": 10,
+        "p50": 36.71,
+        "p95": 54.49,
+        "p99": 54.49,
+        "max": 54.49
+      },
+      "handler_ms": {
+        "n": 10,
+        "p50": 62.35,
+        "p95": 80.56,
+        "p99": 80.56,
+        "max": 80.56
+      },
+      "profile_reads": [
+        25
+      ]
+    },
+    "/api/event-story/achievements/": {
+      "n": 10,
+      "sql_counts": [
+        8
+      ],
+      "sql_ms": {
+        "n": 10,
+        "p50": 7.62,
+        "p95": 8.42,
+        "p99": 8.42,
+        "max": 8.42
+      },
+      "handler_ms": {
+        "n": 10,
+        "p50": 18.45,
+        "p95": 19.18,
+        "p99": 19.18,
+        "max": 19.18
+      },
+      "profile_reads": [
+        0
+      ]
+    },
+    "/api/event-story/recipe/status/": {
+      "n": 10,
+      "sql_counts": [
+        8
+      ],
+      "sql_ms": {
+        "n": 10,
+        "p50": 6.83,
+        "p95": 7.24,
+        "p99": 7.24,
+        "max": 7.24
+      },
+      "handler_ms": {
+        "n": 10,
+        "p50": 16.08,
+        "p95": 17.22,
+        "p99": 17.22,
+        "max": 17.22
+      },
+      "profile_reads": [
+        0
+      ]
+    }
+  },
+  "diagnostic_socket_db": {
+    "CampusConsumer.identity_now": {
+      "n": 843,
+      "queue_ms": {
+        "n": 843,
+        "p50": 1018.26,
+        "p95": 1865.41,
+        "p99": 2071.94,
+        "max": 2229.29
+      },
+      "function_ms": {
+        "n": 843,
+        "p50": 12.15,
+        "p95": 21.57,
+        "p99": 28.75,
+        "max": 68.91
+      },
+      "sql_ms": {
+        "n": 843,
+        "p50": 8.1,
+        "p95": 16.13,
+        "p99": 22.76,
+        "max": 60.83
+      }
+    },
+    "CampusConsumer.store_position_now": {
+      "n": 1170,
+      "queue_ms": {
+        "n": 1170,
+        "p50": 1086.24,
+        "p95": 1865.14,
+        "p99": 2018.42,
+        "max": 2242.76
+      },
+      "function_ms": {
+        "n": 1170,
+        "p50": 23.4,
+        "p95": 37.37,
+        "p99": 51.7,
+        "max": 98.01
+      },
+      "sql_ms": {
+        "n": 1170,
+        "p50": 16.04,
+        "p95": 28.71,
+        "p99": 39.57,
+        "max": 86.92
+      }
+    },
+    "ChatConsumer.identity_now": {
+      "n": 1396,
+      "queue_ms": {
+        "n": 1396,
+        "p50": 1059.25,
+        "p95": 1857.35,
+        "p99": 2023.88,
+        "max": 2222.02
+      },
+      "function_ms": {
+        "n": 1396,
+        "p50": 12.85,
+        "p95": 23.63,
+        "p99": 34.34,
+        "max": 90.96
+      },
+      "sql_ms": {
+        "n": 1396,
+        "p50": 8.58,
+        "p95": 18.4,
+        "p99": 27.81,
+        "max": 84.81
+      }
+    },
+    "ChatConsumer.store_chat": {
+      "n": 621,
+      "queue_ms": {
+        "n": 621,
+        "p50": 1139.82,
+        "p95": 1850.0,
+        "p99": 2172.88,
+        "max": 2218.42
+      },
+      "function_ms": {
+        "n": 621,
+        "p50": 17.46,
+        "p95": 30.5,
+        "p99": 46.91,
+        "max": 78.61
+      },
+      "sql_ms": {
+        "n": 621,
+        "p50": 11.89,
+        "p95": 23.07,
+        "p99": 37.04,
+        "max": 75.15
+      }
+    },
+    "check_session": {
+      "n": 1040,
+      "queue_ms": {
+        "n": 1040,
+        "p50": 795.94,
+        "p95": 1864.72,
+        "p99": 2025.75,
+        "max": 2237.58
+      },
+      "function_ms": {
+        "n": 1040,
+        "p50": 5.33,
+        "p95": 12.42,
+        "p99": 19.35,
+        "max": 32.64
+      },
+      "sql_ms": {
+        "n": 1040,
+        "p50": 2.73,
+        "p95": 8.08,
+        "p99": 12.24,
+        "max": 29.08
+      }
+    },
+    "ensure_platform_session": {
+      "n": 100,
+      "queue_ms": {
+        "n": 100,
+        "p50": 1.33,
+        "p95": 81.59,
+        "p99": 126.82,
+        "max": 137.22
+      },
+      "function_ms": {
+        "n": 100,
+        "p50": 3.96,
+        "p95": 8.22,
+        "p99": 12.45,
+        "max": 15.15
+      },
+      "sql_ms": {
+        "n": 100,
+        "p50": 1.94,
+        "p95": 4.84,
+        "p99": 6.44,
+        "max": 12.79
+      }
+    },
+    "get_identity": {
+      "n": 100,
+      "queue_ms": {
+        "n": 100,
+        "p50": 3.8,
+        "p95": 102.13,
+        "p99": 137.21,
+        "max": 139.17
+      },
+      "function_ms": {
+        "n": 100,
+        "p50": 0.02,
+        "p95": 0.02,
+        "p99": 0.03,
+        "max": 0.03
+      },
+      "sql_ms": {
+        "n": 100,
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0
+      }
+    },
+    "get_position": {
+      "n": 100,
+      "queue_ms": {
+        "n": 100,
+        "p50": 3.8,
+        "p95": 88.04,
+        "p99": 136.04,
+        "max": 142.03
+      },
+      "function_ms": {
+        "n": 100,
+        "p50": 2.24,
+        "p95": 6.12,
+        "p99": 8.73,
+        "max": 10.16
+      },
+      "sql_ms": {
+        "n": 100,
+        "p50": 0.81,
+        "p95": 4.1,
+        "p99": 5.92,
+        "max": 6.03
+      }
+    },
+    "needs_profile_setup": {
+      "n": 200,
+      "queue_ms": {
+        "n": 200,
+        "p50": 3.25,
+        "p95": 106.66,
+        "p99": 138.92,
+        "max": 153.82
+      },
+      "function_ms": {
+        "n": 200,
+        "p50": 2.79,
+        "p95": 7.86,
+        "p99": 12.57,
+        "max": 13.43
+      },
+      "sql_ms": {
+        "n": 200,
+        "p50": 1.04,
+        "p95": 3.17,
+        "p99": 7.04,
+        "max": 10.67
+      }
+    },
+    "read_state": {
+      "n": 52,
+      "queue_ms": {
+        "n": 52,
+        "p50": 804.49,
+        "p95": 1893.2,
+        "p99": 2224.31,
+        "max": 2224.31
+      },
+      "function_ms": {
+        "n": 52,
+        "p50": 0.01,
+        "p95": 3.77,
+        "p99": 5.64,
+        "max": 5.64
+      },
+      "sql_ms": {
+        "n": 52,
+        "p50": 0,
+        "p95": 1.7,
+        "p99": 2.37,
+        "max": 2.37
+      }
+    },
+    "touch_platform_session": {
+      "n": 382,
+      "queue_ms": {
+        "n": 382,
+        "p50": 1143.37,
+        "p95": 1901.24,
+        "p99": 2215.81,
+        "max": 2227.75
+      },
+      "function_ms": {
+        "n": 382,
+        "p50": 2.93,
+        "p95": 7.46,
+        "p99": 12.16,
+        "max": 51.61
+      },
+      "sql_ms": {
+        "n": 382,
+        "p50": 1.37,
+        "p95": 4.47,
+        "p99": 7.55,
+        "max": 9.47
+      }
+    }
+  }
+}

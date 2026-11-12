@@ -1,0 +1,35 @@
+{
+  "accounts": 100,
+  "http_concurrency": 10,
+  "passed": 100,
+  "errors": [],
+  "progress_and_history_unchanged": true,
+  "before": {
+    "event_progress": {
+      "rows": 1008,
+      "sha256": "cbc3bd7a7fd59ff5c622ba66c74d035986d3d30ace9f12995bffb8798887865f"
+    },
+    "event_story_storyprogress": {
+      "rows": 196,
+      "sha256": "726e16a4458db448265fd5a4b3736b90af3c98d6aad9bd1578927c885b79c976"
+    },
+    "event_story_storyrecord": {
+      "rows": 676,
+      "sha256": "a3731f6bcaeba1fff1e345d766ebaed05ed54d3c8aa1b60854628af6d96b0e71"
+    }
+  },
+  "after": {
+    "event_progress": {
+      "rows": 1008,
+      "sha256": "cbc3bd7a7fd59ff5c622ba66c74d035986d3d30ace9f12995bffb8798887865f"
+    },
+    "event_story_storyprogress": {
+      "rows": 196,
+      "sha256": "726e16a4458db448265fd5a4b3736b90af3c98d6aad9bd1578927c885b79c976"
+    },
+    "event_story_storyrecord": {
+      "rows": 676,
+      "sha256": "a3731f6bcaeba1fff1e345d766ebaed05ed54d3c8aa1b60854628af6d96b0e71"
+    }
+  }
+}

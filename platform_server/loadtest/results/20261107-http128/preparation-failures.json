@@ -1,0 +1,22 @@
+{
+  "owned_jobs_check": {
+    "timestamp": "2026-11-07T05:36:18.679Z",
+    "source": "original Codex function_call_output",
+    "output": "Traceback (most recent call last):\n  File \"<string>\", line 23, in <module>\nAssertionError: /private/tmp/platform-event-postgres-venv/bin/python -B /Users/sindong-yeob/projects/platform-server/pipeline/tests/ws-20261106/runtime.py\n\n"
+  },
+  "expired_session": {
+    "timestamp": "2026-11-07T05:41:26.760Z",
+    "source": "original Codex function_call_output",
+    "output": "START a1 service_backlog 50\nTraceback (most recent call last):\n  File \"/private/tmp/platform-http128-20261107/run.py\", line 96, in <module>\n    run(out,'refresh_sessions.py')\n  File \"/private/tmp/platform-http128-20261107/run.py\", line 68, in run\n    assert r.returncode in allowed,(name,args,r.returncode)\n           ^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: ('refresh_sessions.py', (), 1)\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/private/tmp/platform-http128-20261107/run.py\", line 117, in <module>\n    rows=json.loads((active/'front-pids.json').read_text());row=next(r for r in rows if r['port']==9582)\n                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sindong-yeob/miniforge3/lib/python3.12/pathlib.py\", line 1027, in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors) as f:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sindong-yeob/miniforge3/lib/python3.12/pathlib.py\", line 1013, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: '/private/tmp/platform-http128-20261107/a1/front-pids.json'\n"
+  },
+  "redis_fixture_guard": {
+    "timestamp": "2026-11-07T05:44:04.639Z",
+    "source": "original Codex function_call_output",
+    "output": "START a1 service_backlog 50\nFEATURES_FINISHED a1\nTraceback (most recent call last):\n  File \"/private/tmp/platform-http128-20261107/resume.py\", line 69, in <module>\n    run(out,'fixtures.py','casual')\n  File \"/private/tmp/platform-http128-20261107/resume.py\", line 27, in run\n    assert r.returncode in allowed,(name,args,r.returncode)\n           ^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: ('fixtures.py', ('casual',), 1)\n"
+  },
+  "restored_baseline_cap": {
+    "timestamp": "2026-11-07T05:44:56.837Z",
+    "source": "original Codex function_call_output",
+    "output": "START a1 service_backlog 50\nTraceback (most recent call last):\n  File \"/private/tmp/platform-http128-20261107/resume.py\", line 63, in <module>\n    line=next(x for x in queue.splitlines() if f'127.0.0.1.{port}' in x);assert int(line.split()[0].split('/')[-1])==expected,line\n                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 0/0/128        127.0.0.1.9582         \n"
+  }
+}

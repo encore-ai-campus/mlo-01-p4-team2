@@ -1,0 +1,155 @@
+[
+  {
+    "phase": "connect:timer",
+    "users": 100,
+    "seconds": 0.8,
+    "passed": 89,
+    "errors": {
+      "server rejected WebSocket connection: HTTP 502": 11
+    }
+  },
+  {
+    "phase": "standalone:timer",
+    "users": 100,
+    "seconds": 13.76,
+    "passed": 89,
+    "errors": {
+      "'NoneType' object has no attribute 'send'": 11
+    }
+  },
+  {
+    "phase": "far_guide_rejection:timer",
+    "users": 100,
+    "seconds": 0.16,
+    "passed": 89,
+    "errors": {
+      "'NoneType' object has no attribute 'send'": 11
+    }
+  },
+  {
+    "phase": "disconnect:timer",
+    "users": 100,
+    "seconds": 0.01,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "connect:typing",
+    "users": 100,
+    "seconds": 0.91,
+    "passed": 99,
+    "errors": {
+      "server rejected WebSocket connection: HTTP 502": 1
+    }
+  },
+  {
+    "phase": "standalone:typing",
+    "users": 100,
+    "seconds": 5.44,
+    "passed": 91,
+    "errors": {
+      "'NoneType' object has no attribute 'send'": 1,
+      "typing:result: 500 {'error': 'non-json response'}": 8
+    }
+  },
+  {
+    "phase": "far_guide_rejection:typing",
+    "users": 100,
+    "seconds": 0.18,
+    "passed": 99,
+    "errors": {
+      "'NoneType' object has no attribute 'send'": 1
+    }
+  },
+  {
+    "phase": "disconnect:typing",
+    "users": 100,
+    "seconds": 0.01,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "connect:term_match",
+    "users": 100,
+    "seconds": 0.87,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "standalone:term_match",
+    "users": 100,
+    "seconds": 8.71,
+    "passed": 92,
+    "errors": {
+      "term_match:result: 500 {'error': 'non-json response'}": 8
+    }
+  },
+  {
+    "phase": "far_guide_rejection:term_match",
+    "users": 100,
+    "seconds": 0.21,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "main_games_and_final_rank",
+    "users": 100,
+    "seconds": 70.43,
+    "passed": 91,
+    "errors": {
+      "main:investigate: 500 {'error': 'non-json response'}": 9
+    }
+  },
+  {
+    "phase": "recipe_full_branches",
+    "users": 100,
+    "seconds": 4.58,
+    "passed": 83,
+    "errors": {
+      "recipe:acquire: 500 {'error': 'non-json response'}": 9,
+      "recipe:acquire: 409 {'error': 'main_quest_required', 'message': '메인 미션을 완료하면 주울 것 같이 생겼어요'}": 8
+    }
+  },
+  {
+    "phase": "learning_all_subjects_and_types",
+    "users": 100,
+    "seconds": 31.43,
+    "passed": 89,
+    "errors": {
+      "learning:question: 500 {'error': 'non-json response'}": 2,
+      "learning:start: 500 {'error': 'non-json response'}": 9
+    }
+  },
+  {
+    "phase": "disconnect:final",
+    "users": 100,
+    "seconds": 0.02,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "reconnect:restore",
+    "users": 100,
+    "seconds": 0.79,
+    "passed": 82,
+    "errors": {
+      "server rejected WebSocket connection: HTTP 502": 18
+    }
+  },
+  {
+    "phase": "state_after_reconnect",
+    "users": 100,
+    "seconds": 2.85,
+    "passed": 91,
+    "errors": {
+      "main:restore: 500 {'error': 'non-json response'}": 9
+    }
+  },
+  {
+    "phase": "disconnect:cleanup",
+    "users": 100,
+    "seconds": 0.01,
+    "passed": 100,
+    "errors": {}
+  }
+]

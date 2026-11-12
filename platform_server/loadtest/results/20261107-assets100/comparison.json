@@ -1,0 +1,343 @@
+{
+  "scope": "100 independent curl clients on loopback HTTP/1.1, single Nginx worker, current frontend/dist files; no application authentication, WS, DB, browser decode, TLS or WAN load",
+  "native_curl_runs": [
+    {
+      "directory": "native-curl",
+      "results": [
+        {
+          "label": "one-user-all",
+          "users": 1,
+          "parallel_per_user": 4,
+          "files_per_user": 225,
+          "bytes_per_user": 117585991,
+          "requests": 225,
+          "success": 225,
+          "errors": 0,
+          "completed_users": 1,
+          "successful_users": 1,
+          "user_start_spread_ms": 0.0,
+          "downloaded_bytes": 117585991,
+          "elapsed_seconds": 0.062,
+          "user_seconds_p50": 0.062,
+          "user_seconds_p95": 0.062,
+          "user_seconds_max": 0.062,
+          "request_ms_p95": 2.597,
+          "status_counts": {
+            "200": 225
+          },
+          "nginx_cpu_one_core_pct_mean": 51.82,
+          "nginx_cpu_one_core_pct_peak": 0,
+          "nginx_rss_mib_peak": 12.55,
+          "generator_rss_mib_peak": 83.92,
+          "generator_monitor_overrun_ms_max": 0,
+          "health_probe_count": 1,
+          "health_probe_errors": 0,
+          "health_probe_ms_p95": 8.738
+        },
+        {
+          "label": "100-users-code",
+          "users": 100,
+          "parallel_per_user": 4,
+          "files_per_user": 87,
+          "bytes_per_user": 1425560,
+          "requests": 8700,
+          "success": 8697,
+          "errors": 3,
+          "completed_users": 100,
+          "successful_users": 98,
+          "user_start_spread_ms": 0.911,
+          "downloaded_bytes": 142545860,
+          "elapsed_seconds": 0.43,
+          "user_seconds_p50": 0.397,
+          "user_seconds_p95": 0.428,
+          "user_seconds_max": 0.43,
+          "request_ms_p95": 25.171,
+          "status_counts": {
+            "200": 8697,
+            "0": 3
+          },
+          "nginx_cpu_one_core_pct_mean": 68.52,
+          "nginx_cpu_one_core_pct_peak": 82.6,
+          "nginx_rss_mib_peak": 6.78,
+          "generator_rss_mib_peak": 40.22,
+          "generator_monitor_overrun_ms_max": 0,
+          "health_probe_count": 2,
+          "health_probe_errors": 0,
+          "health_probe_ms_p95": 5.695
+        },
+        {
+          "label": "100-users-all",
+          "users": 100,
+          "parallel_per_user": 4,
+          "files_per_user": 225,
+          "bytes_per_user": 117585991,
+          "requests": 22500,
+          "success": 22500,
+          "errors": 0,
+          "completed_users": 100,
+          "successful_users": 100,
+          "user_start_spread_ms": 0.955,
+          "downloaded_bytes": 11758599100,
+          "elapsed_seconds": 5.517,
+          "user_seconds_p50": 5.451,
+          "user_seconds_p95": 5.512,
+          "user_seconds_max": 5.517,
+          "request_ms_p95": 259.154,
+          "status_counts": {
+            "200": 22500
+          },
+          "nginx_cpu_one_core_pct_mean": 78.33,
+          "nginx_cpu_one_core_pct_peak": 90.96,
+          "nginx_rss_mib_peak": 14.02,
+          "generator_rss_mib_peak": 47.58,
+          "generator_monitor_overrun_ms_max": 80.24,
+          "health_probe_count": 21,
+          "health_probe_errors": 0,
+          "health_probe_ms_p95": 257.323
+        }
+      ],
+      "cleanup": {
+        "owned_nginx_pid": 43602,
+        "exit_code": 0,
+        "existing_servers_modified": false
+      }
+    },
+    {
+      "directory": "native-curl-p2",
+      "results": [
+        {
+          "label": "one-user-all",
+          "users": 1,
+          "parallel_per_user": 2,
+          "files_per_user": 225,
+          "bytes_per_user": 117585991,
+          "requests": 225,
+          "success": 225,
+          "errors": 0,
+          "completed_users": 1,
+          "successful_users": 1,
+          "user_start_spread_ms": 0.0,
+          "downloaded_bytes": 117585991,
+          "elapsed_seconds": 0.07,
+          "user_seconds_p50": 0.07,
+          "user_seconds_p95": 0.07,
+          "user_seconds_max": 0.07,
+          "request_ms_p95": 1.511,
+          "status_counts": {
+            "200": 225
+          },
+          "nginx_cpu_one_core_pct_mean": 52.98,
+          "nginx_cpu_one_core_pct_peak": 0,
+          "nginx_rss_mib_peak": 12.2,
+          "generator_rss_mib_peak": 87.14,
+          "generator_monitor_overrun_ms_max": 0,
+          "health_probe_count": 1,
+          "health_probe_errors": 0,
+          "health_probe_ms_p95": 3.167
+        },
+        {
+          "label": "100-users-code",
+          "users": 100,
+          "parallel_per_user": 2,
+          "files_per_user": 87,
+          "bytes_per_user": 1425560,
+          "requests": 8700,
+          "success": 8696,
+          "errors": 4,
+          "completed_users": 100,
+          "successful_users": 97,
+          "user_start_spread_ms": 0.908,
+          "downloaded_bytes": 142520945,
+          "elapsed_seconds": 0.402,
+          "user_seconds_p50": 0.384,
+          "user_seconds_p95": 0.4,
+          "user_seconds_max": 0.402,
+          "request_ms_p95": 17.996,
+          "status_counts": {
+            "200": 8696,
+            "0": 4
+          },
+          "nginx_cpu_one_core_pct_mean": 70.88,
+          "nginx_cpu_one_core_pct_peak": 93.86,
+          "nginx_rss_mib_peak": 12.2,
+          "generator_rss_mib_peak": 90.61,
+          "generator_monitor_overrun_ms_max": 0,
+          "health_probe_count": 2,
+          "health_probe_errors": 0,
+          "health_probe_ms_p95": 16.001
+        },
+        {
+          "label": "100-users-all",
+          "users": 100,
+          "parallel_per_user": 2,
+          "files_per_user": 225,
+          "bytes_per_user": 117585991,
+          "requests": 22500,
+          "success": 22500,
+          "errors": 0,
+          "completed_users": 100,
+          "successful_users": 100,
+          "user_start_spread_ms": 1.036,
+          "downloaded_bytes": 11758599100,
+          "elapsed_seconds": 4.229,
+          "user_seconds_p50": 4.176,
+          "user_seconds_p95": 4.224,
+          "user_seconds_max": 4.229,
+          "request_ms_p95": 111.545,
+          "status_counts": {
+            "200": 22500
+          },
+          "nginx_cpu_one_core_pct_mean": 91.0,
+          "nginx_cpu_one_core_pct_peak": 100.63,
+          "nginx_rss_mib_peak": 11.02,
+          "generator_rss_mib_peak": 51.41,
+          "generator_monitor_overrun_ms_max": 0,
+          "health_probe_count": 17,
+          "health_probe_errors": 0,
+          "health_probe_ms_p95": 146.427
+        }
+      ],
+      "cleanup": {
+        "owned_nginx_pid": 43898,
+        "exit_code": 0,
+        "existing_servers_modified": false
+      }
+    },
+    {
+      "directory": "native-curl-p1",
+      "results": [
+        {
+          "label": "one-user-all",
+          "users": 1,
+          "parallel_per_user": 1,
+          "files_per_user": 225,
+          "bytes_per_user": 117585991,
+          "requests": 225,
+          "success": 225,
+          "errors": 0,
+          "completed_users": 1,
+          "successful_users": 1,
+          "user_start_spread_ms": 0.0,
+          "downloaded_bytes": 117585991,
+          "elapsed_seconds": 0.079,
+          "user_seconds_p50": 0.079,
+          "user_seconds_p95": 0.079,
+          "user_seconds_max": 0.079,
+          "request_ms_p95": 0.768,
+          "status_counts": {
+            "200": 225
+          },
+          "nginx_cpu_one_core_pct_mean": 48.91,
+          "nginx_cpu_one_core_pct_peak": 0,
+          "nginx_rss_mib_peak": 11.84,
+          "generator_rss_mib_peak": 86.14,
+          "generator_monitor_overrun_ms_max": 0,
+          "health_probe_count": 1,
+          "health_probe_errors": 0,
+          "health_probe_ms_p95": 2.959
+        },
+        {
+          "label": "100-users-code",
+          "users": 100,
+          "parallel_per_user": 1,
+          "files_per_user": 87,
+          "bytes_per_user": 1425560,
+          "requests": 8700,
+          "success": 8700,
+          "errors": 0,
+          "completed_users": 100,
+          "successful_users": 100,
+          "user_start_spread_ms": 0.883,
+          "downloaded_bytes": 142556000,
+          "elapsed_seconds": 0.413,
+          "user_seconds_p50": 0.39,
+          "user_seconds_p95": 0.412,
+          "user_seconds_max": 0.413,
+          "request_ms_p95": 11.133,
+          "status_counts": {
+            "200": 8700
+          },
+          "nginx_cpu_one_core_pct_mean": 68.85,
+          "nginx_cpu_one_core_pct_peak": 78.12,
+          "nginx_rss_mib_peak": 12.19,
+          "generator_rss_mib_peak": 89.56,
+          "generator_monitor_overrun_ms_max": 0,
+          "health_probe_count": 2,
+          "health_probe_errors": 0,
+          "health_probe_ms_p95": 4.942
+        },
+        {
+          "label": "100-users-all",
+          "users": 100,
+          "parallel_per_user": 1,
+          "files_per_user": 225,
+          "bytes_per_user": 117585991,
+          "requests": 22500,
+          "success": 22500,
+          "errors": 0,
+          "completed_users": 100,
+          "successful_users": 100,
+          "user_start_spread_ms": 0.902,
+          "downloaded_bytes": 11758599100,
+          "elapsed_seconds": 4.63,
+          "user_seconds_p50": 4.565,
+          "user_seconds_p95": 4.625,
+          "user_seconds_max": 4.63,
+          "request_ms_p95": 63.799,
+          "status_counts": {
+            "200": 22500
+          },
+          "nginx_cpu_one_core_pct_mean": 87.51,
+          "nginx_cpu_one_core_pct_peak": 99.57,
+          "nginx_rss_mib_peak": 12.28,
+          "generator_rss_mib_peak": 63.5,
+          "generator_monitor_overrun_ms_max": 0,
+          "health_probe_count": 19,
+          "health_probe_errors": 0,
+          "health_probe_ms_p95": 99.342
+        }
+      ],
+      "cleanup": {
+        "owned_nginx_pid": 44180,
+        "exit_code": 0,
+        "existing_servers_modified": false
+      }
+    }
+  ],
+  "final_verification": {
+    "checks": [
+      {
+        "case": "one-user-all",
+        "users": 1,
+        "requests": 225,
+        "each_file_size_checked": true,
+        "every_user_received_complete_manifest": true,
+        "curl_exit_codes_all_zero": true
+      },
+      {
+        "case": "100-users-code",
+        "users": 100,
+        "requests": 8700,
+        "each_file_size_checked": true,
+        "every_user_received_complete_manifest": true,
+        "curl_exit_codes_all_zero": true
+      },
+      {
+        "case": "100-users-all",
+        "users": 100,
+        "requests": 22500,
+        "each_file_size_checked": true,
+        "every_user_received_complete_manifest": true,
+        "curl_exit_codes_all_zero": true
+      }
+    ],
+    "nginx_error_log_empty": true,
+    "test_nginx_stopped": true,
+    "assets_changed_since_test_manifest": []
+  },
+  "shared_upload_bandwidth_lower_bound_for_100_full_downloads_seconds": {
+    "100Mbps": 940.69,
+    "1Gbps": 94.07
+  },
+  "excluded_generator_trials": "Initial shared-pool and per-user-pool Python receivers had event-loop delays; do not treat their durations as server throughput."
+}

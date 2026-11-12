@@ -1,0 +1,84 @@
+front-movement.log:1323: 2026-11-06 15:01:26,550 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:1357:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:1358: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:1359: 2026-11-06 15:01:26,562 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:1393:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:1394: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:1723: 2026-11-06 15:01:28,566 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:1757:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:1758: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:1759: 2026-11-06 15:01:28,568 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:1793:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:1794: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2015: 2026-11-06 15:01:30,571 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2049:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2050: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2051: 2026-11-06 15:01:30,575 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2085:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2086: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2087: 2026-11-06 15:01:30,577 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2121:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2122: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2123: 2026-11-06 15:01:30,579 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2157:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2158: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2159: 2026-11-06 15:01:30,580 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2193:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2194: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2195: 2026-11-06 15:01:30,582 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2229:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2230: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2231: 2026-11-06 15:01:30,583 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2265:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2266: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2267: 2026-11-06 15:01:30,585 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2301:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2302: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2303: 2026-11-06 15:01:30,586 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2337:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2338: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2339: 2026-11-06 15:01:30,588 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2373:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2374: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2375: 2026-11-06 15:01:30,590 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2409:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2410: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2411: 2026-11-06 15:01:30,590 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2445:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2446: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2447: 2026-11-06 15:01:30,591 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2481:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2482: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2483: 2026-11-06 15:01:30,591 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2517:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2518: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2519: 2026-11-06 15:01:30,592 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2553:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2554: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2555: 2026-11-06 15:01:30,593 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2589:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2590: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2591: 2026-11-06 15:01:30,593 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2625:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2626: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2627: 2026-11-06 15:01:30,594 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2661:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2662: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2663: 2026-11-06 15:01:30,594 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2697:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2698: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:2699: 2026-11-06 15:01:30,595 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:2733:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:2734: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:3830: 2026-11-06 15:01:37,604 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:3864:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:3865: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:3866: 2026-11-06 15:01:37,606 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:3900:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:3901: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:3902: 2026-11-06 15:01:37,608 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:3936:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:3937: autobahn.exception.Disconnected: Attempt to send on a closed protocol
+front-movement.log:3938: 2026-11-06 15:01:37,610 ERROR    Exception inside application: Attempt to send on a closed protocol
+front-movement.log:3972:     raise Disconnected("Attempt to send on a closed protocol")
+front-movement.log:3973: autobahn.exception.Disconnected: Attempt to send on a closed protocol

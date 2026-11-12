@@ -1,0 +1,6 @@
+{"script": "refresh_sessions.py", "args": [], "exit": 0, "at": 1794030815.779575}
+{"script": "launch.py", "args": ["--open"], "exit": 0, "at": 1794030819.8983638}
+{"script": "fixtures.py", "args": ["reset_scenarios"], "exit": 0, "at": 1794030822.5883882}
+{"script": "scenarios.py", "args": [], "exit": 0, "at": 1794030964.21679}
+{"script": "fixtures.py", "args": ["casual"], "exit": 0, "at": 1794030964.8787022}
+{"script": "benchmark.py", "args": ["real", "180"], "exit": 0, "at": 1794031180.523618}

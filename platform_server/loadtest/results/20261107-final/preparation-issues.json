@@ -1,0 +1,24 @@
+{
+  "before_load_generation": true,
+  "issues": [
+    {
+      "kind": "worker_port_preparation",
+      "reason": "exclusive range endpoints were not changed with start ports",
+      "corrected": true
+    },
+    {
+      "kind": "frontend_test_cwd",
+      "tests": 263,
+      "passed": 258,
+      "failed": 5,
+      "reason": "project-root relative fixture was invoked from frontend/tests",
+      "corrected": true
+    },
+    {
+      "kind": "browser_reload_wait",
+      "reason": "test global was read before reloaded scripts were ready",
+      "corrected": true,
+      "product_changed": false
+    }
+  ]
+}

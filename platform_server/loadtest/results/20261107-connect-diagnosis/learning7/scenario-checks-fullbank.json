@@ -1,0 +1,48 @@
+[
+  {
+    "phase": "connect:remaining",
+    "users": 100,
+    "seconds": 0.85,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "learning_all_subjects_and_types",
+    "users": 100,
+    "seconds": 30.72,
+    "passed": 84,
+    "errors": {
+      "learning:question: timeout {'error': 'TimeoutError'}": 5,
+      "learning:answer_retry: timeout {'error': 'TimeoutError'}": 8,
+      "learning:answer: timeout {'error': 'TimeoutError'}": 3
+    }
+  },
+  {
+    "phase": "disconnect:final",
+    "users": 100,
+    "seconds": 0.05,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "reconnect:restore",
+    "users": 100,
+    "seconds": 0.94,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "state_after_reconnect",
+    "users": 100,
+    "seconds": 1.26,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "disconnect:cleanup",
+    "users": 100,
+    "seconds": 0.01,
+    "passed": 100,
+    "errors": {}
+  }
+]

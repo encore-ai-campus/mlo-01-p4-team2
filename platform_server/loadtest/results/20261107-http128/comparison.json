@@ -1,0 +1,2218 @@
+{
+  "runs": {
+    "a1": {
+      "backlog": 50,
+      "actions": {
+        "achievements:restore": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 524.92,
+          "codes": {
+            "200": 100
+          }
+        },
+        "learning:answer": {
+          "requests": 1000,
+          "success": 1000,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1280.2,
+          "codes": {
+            "201": 1000
+          }
+        },
+        "learning:answer_retry": {
+          "requests": 1000,
+          "success": 1000,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 899.1,
+          "codes": {
+            "201": 1000
+          }
+        },
+        "learning:complete": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1986.37,
+          "codes": {
+            "200": 100
+          }
+        },
+        "learning:question": {
+          "requests": 1000,
+          "success": 1000,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1409.2,
+          "codes": {
+            "200": 1000
+          }
+        },
+        "learning:start": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 4767.18,
+          "codes": {
+            "201": 100
+          }
+        },
+        "main:deliver:first": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 215.4,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:deliver:retry": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 207.74,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_finish:card_match": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 172.8,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_finish:coating": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 87.87,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_finish:kkuwang_touch": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 238.91,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_finish:sql_memory": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 204.22,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_finish:topping": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 84.33,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_finish:wrapping": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 128.16,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_start:card_match": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 205.98,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_start:coating": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 141.16,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_start:kkuwang_touch": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 164.04,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_start:sql_memory": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 747.2,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_start:topping": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 86.03,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_start:wrapping": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 66.54,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:investigate": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 790.27,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:restore": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 754.32,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:room1_briefing": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 811.33,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:sql_answer": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 144.55,
+          "codes": {
+            "200": 100
+          }
+        },
+        "recipe:acquire": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 712.5,
+          "codes": {
+            "200": 100
+          }
+        },
+        "recipe:defer": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 544.04,
+          "codes": {
+            "200": 100
+          }
+        },
+        "recipe:finish": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 806.33,
+          "codes": {
+            "200": 100
+          }
+        },
+        "recipe:recognize": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 633.35,
+          "codes": {
+            "200": 100
+          }
+        },
+        "recipe:restore": {
+          "requests": 200,
+          "success": 200,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 504.95,
+          "codes": {
+            "200": 200
+          }
+        },
+        "recipe:start": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 685.79,
+          "codes": {
+            "200": 100
+          }
+        },
+        "recipe:topping": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 591.25,
+          "codes": {
+            "200": 100
+          }
+        },
+        "term_match:result": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 858.18,
+          "codes": {
+            "200": 100
+          }
+        },
+        "term_match:retry": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 847.73,
+          "codes": {
+            "200": 100
+          }
+        },
+        "timer:result": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1205.85,
+          "codes": {
+            "200": 100
+          }
+        },
+        "timer:retry": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1001.15,
+          "codes": {
+            "200": 100
+          }
+        },
+        "typing:interrupt": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 137.42,
+          "codes": {
+            "200": 100
+          }
+        },
+        "typing:over_limit": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 189.17,
+          "codes": {
+            "400": 100
+          }
+        },
+        "typing:result": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 815.81,
+          "codes": {
+            "200": 100
+          }
+        },
+        "typing:retry": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 814.69,
+          "codes": {
+            "200": 100
+          }
+        },
+        "ws:game_start": {
+          "requests": 400,
+          "success": 400,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 825.13,
+          "codes": {
+            "ok": 400
+          }
+        },
+        "ws:guide_talk": {
+          "requests": 300,
+          "success": 300,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 155.29,
+          "codes": {
+            "rejected": 300
+          }
+        },
+        "ws_connect": {
+          "requests": 400,
+          "success": 400,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1884.14,
+          "codes": {
+            "101": 400
+          }
+        }
+      },
+      "checks": [
+        {
+          "phase": "connect:timer",
+          "users": 100,
+          "seconds": 1.96,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "standalone:timer",
+          "users": 100,
+          "seconds": 13.26,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "far_guide_rejection:timer",
+          "users": 100,
+          "seconds": 0.17,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:timer",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "connect:typing",
+          "users": 100,
+          "seconds": 0.65,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "standalone:typing",
+          "users": 100,
+          "seconds": 4.0,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "far_guide_rejection:typing",
+          "users": 100,
+          "seconds": 0.17,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:typing",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "connect:term_match",
+          "users": 100,
+          "seconds": 0.65,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "standalone:term_match",
+          "users": 100,
+          "seconds": 7.67,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "far_guide_rejection:term_match",
+          "users": 100,
+          "seconds": 0.16,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "main_games_and_final_rank",
+          "users": 100,
+          "seconds": 57.87,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "recipe_full_branches",
+          "users": 100,
+          "seconds": 3.75,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "learning_all_subjects_and_types",
+          "users": 100,
+          "seconds": 28.14,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:final",
+          "users": 100,
+          "seconds": 0.13,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "reconnect:restore",
+          "users": 100,
+          "seconds": 0.66,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "state_after_reconnect",
+          "users": 100,
+          "seconds": 1.45,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:cleanup",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        }
+      ],
+      "learning_completed": 100,
+      "edge_errors": {
+        "502": 0,
+        "504": 0
+      },
+      "high_http": {
+        "requests": 5308,
+        "success": 5305,
+        "errors": 0,
+        "condition_rejected": 3,
+        "unresolved": 0,
+        "p95_ms": 330.22,
+        "codes": {
+          "200": 4847,
+          "201": 458,
+          "429": 3
+        }
+      },
+      "high_api": {
+        "GET /api/board/menu/": {
+          "requests": 145,
+          "success": 145,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 142.22,
+          "codes": {
+            "200": 145
+          }
+        },
+        "GET /api/campus/freeze/": {
+          "requests": 12,
+          "success": 12,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 113.6,
+          "codes": {
+            "200": 12
+          }
+        },
+        "GET /api/community/": {
+          "requests": 148,
+          "success": 148,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 223.72,
+          "codes": {
+            "200": 148
+          }
+        },
+        "GET /api/community/notices/": {
+          "requests": 6,
+          "success": 6,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 90.4,
+          "codes": {
+            "200": 6
+          }
+        },
+        "GET /api/community/posts/": {
+          "requests": 148,
+          "success": 148,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 218.52,
+          "codes": {
+            "200": 148
+          }
+        },
+        "GET /api/event-main/ranking/": {
+          "requests": 381,
+          "success": 381,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 194.99,
+          "codes": {
+            "200": 381
+          }
+        },
+        "GET /api/event-main/status/": {
+          "requests": 382,
+          "success": 382,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 233.27,
+          "codes": {
+            "200": 382
+          }
+        },
+        "GET /api/event-story/achievements/": {
+          "requests": 390,
+          "success": 390,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 181.85,
+          "codes": {
+            "200": 390
+          }
+        },
+        "GET /api/event-story/recipe/status/": {
+          "requests": 380,
+          "success": 380,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 184.38,
+          "codes": {
+            "200": 380
+          }
+        },
+        "GET /api/learning/csrf/": {
+          "requests": 336,
+          "success": 336,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 121.05,
+          "codes": {
+            "200": 336
+          }
+        },
+        "GET /api/learning/sessions/:session_id/questions/:order/": {
+          "requests": 181,
+          "success": 181,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 229.48,
+          "codes": {
+            "200": 181
+          }
+        },
+        "GET /api/learning/wallet/": {
+          "requests": 511,
+          "success": 511,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 163.12,
+          "codes": {
+            "200": 511
+          }
+        },
+        "GET /api/learning/wallet/history/": {
+          "requests": 175,
+          "success": 175,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 216.39,
+          "codes": {
+            "200": 175
+          }
+        },
+        "GET /api/messages/conversations/": {
+          "requests": 151,
+          "success": 151,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 215.98,
+          "codes": {
+            "200": 151
+          }
+        },
+        "GET /api/messages/recipients/": {
+          "requests": 92,
+          "success": 92,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 370.07,
+          "codes": {
+            "200": 92
+          }
+        },
+        "GET /api/messages/status/": {
+          "requests": 151,
+          "success": 151,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 196.14,
+          "codes": {
+            "200": 151
+          }
+        },
+        "POST /accounts/session/activity/": {
+          "requests": 1162,
+          "success": 1162,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 203.28,
+          "codes": {
+            "200": 1162
+          }
+        },
+        "POST /api/campus/lunch/spin/": {
+          "requests": 96,
+          "success": 96,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 190.04,
+          "codes": {
+            "200": 96
+          }
+        },
+        "POST /api/learning/sessions/": {
+          "requests": 181,
+          "success": 181,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1459.84,
+          "codes": {
+            "201": 181
+          }
+        },
+        "POST /api/learning/sessions/:session_id/questions/:order/answers/": {
+          "requests": 188,
+          "success": 188,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 468.81,
+          "codes": {
+            "201": 188
+          }
+        },
+        "POST /api/messages/send/": {
+          "requests": 92,
+          "success": 89,
+          "errors": 0,
+          "condition_rejected": 3,
+          "unresolved": 0,
+          "p95_ms": 315.19,
+          "codes": {
+            "201": 89,
+            "429": 3
+          }
+        }
+      },
+      "high_chat": {
+        "requests": 1462,
+        "success": 1462,
+        "errors": 0,
+        "condition_rejected": 0,
+        "unresolved": 0,
+        "p95_ms": 294.56,
+        "codes": {
+          "ok": 1462
+        }
+      },
+      "drain": [
+        {
+          "worker": 0,
+          "pending_at_end": 0,
+          "drain_seconds": 0.002406415995210409,
+          "unresolved": 0,
+          "generation_stopped_epoch": 1794030806.597606
+        },
+        {
+          "worker": 1,
+          "pending_at_end": 4,
+          "drain_seconds": 0.1692215830553323,
+          "unresolved": 0,
+          "generation_stopped_epoch": 1794030806.5838928
+        }
+      ],
+      "accounts": {
+        "protocol": 99,
+        "chrome": 1
+      }
+    },
+    "b1": {
+      "backlog": 128,
+      "actions": {
+        "achievements:restore": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 322.86,
+          "codes": {
+            "200": 100
+          }
+        },
+        "learning:answer": {
+          "requests": 1000,
+          "success": 1000,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1314.34,
+          "codes": {
+            "201": 1000
+          }
+        },
+        "learning:answer_retry": {
+          "requests": 1000,
+          "success": 1000,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 886.61,
+          "codes": {
+            "201": 1000
+          }
+        },
+        "learning:complete": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 982.57,
+          "codes": {
+            "200": 100
+          }
+        },
+        "learning:question": {
+          "requests": 1000,
+          "success": 1000,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1311.31,
+          "codes": {
+            "200": 1000
+          }
+        },
+        "learning:start": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 4823.59,
+          "codes": {
+            "201": 100
+          }
+        },
+        "main:deliver:first": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 379.24,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:deliver:retry": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 365.91,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_finish:card_match": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 177.42,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_finish:coating": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 174.47,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_finish:kkuwang_touch": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 196.71,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_finish:sql_memory": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 252.3,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_finish:topping": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 96.64,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_finish:wrapping": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 134.13,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_start:card_match": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 176.13,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_start:coating": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 134.9,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_start:kkuwang_touch": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 192.75,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_start:sql_memory": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 713.11,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_start:topping": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 160.65,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:game_start:wrapping": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 108.94,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:investigate": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 848.64,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:restore": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 729.7,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:room1_briefing": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 756.86,
+          "codes": {
+            "200": 100
+          }
+        },
+        "main:sql_answer": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 176.72,
+          "codes": {
+            "200": 100
+          }
+        },
+        "recipe:acquire": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 758.01,
+          "codes": {
+            "200": 100
+          }
+        },
+        "recipe:defer": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 596.4,
+          "codes": {
+            "200": 100
+          }
+        },
+        "recipe:finish": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 899.74,
+          "codes": {
+            "200": 100
+          }
+        },
+        "recipe:recognize": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 568.05,
+          "codes": {
+            "200": 100
+          }
+        },
+        "recipe:restore": {
+          "requests": 200,
+          "success": 200,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 482.86,
+          "codes": {
+            "200": 200
+          }
+        },
+        "recipe:start": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 698.66,
+          "codes": {
+            "200": 100
+          }
+        },
+        "recipe:topping": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 652.73,
+          "codes": {
+            "200": 100
+          }
+        },
+        "term_match:result": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 897.29,
+          "codes": {
+            "200": 100
+          }
+        },
+        "term_match:retry": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 841.86,
+          "codes": {
+            "200": 100
+          }
+        },
+        "timer:result": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1283.72,
+          "codes": {
+            "200": 100
+          }
+        },
+        "timer:retry": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1069.27,
+          "codes": {
+            "200": 100
+          }
+        },
+        "typing:interrupt": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 141.58,
+          "codes": {
+            "200": 100
+          }
+        },
+        "typing:over_limit": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 302.19,
+          "codes": {
+            "400": 100
+          }
+        },
+        "typing:result": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 842.61,
+          "codes": {
+            "200": 100
+          }
+        },
+        "typing:retry": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 887.83,
+          "codes": {
+            "200": 100
+          }
+        },
+        "ws:game_start": {
+          "requests": 400,
+          "success": 400,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 847.41,
+          "codes": {
+            "ok": 400
+          }
+        },
+        "ws:guide_talk": {
+          "requests": 300,
+          "success": 300,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 157.41,
+          "codes": {
+            "rejected": 300
+          }
+        },
+        "ws_connect": {
+          "requests": 400,
+          "success": 400,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1916.44,
+          "codes": {
+            "101": 400
+          }
+        }
+      },
+      "checks": [
+        {
+          "phase": "connect:timer",
+          "users": 100,
+          "seconds": 2.02,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "standalone:timer",
+          "users": 100,
+          "seconds": 13.39,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "far_guide_rejection:timer",
+          "users": 100,
+          "seconds": 0.17,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:timer",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "connect:typing",
+          "users": 100,
+          "seconds": 0.74,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "standalone:typing",
+          "users": 100,
+          "seconds": 4.09,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "far_guide_rejection:typing",
+          "users": 100,
+          "seconds": 0.17,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:typing",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "connect:term_match",
+          "users": 100,
+          "seconds": 0.64,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "standalone:term_match",
+          "users": 100,
+          "seconds": 7.69,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "far_guide_rejection:term_match",
+          "users": 100,
+          "seconds": 0.16,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "main_games_and_final_rank",
+          "users": 100,
+          "seconds": 58.05,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "recipe_full_branches",
+          "users": 100,
+          "seconds": 3.87,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "learning_all_subjects_and_types",
+          "users": 100,
+          "seconds": 28.07,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:final",
+          "users": 100,
+          "seconds": 0.04,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "reconnect:restore",
+          "users": 100,
+          "seconds": 0.68,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "state_after_reconnect",
+          "users": 100,
+          "seconds": 1.26,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:cleanup",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        }
+      ],
+      "learning_completed": 100,
+      "edge_errors": {
+        "502": 0,
+        "504": 0
+      },
+      "high_http": {
+        "requests": 5472,
+        "success": 5472,
+        "errors": 0,
+        "condition_rejected": 0,
+        "unresolved": 0,
+        "p95_ms": 334.28,
+        "codes": {
+          "200": 5042,
+          "201": 430
+        }
+      },
+      "high_api": {
+        "GET /api/board/menu/": {
+          "requests": 183,
+          "success": 183,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 153.9,
+          "codes": {
+            "200": 183
+          }
+        },
+        "GET /api/campus/freeze/": {
+          "requests": 12,
+          "success": 12,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 272.2,
+          "codes": {
+            "200": 12
+          }
+        },
+        "GET /api/community/": {
+          "requests": 177,
+          "success": 177,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 186.83,
+          "codes": {
+            "200": 177
+          }
+        },
+        "GET /api/community/notices/": {
+          "requests": 6,
+          "success": 6,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 188.5,
+          "codes": {
+            "200": 6
+          }
+        },
+        "GET /api/community/posts/": {
+          "requests": 177,
+          "success": 177,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 202.15,
+          "codes": {
+            "200": 177
+          }
+        },
+        "GET /api/event-main/ranking/": {
+          "requests": 414,
+          "success": 414,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 172.33,
+          "codes": {
+            "200": 414
+          }
+        },
+        "GET /api/event-main/status/": {
+          "requests": 414,
+          "success": 414,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 267.19,
+          "codes": {
+            "200": 414
+          }
+        },
+        "GET /api/event-story/achievements/": {
+          "requests": 422,
+          "success": 422,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 169.87,
+          "codes": {
+            "200": 422
+          }
+        },
+        "GET /api/event-story/recipe/status/": {
+          "requests": 413,
+          "success": 413,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 171.14,
+          "codes": {
+            "200": 413
+          }
+        },
+        "GET /api/learning/csrf/": {
+          "requests": 333,
+          "success": 333,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 131.1,
+          "codes": {
+            "200": 333
+          }
+        },
+        "GET /api/learning/sessions/:session_id/questions/:order/": {
+          "requests": 175,
+          "success": 175,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 253.74,
+          "codes": {
+            "200": 175
+          }
+        },
+        "GET /api/learning/wallet/": {
+          "requests": 512,
+          "success": 512,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 164.79,
+          "codes": {
+            "200": 512
+          }
+        },
+        "GET /api/learning/wallet/history/": {
+          "requests": 179,
+          "success": 179,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 190.34,
+          "codes": {
+            "200": 179
+          }
+        },
+        "GET /api/messages/conversations/": {
+          "requests": 151,
+          "success": 151,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 192.06,
+          "codes": {
+            "200": 151
+          }
+        },
+        "GET /api/messages/recipients/": {
+          "requests": 80,
+          "success": 80,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 382.59,
+          "codes": {
+            "200": 80
+          }
+        },
+        "GET /api/messages/status/": {
+          "requests": 151,
+          "success": 151,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 245.48,
+          "codes": {
+            "200": 151
+          }
+        },
+        "POST /accounts/session/activity/": {
+          "requests": 1168,
+          "success": 1168,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 221.58,
+          "codes": {
+            "200": 1168
+          }
+        },
+        "POST /api/campus/lunch/spin/": {
+          "requests": 75,
+          "success": 75,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 191.71,
+          "codes": {
+            "200": 75
+          }
+        },
+        "POST /api/learning/sessions/": {
+          "requests": 173,
+          "success": 173,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1659.5,
+          "codes": {
+            "201": 173
+          }
+        },
+        "POST /api/learning/sessions/:session_id/questions/:order/answers/": {
+          "requests": 177,
+          "success": 177,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 465.48,
+          "codes": {
+            "201": 177
+          }
+        },
+        "POST /api/messages/send/": {
+          "requests": 80,
+          "success": 80,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 338.9,
+          "codes": {
+            "201": 80
+          }
+        }
+      },
+      "high_chat": {
+        "requests": 1456,
+        "success": 1456,
+        "errors": 0,
+        "condition_rejected": 0,
+        "unresolved": 0,
+        "p95_ms": 309.5,
+        "codes": {
+          "ok": 1456
+        }
+      },
+      "drain": [
+        {
+          "worker": 0,
+          "pending_at_end": 0,
+          "drain_seconds": 0.003334167064167559,
+          "unresolved": 0,
+          "generation_stopped_epoch": 1794031179.2587836
+        },
+        {
+          "worker": 1,
+          "pending_at_end": 3,
+          "drain_seconds": 0.2080569160170853,
+          "unresolved": 0,
+          "generation_stopped_epoch": 1794031179.2596173
+        }
+      ],
+      "accounts": {
+        "protocol": 99,
+        "chrome": 1
+      }
+    },
+    "b2": {
+      "backlog": 128,
+      "actions": {
+        "achievements:restore": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 347.06,
+          "codes": {
+            "200": 100
+          }
+        },
+        "learning:answer": {
+          "requests": 1000,
+          "success": 1000,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1742.69,
+          "codes": {
+            "201": 1000
+          }
+        },
+        "learning:answer_retry": {
+          "requests": 1000,
+          "success": 1000,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1109.22,
+          "codes": {
+            "201": 1000
+          }
+        },
+        "learning:complete": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1316.47,
+          "codes": {
+            "200": 100
+          }
+        },
+        "learning:question": {
+          "requests": 1000,
+          "success": 1000,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1490.98,
+          "codes": {
+            "200": 1000
+          }
+        },
+        "learning:start": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 4911.38,
+          "codes": {
+            "201": 100
+          }
+        },
+        "main:restore": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 764.47,
+          "codes": {
+            "200": 100
+          }
+        },
+        "recipe:restore": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 507.97,
+          "codes": {
+            "200": 100
+          }
+        },
+        "ws_connect": {
+          "requests": 200,
+          "success": 200,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1923.92,
+          "codes": {
+            "101": 200
+          }
+        }
+      },
+      "checks": [
+        {
+          "phase": "connect:remaining",
+          "users": 100,
+          "seconds": 1.97,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "learning_all_subjects_and_types",
+          "users": 100,
+          "seconds": 31.44,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:final",
+          "users": 100,
+          "seconds": 0.05,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "reconnect:restore",
+          "users": 100,
+          "seconds": 0.84,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "state_after_reconnect",
+          "users": 100,
+          "seconds": 1.24,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:cleanup",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        }
+      ],
+      "learning_completed": 100,
+      "edge_errors": {
+        "502": 0,
+        "504": 0
+      }
+    },
+    "a2": {
+      "backlog": 50,
+      "actions": {
+        "achievements:restore": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 294.12,
+          "codes": {
+            "200": 100
+          }
+        },
+        "learning:answer": {
+          "requests": 1000,
+          "success": 1000,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1515.86,
+          "codes": {
+            "201": 1000
+          }
+        },
+        "learning:answer_retry": {
+          "requests": 1000,
+          "success": 1000,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 928.94,
+          "codes": {
+            "201": 1000
+          }
+        },
+        "learning:complete": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 963.13,
+          "codes": {
+            "200": 100
+          }
+        },
+        "learning:question": {
+          "requests": 1000,
+          "success": 1000,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1885.02,
+          "codes": {
+            "200": 1000
+          }
+        },
+        "learning:start": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 5515.98,
+          "codes": {
+            "201": 100
+          }
+        },
+        "main:restore": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 740.02,
+          "codes": {
+            "200": 100
+          }
+        },
+        "recipe:restore": {
+          "requests": 100,
+          "success": 100,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 599.37,
+          "codes": {
+            "200": 100
+          }
+        },
+        "ws_connect": {
+          "requests": 200,
+          "success": 200,
+          "errors": 0,
+          "condition_rejected": 0,
+          "unresolved": 0,
+          "p95_ms": 1980.97,
+          "codes": {
+            "101": 200
+          }
+        }
+      },
+      "checks": [
+        {
+          "phase": "connect:remaining",
+          "users": 100,
+          "seconds": 2.02,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "learning_all_subjects_and_types",
+          "users": 100,
+          "seconds": 29.87,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:final",
+          "users": 100,
+          "seconds": 0.06,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "reconnect:restore",
+          "users": 100,
+          "seconds": 0.83,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "state_after_reconnect",
+          "users": 100,
+          "seconds": 1.25,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:cleanup",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        }
+      ],
+      "learning_completed": 100,
+      "edge_errors": {
+        "502": 0,
+        "504": 0
+      }
+    }
+  },
+  "pooled_learning": {
+    "50": {
+      "learning:answer": {
+        "requests": 2000,
+        "success": 2000,
+        "errors": 0,
+        "condition_rejected": 0,
+        "unresolved": 0,
+        "p95_ms": 1445.47,
+        "codes": {
+          "201": 2000
+        }
+      },
+      "learning:answer_retry": {
+        "requests": 2000,
+        "success": 2000,
+        "errors": 0,
+        "condition_rejected": 0,
+        "unresolved": 0,
+        "p95_ms": 902.92,
+        "codes": {
+          "201": 2000
+        }
+      },
+      "learning:complete": {
+        "requests": 200,
+        "success": 200,
+        "errors": 0,
+        "condition_rejected": 0,
+        "unresolved": 0,
+        "p95_ms": 1271.48,
+        "codes": {
+          "200": 200
+        }
+      },
+      "learning:question": {
+        "requests": 2000,
+        "success": 2000,
+        "errors": 0,
+        "condition_rejected": 0,
+        "unresolved": 0,
+        "p95_ms": 1603.74,
+        "codes": {
+          "200": 2000
+        }
+      },
+      "learning:start": {
+        "requests": 200,
+        "success": 200,
+        "errors": 0,
+        "condition_rejected": 0,
+        "unresolved": 0,
+        "p95_ms": 5407.1,
+        "codes": {
+          "201": 200
+        }
+      }
+    },
+    "128": {
+      "learning:answer": {
+        "requests": 2000,
+        "success": 2000,
+        "errors": 0,
+        "condition_rejected": 0,
+        "unresolved": 0,
+        "p95_ms": 1630.45,
+        "codes": {
+          "201": 2000
+        }
+      },
+      "learning:answer_retry": {
+        "requests": 2000,
+        "success": 2000,
+        "errors": 0,
+        "condition_rejected": 0,
+        "unresolved": 0,
+        "p95_ms": 1055.86,
+        "codes": {
+          "201": 2000
+        }
+      },
+      "learning:complete": {
+        "requests": 200,
+        "success": 200,
+        "errors": 0,
+        "condition_rejected": 0,
+        "unresolved": 0,
+        "p95_ms": 1316.47,
+        "codes": {
+          "200": 200
+        }
+      },
+      "learning:question": {
+        "requests": 2000,
+        "success": 2000,
+        "errors": 0,
+        "condition_rejected": 0,
+        "unresolved": 0,
+        "p95_ms": 1373.44,
+        "codes": {
+          "200": 2000
+        }
+      },
+      "learning:start": {
+        "requests": 200,
+        "success": 200,
+        "errors": 0,
+        "condition_rejected": 0,
+        "unresolved": 0,
+        "p95_ms": 4892.19,
+        "codes": {
+          "201": 200
+        }
+      }
+    }
+  },
+  "high_http_delta": {
+    "before": 330.22,
+    "after": 334.28,
+    "saved_ms": -4.06,
+    "saved_pct": -1.23
+  },
+  "learning_deltas": {
+    "learning:answer": {
+      "before": 1445.47,
+      "after": 1630.45,
+      "saved_ms": -184.98,
+      "saved_pct": -12.8
+    },
+    "learning:answer_retry": {
+      "before": 902.92,
+      "after": 1055.86,
+      "saved_ms": -152.94,
+      "saved_pct": -16.94
+    },
+    "learning:complete": {
+      "before": 1271.48,
+      "after": 1316.47,
+      "saved_ms": -44.99,
+      "saved_pct": -3.54
+    },
+    "learning:question": {
+      "before": 1603.74,
+      "after": 1373.44,
+      "saved_ms": 230.3,
+      "saved_pct": 14.36
+    },
+    "learning:start": {
+      "before": 5407.1,
+      "after": 4892.19,
+      "saved_ms": 514.91,
+      "saved_pct": 9.52
+    }
+  }
+}

@@ -1,0 +1,211 @@
+[
+  {
+    "at": 1065472.9520655,
+    "nginx_cpu_seconds": 0.36,
+    "nginx_rss_mib": 6.625,
+    "generator_cpu_seconds": 1.07,
+    "generator_rss_mib": 48.71875,
+    "nginx_pids": [
+      43898,
+      43899
+    ]
+  },
+  {
+    "at": 1065473.006058625,
+    "nginx_cpu_seconds": 0.36,
+    "nginx_rss_mib": 6.71875,
+    "generator_cpu_seconds": 1.08,
+    "generator_rss_mib": 48.90625,
+    "nginx_pids": [
+      43898,
+      43899
+    ]
+  },
+  {
+    "at": 1065473.240803583,
+    "nginx_cpu_seconds": 0.5700000000000001,
+    "nginx_rss_mib": 10.4375,
+    "generator_cpu_seconds": 1.09,
+    "generator_rss_mib": 48.53125,
+    "nginx_pids": [
+      43898,
+      43899
+    ]
+  },
+  {
+    "at": 1065473.486210916,
+    "nginx_cpu_seconds": 0.8,
+    "nginx_rss_mib": 10.5,
+    "generator_cpu_seconds": 1.1,
+    "generator_rss_mib": 48.53125,
+    "nginx_pids": [
+      43898,
+      43899
+    ]
+  },
+  {
+    "at": 1065473.743238708,
+    "nginx_cpu_seconds": 1.04,
+    "nginx_rss_mib": 10.546875,
+    "generator_cpu_seconds": 1.11,
+    "generator_rss_mib": 48.546875,
+    "nginx_pids": [
+      43898,
+      43899
+    ]
+  },
+  {
+    "at": 1065473.9868625,
+    "nginx_cpu_seconds": 1.26,
+    "nginx_rss_mib": 10.546875,
+    "generator_cpu_seconds": 1.11,
+    "generator_rss_mib": 48.5625,
+    "nginx_pids": [
+      43898,
+      43899
+    ]
+  },
+  {
+    "at": 1065474.24899925,
+    "nginx_cpu_seconds": 1.5,
+    "nginx_rss_mib": 10.609375,
+    "generator_cpu_seconds": 1.12,
+    "generator_rss_mib": 48.609375,
+    "nginx_pids": [
+      43898,
+      43899
+    ]
+  },
+  {
+    "at": 1065474.491931625,
+    "nginx_cpu_seconds": 1.74,
+    "nginx_rss_mib": 10.609375,
+    "generator_cpu_seconds": 1.12,
+    "generator_rss_mib": 48.609375,
+    "nginx_pids": [
+      43898,
+      43899
+    ]
+  },
+  {
+    "at": 1065474.738161916,
+    "nginx_cpu_seconds": 1.97,
+    "nginx_rss_mib": 10.609375,
+    "generator_cpu_seconds": 1.13,
+    "generator_rss_mib": 48.609375,
+    "nginx_pids": [
+      43898,
+      43899
+    ]
+  },
+  {
+    "at": 1065474.991605333,
+    "nginx_cpu_seconds": 2.21,
+    "nginx_rss_mib": 10.609375,
+    "generator_cpu_seconds": 1.14,
+    "generator_rss_mib": 48.609375,
+    "nginx_pids": [
+      43898,
+      43899
+    ]
+  },
+  {
+    "at": 1065475.240030083,
+    "nginx_cpu_seconds": 2.46,
+    "nginx_rss_mib": 10.609375,
+    "generator_cpu_seconds": 1.14,
+    "generator_rss_mib": 48.671875,
+    "nginx_pids": [
+      43898,
+      43899
+    ]
+  },
+  {
+    "at": 1065475.493196,
+    "nginx_cpu_seconds": 2.6999999999999997,
+    "nginx_rss_mib": 10.9375,
+    "generator_cpu_seconds": 1.15,
+    "generator_rss_mib": 48.671875,
+    "nginx_pids": [
+      43898,
+      43899
+    ]
+  },
+  {
+    "at": 1065475.741857875,
+    "nginx_cpu_seconds": 2.94,
+    "nginx_rss_mib": 10.9375,
+    "generator_cpu_seconds": 1.15,
+    "generator_rss_mib": 48.671875,
+    "nginx_pids": [
+      43898,
+      43899
+    ]
+  },
+  {
+    "at": 1065475.994360166,
+    "nginx_cpu_seconds": 3.17,
+    "nginx_rss_mib": 10.9375,
+    "generator_cpu_seconds": 1.16,
+    "generator_rss_mib": 48.671875,
+    "nginx_pids": [
+      43898,
+      43899
+    ]
+  },
+  {
+    "at": 1065476.244917416,
+    "nginx_cpu_seconds": 3.42,
+    "nginx_rss_mib": 10.9375,
+    "generator_cpu_seconds": 1.17,
+    "generator_rss_mib": 48.671875,
+    "nginx_pids": [
+      43898,
+      43899
+    ]
+  },
+  {
+    "at": 1065476.499325166,
+    "nginx_cpu_seconds": 3.6599999999999997,
+    "nginx_rss_mib": 10.9375,
+    "generator_cpu_seconds": 1.17,
+    "generator_rss_mib": 48.6875,
+    "nginx_pids": [
+      43898,
+      43899
+    ]
+  },
+  {
+    "at": 1065476.746396666,
+    "nginx_cpu_seconds": 3.9,
+    "nginx_rss_mib": 10.953125,
+    "generator_cpu_seconds": 1.18,
+    "generator_rss_mib": 48.6875,
+    "nginx_pids": [
+      43898,
+      43899
+    ]
+  },
+  {
+    "at": 1065477.003570708,
+    "nginx_cpu_seconds": 4.14,
+    "nginx_rss_mib": 10.953125,
+    "generator_cpu_seconds": 1.19,
+    "generator_rss_mib": 50.171875,
+    "nginx_pids": [
+      43898,
+      43899
+    ]
+  },
+  {
+    "at": 1065477.204780791,
+    "nginx_cpu_seconds": 4.2299999999999995,
+    "nginx_rss_mib": 11.015625,
+    "generator_cpu_seconds": 1.35,
+    "generator_rss_mib": 51.40625,
+    "nginx_pids": [
+      43898,
+      43899
+    ]
+  }
+]

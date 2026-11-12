@@ -1,0 +1,802 @@
+[
+  {
+    "user": 1,
+    "start_ms": 5.761041073128581,
+    "seconds": 0.313,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 87,
+    "start_ms": 6.52275001630187,
+    "seconds": 0.317,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 75,
+    "start_ms": 6.418625125661492,
+    "seconds": 0.326,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 6,
+    "start_ms": 5.800500046461821,
+    "seconds": 0.339,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 86,
+    "start_ms": 6.510583218187094,
+    "seconds": 0.34,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 33,
+    "start_ms": 6.033375160768628,
+    "seconds": 0.343,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 41,
+    "start_ms": 6.086040986701846,
+    "seconds": 0.344,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 64,
+    "start_ms": 6.300583016127348,
+    "seconds": 0.345,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 67,
+    "start_ms": 6.352791097015142,
+    "seconds": 0.345,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 97,
+    "start_ms": 6.632708013057709,
+    "seconds": 0.346,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 25,
+    "start_ms": 5.973291117697954,
+    "seconds": 0.349,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 56,
+    "start_ms": 6.238708039745688,
+    "seconds": 0.349,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 36,
+    "start_ms": 6.053582997992635,
+    "seconds": 0.35,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 51,
+    "start_ms": 6.200208095833659,
+    "seconds": 0.353,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 76,
+    "start_ms": 6.429625209420919,
+    "seconds": 0.353,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 39,
+    "start_ms": 6.073166150599718,
+    "seconds": 0.354,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 4,
+    "start_ms": 5.786208203062415,
+    "seconds": 0.356,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 28,
+    "start_ms": 5.993750179186463,
+    "seconds": 0.356,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 99,
+    "start_ms": 6.645790999755263,
+    "seconds": 0.357,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 88,
+    "start_ms": 6.529666017740965,
+    "seconds": 0.361,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 96,
+    "start_ms": 6.620291154831648,
+    "seconds": 0.362,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 79,
+    "start_ms": 6.449833046644926,
+    "seconds": 0.364,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 73,
+    "start_ms": 6.403291132301092,
+    "seconds": 0.364,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 68,
+    "start_ms": 6.359875202178955,
+    "seconds": 0.367,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 15,
+    "start_ms": 5.862541031092405,
+    "seconds": 0.368,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 14,
+    "start_ms": 5.856166128069162,
+    "seconds": 0.37,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 78,
+    "start_ms": 6.443166173994541,
+    "seconds": 0.371,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 44,
+    "start_ms": 6.153708091005683,
+    "seconds": 0.372,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 24,
+    "start_ms": 5.966666154563427,
+    "seconds": 0.373,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 40,
+    "start_ms": 6.079583195969462,
+    "seconds": 0.374,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 84,
+    "start_ms": 6.497125141322613,
+    "seconds": 0.379,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 46,
+    "start_ms": 6.167166167870164,
+    "seconds": 0.379,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 18,
+    "start_ms": 5.885499995201826,
+    "seconds": 0.38,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 53,
+    "start_ms": 6.213375134393573,
+    "seconds": 0.381,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 10,
+    "start_ms": 5.827666027471423,
+    "seconds": 0.383,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 72,
+    "start_ms": 6.396666169166565,
+    "seconds": 0.386,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 70,
+    "start_ms": 6.383333122357726,
+    "seconds": 0.386,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 0,
+    "start_ms": 5.734291160479188,
+    "seconds": 0.389,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 82,
+    "start_ms": 6.470041116699576,
+    "seconds": 0.39,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 45,
+    "start_ms": 6.160250166431069,
+    "seconds": 0.391,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 93,
+    "start_ms": 6.6007080022245646,
+    "seconds": 0.391,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 61,
+    "start_ms": 6.2792079988867044,
+    "seconds": 0.392,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 59,
+    "start_ms": 6.258583161979914,
+    "seconds": 0.393,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 11,
+    "start_ms": 5.836083088070154,
+    "seconds": 0.393,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 60,
+    "start_ms": 6.265333155170083,
+    "seconds": 0.394,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 77,
+    "start_ms": 6.436499999836087,
+    "seconds": 0.395,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 55,
+    "start_ms": 6.231958046555519,
+    "seconds": 0.396,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 71,
+    "start_ms": 6.390125025063753,
+    "seconds": 0.397,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 92,
+    "start_ms": 6.594250211492181,
+    "seconds": 0.397,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 47,
+    "start_ms": 6.173583213239908,
+    "seconds": 0.397,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 57,
+    "start_ms": 6.245250115171075,
+    "seconds": 0.398,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 8,
+    "start_ms": 5.814458010718226,
+    "seconds": 0.399,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 66,
+    "start_ms": 6.315957987681031,
+    "seconds": 0.4,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 65,
+    "start_ms": 6.307416129857302,
+    "seconds": 0.401,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 62,
+    "start_ms": 6.285833194851875,
+    "seconds": 0.402,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 74,
+    "start_ms": 6.411916110664606,
+    "seconds": 0.402,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 85,
+    "start_ms": 6.503916112706065,
+    "seconds": 0.403,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 58,
+    "start_ms": 6.251875078305602,
+    "seconds": 0.403,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 13,
+    "start_ms": 5.849708104506135,
+    "seconds": 0.404,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 32,
+    "start_ms": 6.025457987561822,
+    "seconds": 0.405,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 80,
+    "start_ms": 6.456583039835095,
+    "seconds": 0.406,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 35,
+    "start_ms": 6.046750117093325,
+    "seconds": 0.407,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 81,
+    "start_ms": 6.463375175371766,
+    "seconds": 0.408,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 16,
+    "start_ms": 5.8691250160336494,
+    "seconds": 0.408,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 90,
+    "start_ms": 6.580875022336841,
+    "seconds": 0.409,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 54,
+    "start_ms": 6.2198331579566,
+    "seconds": 0.41,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 30,
+    "start_ms": 6.00712513551116,
+    "seconds": 0.41,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 34,
+    "start_ms": 6.040000123903155,
+    "seconds": 0.411,
+    "failures": 1,
+    "curl_exit_code": 7,
+    "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 55431 after 1 ms: Couldn't connect to server\n"
+  },
+  {
+    "user": 42,
+    "start_ms": 6.1031661462038755,
+    "seconds": 0.412,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 29,
+    "start_ms": 6.000500172376633,
+    "seconds": 0.413,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 83,
+    "start_ms": 6.485916208475828,
+    "seconds": 0.414,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 95,
+    "start_ms": 6.613666191697121,
+    "seconds": 0.415,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 9,
+    "start_ms": 5.821000086143613,
+    "seconds": 0.416,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 23,
+    "start_ms": 5.9600831009447575,
+    "seconds": 0.417,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 31,
+    "start_ms": 6.01379107683897,
+    "seconds": 0.418,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 27,
+    "start_ms": 5.987290991470218,
+    "seconds": 0.419,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 5,
+    "start_ms": 5.7933751959353685,
+    "seconds": 0.419,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 52,
+    "start_ms": 6.206791149452329,
+    "seconds": 0.421,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 91,
+    "start_ms": 6.587499985471368,
+    "seconds": 0.421,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 3,
+    "start_ms": 5.777000216767192,
+    "seconds": 0.422,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 50,
+    "start_ms": 6.193708162754774,
+    "seconds": 0.422,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 98,
+    "start_ms": 6.63933320902288,
+    "seconds": 0.424,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 69,
+    "start_ms": 6.376540986821055,
+    "seconds": 0.424,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 21,
+    "start_ms": 5.945958197116852,
+    "seconds": 0.424,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 38,
+    "start_ms": 6.066708127036691,
+    "seconds": 0.424,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 22,
+    "start_ms": 5.95362507738173,
+    "seconds": 0.425,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 43,
+    "start_ms": 6.120666163042188,
+    "seconds": 0.425,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 37,
+    "start_ms": 6.060166051611304,
+    "seconds": 0.425,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 48,
+    "start_ms": 6.180125055834651,
+    "seconds": 0.426,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 17,
+    "start_ms": 5.878666182979941,
+    "seconds": 0.427,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 26,
+    "start_ms": 5.980374990031123,
+    "seconds": 0.427,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 94,
+    "start_ms": 6.607250077649951,
+    "seconds": 0.427,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 7,
+    "start_ms": 5.807582987472415,
+    "seconds": 0.428,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 89,
+    "start_ms": 6.570708006620407,
+    "seconds": 0.428,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 49,
+    "start_ms": 6.187083199620247,
+    "seconds": 0.428,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 63,
+    "start_ms": 6.294166203588247,
+    "seconds": 0.429,
+    "failures": 2,
+    "curl_exit_code": 7,
+    "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 55431 after 2 ms: Couldn't connect to server\ncurl: (7) Failed to connect to 127.0.0.1 port 55431 after 2 ms: Couldn't connect to server\n"
+  },
+  {
+    "user": 2,
+    "start_ms": 5.769708193838596,
+    "seconds": 0.429,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 20,
+    "start_ms": 5.899125011637807,
+    "seconds": 0.429,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 12,
+    "start_ms": 5.842791171744466,
+    "seconds": 0.429,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  },
+  {
+    "user": 19,
+    "start_ms": 5.892083048820496,
+    "seconds": 0.43,
+    "failures": 0,
+    "curl_exit_code": 0,
+    "stderr": ""
+  }
+]

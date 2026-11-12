@@ -1,0 +1,44 @@
+[
+  {
+    "phase": "connect:remaining",
+    "users": 100,
+    "seconds": 0.95,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "learning_all_subjects_and_types",
+    "users": 100,
+    "seconds": 34.68,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "disconnect:final",
+    "users": 100,
+    "seconds": 0.05,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "reconnect:restore",
+    "users": 100,
+    "seconds": 0.82,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "state_after_reconnect",
+    "users": 100,
+    "seconds": 1.8,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "disconnect:cleanup",
+    "users": 100,
+    "seconds": 0.01,
+    "passed": 100,
+    "errors": {}
+  }
+]

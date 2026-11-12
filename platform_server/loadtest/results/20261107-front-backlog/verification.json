@@ -1,0 +1,40 @@
+{
+  "checked_at": "2026-11-07T14:33:25+0900",
+  "frontend_backlog": {
+    "movement": 128,
+    "service_http_chat": 128
+  },
+  "actual_listen_queues": {
+    "9581": "0/0/128        127.0.0.1.9581",
+    "9582": "0/0/128        127.0.0.1.9582"
+  },
+  "frontend_pid": 27451,
+  "checks": {
+    "regression_reproduced_before_fix": true,
+    "launcher_tests": 2,
+    "onprem_launcher_tests": 5,
+    "http_health_attempts": 100,
+    "http_health_success": 100
+  },
+  "archived_measurements_unchanged": true,
+  "changed_files": [
+    "pipeline/tests/backlog-20261106/launch.py",
+    "pipeline/tests/query-20261106/launch.py",
+    "pipeline/tests/ws-20261106/launch.py",
+    "pipeline/tests/backlog-20261106/run_variant.py",
+    "pipeline/tests/backlog-20261106/compare.py",
+    "pipeline/tests/backlog-20261106/verify_compare.py",
+    "pipeline/tests/query-20261106/run_variant.py",
+    "pipeline/tests/query-20261106/compare.py",
+    "pipeline/tests/query-20261106/verify_compare.py",
+    "pipeline/tests/ws-20261106/run_variant.py",
+    "pipeline/tests/ws-20261106/collect.py",
+    "pipeline/tests/ws-20261106/verify.py",
+    "pipeline/tests/ws-20261106/report.py",
+    "pipeline/tests/backlog-20261106/report.py",
+    "pipeline/tests/query-20261106/report.py",
+    "playdatametaverse/deploy/onprem/test_run.py",
+    "pipeline/tests/test_frontend_backlog.py"
+  ],
+  "scope": "Configuration verification and 100 concurrent frontend health requests; no gameplay benchmark or P95 comparison"
+}

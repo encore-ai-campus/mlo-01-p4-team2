@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-11-07T21:45:53.992341+09:00",
+  "owned_listening_ports": {
+    "55500": false,
+    "57541": false,
+    "57542": false,
+    "8116": false,
+    "8117": false,
+    "8118": false,
+    "9601": false,
+    "9602": false,
+    "9751": false,
+    "9752": false,
+    "9753": false,
+    "9754": false,
+    "9761": false,
+    "9762": false,
+    "9763": false,
+    "9764": false
+  },
+  "owned_processes_remaining": [],
+  "containers": {
+    "final-it-pg-20261107": "exited",
+    "final-it-move-20261107": "exited",
+    "final-it-service-20261107": "exited"
+  }
+}

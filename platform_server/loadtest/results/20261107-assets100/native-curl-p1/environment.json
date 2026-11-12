@@ -1,0 +1,18 @@
+{
+  "machine": "MacBookPro18,3",
+  "logical_cpus": 8,
+  "memory_bytes": 17179869184,
+  "kernel_listen_backlog_limit": 128,
+  "nginx_workers": 1,
+  "worker_connections": 8192,
+  "transport": "loopback HTTP/1.1",
+  "client_engine": "/usr/bin/curl 8.7.1; 100 processes",
+  "cache": "no client cache; OS file cache retained",
+  "harness_sha256": "b7d272612fb4e9f58caa10173a85ef5aaf28500cb5d43bee8a8b3eaff6a64388",
+  "excluded": [
+    "WAN",
+    "TLS",
+    "browser decoding/rendering",
+    "simultaneous login/WS/DB activity"
+  ]
+}

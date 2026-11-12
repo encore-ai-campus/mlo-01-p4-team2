@@ -1,0 +1,5 @@
+{
+  "change": "Verifier now prefers the unchanged approved local report.md over the replaceable repository report.",
+  "original_verifier": "harness/verify_compare-pre-archive.py",
+  "report_sha256_unchanged": "50cc71ead8899212974cdbe40d674c70c0a8c02ef2eacb7184b7a1c351652b80"
+}

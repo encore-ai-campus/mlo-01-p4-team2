@@ -1,0 +1,51 @@
+service-9561.log: 2026-11-06 10:31:10,465 ERROR    Internal Server Error: /api/event-story/plays/<uuid>/result/
+service-9561.log: psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9561.log: django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9561.log: 2026-11-06 10:32:29,076 ERROR    Internal Server Error: /api/event-story/recipe/action/
+service-9561.log: psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9561.log: django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9561.log: 2026-11-06 10:33:14,841 ERROR    Internal Server Error: /api/event-main/status/
+service-9561.log: psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9561.log: django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9561.log: 2026-11-06 10:33:14,845 ERROR    Internal Server Error: /api/event-main/status/
+service-9561.log: psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9561.log: django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9561.log: 2026-11-06 10:33:14,860 ERROR    Internal Server Error: /api/event-main/status/
+service-9561.log: psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9561.log: django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9561.log: 2026-11-06 10:33:14,890 ERROR    Internal Server Error: /api/event-main/status/
+service-9561.log: psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9561.log: django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: 2026-11-06 10:31:10,474 ERROR    Internal Server Error: /api/event-story/plays/<uuid>/result/
+service-9562.log: psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: 2026-11-06 10:31:13,181 ERROR    Internal Server Error: /api/event-main/action/
+service-9562.log: psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: 2026-11-06 10:31:13,183 ERROR    Internal Server Error: /api/event-main/action/
+service-9562.log: psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: 2026-11-06 10:31:13,189 ERROR    Internal Server Error: /api/event-main/action/
+service-9562.log: psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: 2026-11-06 10:31:13,190 ERROR    Internal Server Error: /api/event-main/action/
+service-9562.log: psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: 2026-11-06 10:32:29,066 ERROR    Internal Server Error: /api/event-story/recipe/action/
+service-9562.log: psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: 2026-11-06 10:32:29,071 ERROR    Internal Server Error: /api/event-story/recipe/action/
+service-9562.log: psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: 2026-11-06 10:32:34,494 ERROR    Internal Server Error: /api/learning/sessions/
+service-9562.log: psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: 2026-11-06 10:32:34,519 ERROR    Internal Server Error: /api/learning/sessions/
+service-9562.log: psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: 2026-11-06 10:32:34,521 ERROR    Internal Server Error: /api/learning/sessions/
+service-9562.log: psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: 2026-11-06 10:32:34,568 ERROR    Internal Server Error: /api/learning/sessions/
+service-9562.log: psycopg.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already
+service-9562.log: django.db.utils.OperationalError: connection failed: connection to server at "127.0.0.1", port 55480 failed: FATAL:  sorry, too many clients already

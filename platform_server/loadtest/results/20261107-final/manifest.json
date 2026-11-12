@@ -1,0 +1,22 @@
+{
+  "users": 100,
+  "browserUsers": 1,
+  "movementWorkers": 4,
+  "serviceWorkers": 4,
+  "frontends": 2,
+  "jobs": 1,
+  "postgresVersion": "17.7",
+  "postgresPort": 55500,
+  "maxConnections": 100,
+  "poolMin": 1,
+  "poolMax": 10,
+  "entryPort": 8116,
+  "movementRedisPort": 57541,
+  "serviceRedisPort": 57542,
+  "windowOverride": true,
+  "sourceFiles": {
+    "backend/event_story/main.py": "241dddfc0f7ebc5d16bd71291be6166c85c724f43a8865513672a455a1eb23d9",
+    "frontend/dist/main-quest.js": "c02e8305df3392e104320933423242df2bee5b368a4700e092e9d16c8f16aa06",
+    "frontend/dist/index.html": "0483eafd6902c8d59b34c107d7b57a0c8cb9125210cba723e6bfe1dbdbda469a"
+  }
+}

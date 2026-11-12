@@ -1,0 +1,40 @@
+{
+  "nopool": {
+    "database": "local44_nopool_final_20261106",
+    "counts": {
+      "auth_user": 100,
+      "event_progress": 906,
+      "learning_question": 3600,
+      "event_story_storyprogress": 96,
+      "event_story_storyrecord": 96
+    },
+    "session_file_sha256": "3e6b21194abf985c3ffde555f7b61555a931ccadf8f45ccbd24f3d0cc4dea74d",
+    "redis_urls": {
+      "CAMPUS_MOVEMENT_REDIS_URL": "redis://127.0.0.1:56393/0",
+      "CAMPUS_SERVICE_REDIS_URL": "redis://127.0.0.1:56394/0"
+    },
+    "initial_redis_key_counts": {
+      "CAMPUS_MOVEMENT_REDIS_URL": 0,
+      "CAMPUS_SERVICE_REDIS_URL": 0
+    }
+  },
+  "pool": {
+    "database": "local44_pool_20261106",
+    "counts": {
+      "auth_user": 100,
+      "event_progress": 906,
+      "learning_question": 3600,
+      "event_story_storyprogress": 96,
+      "event_story_storyrecord": 96
+    },
+    "session_file_sha256": "3e6b21194abf985c3ffde555f7b61555a931ccadf8f45ccbd24f3d0cc4dea74d",
+    "redis_urls": {
+      "CAMPUS_MOVEMENT_REDIS_URL": "redis://127.0.0.1:56395/0",
+      "CAMPUS_SERVICE_REDIS_URL": "redis://127.0.0.1:56396/0"
+    },
+    "initial_redis_key_counts": {
+      "CAMPUS_MOVEMENT_REDIS_URL": 0,
+      "CAMPUS_SERVICE_REDIS_URL": 0
+    }
+  }
+}

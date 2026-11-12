@@ -1,0 +1,464 @@
+{
+  "achievements:restore": {
+    "n": 100,
+    "p50": 359.91,
+    "p95": 426.97,
+    "p99": 455.88,
+    "max": 642.22,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "learning:answer": {
+    "n": 1000,
+    "p50": 960.55,
+    "p95": 1623.51,
+    "p99": 1986.25,
+    "max": 2176.55,
+    "unexpected": 0,
+    "statuses": {
+      "201": 1000
+    }
+  },
+  "learning:answer_retry": {
+    "n": 1000,
+    "p50": 558.28,
+    "p95": 1078.27,
+    "p99": 1349.32,
+    "max": 1411.3,
+    "unexpected": 0,
+    "statuses": {
+      "201": 1000
+    }
+  },
+  "learning:complete": {
+    "n": 100,
+    "p50": 622.72,
+    "p95": 956.01,
+    "p99": 1031.63,
+    "max": 1034.3,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "learning:question": {
+    "n": 1000,
+    "p50": 495.72,
+    "p95": 1368.43,
+    "p99": 2321.59,
+    "max": 3592.4,
+    "unexpected": 0,
+    "statuses": {
+      "200": 1000
+    }
+  },
+  "learning:start": {
+    "n": 100,
+    "p50": 3154.55,
+    "p95": 5107.36,
+    "p99": 5464.27,
+    "max": 7455.91,
+    "unexpected": 0,
+    "statuses": {
+      "201": 100
+    }
+  },
+  "main:deliver:first": {
+    "n": 100,
+    "p50": 2037.33,
+    "p95": 3988.83,
+    "p99": 4545.45,
+    "max": 4852.17,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "main:deliver:retry": {
+    "n": 100,
+    "p50": 2262.32,
+    "p95": 4070.16,
+    "p99": 4517.89,
+    "max": 4556.51,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "main:game_finish:card_match": {
+    "n": 100,
+    "p50": 213.53,
+    "p95": 665.68,
+    "p99": 796.47,
+    "max": 829.9,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "main:game_finish:coating": {
+    "n": 100,
+    "p50": 104.21,
+    "p95": 317.26,
+    "p99": 351.91,
+    "max": 375.02,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "main:game_finish:kkuwang_touch": {
+    "n": 100,
+    "p50": 169.34,
+    "p95": 581.04,
+    "p99": 623.5,
+    "max": 647.86,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "main:game_finish:sql_memory": {
+    "n": 100,
+    "p50": 438.78,
+    "p95": 1008.89,
+    "p99": 1043.61,
+    "max": 1061.59,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "main:game_finish:topping": {
+    "n": 100,
+    "p50": 89.24,
+    "p95": 563.77,
+    "p99": 607.85,
+    "max": 617.78,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "main:game_finish:wrapping": {
+    "n": 100,
+    "p50": 193.98,
+    "p95": 2616.11,
+    "p99": 2789.15,
+    "max": 2816.62,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "main:game_start:card_match": {
+    "n": 100,
+    "p50": 178.17,
+    "p95": 679.48,
+    "p99": 713.58,
+    "max": 726.41,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "main:game_start:coating": {
+    "n": 100,
+    "p50": 187.87,
+    "p95": 583.12,
+    "p99": 707.43,
+    "max": 713.83,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "main:game_start:kkuwang_touch": {
+    "n": 100,
+    "p50": 355.47,
+    "p95": 969.78,
+    "p99": 988.35,
+    "max": 1009.11,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "main:game_start:sql_memory": {
+    "n": 100,
+    "p50": 1185.52,
+    "p95": 1527.13,
+    "p99": 1625.44,
+    "max": 1743.8,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "main:game_start:topping": {
+    "n": 100,
+    "p50": 93.6,
+    "p95": 288.57,
+    "p99": 342.42,
+    "max": 385.0,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "main:game_start:wrapping": {
+    "n": 100,
+    "p50": 86.55,
+    "p95": 471.87,
+    "p99": 606.04,
+    "max": 611.98,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "main:investigate": {
+    "n": 100,
+    "p50": 952.25,
+    "p95": 1580.72,
+    "p99": 1807.99,
+    "max": 1934.65,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "main:restore": {
+    "n": 100,
+    "p50": 1398.21,
+    "p95": 2349.65,
+    "p99": 2447.28,
+    "max": 2496.99,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "main:room1_briefing": {
+    "n": 100,
+    "p50": 1417.86,
+    "p95": 1818.27,
+    "p99": 1919.63,
+    "max": 1931.75,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "main:sql_answer": {
+    "n": 100,
+    "p50": 355.39,
+    "p95": 978.16,
+    "p99": 1004.87,
+    "max": 1047.65,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "recipe:acquire": {
+    "n": 100,
+    "p50": 617.98,
+    "p95": 960.74,
+    "p99": 1018.65,
+    "max": 1105.44,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "recipe:defer": {
+    "n": 100,
+    "p50": 601.35,
+    "p95": 778.74,
+    "p99": 817.62,
+    "max": 819.28,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "recipe:finish": {
+    "n": 100,
+    "p50": 941.89,
+    "p95": 1185.0,
+    "p99": 1268.7,
+    "max": 1293.3,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "recipe:recognize": {
+    "n": 100,
+    "p50": 626.88,
+    "p95": 816.75,
+    "p99": 842.1,
+    "max": 852.53,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "recipe:restore": {
+    "n": 200,
+    "p50": 473.63,
+    "p95": 1088.74,
+    "p99": 1485.26,
+    "max": 1530.17,
+    "unexpected": 0,
+    "statuses": {
+      "200": 200
+    }
+  },
+  "recipe:start": {
+    "n": 100,
+    "p50": 567.76,
+    "p95": 722.95,
+    "p99": 741.2,
+    "max": 747.08,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "recipe:topping": {
+    "n": 100,
+    "p50": 520.99,
+    "p95": 635.69,
+    "p99": 680.46,
+    "max": 686.16,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "term_match:result": {
+    "n": 100,
+    "p50": 723.84,
+    "p95": 1239.21,
+    "p99": 1412.32,
+    "max": 1441.49,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "term_match:retry": {
+    "n": 100,
+    "p50": 943.66,
+    "p95": 1385.5,
+    "p99": 1452.09,
+    "max": 1455.31,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "timer:result": {
+    "n": 100,
+    "p50": 761.55,
+    "p95": 1270.74,
+    "p99": 1376.2,
+    "max": 1384.78,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "timer:retry": {
+    "n": 100,
+    "p50": 892.66,
+    "p95": 1329.86,
+    "p99": 1383.79,
+    "max": 1401.8,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "typing:interrupt": {
+    "n": 100,
+    "p50": 88.24,
+    "p95": 159.06,
+    "p99": 190.34,
+    "max": 340.8,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "typing:over_limit": {
+    "n": 100,
+    "p50": 88.75,
+    "p95": 294.38,
+    "p99": 714.61,
+    "max": 876.04,
+    "unexpected": 0,
+    "statuses": {
+      "400": 100
+    }
+  },
+  "typing:result": {
+    "n": 100,
+    "p50": 674.98,
+    "p95": 1237.22,
+    "p99": 1375.08,
+    "max": 1403.34,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "typing:retry": {
+    "n": 100,
+    "p50": 934.3,
+    "p95": 1311.15,
+    "p99": 1350.05,
+    "max": 1377.21,
+    "unexpected": 0,
+    "statuses": {
+      "200": 100
+    }
+  },
+  "ws:game_start": {
+    "n": 400,
+    "p50": 400.28,
+    "p95": 1040.21,
+    "p99": 1287.67,
+    "max": 1375.94,
+    "unexpected": 0,
+    "statuses": {
+      "ok": 400
+    }
+  },
+  "ws:guide_talk": {
+    "n": 300,
+    "p50": 96.41,
+    "p95": 172.52,
+    "p99": 189.73,
+    "max": 199.69,
+    "unexpected": 0,
+    "statuses": {
+      "rejected": 300
+    }
+  },
+  "ws_connect": {
+    "n": 400,
+    "p50": 620.1,
+    "p95": 849.99,
+    "p99": 927.4,
+    "max": 953.25,
+    "unexpected": 0,
+    "statuses": {
+      "101": 400
+    }
+  }
+}

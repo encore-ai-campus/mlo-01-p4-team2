@@ -1,0 +1,243 @@
+{
+  "original_incident": {
+    "client_504": 14,
+    "direct_cause": "entry Nginx -> Front 9602 connect timeout after 5s",
+    "per_request_socket_tuples_not_recorded": true
+  },
+  "confirmed_reproduction_mechanism": "local TCP address-port pair reused while reverse server socket remains TIME_WAIT; new connection waits in SYN_SENT",
+  "causal_scope": "mechanism reproduced directly; all original 14 socket tuples cannot be retrospectively compared",
+  "rounds": {
+    "learning1": {
+      "run": {
+        "started": 1794058116.45995,
+        "ended": 1794058146.831588,
+        "exit": 0,
+        "mode": "learning-only"
+      },
+      "requests": 3200,
+      "success": 3200,
+      "errors": {},
+      "completed_accounts": 100
+    },
+    "learning2": {
+      "run": {
+        "started": 1794058389.459262,
+        "ended": 1794058419.382318,
+        "exit": 0,
+        "mode": "learning-only"
+      },
+      "requests": 3200,
+      "success": 3200,
+      "errors": {},
+      "completed_accounts": 100
+    },
+    "learning3": {
+      "run": {
+        "started": 1794058419.433612,
+        "ended": 1794058456.5009122,
+        "exit": 1,
+        "mode": "learning-only"
+      },
+      "requests": 2339,
+      "success": 2308,
+      "errors": {
+        "timeout": 31
+      },
+      "completed_accounts": 69
+    },
+    "learning4": {
+      "run": {
+        "started": 1794058456.5654888,
+        "ended": 1794058498.7288,
+        "exit": 0,
+        "mode": "learning-only"
+      },
+      "requests": 3200,
+      "success": 3200,
+      "errors": {},
+      "completed_accounts": 100
+    },
+    "learning5": {
+      "run": {
+        "started": 1794058617.9582772,
+        "ended": 1794058646.77148,
+        "exit": 0,
+        "mode": "learning-only"
+      },
+      "requests": 3200,
+      "success": 3200,
+      "errors": {},
+      "completed_accounts": 100,
+      "client_connect": {
+        "n": 3500,
+        "over_5s": 0,
+        "max_ms": 18.680416978895664
+      }
+    },
+    "learning6": {
+      "run": {
+        "started": 1794058800.2690802,
+        "ended": 1794058831.3695412,
+        "exit": 0,
+        "mode": "learning-only"
+      },
+      "requests": 3200,
+      "success": 3200,
+      "errors": {},
+      "completed_accounts": 100,
+      "client_connect": {
+        "n": 3500,
+        "over_5s": 0,
+        "max_ms": 17.99333398230374
+      }
+    },
+    "learning7": {
+      "run": {
+        "started": 1794058831.418056,
+        "ended": 1794058868.7938418,
+        "exit": 1,
+        "mode": "learning-only"
+      },
+      "requests": 2754,
+      "success": 2738,
+      "errors": {
+        "timeout": 16
+      },
+      "completed_accounts": 84,
+      "client_connect": {
+        "n": 3054,
+        "over_5s": 29,
+        "max_ms": 25912.07908303477
+      }
+    },
+    "learning8": {
+      "run": {
+        "started": 1794059007.824624,
+        "ended": 1794059039.9866,
+        "exit": 0,
+        "mode": "learning-only"
+      },
+      "requests": 3200,
+      "success": 3200,
+      "errors": {},
+      "completed_accounts": 100,
+      "client_connect": {
+        "n": 3500,
+        "over_5s": 0,
+        "max_ms": 15.873625176027417
+      }
+    },
+    "learning9": {
+      "run": {
+        "started": 1794059040.062287,
+        "ended": 1794059078.309474,
+        "exit": 0,
+        "mode": "learning-only"
+      },
+      "requests": 3200,
+      "success": 3200,
+      "errors": {},
+      "completed_accounts": 100,
+      "client_connect": {
+        "n": 3500,
+        "over_5s": 45,
+        "max_ms": 19540.724750142545
+      }
+    },
+    "full1": {
+      "run": {
+        "started": 1794058179.48511,
+        "ended": 1794058320.7968209,
+        "exit": 0,
+        "mode": "full"
+      },
+      "requests": 3200,
+      "success": 3200,
+      "errors": {},
+      "completed_accounts": 100
+    },
+    "fresh1": {
+      "run": {
+        "started": 1794059218.306813,
+        "ended": 1794059247.843041,
+        "exit": 0,
+        "mode": "learning-only"
+      },
+      "requests": 3200,
+      "success": 3200,
+      "errors": {},
+      "completed_accounts": 100,
+      "client_connect": {
+        "n": 3500,
+        "over_5s": 0,
+        "max_ms": 24.582959013059735
+      }
+    },
+    "fresh2": {
+      "run": {
+        "started": 1794059247.900161,
+        "ended": 1794059286.307103,
+        "exit": 0,
+        "mode": "learning-only"
+      },
+      "requests": 3200,
+      "success": 3200,
+      "errors": {},
+      "completed_accounts": 100,
+      "client_connect": {
+        "n": 3500,
+        "over_5s": 0,
+        "max_ms": 306.9442498963326
+      }
+    }
+  },
+  "listener_queue_peak": {
+    "8116": 4,
+    "9602": 54,
+    "9761": 8,
+    "9762": 8,
+    "9763": 3,
+    "9764": 15
+  },
+  "listener_queue_limit": 128,
+  "diagnostic_db_sample_peak_including_monitor": 51,
+  "tcp_tuple_overlap": {
+    "round": "learning9",
+    "pending": 45,
+    "reverse_time_wait_same_pairs": 45,
+    "slow_connects_over_5s": 45
+  },
+  "same_port_microprobe": {
+    "cases": 4,
+    "expected_5s_connect_timeouts": 4,
+    "no_Django_or_DB_in_path": true
+  },
+  "nginx_front_control": {
+    "first_expected_status": 401,
+    "second_expected_status": 504,
+    "second_ms": 5003.700207918882,
+    "same_tuple_time_wait_before_second": true
+  },
+  "fresh_port_control": {
+    "accounts": 200,
+    "learning_requests": 6400,
+    "errors": 0,
+    "not_a_production_change": true
+  },
+  "health_only": {
+    "started": 1794058677.6449,
+    "ended": 1794058697.8803358,
+    "requests": 4000,
+    "success": 4000,
+    "errors": 0
+  },
+  "original_time_db_log": "no DB log entries from 2026-11-07 13:03:00Z through 13:03:30Z",
+  "limits": [
+    "local macOS loopback only",
+    "original 14 requests lack socket tuple snapshots",
+    "TCP packet capture unavailable without administrator authentication",
+    "HTTP keep-alive mitigation has not yet been implemented or benchmarked"
+  ],
+  "product_changes": false,
+  "recommended_next_comparison": "reuse HTTP connections across proxy hops to reduce short-lived TCP connections"
+}

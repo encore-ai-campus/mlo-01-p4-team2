@@ -1,0 +1,10 @@
+{
+  "deploy/onprem/run.py": "5e6e3496f638aa897afcb8020bb1ab67bcd8ae229691a328c9321a1de8b8bb6b",
+  "deploy/onprem/test_run.py": "29372306878894a5a03a133bf79322304237bac56d77a1d5a11bff60c8367e28",
+  "deploy/onprem/README.md": "bdda3b4683d8fa7d898a0d0bc1af5b86814922158f3d1ac45635b9d1edcd7c3d",
+  "backend/campus/socket_db.py": "742986caecb2a1ecfae147d043aaee8ba1783ee9822c4cd8f6b4e6c645254100",
+  "backend/config/connections.py": "86e4af17172ebd00e1ba0d9ccc0c48030247d12e3a9a8c32d2f1c3d79d6ad12b",
+  "backend/config/settings.py": "73846be0da324176f1714c4b923736ac49f6dc36fe7447f54bfe58f4fba5b559",
+  "backend/requirements.txt": "e03764f9141d2f0ef0e23ec17575167d909e968f75b4a086d39c9fa20cce0071",
+  "backend/tests/test_connection_pool.py": "65ef3ebb2f707100315697f1b8c111be3d3df9222e8de718765dd07dd56f2c0e"
+}

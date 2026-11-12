@@ -1,0 +1,46 @@
+[
+  {
+    "role": "movement",
+    "port": 9551,
+    "pid": 28469
+  },
+  {
+    "role": "movement",
+    "port": 9552,
+    "pid": 28470
+  },
+  {
+    "role": "movement",
+    "port": 9553,
+    "pid": 28471
+  },
+  {
+    "role": "movement",
+    "port": 9554,
+    "pid": 28472
+  },
+  {
+    "role": "service",
+    "port": 9561,
+    "pid": 28473
+  },
+  {
+    "role": "service",
+    "port": 9562,
+    "pid": 28474
+  },
+  {
+    "role": "service",
+    "port": 9563,
+    "pid": 28475
+  },
+  {
+    "role": "service",
+    "port": 9564,
+    "pid": 28476
+  },
+  {
+    "role": "jobs",
+    "pid": 28477
+  }
+]

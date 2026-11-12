@@ -1,0 +1,133 @@
+[
+  {
+    "phase": "connect:timer",
+    "users": 100,
+    "seconds": 2.17,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "standalone:timer",
+    "users": 100,
+    "seconds": 12.94,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "far_guide_rejection:timer",
+    "users": 100,
+    "seconds": 0.19,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "disconnect:timer",
+    "users": 100,
+    "seconds": 0.01,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "connect:typing",
+    "users": 100,
+    "seconds": 0.7,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "standalone:typing",
+    "users": 100,
+    "seconds": 4.0,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "far_guide_rejection:typing",
+    "users": 100,
+    "seconds": 0.17,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "disconnect:typing",
+    "users": 100,
+    "seconds": 0.01,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "connect:term_match",
+    "users": 100,
+    "seconds": 0.72,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "standalone:term_match",
+    "users": 100,
+    "seconds": 8.0,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "far_guide_rejection:term_match",
+    "users": 100,
+    "seconds": 0.21,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "main_games_and_final_rank",
+    "users": 100,
+    "seconds": 58.65,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "recipe_full_branches",
+    "users": 100,
+    "seconds": 3.93,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "learning_all_subjects_and_types",
+    "users": 100,
+    "seconds": 28.15,
+    "passed": 86,
+    "errors": {
+      "learning:complete: 504 {'error': 'non-json response'}": 4,
+      "learning:answer_retry: 504 {'error': 'non-json response'}": 4,
+      "learning:answer: 504 {'error': 'non-json response'}": 4,
+      "learning:question: 504 {'error': 'non-json response'}": 2
+    }
+  },
+  {
+    "phase": "disconnect:final",
+    "users": 100,
+    "seconds": 0.04,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "reconnect:restore",
+    "users": 100,
+    "seconds": 0.88,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "state_after_reconnect",
+    "users": 100,
+    "seconds": 2.79,
+    "passed": 100,
+    "errors": {}
+  },
+  {
+    "phase": "disconnect:cleanup",
+    "users": 100,
+    "seconds": 0.01,
+    "passed": 100,
+    "errors": {}
+  }
+]

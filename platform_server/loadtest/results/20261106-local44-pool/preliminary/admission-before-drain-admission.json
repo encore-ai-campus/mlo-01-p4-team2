@@ -1,0 +1,6302 @@
+[
+  {
+    "trial": 0,
+    "account_index": 0,
+    "status": 101,
+    "welcome": true,
+    "ms": 149.03329208027571
+  },
+  {
+    "trial": 0,
+    "account_index": 1,
+    "status": 101,
+    "welcome": true,
+    "ms": 146.99658402241766
+  },
+  {
+    "trial": 0,
+    "account_index": 2,
+    "status": 101,
+    "welcome": true,
+    "ms": 138.25562491547316
+  },
+  {
+    "trial": 0,
+    "account_index": 3,
+    "status": 101,
+    "welcome": true,
+    "ms": 144.41408298444003
+  },
+  {
+    "trial": 0,
+    "account_index": 4,
+    "status": 101,
+    "welcome": true,
+    "ms": 210.5725830188021
+  },
+  {
+    "trial": 0,
+    "account_index": 5,
+    "status": 101,
+    "welcome": true,
+    "ms": 227.34283294994384
+  },
+  {
+    "trial": 0,
+    "account_index": 6,
+    "status": 101,
+    "welcome": true,
+    "ms": 234.40829198807478
+  },
+  {
+    "trial": 0,
+    "account_index": 7,
+    "status": 502,
+    "welcome": false,
+    "ms": 4637.844416080043
+  },
+  {
+    "trial": 0,
+    "account_index": 8,
+    "status": 101,
+    "welcome": true,
+    "ms": 262.8307080594823
+  },
+  {
+    "trial": 0,
+    "account_index": 9,
+    "status": 101,
+    "welcome": true,
+    "ms": 368.71474992949516
+  },
+  {
+    "trial": 0,
+    "account_index": 10,
+    "status": 101,
+    "welcome": true,
+    "ms": 398.4369169920683
+  },
+  {
+    "trial": 0,
+    "account_index": 11,
+    "status": 101,
+    "welcome": true,
+    "ms": 377.2638749796897
+  },
+  {
+    "trial": 0,
+    "account_index": 12,
+    "status": 101,
+    "welcome": true,
+    "ms": 335.86829097475857
+  },
+  {
+    "trial": 0,
+    "account_index": 13,
+    "status": 101,
+    "welcome": true,
+    "ms": 423.7368750618771
+  },
+  {
+    "trial": 0,
+    "account_index": 14,
+    "status": 101,
+    "welcome": true,
+    "ms": 447.6851250510663
+  },
+  {
+    "trial": 0,
+    "account_index": 15,
+    "status": 101,
+    "welcome": true,
+    "ms": 473.2404589885846
+  },
+  {
+    "trial": 0,
+    "account_index": 16,
+    "status": 101,
+    "welcome": true,
+    "ms": 515.3674590401351
+  },
+  {
+    "trial": 0,
+    "account_index": 17,
+    "status": 101,
+    "welcome": true,
+    "ms": 547.1856669755653
+  },
+  {
+    "trial": 0,
+    "account_index": 18,
+    "status": 101,
+    "welcome": true,
+    "ms": 530.3754579508677
+  },
+  {
+    "trial": 0,
+    "account_index": 19,
+    "status": 101,
+    "welcome": true,
+    "ms": 464.67087499331683
+  },
+  {
+    "trial": 0,
+    "account_index": 20,
+    "status": 101,
+    "welcome": true,
+    "ms": 578.3825418911874
+  },
+  {
+    "trial": 0,
+    "account_index": 21,
+    "status": 101,
+    "welcome": true,
+    "ms": 504.20358404517174
+  },
+  {
+    "trial": 0,
+    "account_index": 22,
+    "status": 101,
+    "welcome": true,
+    "ms": 486.8804579600692
+  },
+  {
+    "trial": 0,
+    "account_index": 23,
+    "status": 101,
+    "welcome": true,
+    "ms": 538.6893340619281
+  },
+  {
+    "trial": 0,
+    "account_index": 24,
+    "status": 502,
+    "welcome": false,
+    "ms": 4634.7125839674845
+  },
+  {
+    "trial": 0,
+    "account_index": 25,
+    "status": 101,
+    "welcome": true,
+    "ms": 562.2595419408754
+  },
+  {
+    "trial": 0,
+    "account_index": 26,
+    "status": 101,
+    "welcome": true,
+    "ms": 613.3891670033336
+  },
+  {
+    "trial": 0,
+    "account_index": 27,
+    "status": 101,
+    "welcome": true,
+    "ms": 566.4197920123115
+  },
+  {
+    "trial": 0,
+    "account_index": 28,
+    "status": 101,
+    "welcome": true,
+    "ms": 584.3010829994455
+  },
+  {
+    "trial": 0,
+    "account_index": 29,
+    "status": 101,
+    "welcome": true,
+    "ms": 641.8643749784678
+  },
+  {
+    "trial": 0,
+    "account_index": 30,
+    "status": 101,
+    "welcome": true,
+    "ms": 613.8327079825103
+  },
+  {
+    "trial": 0,
+    "account_index": 31,
+    "status": 101,
+    "welcome": true,
+    "ms": 576.1902499943972
+  },
+  {
+    "trial": 0,
+    "account_index": 32,
+    "status": 101,
+    "welcome": true,
+    "ms": 602.0621249917895
+  },
+  {
+    "trial": 0,
+    "account_index": 33,
+    "status": 101,
+    "welcome": true,
+    "ms": 644.46525007952
+  },
+  {
+    "trial": 0,
+    "account_index": 34,
+    "status": 101,
+    "welcome": true,
+    "ms": 659.1477500041947
+  },
+  {
+    "trial": 0,
+    "account_index": 35,
+    "status": 101,
+    "welcome": true,
+    "ms": 593.6352079734206
+  },
+  {
+    "trial": 0,
+    "account_index": 36,
+    "status": 101,
+    "welcome": true,
+    "ms": 604.3469170108438
+  },
+  {
+    "trial": 0,
+    "account_index": 37,
+    "status": 101,
+    "welcome": true,
+    "ms": 671.3914579013363
+  },
+  {
+    "trial": 0,
+    "account_index": 38,
+    "status": 101,
+    "welcome": true,
+    "ms": 620.641625020653
+  },
+  {
+    "trial": 0,
+    "account_index": 39,
+    "status": 101,
+    "welcome": true,
+    "ms": 685.3764579864219
+  },
+  {
+    "trial": 0,
+    "account_index": 40,
+    "status": 101,
+    "welcome": true,
+    "ms": 669.7879999410361
+  },
+  {
+    "trial": 0,
+    "account_index": 41,
+    "status": 101,
+    "welcome": true,
+    "ms": 630.4033329943195
+  },
+  {
+    "trial": 0,
+    "account_index": 42,
+    "status": 101,
+    "welcome": true,
+    "ms": 682.8537500696257
+  },
+  {
+    "trial": 0,
+    "account_index": 43,
+    "status": 101,
+    "welcome": true,
+    "ms": 611.315207905136
+  },
+  {
+    "trial": 0,
+    "account_index": 44,
+    "status": 101,
+    "welcome": true,
+    "ms": 624.0202910266817
+  },
+  {
+    "trial": 0,
+    "account_index": 45,
+    "status": 101,
+    "welcome": true,
+    "ms": 699.516624910757
+  },
+  {
+    "trial": 0,
+    "account_index": 46,
+    "status": 101,
+    "welcome": true,
+    "ms": 697.9869580827653
+  },
+  {
+    "trial": 0,
+    "account_index": 47,
+    "status": 101,
+    "welcome": true,
+    "ms": 639.3712089629844
+  },
+  {
+    "trial": 0,
+    "account_index": 48,
+    "status": 101,
+    "welcome": true,
+    "ms": 652.5173339759931
+  },
+  {
+    "trial": 0,
+    "account_index": 49,
+    "status": 101,
+    "welcome": true,
+    "ms": 710.6210830388591
+  },
+  {
+    "trial": 0,
+    "account_index": 50,
+    "status": 101,
+    "welcome": true,
+    "ms": 706.0627919854596
+  },
+  {
+    "trial": 0,
+    "account_index": 51,
+    "status": 101,
+    "welcome": true,
+    "ms": 632.5598750263453
+  },
+  {
+    "trial": 0,
+    "account_index": 52,
+    "status": 101,
+    "welcome": true,
+    "ms": 720.4198330873623
+  },
+  {
+    "trial": 0,
+    "account_index": 53,
+    "status": 101,
+    "welcome": true,
+    "ms": 677.3176250280812
+  },
+  {
+    "trial": 0,
+    "account_index": 54,
+    "status": 101,
+    "welcome": true,
+    "ms": 642.6230419892818
+  },
+  {
+    "trial": 0,
+    "account_index": 55,
+    "status": 101,
+    "welcome": true,
+    "ms": 662.6771669834852
+  },
+  {
+    "trial": 0,
+    "account_index": 56,
+    "status": 101,
+    "welcome": true,
+    "ms": 725.052791996859
+  },
+  {
+    "trial": 0,
+    "account_index": 57,
+    "status": 101,
+    "welcome": true,
+    "ms": 664.7982089780271
+  },
+  {
+    "trial": 0,
+    "account_index": 58,
+    "status": 502,
+    "welcome": false,
+    "ms": 4632.817959063686
+  },
+  {
+    "trial": 0,
+    "account_index": 59,
+    "status": 101,
+    "welcome": true,
+    "ms": 735.2417500223964
+  },
+  {
+    "trial": 0,
+    "account_index": 60,
+    "status": 101,
+    "welcome": true,
+    "ms": 733.6938749067485
+  },
+  {
+    "trial": 0,
+    "account_index": 61,
+    "status": 101,
+    "welcome": true,
+    "ms": 653.9090409642085
+  },
+  {
+    "trial": 0,
+    "account_index": 62,
+    "status": 101,
+    "welcome": true,
+    "ms": 740.1997909182683
+  },
+  {
+    "trial": 0,
+    "account_index": 63,
+    "status": 101,
+    "welcome": true,
+    "ms": 788.1144579732791
+  },
+  {
+    "trial": 0,
+    "account_index": 64,
+    "status": 101,
+    "welcome": true,
+    "ms": 816.8438749853522
+  },
+  {
+    "trial": 0,
+    "account_index": 65,
+    "status": 101,
+    "welcome": true,
+    "ms": 787.4944590730593
+  },
+  {
+    "trial": 0,
+    "account_index": 66,
+    "status": 101,
+    "welcome": true,
+    "ms": 838.4132080245763
+  },
+  {
+    "trial": 0,
+    "account_index": 67,
+    "status": 101,
+    "welcome": true,
+    "ms": 852.9831670457497
+  },
+  {
+    "trial": 0,
+    "account_index": 68,
+    "status": 101,
+    "welcome": true,
+    "ms": 708.2480420358479
+  },
+  {
+    "trial": 0,
+    "account_index": 69,
+    "status": 101,
+    "welcome": true,
+    "ms": 800.6784999743104
+  },
+  {
+    "trial": 0,
+    "account_index": 70,
+    "status": 101,
+    "welcome": true,
+    "ms": 677.4202500237152
+  },
+  {
+    "trial": 0,
+    "account_index": 71,
+    "status": 101,
+    "welcome": true,
+    "ms": 714.4752501044422
+  },
+  {
+    "trial": 0,
+    "account_index": 72,
+    "status": 101,
+    "welcome": true,
+    "ms": 727.597916033119
+  },
+  {
+    "trial": 0,
+    "account_index": 73,
+    "status": 101,
+    "welcome": true,
+    "ms": 759.6002080244943
+  },
+  {
+    "trial": 0,
+    "account_index": 74,
+    "status": 101,
+    "welcome": true,
+    "ms": 762.8259169869125
+  },
+  {
+    "trial": 0,
+    "account_index": 75,
+    "status": 101,
+    "welcome": true,
+    "ms": 702.4725419469178
+  },
+  {
+    "trial": 0,
+    "account_index": 76,
+    "status": 101,
+    "welcome": true,
+    "ms": 690.5152919935063
+  },
+  {
+    "trial": 0,
+    "account_index": 77,
+    "status": 101,
+    "welcome": true,
+    "ms": 689.8804999655113
+  },
+  {
+    "trial": 0,
+    "account_index": 78,
+    "status": 101,
+    "welcome": true,
+    "ms": 750.4821249749511
+  },
+  {
+    "trial": 0,
+    "account_index": 79,
+    "status": 502,
+    "welcome": false,
+    "ms": 4631.678499979898
+  },
+  {
+    "trial": 0,
+    "account_index": 80,
+    "status": 101,
+    "welcome": true,
+    "ms": 744.3244170863181
+  },
+  {
+    "trial": 0,
+    "account_index": 81,
+    "status": 101,
+    "welcome": true,
+    "ms": 774.2374578956515
+  },
+  {
+    "trial": 0,
+    "account_index": 82,
+    "status": 101,
+    "welcome": true,
+    "ms": 809.2015829170123
+  },
+  {
+    "trial": 0,
+    "account_index": 83,
+    "status": 101,
+    "welcome": true,
+    "ms": 846.2256249040365
+  },
+  {
+    "trial": 0,
+    "account_index": 84,
+    "status": 101,
+    "welcome": true,
+    "ms": 867.0461670262739
+  },
+  {
+    "trial": 0,
+    "account_index": 85,
+    "status": 101,
+    "welcome": true,
+    "ms": 832.4800829868764
+  },
+  {
+    "trial": 0,
+    "account_index": 86,
+    "status": 101,
+    "welcome": true,
+    "ms": 791.679541929625
+  },
+  {
+    "trial": 0,
+    "account_index": 87,
+    "status": 101,
+    "welcome": true,
+    "ms": 819.964166963473
+  },
+  {
+    "trial": 0,
+    "account_index": 88,
+    "status": 101,
+    "welcome": true,
+    "ms": 754.6810420462862
+  },
+  {
+    "trial": 0,
+    "account_index": 89,
+    "status": 101,
+    "welcome": true,
+    "ms": 780.096958973445
+  },
+  {
+    "trial": 0,
+    "account_index": 90,
+    "status": 101,
+    "welcome": true,
+    "ms": 721.3283339515328
+  },
+  {
+    "trial": 0,
+    "account_index": 91,
+    "status": 101,
+    "welcome": true,
+    "ms": 801.822290988639
+  },
+  {
+    "trial": 0,
+    "account_index": 92,
+    "status": 101,
+    "welcome": true,
+    "ms": 806.9857090013102
+  },
+  {
+    "trial": 0,
+    "account_index": 93,
+    "status": 101,
+    "welcome": true,
+    "ms": 858.8130829157308
+  },
+  {
+    "trial": 0,
+    "account_index": 94,
+    "status": 101,
+    "welcome": true,
+    "ms": 828.1245830003172
+  },
+  {
+    "trial": 0,
+    "account_index": 95,
+    "status": 502,
+    "welcome": false,
+    "ms": 4630.7144169695675
+  },
+  {
+    "trial": 0,
+    "account_index": 96,
+    "status": 101,
+    "welcome": true,
+    "ms": 836.6577499546111
+  },
+  {
+    "trial": 0,
+    "account_index": 97,
+    "status": 101,
+    "welcome": true,
+    "ms": 735.1026670075953
+  },
+  {
+    "trial": 0,
+    "account_index": 98,
+    "status": 101,
+    "welcome": true,
+    "ms": 776.9383339909837
+  },
+  {
+    "trial": 0,
+    "account_index": 99,
+    "status": 101,
+    "welcome": true,
+    "ms": 767.8950420813635
+  },
+  {
+    "trial": 1,
+    "account_index": 0,
+    "status": 101,
+    "welcome": true,
+    "ms": 260.3952919598669
+  },
+  {
+    "trial": 1,
+    "account_index": 1,
+    "status": 101,
+    "welcome": true,
+    "ms": 224.3384999455884
+  },
+  {
+    "trial": 1,
+    "account_index": 2,
+    "status": 101,
+    "welcome": true,
+    "ms": 191.00462493952364
+  },
+  {
+    "trial": 1,
+    "account_index": 3,
+    "status": 101,
+    "welcome": true,
+    "ms": 328.9332080166787
+  },
+  {
+    "trial": 1,
+    "account_index": 4,
+    "status": 101,
+    "welcome": true,
+    "ms": 282.54891699180007
+  },
+  {
+    "trial": 1,
+    "account_index": 5,
+    "status": 101,
+    "welcome": true,
+    "ms": 254.03191591612995
+  },
+  {
+    "trial": 1,
+    "account_index": 6,
+    "status": 101,
+    "welcome": true,
+    "ms": 353.4128749743104
+  },
+  {
+    "trial": 1,
+    "account_index": 7,
+    "status": 101,
+    "welcome": true,
+    "ms": 281.42983408179134
+  },
+  {
+    "trial": 1,
+    "account_index": 8,
+    "status": 101,
+    "welcome": true,
+    "ms": 382.24675005767494
+  },
+  {
+    "trial": 1,
+    "account_index": 9,
+    "status": 101,
+    "welcome": true,
+    "ms": 483.8744590524584
+  },
+  {
+    "trial": 1,
+    "account_index": 10,
+    "status": 101,
+    "welcome": true,
+    "ms": 386.6209579864517
+  },
+  {
+    "trial": 1,
+    "account_index": 11,
+    "status": 101,
+    "welcome": true,
+    "ms": 466.3542080670595
+  },
+  {
+    "trial": 1,
+    "account_index": 12,
+    "status": 101,
+    "welcome": true,
+    "ms": 558.656792039983
+  },
+  {
+    "trial": 1,
+    "account_index": 13,
+    "status": 101,
+    "welcome": true,
+    "ms": 509.8636660259217
+  },
+  {
+    "trial": 1,
+    "account_index": 14,
+    "status": 101,
+    "welcome": true,
+    "ms": 621.6601659543812
+  },
+  {
+    "trial": 1,
+    "account_index": 15,
+    "status": 101,
+    "welcome": true,
+    "ms": 430.30679190997034
+  },
+  {
+    "trial": 1,
+    "account_index": 16,
+    "status": 101,
+    "welcome": true,
+    "ms": 502.2125419927761
+  },
+  {
+    "trial": 1,
+    "account_index": 17,
+    "status": 101,
+    "welcome": true,
+    "ms": 607.9470000695437
+  },
+  {
+    "trial": 1,
+    "account_index": 18,
+    "status": 101,
+    "welcome": true,
+    "ms": 651.8177089747041
+  },
+  {
+    "trial": 1,
+    "account_index": 19,
+    "status": 101,
+    "welcome": true,
+    "ms": 559.556792024523
+  },
+  {
+    "trial": 1,
+    "account_index": 20,
+    "status": 101,
+    "welcome": true,
+    "ms": 534.3578750034794
+  },
+  {
+    "trial": 1,
+    "account_index": 21,
+    "status": 101,
+    "welcome": true,
+    "ms": 592.5039999419823
+  },
+  {
+    "trial": 1,
+    "account_index": 22,
+    "status": 101,
+    "welcome": true,
+    "ms": 668.0225839372724
+  },
+  {
+    "trial": 1,
+    "account_index": 23,
+    "status": 101,
+    "welcome": true,
+    "ms": 679.9404169432819
+  },
+  {
+    "trial": 1,
+    "account_index": 24,
+    "status": 101,
+    "welcome": true,
+    "ms": 539.7724169306457
+  },
+  {
+    "trial": 1,
+    "account_index": 25,
+    "status": 101,
+    "welcome": true,
+    "ms": 593.1949589867145
+  },
+  {
+    "trial": 1,
+    "account_index": 26,
+    "status": 101,
+    "welcome": true,
+    "ms": 701.9312500488013
+  },
+  {
+    "trial": 1,
+    "account_index": 27,
+    "status": 101,
+    "welcome": true,
+    "ms": 639.4680830417201
+  },
+  {
+    "trial": 1,
+    "account_index": 28,
+    "status": 101,
+    "welcome": true,
+    "ms": 688.0425829440355
+  },
+  {
+    "trial": 1,
+    "account_index": 29,
+    "status": 101,
+    "welcome": true,
+    "ms": 634.5110000111163
+  },
+  {
+    "trial": 1,
+    "account_index": 30,
+    "status": 101,
+    "welcome": true,
+    "ms": 675.9845420019701
+  },
+  {
+    "trial": 1,
+    "account_index": 31,
+    "status": 101,
+    "welcome": true,
+    "ms": 708.0221250653267
+  },
+  {
+    "trial": 1,
+    "account_index": 32,
+    "status": 101,
+    "welcome": true,
+    "ms": 710.7697080355138
+  },
+  {
+    "trial": 1,
+    "account_index": 33,
+    "status": 101,
+    "welcome": true,
+    "ms": 673.1518749147654
+  },
+  {
+    "trial": 1,
+    "account_index": 34,
+    "status": 101,
+    "welcome": true,
+    "ms": 699.5432910043746
+  },
+  {
+    "trial": 1,
+    "account_index": 35,
+    "status": 101,
+    "welcome": true,
+    "ms": 721.5141670312732
+  },
+  {
+    "trial": 1,
+    "account_index": 36,
+    "status": 101,
+    "welcome": true,
+    "ms": 730.6007919833064
+  },
+  {
+    "trial": 1,
+    "account_index": 37,
+    "status": 101,
+    "welcome": true,
+    "ms": 701.6337080858648
+  },
+  {
+    "trial": 1,
+    "account_index": 38,
+    "status": 101,
+    "welcome": true,
+    "ms": 717.4215839477256
+  },
+  {
+    "trial": 1,
+    "account_index": 39,
+    "status": 101,
+    "welcome": true,
+    "ms": 723.2729579554871
+  },
+  {
+    "trial": 1,
+    "account_index": 40,
+    "status": 101,
+    "welcome": true,
+    "ms": 734.2347500380129
+  },
+  {
+    "trial": 1,
+    "account_index": 41,
+    "status": 101,
+    "welcome": true,
+    "ms": 741.477333009243
+  },
+  {
+    "trial": 1,
+    "account_index": 42,
+    "status": 101,
+    "welcome": true,
+    "ms": 748.1033330550417
+  },
+  {
+    "trial": 1,
+    "account_index": 43,
+    "status": 101,
+    "welcome": true,
+    "ms": 717.2931249951944
+  },
+  {
+    "trial": 1,
+    "account_index": 44,
+    "status": 101,
+    "welcome": true,
+    "ms": 730.1190419821069
+  },
+  {
+    "trial": 1,
+    "account_index": 45,
+    "status": 101,
+    "welcome": true,
+    "ms": 734.3329159775749
+  },
+  {
+    "trial": 1,
+    "account_index": 46,
+    "status": 101,
+    "welcome": true,
+    "ms": 752.6358329923823
+  },
+  {
+    "trial": 1,
+    "account_index": 47,
+    "status": 101,
+    "welcome": true,
+    "ms": 740.2529580285773
+  },
+  {
+    "trial": 1,
+    "account_index": 48,
+    "status": 101,
+    "welcome": true,
+    "ms": 754.841958056204
+  },
+  {
+    "trial": 1,
+    "account_index": 49,
+    "status": 101,
+    "welcome": true,
+    "ms": 758.2733330782503
+  },
+  {
+    "trial": 1,
+    "account_index": 50,
+    "status": 101,
+    "welcome": true,
+    "ms": 745.0789170106873
+  },
+  {
+    "trial": 1,
+    "account_index": 51,
+    "status": 101,
+    "welcome": true,
+    "ms": 757.1609580190852
+  },
+  {
+    "trial": 1,
+    "account_index": 52,
+    "status": 101,
+    "welcome": true,
+    "ms": 766.3358340505511
+  },
+  {
+    "trial": 1,
+    "account_index": 53,
+    "status": 101,
+    "welcome": true,
+    "ms": 771.3791660498828
+  },
+  {
+    "trial": 1,
+    "account_index": 54,
+    "status": 101,
+    "welcome": true,
+    "ms": 771.9617080874741
+  },
+  {
+    "trial": 1,
+    "account_index": 55,
+    "status": 101,
+    "welcome": true,
+    "ms": 763.9778750017285
+  },
+  {
+    "trial": 1,
+    "account_index": 56,
+    "status": 101,
+    "welcome": true,
+    "ms": 779.8111250158399
+  },
+  {
+    "trial": 1,
+    "account_index": 57,
+    "status": 101,
+    "welcome": true,
+    "ms": 791.8760000029579
+  },
+  {
+    "trial": 1,
+    "account_index": 58,
+    "status": 101,
+    "welcome": true,
+    "ms": 806.7513341084123
+  },
+  {
+    "trial": 1,
+    "account_index": 59,
+    "status": 101,
+    "welcome": true,
+    "ms": 784.8291250411421
+  },
+  {
+    "trial": 1,
+    "account_index": 60,
+    "status": 101,
+    "welcome": true,
+    "ms": 786.0513749765232
+  },
+  {
+    "trial": 1,
+    "account_index": 61,
+    "status": 101,
+    "welcome": true,
+    "ms": 776.2337499298155
+  },
+  {
+    "trial": 1,
+    "account_index": 62,
+    "status": 101,
+    "welcome": true,
+    "ms": 798.1719999806955
+  },
+  {
+    "trial": 1,
+    "account_index": 63,
+    "status": 101,
+    "welcome": true,
+    "ms": 796.5552499517798
+  },
+  {
+    "trial": 1,
+    "account_index": 64,
+    "status": 101,
+    "welcome": true,
+    "ms": 809.1780829709023
+  },
+  {
+    "trial": 1,
+    "account_index": 65,
+    "status": 101,
+    "welcome": true,
+    "ms": 813.2832500850782
+  },
+  {
+    "trial": 1,
+    "account_index": 66,
+    "status": 101,
+    "welcome": true,
+    "ms": 788.7653749203309
+  },
+  {
+    "trial": 1,
+    "account_index": 67,
+    "status": 101,
+    "welcome": true,
+    "ms": 822.1042080549523
+  },
+  {
+    "trial": 1,
+    "account_index": 68,
+    "status": 101,
+    "welcome": true,
+    "ms": 835.9755410347134
+  },
+  {
+    "trial": 1,
+    "account_index": 69,
+    "status": 101,
+    "welcome": true,
+    "ms": 802.6482919231057
+  },
+  {
+    "trial": 1,
+    "account_index": 70,
+    "status": 101,
+    "welcome": true,
+    "ms": 826.6381659777835
+  },
+  {
+    "trial": 1,
+    "account_index": 71,
+    "status": 502,
+    "welcome": false,
+    "ms": 16.232582973316312
+  },
+  {
+    "trial": 1,
+    "account_index": 72,
+    "status": 101,
+    "welcome": true,
+    "ms": 824.0019589429721
+  },
+  {
+    "trial": 1,
+    "account_index": 73,
+    "status": 101,
+    "welcome": true,
+    "ms": 945.6955411005765
+  },
+  {
+    "trial": 1,
+    "account_index": 74,
+    "status": 101,
+    "welcome": true,
+    "ms": 956.4695410663262
+  },
+  {
+    "trial": 1,
+    "account_index": 75,
+    "status": 101,
+    "welcome": true,
+    "ms": 939.7439999738708
+  },
+  {
+    "trial": 1,
+    "account_index": 76,
+    "status": 101,
+    "welcome": true,
+    "ms": 934.8252500640228
+  },
+  {
+    "trial": 1,
+    "account_index": 77,
+    "status": 101,
+    "welcome": true,
+    "ms": 904.5793329132721
+  },
+  {
+    "trial": 1,
+    "account_index": 78,
+    "status": 101,
+    "welcome": true,
+    "ms": 947.6154580479488
+  },
+  {
+    "trial": 1,
+    "account_index": 79,
+    "status": 101,
+    "welcome": true,
+    "ms": 934.8339579300955
+  },
+  {
+    "trial": 1,
+    "account_index": 80,
+    "status": 101,
+    "welcome": true,
+    "ms": 923.0266660451889
+  },
+  {
+    "trial": 1,
+    "account_index": 81,
+    "status": 101,
+    "welcome": true,
+    "ms": 884.9556669592857
+  },
+  {
+    "trial": 1,
+    "account_index": 82,
+    "status": 101,
+    "welcome": true,
+    "ms": 916.8706249911338
+  },
+  {
+    "trial": 1,
+    "account_index": 83,
+    "status": 101,
+    "welcome": true,
+    "ms": 841.5844580158591
+  },
+  {
+    "trial": 1,
+    "account_index": 84,
+    "status": 101,
+    "welcome": true,
+    "ms": 843.5420419555157
+  },
+  {
+    "trial": 1,
+    "account_index": 85,
+    "status": 101,
+    "welcome": true,
+    "ms": 815.8194170100614
+  },
+  {
+    "trial": 1,
+    "account_index": 86,
+    "status": 101,
+    "welcome": true,
+    "ms": 847.7482090238482
+  },
+  {
+    "trial": 1,
+    "account_index": 87,
+    "status": 101,
+    "welcome": true,
+    "ms": 876.735792029649
+  },
+  {
+    "trial": 1,
+    "account_index": 88,
+    "status": 101,
+    "welcome": true,
+    "ms": 830.9277499793097
+  },
+  {
+    "trial": 1,
+    "account_index": 89,
+    "status": 101,
+    "welcome": true,
+    "ms": 862.6531249610707
+  },
+  {
+    "trial": 1,
+    "account_index": 90,
+    "status": 101,
+    "welcome": true,
+    "ms": 857.1402090601623
+  },
+  {
+    "trial": 1,
+    "account_index": 91,
+    "status": 101,
+    "welcome": true,
+    "ms": 876.5284169930965
+  },
+  {
+    "trial": 1,
+    "account_index": 92,
+    "status": 101,
+    "welcome": true,
+    "ms": 878.45329195261
+  },
+  {
+    "trial": 1,
+    "account_index": 93,
+    "status": 101,
+    "welcome": true,
+    "ms": 845.7841670606285
+  },
+  {
+    "trial": 1,
+    "account_index": 94,
+    "status": 101,
+    "welcome": true,
+    "ms": 888.1228750105947
+  },
+  {
+    "trial": 1,
+    "account_index": 95,
+    "status": 101,
+    "welcome": true,
+    "ms": 916.316083050333
+  },
+  {
+    "trial": 1,
+    "account_index": 96,
+    "status": 101,
+    "welcome": true,
+    "ms": 893.6711250571534
+  },
+  {
+    "trial": 1,
+    "account_index": 97,
+    "status": 101,
+    "welcome": true,
+    "ms": 865.054541034624
+  },
+  {
+    "trial": 1,
+    "account_index": 98,
+    "status": 101,
+    "welcome": true,
+    "ms": 882.8470830339938
+  },
+  {
+    "trial": 1,
+    "account_index": 99,
+    "status": 101,
+    "welcome": true,
+    "ms": 901.797000085935
+  },
+  {
+    "trial": 2,
+    "account_index": 0,
+    "status": 101,
+    "welcome": true,
+    "ms": 127.60445801541209
+  },
+  {
+    "trial": 2,
+    "account_index": 1,
+    "status": 101,
+    "welcome": true,
+    "ms": 154.29820795543492
+  },
+  {
+    "trial": 2,
+    "account_index": 2,
+    "status": 101,
+    "welcome": true,
+    "ms": 155.30412504449487
+  },
+  {
+    "trial": 2,
+    "account_index": 3,
+    "status": 101,
+    "welcome": true,
+    "ms": 211.6942920256406
+  },
+  {
+    "trial": 2,
+    "account_index": 4,
+    "status": 101,
+    "welcome": true,
+    "ms": 367.6113330293447
+  },
+  {
+    "trial": 2,
+    "account_index": 5,
+    "status": 101,
+    "welcome": true,
+    "ms": 253.970209043473
+  },
+  {
+    "trial": 2,
+    "account_index": 6,
+    "status": 101,
+    "welcome": true,
+    "ms": 295.80754099879414
+  },
+  {
+    "trial": 2,
+    "account_index": 7,
+    "status": 101,
+    "welcome": true,
+    "ms": 211.561833973974
+  },
+  {
+    "trial": 2,
+    "account_index": 8,
+    "status": 101,
+    "welcome": true,
+    "ms": 151.4609579462558
+  },
+  {
+    "trial": 2,
+    "account_index": 9,
+    "status": 101,
+    "welcome": true,
+    "ms": 366.5054589509964
+  },
+  {
+    "trial": 2,
+    "account_index": 10,
+    "status": 101,
+    "welcome": true,
+    "ms": 420.1921250205487
+  },
+  {
+    "trial": 2,
+    "account_index": 11,
+    "status": 101,
+    "welcome": true,
+    "ms": 377.7502500452101
+  },
+  {
+    "trial": 2,
+    "account_index": 12,
+    "status": 101,
+    "welcome": true,
+    "ms": 392.65716599766165
+  },
+  {
+    "trial": 2,
+    "account_index": 13,
+    "status": 101,
+    "welcome": true,
+    "ms": 430.03199994564056
+  },
+  {
+    "trial": 2,
+    "account_index": 14,
+    "status": 101,
+    "welcome": true,
+    "ms": 441.14945793990046
+  },
+  {
+    "trial": 2,
+    "account_index": 15,
+    "status": 101,
+    "welcome": true,
+    "ms": 481.6058750730008
+  },
+  {
+    "trial": 2,
+    "account_index": 16,
+    "status": 101,
+    "welcome": true,
+    "ms": 498.4078750712797
+  },
+  {
+    "trial": 2,
+    "account_index": 17,
+    "status": 101,
+    "welcome": true,
+    "ms": 460.06545901764184
+  },
+  {
+    "trial": 2,
+    "account_index": 18,
+    "status": 101,
+    "welcome": true,
+    "ms": 410.29945795889944
+  },
+  {
+    "trial": 2,
+    "account_index": 19,
+    "status": 101,
+    "welcome": true,
+    "ms": 444.149624905549
+  },
+  {
+    "trial": 2,
+    "account_index": 20,
+    "status": 101,
+    "welcome": true,
+    "ms": 471.7541659483686
+  },
+  {
+    "trial": 2,
+    "account_index": 21,
+    "status": 101,
+    "welcome": true,
+    "ms": 509.5941249746829
+  },
+  {
+    "trial": 2,
+    "account_index": 22,
+    "status": 101,
+    "welcome": true,
+    "ms": 508.19249998312443
+  },
+  {
+    "trial": 2,
+    "account_index": 23,
+    "status": 101,
+    "welcome": true,
+    "ms": 451.61350001581013
+  },
+  {
+    "trial": 2,
+    "account_index": 24,
+    "status": 101,
+    "welcome": true,
+    "ms": 483.9156250236556
+  },
+  {
+    "trial": 2,
+    "account_index": 25,
+    "status": 101,
+    "welcome": true,
+    "ms": 501.72275002114475
+  },
+  {
+    "trial": 2,
+    "account_index": 26,
+    "status": 101,
+    "welcome": true,
+    "ms": 530.4992499295622
+  },
+  {
+    "trial": 2,
+    "account_index": 27,
+    "status": 101,
+    "welcome": true,
+    "ms": 529.9594579264522
+  },
+  {
+    "trial": 2,
+    "account_index": 28,
+    "status": 101,
+    "welcome": true,
+    "ms": 478.46708400174975
+  },
+  {
+    "trial": 2,
+    "account_index": 29,
+    "status": 101,
+    "welcome": true,
+    "ms": 519.2317089531571
+  },
+  {
+    "trial": 2,
+    "account_index": 30,
+    "status": 101,
+    "welcome": true,
+    "ms": 495.6476669758558
+  },
+  {
+    "trial": 2,
+    "account_index": 31,
+    "status": 101,
+    "welcome": true,
+    "ms": 532.5645839329809
+  },
+  {
+    "trial": 2,
+    "account_index": 32,
+    "status": 101,
+    "welcome": true,
+    "ms": 542.6903329789639
+  },
+  {
+    "trial": 2,
+    "account_index": 33,
+    "status": 101,
+    "welcome": true,
+    "ms": 553.1117920763791
+  },
+  {
+    "trial": 2,
+    "account_index": 34,
+    "status": 101,
+    "welcome": true,
+    "ms": 505.3960829973221
+  },
+  {
+    "trial": 2,
+    "account_index": 35,
+    "status": 101,
+    "welcome": true,
+    "ms": 569.8481670115143
+  },
+  {
+    "trial": 2,
+    "account_index": 36,
+    "status": 101,
+    "welcome": true,
+    "ms": 541.690457961522
+  },
+  {
+    "trial": 2,
+    "account_index": 37,
+    "status": 101,
+    "welcome": true,
+    "ms": 551.9670420326293
+  },
+  {
+    "trial": 2,
+    "account_index": 38,
+    "status": 101,
+    "welcome": true,
+    "ms": 582.2227080352604
+  },
+  {
+    "trial": 2,
+    "account_index": 39,
+    "status": 101,
+    "welcome": true,
+    "ms": 551.833541947417
+  },
+  {
+    "trial": 2,
+    "account_index": 40,
+    "status": 101,
+    "welcome": true,
+    "ms": 515.6277089845389
+  },
+  {
+    "trial": 2,
+    "account_index": 41,
+    "status": 101,
+    "welcome": true,
+    "ms": 525.398958940059
+  },
+  {
+    "trial": 2,
+    "account_index": 42,
+    "status": 101,
+    "welcome": true,
+    "ms": 562.9827920347452
+  },
+  {
+    "trial": 2,
+    "account_index": 43,
+    "status": 101,
+    "welcome": true,
+    "ms": 597.4725830601528
+  },
+  {
+    "trial": 2,
+    "account_index": 44,
+    "status": 101,
+    "welcome": true,
+    "ms": 564.0952499816194
+  },
+  {
+    "trial": 2,
+    "account_index": 45,
+    "status": 101,
+    "welcome": true,
+    "ms": 574.4995001005009
+  },
+  {
+    "trial": 2,
+    "account_index": 46,
+    "status": 101,
+    "welcome": true,
+    "ms": 611.6475000744686
+  },
+  {
+    "trial": 2,
+    "account_index": 47,
+    "status": 101,
+    "welcome": true,
+    "ms": 576.1403330834582
+  },
+  {
+    "trial": 2,
+    "account_index": 48,
+    "status": 101,
+    "welcome": true,
+    "ms": 536.3783750217408
+  },
+  {
+    "trial": 2,
+    "account_index": 49,
+    "status": 101,
+    "welcome": true,
+    "ms": 547.8432499803603
+  },
+  {
+    "trial": 2,
+    "account_index": 50,
+    "status": 101,
+    "welcome": true,
+    "ms": 595.4412079881877
+  },
+  {
+    "trial": 2,
+    "account_index": 51,
+    "status": 101,
+    "welcome": true,
+    "ms": 594.0390420146286
+  },
+  {
+    "trial": 2,
+    "account_index": 52,
+    "status": 101,
+    "welcome": true,
+    "ms": 603.9116659667343
+  },
+  {
+    "trial": 2,
+    "account_index": 53,
+    "status": 101,
+    "welcome": true,
+    "ms": 631.1100421007723
+  },
+  {
+    "trial": 2,
+    "account_index": 54,
+    "status": 101,
+    "welcome": true,
+    "ms": 607.8269160352647
+  },
+  {
+    "trial": 2,
+    "account_index": 55,
+    "status": 101,
+    "welcome": true,
+    "ms": 561.964749940671
+  },
+  {
+    "trial": 2,
+    "account_index": 56,
+    "status": 101,
+    "welcome": true,
+    "ms": 574.1470829816535
+  },
+  {
+    "trial": 2,
+    "account_index": 57,
+    "status": 101,
+    "welcome": true,
+    "ms": 620.8032499998808
+  },
+  {
+    "trial": 2,
+    "account_index": 58,
+    "status": 101,
+    "welcome": true,
+    "ms": 641.2036669207737
+  },
+  {
+    "trial": 2,
+    "account_index": 59,
+    "status": 101,
+    "welcome": true,
+    "ms": 614.6557920146734
+  },
+  {
+    "trial": 2,
+    "account_index": 60,
+    "status": 101,
+    "welcome": true,
+    "ms": 627.8250000905246
+  },
+  {
+    "trial": 2,
+    "account_index": 61,
+    "status": 101,
+    "welcome": true,
+    "ms": 649.8954170383513
+  },
+  {
+    "trial": 2,
+    "account_index": 62,
+    "status": 502,
+    "welcome": false,
+    "ms": 10.411125025711954
+  },
+  {
+    "trial": 2,
+    "account_index": 63,
+    "status": 101,
+    "welcome": true,
+    "ms": 619.4026659941301
+  },
+  {
+    "trial": 2,
+    "account_index": 64,
+    "status": 502,
+    "welcome": false,
+    "ms": 9.894624934531748
+  },
+  {
+    "trial": 2,
+    "account_index": 65,
+    "status": 502,
+    "welcome": false,
+    "ms": 9.815374971367419
+  },
+  {
+    "trial": 2,
+    "account_index": 66,
+    "status": 101,
+    "welcome": true,
+    "ms": 632.4727080063894
+  },
+  {
+    "trial": 2,
+    "account_index": 67,
+    "status": 502,
+    "welcome": false,
+    "ms": 9.985709097236395
+  },
+  {
+    "trial": 2,
+    "account_index": 68,
+    "status": 101,
+    "welcome": true,
+    "ms": 590.8220000565052
+  },
+  {
+    "trial": 2,
+    "account_index": 69,
+    "status": 502,
+    "welcome": false,
+    "ms": 10.125458939000964
+  },
+  {
+    "trial": 2,
+    "account_index": 70,
+    "status": 502,
+    "welcome": false,
+    "ms": 10.080332984216511
+  },
+  {
+    "trial": 2,
+    "account_index": 71,
+    "status": 502,
+    "welcome": false,
+    "ms": 10.043749934993684
+  },
+  {
+    "trial": 2,
+    "account_index": 72,
+    "status": 502,
+    "welcome": false,
+    "ms": 9.278124896809459
+  },
+  {
+    "trial": 2,
+    "account_index": 73,
+    "status": 502,
+    "welcome": false,
+    "ms": 10.20700007211417
+  },
+  {
+    "trial": 2,
+    "account_index": 74,
+    "status": 502,
+    "welcome": false,
+    "ms": 9.341374970972538
+  },
+  {
+    "trial": 2,
+    "account_index": 75,
+    "status": 502,
+    "welcome": false,
+    "ms": 10.141500039026141
+  },
+  {
+    "trial": 2,
+    "account_index": 76,
+    "status": 502,
+    "welcome": false,
+    "ms": 10.06316696293652
+  },
+  {
+    "trial": 2,
+    "account_index": 77,
+    "status": 101,
+    "welcome": true,
+    "ms": 604.2989579727873
+  },
+  {
+    "trial": 2,
+    "account_index": 78,
+    "status": 502,
+    "welcome": false,
+    "ms": 10.027708020061255
+  },
+  {
+    "trial": 2,
+    "account_index": 79,
+    "status": 101,
+    "welcome": true,
+    "ms": 686.8490410270169
+  },
+  {
+    "trial": 2,
+    "account_index": 80,
+    "status": 101,
+    "welcome": true,
+    "ms": 670.7536249887198
+  },
+  {
+    "trial": 2,
+    "account_index": 81,
+    "status": 101,
+    "welcome": true,
+    "ms": 660.0854999851435
+  },
+  {
+    "trial": 2,
+    "account_index": 82,
+    "status": 502,
+    "welcome": false,
+    "ms": 9.733458049595356
+  },
+  {
+    "trial": 2,
+    "account_index": 83,
+    "status": 502,
+    "welcome": false,
+    "ms": 9.417333989404142
+  },
+  {
+    "trial": 2,
+    "account_index": 84,
+    "status": 502,
+    "welcome": false,
+    "ms": 9.733417071402073
+  },
+  {
+    "trial": 2,
+    "account_index": 85,
+    "status": 502,
+    "welcome": false,
+    "ms": 9.596916032023728
+  },
+  {
+    "trial": 2,
+    "account_index": 86,
+    "status": 502,
+    "welcome": false,
+    "ms": 9.64916602242738
+  },
+  {
+    "trial": 2,
+    "account_index": 87,
+    "status": 502,
+    "welcome": false,
+    "ms": 9.596707997843623
+  },
+  {
+    "trial": 2,
+    "account_index": 88,
+    "status": 101,
+    "welcome": true,
+    "ms": 620.2522910898551
+  },
+  {
+    "trial": 2,
+    "account_index": 89,
+    "status": 502,
+    "welcome": false,
+    "ms": 9.474292048253119
+  },
+  {
+    "trial": 2,
+    "account_index": 90,
+    "status": 502,
+    "welcome": false,
+    "ms": 9.442083071917295
+  },
+  {
+    "trial": 2,
+    "account_index": 91,
+    "status": 101,
+    "welcome": true,
+    "ms": 669.9831249425188
+  },
+  {
+    "trial": 2,
+    "account_index": 92,
+    "status": 502,
+    "welcome": false,
+    "ms": 9.354625013656914
+  },
+  {
+    "trial": 2,
+    "account_index": 93,
+    "status": 101,
+    "welcome": true,
+    "ms": 678.3291670726612
+  },
+  {
+    "trial": 2,
+    "account_index": 94,
+    "status": 502,
+    "welcome": false,
+    "ms": 9.14316694252193
+  },
+  {
+    "trial": 2,
+    "account_index": 95,
+    "status": 101,
+    "welcome": true,
+    "ms": 641.9827499194071
+  },
+  {
+    "trial": 2,
+    "account_index": 96,
+    "status": 101,
+    "welcome": true,
+    "ms": 649.9883329961449
+  },
+  {
+    "trial": 2,
+    "account_index": 97,
+    "status": 101,
+    "welcome": true,
+    "ms": 649.0842089988291
+  },
+  {
+    "trial": 2,
+    "account_index": 98,
+    "status": 101,
+    "welcome": true,
+    "ms": 657.8010839875787
+  },
+  {
+    "trial": 2,
+    "account_index": 99,
+    "status": 101,
+    "welcome": true,
+    "ms": 639.6876249928027
+  },
+  {
+    "trial": 3,
+    "account_index": 0,
+    "status": 101,
+    "welcome": true,
+    "ms": 196.8412910355255
+  },
+  {
+    "trial": 3,
+    "account_index": 1,
+    "status": 101,
+    "welcome": true,
+    "ms": 189.4853749545291
+  },
+  {
+    "trial": 3,
+    "account_index": 2,
+    "status": 101,
+    "welcome": true,
+    "ms": 193.08808399364352
+  },
+  {
+    "trial": 3,
+    "account_index": 3,
+    "status": 101,
+    "welcome": true,
+    "ms": 197.5667499937117
+  },
+  {
+    "trial": 3,
+    "account_index": 4,
+    "status": 101,
+    "welcome": true,
+    "ms": 295.4558749916032
+  },
+  {
+    "trial": 3,
+    "account_index": 5,
+    "status": 101,
+    "welcome": true,
+    "ms": 276.91454195883125
+  },
+  {
+    "trial": 3,
+    "account_index": 6,
+    "status": 101,
+    "welcome": true,
+    "ms": 273.96783395670354
+  },
+  {
+    "trial": 3,
+    "account_index": 7,
+    "status": 101,
+    "welcome": true,
+    "ms": 280.55645909626037
+  },
+  {
+    "trial": 3,
+    "account_index": 8,
+    "status": 101,
+    "welcome": true,
+    "ms": 366.7879159329459
+  },
+  {
+    "trial": 3,
+    "account_index": 9,
+    "status": 101,
+    "welcome": true,
+    "ms": 358.22187503799796
+  },
+  {
+    "trial": 3,
+    "account_index": 10,
+    "status": 101,
+    "welcome": true,
+    "ms": 389.8902499349788
+  },
+  {
+    "trial": 3,
+    "account_index": 11,
+    "status": 101,
+    "welcome": true,
+    "ms": 460.2241670945659
+  },
+  {
+    "trial": 3,
+    "account_index": 12,
+    "status": 101,
+    "welcome": true,
+    "ms": 455.49987500999123
+  },
+  {
+    "trial": 3,
+    "account_index": 13,
+    "status": 101,
+    "welcome": true,
+    "ms": 380.58899994939566
+  },
+  {
+    "trial": 3,
+    "account_index": 14,
+    "status": 101,
+    "welcome": true,
+    "ms": 494.2019999725744
+  },
+  {
+    "trial": 3,
+    "account_index": 15,
+    "status": 101,
+    "welcome": true,
+    "ms": 470.6654589390382
+  },
+  {
+    "trial": 3,
+    "account_index": 16,
+    "status": 101,
+    "welcome": true,
+    "ms": 509.83112503308803
+  },
+  {
+    "trial": 3,
+    "account_index": 17,
+    "status": 101,
+    "welcome": true,
+    "ms": 521.7722499510273
+  },
+  {
+    "trial": 3,
+    "account_index": 18,
+    "status": 101,
+    "welcome": true,
+    "ms": 507.1185410488397
+  },
+  {
+    "trial": 3,
+    "account_index": 19,
+    "status": 101,
+    "welcome": true,
+    "ms": 588.6183750117198
+  },
+  {
+    "trial": 3,
+    "account_index": 20,
+    "status": 101,
+    "welcome": true,
+    "ms": 555.1082089077681
+  },
+  {
+    "trial": 3,
+    "account_index": 21,
+    "status": 101,
+    "welcome": true,
+    "ms": 563.2306250045076
+  },
+  {
+    "trial": 3,
+    "account_index": 22,
+    "status": 101,
+    "welcome": true,
+    "ms": 543.7009580200538
+  },
+  {
+    "trial": 3,
+    "account_index": 23,
+    "status": 101,
+    "welcome": true,
+    "ms": 549.7774169780314
+  },
+  {
+    "trial": 3,
+    "account_index": 24,
+    "status": 101,
+    "welcome": true,
+    "ms": 581.891666050069
+  },
+  {
+    "trial": 3,
+    "account_index": 25,
+    "status": 101,
+    "welcome": true,
+    "ms": 598.9146659849212
+  },
+  {
+    "trial": 3,
+    "account_index": 26,
+    "status": 101,
+    "welcome": true,
+    "ms": 641.3020000327379
+  },
+  {
+    "trial": 3,
+    "account_index": 27,
+    "status": 101,
+    "welcome": true,
+    "ms": 678.1940830405802
+  },
+  {
+    "trial": 3,
+    "account_index": 28,
+    "status": 101,
+    "welcome": true,
+    "ms": 701.0622499510646
+  },
+  {
+    "trial": 3,
+    "account_index": 29,
+    "status": 101,
+    "welcome": true,
+    "ms": 626.2132090050727
+  },
+  {
+    "trial": 3,
+    "account_index": 30,
+    "status": 101,
+    "welcome": true,
+    "ms": 590.843457961455
+  },
+  {
+    "trial": 3,
+    "account_index": 31,
+    "status": 101,
+    "welcome": true,
+    "ms": 606.9146250374615
+  },
+  {
+    "trial": 3,
+    "account_index": 32,
+    "status": 101,
+    "welcome": true,
+    "ms": 607.644041068852
+  },
+  {
+    "trial": 3,
+    "account_index": 33,
+    "status": 101,
+    "welcome": true,
+    "ms": 615.9202499547973
+  },
+  {
+    "trial": 3,
+    "account_index": 34,
+    "status": 101,
+    "welcome": true,
+    "ms": 637.3003330081701
+  },
+  {
+    "trial": 3,
+    "account_index": 35,
+    "status": 101,
+    "welcome": true,
+    "ms": 622.6472080452368
+  },
+  {
+    "trial": 3,
+    "account_index": 36,
+    "status": 101,
+    "welcome": true,
+    "ms": 627.9651669319719
+  },
+  {
+    "trial": 3,
+    "account_index": 37,
+    "status": 101,
+    "welcome": true,
+    "ms": 648.6889999359846
+  },
+  {
+    "trial": 3,
+    "account_index": 38,
+    "status": 101,
+    "welcome": true,
+    "ms": 631.8882079795003
+  },
+  {
+    "trial": 3,
+    "account_index": 39,
+    "status": 101,
+    "welcome": true,
+    "ms": 643.555875052698
+  },
+  {
+    "trial": 3,
+    "account_index": 40,
+    "status": 101,
+    "welcome": true,
+    "ms": 640.3495830018073
+  },
+  {
+    "trial": 3,
+    "account_index": 41,
+    "status": 101,
+    "welcome": true,
+    "ms": 665.6941670225933
+  },
+  {
+    "trial": 3,
+    "account_index": 42,
+    "status": 101,
+    "welcome": true,
+    "ms": 712.3764160787687
+  },
+  {
+    "trial": 3,
+    "account_index": 43,
+    "status": 101,
+    "welcome": true,
+    "ms": 652.5153330294415
+  },
+  {
+    "trial": 3,
+    "account_index": 44,
+    "status": 101,
+    "welcome": true,
+    "ms": 731.4741249429062
+  },
+  {
+    "trial": 3,
+    "account_index": 45,
+    "status": 101,
+    "welcome": true,
+    "ms": 738.9699580380693
+  },
+  {
+    "trial": 3,
+    "account_index": 46,
+    "status": 101,
+    "welcome": true,
+    "ms": 677.3694579023868
+  },
+  {
+    "trial": 3,
+    "account_index": 47,
+    "status": 101,
+    "welcome": true,
+    "ms": 660.2435420500115
+  },
+  {
+    "trial": 3,
+    "account_index": 48,
+    "status": 101,
+    "welcome": true,
+    "ms": 753.7548750406131
+  },
+  {
+    "trial": 3,
+    "account_index": 49,
+    "status": 101,
+    "welcome": true,
+    "ms": 668.102917028591
+  },
+  {
+    "trial": 3,
+    "account_index": 50,
+    "status": 101,
+    "welcome": true,
+    "ms": 768.0464579025283
+  },
+  {
+    "trial": 3,
+    "account_index": 51,
+    "status": 101,
+    "welcome": true,
+    "ms": 672.2150420537218
+  },
+  {
+    "trial": 3,
+    "account_index": 52,
+    "status": 101,
+    "welcome": true,
+    "ms": 685.7086250092834
+  },
+  {
+    "trial": 3,
+    "account_index": 53,
+    "status": 101,
+    "welcome": true,
+    "ms": 681.000208016485
+  },
+  {
+    "trial": 3,
+    "account_index": 54,
+    "status": 101,
+    "welcome": true,
+    "ms": 781.8479579873383
+  },
+  {
+    "trial": 3,
+    "account_index": 55,
+    "status": 101,
+    "welcome": true,
+    "ms": 693.472458049655
+  },
+  {
+    "trial": 3,
+    "account_index": 56,
+    "status": 101,
+    "welcome": true,
+    "ms": 688.9504999853671
+  },
+  {
+    "trial": 3,
+    "account_index": 57,
+    "status": 101,
+    "welcome": true,
+    "ms": 707.7968749217689
+  },
+  {
+    "trial": 3,
+    "account_index": 58,
+    "status": 101,
+    "welcome": true,
+    "ms": 699.3210000218824
+  },
+  {
+    "trial": 3,
+    "account_index": 59,
+    "status": 101,
+    "welcome": true,
+    "ms": 702.195042045787
+  },
+  {
+    "trial": 3,
+    "account_index": 60,
+    "status": 101,
+    "welcome": true,
+    "ms": 713.8042910955846
+  },
+  {
+    "trial": 3,
+    "account_index": 61,
+    "status": 101,
+    "welcome": true,
+    "ms": 723.981250077486
+  },
+  {
+    "trial": 3,
+    "account_index": 62,
+    "status": 101,
+    "welcome": true,
+    "ms": 723.9994170377031
+  },
+  {
+    "trial": 3,
+    "account_index": 63,
+    "status": 101,
+    "welcome": true,
+    "ms": 734.0419999090955
+  },
+  {
+    "trial": 3,
+    "account_index": 64,
+    "status": 502,
+    "welcome": false,
+    "ms": 16.868624952621758
+  },
+  {
+    "trial": 3,
+    "account_index": 65,
+    "status": 502,
+    "welcome": false,
+    "ms": 17.174500040709972
+  },
+  {
+    "trial": 3,
+    "account_index": 66,
+    "status": 502,
+    "welcome": false,
+    "ms": 17.08849996794015
+  },
+  {
+    "trial": 3,
+    "account_index": 67,
+    "status": 101,
+    "welcome": true,
+    "ms": 783.7069580564275
+  },
+  {
+    "trial": 3,
+    "account_index": 68,
+    "status": 502,
+    "welcome": false,
+    "ms": 17.190166981890798
+  },
+  {
+    "trial": 3,
+    "account_index": 69,
+    "status": 101,
+    "welcome": true,
+    "ms": 774.6574169723317
+  },
+  {
+    "trial": 3,
+    "account_index": 70,
+    "status": 101,
+    "welcome": true,
+    "ms": 744.3122499389574
+  },
+  {
+    "trial": 3,
+    "account_index": 71,
+    "status": 502,
+    "welcome": false,
+    "ms": 15.900957980193198
+  },
+  {
+    "trial": 3,
+    "account_index": 72,
+    "status": 502,
+    "welcome": false,
+    "ms": 16.08458301052451
+  },
+  {
+    "trial": 3,
+    "account_index": 73,
+    "status": 101,
+    "welcome": true,
+    "ms": 732.940666959621
+  },
+  {
+    "trial": 3,
+    "account_index": 74,
+    "status": 101,
+    "welcome": true,
+    "ms": 792.3278749221936
+  },
+  {
+    "trial": 3,
+    "account_index": 75,
+    "status": 101,
+    "welcome": true,
+    "ms": 825.5423749797046
+  },
+  {
+    "trial": 3,
+    "account_index": 76,
+    "status": 101,
+    "welcome": true,
+    "ms": 737.0306669035926
+  },
+  {
+    "trial": 3,
+    "account_index": 77,
+    "status": 101,
+    "welcome": true,
+    "ms": 768.7177499756217
+  },
+  {
+    "trial": 3,
+    "account_index": 78,
+    "status": 101,
+    "welcome": true,
+    "ms": 756.2090000137687
+  },
+  {
+    "trial": 3,
+    "account_index": 79,
+    "status": 101,
+    "welcome": true,
+    "ms": 728.0093329027295
+  },
+  {
+    "trial": 3,
+    "account_index": 80,
+    "status": 101,
+    "welcome": true,
+    "ms": 757.2673329850659
+  },
+  {
+    "trial": 3,
+    "account_index": 81,
+    "status": 101,
+    "welcome": true,
+    "ms": 819.9370419606566
+  },
+  {
+    "trial": 3,
+    "account_index": 82,
+    "status": 101,
+    "welcome": true,
+    "ms": 803.1034580199048
+  },
+  {
+    "trial": 3,
+    "account_index": 83,
+    "status": 101,
+    "welcome": true,
+    "ms": 744.3247499177232
+  },
+  {
+    "trial": 3,
+    "account_index": 84,
+    "status": 101,
+    "welcome": true,
+    "ms": 807.898833998479
+  },
+  {
+    "trial": 3,
+    "account_index": 85,
+    "status": 101,
+    "welcome": true,
+    "ms": 866.8058339972049
+  },
+  {
+    "trial": 3,
+    "account_index": 86,
+    "status": 101,
+    "welcome": true,
+    "ms": 874.0297500044107
+  },
+  {
+    "trial": 3,
+    "account_index": 87,
+    "status": 101,
+    "welcome": true,
+    "ms": 857.3082080110908
+  },
+  {
+    "trial": 3,
+    "account_index": 88,
+    "status": 101,
+    "welcome": true,
+    "ms": 794.551125029102
+  },
+  {
+    "trial": 3,
+    "account_index": 89,
+    "status": 101,
+    "welcome": true,
+    "ms": 777.7354159625247
+  },
+  {
+    "trial": 3,
+    "account_index": 90,
+    "status": 101,
+    "welcome": true,
+    "ms": 814.7058329777792
+  },
+  {
+    "trial": 3,
+    "account_index": 91,
+    "status": 101,
+    "welcome": true,
+    "ms": 811.6126670502126
+  },
+  {
+    "trial": 3,
+    "account_index": 92,
+    "status": 101,
+    "welcome": true,
+    "ms": 796.2784169940278
+  },
+  {
+    "trial": 3,
+    "account_index": 93,
+    "status": 101,
+    "welcome": true,
+    "ms": 847.5989579455927
+  },
+  {
+    "trial": 3,
+    "account_index": 94,
+    "status": 101,
+    "welcome": true,
+    "ms": 762.4847919214517
+  },
+  {
+    "trial": 3,
+    "account_index": 95,
+    "status": 101,
+    "welcome": true,
+    "ms": 791.77474998869
+  },
+  {
+    "trial": 3,
+    "account_index": 96,
+    "status": 101,
+    "welcome": true,
+    "ms": 779.0085000451654
+  },
+  {
+    "trial": 3,
+    "account_index": 97,
+    "status": 101,
+    "welcome": true,
+    "ms": 747.2246669931337
+  },
+  {
+    "trial": 3,
+    "account_index": 98,
+    "status": 101,
+    "welcome": true,
+    "ms": 838.6541670188308
+  },
+  {
+    "trial": 3,
+    "account_index": 99,
+    "status": 101,
+    "welcome": true,
+    "ms": 829.9020830309018
+  },
+  {
+    "trial": 4,
+    "account_index": 0,
+    "status": 101,
+    "welcome": true,
+    "ms": 171.79579206276685
+  },
+  {
+    "trial": 4,
+    "account_index": 1,
+    "status": 101,
+    "welcome": true,
+    "ms": 197.92333303485066
+  },
+  {
+    "trial": 4,
+    "account_index": 2,
+    "status": 101,
+    "welcome": true,
+    "ms": 228.8435830269009
+  },
+  {
+    "trial": 4,
+    "account_index": 3,
+    "status": 101,
+    "welcome": true,
+    "ms": 319.3145419936627
+  },
+  {
+    "trial": 4,
+    "account_index": 4,
+    "status": 101,
+    "welcome": true,
+    "ms": 194.91837499663234
+  },
+  {
+    "trial": 4,
+    "account_index": 5,
+    "status": 101,
+    "welcome": true,
+    "ms": 404.9635410774499
+  },
+  {
+    "trial": 4,
+    "account_index": 6,
+    "status": 101,
+    "welcome": true,
+    "ms": 240.30675005633384
+  },
+  {
+    "trial": 4,
+    "account_index": 7,
+    "status": 101,
+    "welcome": true,
+    "ms": 477.20304201357067
+  },
+  {
+    "trial": 4,
+    "account_index": 8,
+    "status": 101,
+    "welcome": true,
+    "ms": 347.807832993567
+  },
+  {
+    "trial": 4,
+    "account_index": 9,
+    "status": 101,
+    "welcome": true,
+    "ms": 596.1728330003098
+  },
+  {
+    "trial": 4,
+    "account_index": 10,
+    "status": 101,
+    "welcome": true,
+    "ms": 441.43941602669656
+  },
+  {
+    "trial": 4,
+    "account_index": 11,
+    "status": 101,
+    "welcome": true,
+    "ms": 536.544166970998
+  },
+  {
+    "trial": 4,
+    "account_index": 12,
+    "status": 101,
+    "welcome": true,
+    "ms": 243.17287490703166
+  },
+  {
+    "trial": 4,
+    "account_index": 13,
+    "status": 101,
+    "welcome": true,
+    "ms": 503.5579170798883
+  },
+  {
+    "trial": 4,
+    "account_index": 14,
+    "status": 101,
+    "welcome": true,
+    "ms": 555.4646670352668
+  },
+  {
+    "trial": 4,
+    "account_index": 15,
+    "status": 101,
+    "welcome": true,
+    "ms": 187.2953330166638
+  },
+  {
+    "trial": 4,
+    "account_index": 16,
+    "status": 101,
+    "welcome": true,
+    "ms": 238.59262489713728
+  },
+  {
+    "trial": 4,
+    "account_index": 17,
+    "status": 101,
+    "welcome": true,
+    "ms": 320.3722080215812
+  },
+  {
+    "trial": 4,
+    "account_index": 18,
+    "status": 101,
+    "welcome": true,
+    "ms": 341.2907919846475
+  },
+  {
+    "trial": 4,
+    "account_index": 19,
+    "status": 101,
+    "welcome": true,
+    "ms": 636.2947080051526
+  },
+  {
+    "trial": 4,
+    "account_index": 20,
+    "status": 101,
+    "welcome": true,
+    "ms": 609.7099169855937
+  },
+  {
+    "trial": 4,
+    "account_index": 21,
+    "status": 101,
+    "welcome": true,
+    "ms": 655.3712080931291
+  },
+  {
+    "trial": 4,
+    "account_index": 22,
+    "status": 101,
+    "welcome": true,
+    "ms": 664.176833932288
+  },
+  {
+    "trial": 4,
+    "account_index": 23,
+    "status": 101,
+    "welcome": true,
+    "ms": 415.79925001133233
+  },
+  {
+    "trial": 4,
+    "account_index": 24,
+    "status": 101,
+    "welcome": true,
+    "ms": 431.7215420305729
+  },
+  {
+    "trial": 4,
+    "account_index": 25,
+    "status": 101,
+    "welcome": true,
+    "ms": 480.6895829970017
+  },
+  {
+    "trial": 4,
+    "account_index": 26,
+    "status": 101,
+    "welcome": true,
+    "ms": 474.1360420593992
+  },
+  {
+    "trial": 4,
+    "account_index": 27,
+    "status": 101,
+    "welcome": true,
+    "ms": 698.4845410333946
+  },
+  {
+    "trial": 4,
+    "account_index": 28,
+    "status": 101,
+    "welcome": true,
+    "ms": 684.8325419705361
+  },
+  {
+    "trial": 4,
+    "account_index": 29,
+    "status": 101,
+    "welcome": true,
+    "ms": 720.2922499272972
+  },
+  {
+    "trial": 4,
+    "account_index": 30,
+    "status": 101,
+    "welcome": true,
+    "ms": 736.2475839909166
+  },
+  {
+    "trial": 4,
+    "account_index": 31,
+    "status": 101,
+    "welcome": true,
+    "ms": 747.3296249518171
+  },
+  {
+    "trial": 4,
+    "account_index": 32,
+    "status": 101,
+    "welcome": true,
+    "ms": 725.6801249459386
+  },
+  {
+    "trial": 4,
+    "account_index": 33,
+    "status": 101,
+    "welcome": true,
+    "ms": 518.7891249079257
+  },
+  {
+    "trial": 4,
+    "account_index": 34,
+    "status": 101,
+    "welcome": true,
+    "ms": 521.2344590108842
+  },
+  {
+    "trial": 4,
+    "account_index": 35,
+    "status": 101,
+    "welcome": true,
+    "ms": 712.7999999793246
+  },
+  {
+    "trial": 4,
+    "account_index": 36,
+    "status": 101,
+    "welcome": true,
+    "ms": 545.3925409819931
+  },
+  {
+    "trial": 4,
+    "account_index": 37,
+    "status": 101,
+    "welcome": true,
+    "ms": 557.2402500547469
+  },
+  {
+    "trial": 4,
+    "account_index": 38,
+    "status": 101,
+    "welcome": true,
+    "ms": 566.4792499737814
+  },
+  {
+    "trial": 4,
+    "account_index": 39,
+    "status": 101,
+    "welcome": true,
+    "ms": 582.6418749056756
+  },
+  {
+    "trial": 4,
+    "account_index": 40,
+    "status": 101,
+    "welcome": true,
+    "ms": 739.9173340527341
+  },
+  {
+    "trial": 4,
+    "account_index": 41,
+    "status": 101,
+    "welcome": true,
+    "ms": 774.0950840525329
+  },
+  {
+    "trial": 4,
+    "account_index": 42,
+    "status": 101,
+    "welcome": true,
+    "ms": 753.9063750300556
+  },
+  {
+    "trial": 4,
+    "account_index": 43,
+    "status": 101,
+    "welcome": true,
+    "ms": 600.2694159979001
+  },
+  {
+    "trial": 4,
+    "account_index": 44,
+    "status": 101,
+    "welcome": true,
+    "ms": 579.1606249986216
+  },
+  {
+    "trial": 4,
+    "account_index": 45,
+    "status": 101,
+    "welcome": true,
+    "ms": 588.9113750308752
+  },
+  {
+    "trial": 4,
+    "account_index": 46,
+    "status": 101,
+    "welcome": true,
+    "ms": 611.8700420483947
+  },
+  {
+    "trial": 4,
+    "account_index": 47,
+    "status": 101,
+    "welcome": true,
+    "ms": 760.3676250437275
+  },
+  {
+    "trial": 4,
+    "account_index": 48,
+    "status": 101,
+    "welcome": true,
+    "ms": 778.0349999666214
+  },
+  {
+    "trial": 4,
+    "account_index": 49,
+    "status": 101,
+    "welcome": true,
+    "ms": 755.6567909196019
+  },
+  {
+    "trial": 4,
+    "account_index": 50,
+    "status": 101,
+    "welcome": true,
+    "ms": 643.1247090222314
+  },
+  {
+    "trial": 4,
+    "account_index": 51,
+    "status": 101,
+    "welcome": true,
+    "ms": 666.1262499401346
+  },
+  {
+    "trial": 4,
+    "account_index": 52,
+    "status": 101,
+    "welcome": true,
+    "ms": 831.8931669928133
+  },
+  {
+    "trial": 4,
+    "account_index": 53,
+    "status": 101,
+    "welcome": true,
+    "ms": 813.4011250222102
+  },
+  {
+    "trial": 4,
+    "account_index": 54,
+    "status": 101,
+    "welcome": true,
+    "ms": 789.4896250218153
+  },
+  {
+    "trial": 4,
+    "account_index": 55,
+    "status": 101,
+    "welcome": true,
+    "ms": 775.1949169905856
+  },
+  {
+    "trial": 4,
+    "account_index": 56,
+    "status": 101,
+    "welcome": true,
+    "ms": 622.4249589722604
+  },
+  {
+    "trial": 4,
+    "account_index": 57,
+    "status": 101,
+    "welcome": true,
+    "ms": 656.7413749871776
+  },
+  {
+    "trial": 4,
+    "account_index": 58,
+    "status": 101,
+    "welcome": true,
+    "ms": 597.9265829082578
+  },
+  {
+    "trial": 4,
+    "account_index": 59,
+    "status": 101,
+    "welcome": true,
+    "ms": 608.4013340296224
+  },
+  {
+    "trial": 4,
+    "account_index": 60,
+    "status": 101,
+    "welcome": true,
+    "ms": 631.7582079209387
+  },
+  {
+    "trial": 4,
+    "account_index": 61,
+    "status": 101,
+    "welcome": true,
+    "ms": 782.0112910121679
+  },
+  {
+    "trial": 4,
+    "account_index": 62,
+    "status": 101,
+    "welcome": true,
+    "ms": 654.6459159580991
+  },
+  {
+    "trial": 4,
+    "account_index": 63,
+    "status": 101,
+    "welcome": true,
+    "ms": 796.0319590056315
+  },
+  {
+    "trial": 4,
+    "account_index": 64,
+    "status": 101,
+    "welcome": true,
+    "ms": 667.5899589899927
+  },
+  {
+    "trial": 4,
+    "account_index": 65,
+    "status": 101,
+    "welcome": true,
+    "ms": 842.9903339128941
+  },
+  {
+    "trial": 4,
+    "account_index": 66,
+    "status": 101,
+    "welcome": true,
+    "ms": 806.521457969211
+  },
+  {
+    "trial": 4,
+    "account_index": 67,
+    "status": 101,
+    "welcome": true,
+    "ms": 790.2863749768585
+  },
+  {
+    "trial": 4,
+    "account_index": 68,
+    "status": 101,
+    "welcome": true,
+    "ms": 644.0152500290424
+  },
+  {
+    "trial": 4,
+    "account_index": 69,
+    "status": 101,
+    "welcome": true,
+    "ms": 618.2492499938235
+  },
+  {
+    "trial": 4,
+    "account_index": 70,
+    "status": 101,
+    "welcome": true,
+    "ms": 628.2814579317346
+  },
+  {
+    "trial": 4,
+    "account_index": 71,
+    "status": 101,
+    "welcome": true,
+    "ms": 700.975792016834
+  },
+  {
+    "trial": 4,
+    "account_index": 72,
+    "status": 101,
+    "welcome": true,
+    "ms": 705.9364999877289
+  },
+  {
+    "trial": 4,
+    "account_index": 73,
+    "status": 101,
+    "welcome": true,
+    "ms": 722.4383749999106
+  },
+  {
+    "trial": 4,
+    "account_index": 74,
+    "status": 101,
+    "welcome": true,
+    "ms": 874.3194580310956
+  },
+  {
+    "trial": 4,
+    "account_index": 75,
+    "status": 101,
+    "welcome": true,
+    "ms": 913.7429590336978
+  },
+  {
+    "trial": 4,
+    "account_index": 76,
+    "status": 101,
+    "welcome": true,
+    "ms": 902.1240419242531
+  },
+  {
+    "trial": 4,
+    "account_index": 77,
+    "status": 101,
+    "welcome": true,
+    "ms": 908.6298339534551
+  },
+  {
+    "trial": 4,
+    "account_index": 78,
+    "status": 101,
+    "welcome": true,
+    "ms": 895.1344999950379
+  },
+  {
+    "trial": 4,
+    "account_index": 79,
+    "status": 101,
+    "welcome": true,
+    "ms": 884.8402919247746
+  },
+  {
+    "trial": 4,
+    "account_index": 80,
+    "status": 101,
+    "welcome": true,
+    "ms": 759.290958987549
+  },
+  {
+    "trial": 4,
+    "account_index": 81,
+    "status": 101,
+    "welcome": true,
+    "ms": 890.0560409529135
+  },
+  {
+    "trial": 4,
+    "account_index": 82,
+    "status": 101,
+    "welcome": true,
+    "ms": 719.595875008963
+  },
+  {
+    "trial": 4,
+    "account_index": 83,
+    "status": 101,
+    "welcome": true,
+    "ms": 878.4788750344887
+  },
+  {
+    "trial": 4,
+    "account_index": 84,
+    "status": 101,
+    "welcome": true,
+    "ms": 868.1159580592066
+  },
+  {
+    "trial": 4,
+    "account_index": 85,
+    "status": 101,
+    "welcome": true,
+    "ms": 748.3350839465857
+  },
+  {
+    "trial": 4,
+    "account_index": 86,
+    "status": 101,
+    "welcome": true,
+    "ms": 706.439791014418
+  },
+  {
+    "trial": 4,
+    "account_index": 87,
+    "status": 101,
+    "welcome": true,
+    "ms": 735.6860840227455
+  },
+  {
+    "trial": 4,
+    "account_index": 88,
+    "status": 101,
+    "welcome": true,
+    "ms": 857.9715000232682
+  },
+  {
+    "trial": 4,
+    "account_index": 89,
+    "status": 101,
+    "welcome": true,
+    "ms": 696.4227090356871
+  },
+  {
+    "trial": 4,
+    "account_index": 90,
+    "status": 101,
+    "welcome": true,
+    "ms": 812.9213750362396
+  },
+  {
+    "trial": 4,
+    "account_index": 91,
+    "status": 101,
+    "welcome": true,
+    "ms": 819.5150829851627
+  },
+  {
+    "trial": 4,
+    "account_index": 92,
+    "status": 101,
+    "welcome": true,
+    "ms": 798.1019580038264
+  },
+  {
+    "trial": 4,
+    "account_index": 93,
+    "status": 101,
+    "welcome": true,
+    "ms": 851.3053340138867
+  },
+  {
+    "trial": 4,
+    "account_index": 94,
+    "status": 101,
+    "welcome": true,
+    "ms": 675.840082927607
+  },
+  {
+    "trial": 4,
+    "account_index": 95,
+    "status": 101,
+    "welcome": true,
+    "ms": 828.6703749326989
+  },
+  {
+    "trial": 4,
+    "account_index": 96,
+    "status": 101,
+    "welcome": true,
+    "ms": 669.9124580482021
+  },
+  {
+    "trial": 4,
+    "account_index": 97,
+    "status": 101,
+    "welcome": true,
+    "ms": 860.0424169562757
+  },
+  {
+    "trial": 4,
+    "account_index": 98,
+    "status": 101,
+    "welcome": true,
+    "ms": 834.0069579426199
+  },
+  {
+    "trial": 4,
+    "account_index": 99,
+    "status": 101,
+    "welcome": true,
+    "ms": 843.7335420167074
+  },
+  {
+    "trial": 5,
+    "account_index": 0,
+    "status": 101,
+    "welcome": true,
+    "ms": 183.92670794855803
+  },
+  {
+    "trial": 5,
+    "account_index": 1,
+    "status": 101,
+    "welcome": true,
+    "ms": 232.17512492556125
+  },
+  {
+    "trial": 5,
+    "account_index": 2,
+    "status": 101,
+    "welcome": true,
+    "ms": 196.57579204067588
+  },
+  {
+    "trial": 5,
+    "account_index": 3,
+    "status": 101,
+    "welcome": true,
+    "ms": 364.748541964218
+  },
+  {
+    "trial": 5,
+    "account_index": 4,
+    "status": 101,
+    "welcome": true,
+    "ms": 286.9230000069365
+  },
+  {
+    "trial": 5,
+    "account_index": 5,
+    "status": 101,
+    "welcome": true,
+    "ms": 177.72679193876684
+  },
+  {
+    "trial": 5,
+    "account_index": 6,
+    "status": 101,
+    "welcome": true,
+    "ms": 310.79108407720923
+  },
+  {
+    "trial": 5,
+    "account_index": 7,
+    "status": 101,
+    "welcome": true,
+    "ms": 279.7993338899687
+  },
+  {
+    "trial": 5,
+    "account_index": 8,
+    "status": 101,
+    "welcome": true,
+    "ms": 383.04683298338205
+  },
+  {
+    "trial": 5,
+    "account_index": 9,
+    "status": 101,
+    "welcome": true,
+    "ms": 456.97837497573346
+  },
+  {
+    "trial": 5,
+    "account_index": 10,
+    "status": 101,
+    "welcome": true,
+    "ms": 452.14041706640273
+  },
+  {
+    "trial": 5,
+    "account_index": 11,
+    "status": 101,
+    "welcome": true,
+    "ms": 278.5249160369858
+  },
+  {
+    "trial": 5,
+    "account_index": 12,
+    "status": 101,
+    "welcome": true,
+    "ms": 384.59591602440923
+  },
+  {
+    "trial": 5,
+    "account_index": 13,
+    "status": 101,
+    "welcome": true,
+    "ms": 511.45766698755324
+  },
+  {
+    "trial": 5,
+    "account_index": 14,
+    "status": 101,
+    "welcome": true,
+    "ms": 376.1784170055762
+  },
+  {
+    "trial": 5,
+    "account_index": 15,
+    "status": 101,
+    "welcome": true,
+    "ms": 439.76004200521857
+  },
+  {
+    "trial": 5,
+    "account_index": 16,
+    "status": 101,
+    "welcome": true,
+    "ms": 447.9551250115037
+  },
+  {
+    "trial": 5,
+    "account_index": 17,
+    "status": 101,
+    "welcome": true,
+    "ms": 493.01208299584687
+  },
+  {
+    "trial": 5,
+    "account_index": 18,
+    "status": 101,
+    "welcome": true,
+    "ms": 511.10195799265057
+  },
+  {
+    "trial": 5,
+    "account_index": 19,
+    "status": 101,
+    "welcome": true,
+    "ms": 557.1318339789286
+  },
+  {
+    "trial": 5,
+    "account_index": 20,
+    "status": 101,
+    "welcome": true,
+    "ms": 593.6121669365093
+  },
+  {
+    "trial": 5,
+    "account_index": 21,
+    "status": 101,
+    "welcome": true,
+    "ms": 541.0938749555498
+  },
+  {
+    "trial": 5,
+    "account_index": 22,
+    "status": 101,
+    "welcome": true,
+    "ms": 569.0495000453666
+  },
+  {
+    "trial": 5,
+    "account_index": 23,
+    "status": 101,
+    "welcome": true,
+    "ms": 578.9426669944078
+  },
+  {
+    "trial": 5,
+    "account_index": 24,
+    "status": 101,
+    "welcome": true,
+    "ms": 619.7827500291169
+  },
+  {
+    "trial": 5,
+    "account_index": 25,
+    "status": 101,
+    "welcome": true,
+    "ms": 500.3377500688657
+  },
+  {
+    "trial": 5,
+    "account_index": 26,
+    "status": 101,
+    "welcome": true,
+    "ms": 646.6003330424428
+  },
+  {
+    "trial": 5,
+    "account_index": 27,
+    "status": 101,
+    "welcome": true,
+    "ms": 614.7155420621857
+  },
+  {
+    "trial": 5,
+    "account_index": 28,
+    "status": 101,
+    "welcome": true,
+    "ms": 602.383750025183
+  },
+  {
+    "trial": 5,
+    "account_index": 29,
+    "status": 101,
+    "welcome": true,
+    "ms": 611.8851250503212
+  },
+  {
+    "trial": 5,
+    "account_index": 30,
+    "status": 101,
+    "welcome": true,
+    "ms": 552.5130409514531
+  },
+  {
+    "trial": 5,
+    "account_index": 31,
+    "status": 101,
+    "welcome": true,
+    "ms": 623.0775830335915
+  },
+  {
+    "trial": 5,
+    "account_index": 32,
+    "status": 101,
+    "welcome": true,
+    "ms": 670.9212919231504
+  },
+  {
+    "trial": 5,
+    "account_index": 33,
+    "status": 101,
+    "welcome": true,
+    "ms": 686.2064579036087
+  },
+  {
+    "trial": 5,
+    "account_index": 34,
+    "status": 101,
+    "welcome": true,
+    "ms": 629.1995829669759
+  },
+  {
+    "trial": 5,
+    "account_index": 35,
+    "status": 101,
+    "welcome": true,
+    "ms": 646.1149159586057
+  },
+  {
+    "trial": 5,
+    "account_index": 36,
+    "status": 101,
+    "welcome": true,
+    "ms": 598.0906670447439
+  },
+  {
+    "trial": 5,
+    "account_index": 37,
+    "status": 101,
+    "welcome": true,
+    "ms": 698.8775830250233
+  },
+  {
+    "trial": 5,
+    "account_index": 38,
+    "status": 101,
+    "welcome": true,
+    "ms": 640.4427089728415
+  },
+  {
+    "trial": 5,
+    "account_index": 39,
+    "status": 101,
+    "welcome": true,
+    "ms": 651.9905410241336
+  },
+  {
+    "trial": 5,
+    "account_index": 40,
+    "status": 101,
+    "welcome": true,
+    "ms": 715.0828751036897
+  },
+  {
+    "trial": 5,
+    "account_index": 41,
+    "status": 101,
+    "welcome": true,
+    "ms": 658.1825839821249
+  },
+  {
+    "trial": 5,
+    "account_index": 42,
+    "status": 101,
+    "welcome": true,
+    "ms": 632.0223330985755
+  },
+  {
+    "trial": 5,
+    "account_index": 43,
+    "status": 101,
+    "welcome": true,
+    "ms": 622.5370829924941
+  },
+  {
+    "trial": 5,
+    "account_index": 44,
+    "status": 101,
+    "welcome": true,
+    "ms": 670.2367089455947
+  },
+  {
+    "trial": 5,
+    "account_index": 45,
+    "status": 101,
+    "welcome": true,
+    "ms": 642.4055420793593
+  },
+  {
+    "trial": 5,
+    "account_index": 46,
+    "status": 101,
+    "welcome": true,
+    "ms": 682.711916975677
+  },
+  {
+    "trial": 5,
+    "account_index": 47,
+    "status": 101,
+    "welcome": true,
+    "ms": 652.9768750770018
+  },
+  {
+    "trial": 5,
+    "account_index": 48,
+    "status": 101,
+    "welcome": true,
+    "ms": 736.4231670508161
+  },
+  {
+    "trial": 5,
+    "account_index": 49,
+    "status": 101,
+    "welcome": true,
+    "ms": 726.6775419702753
+  },
+  {
+    "trial": 5,
+    "account_index": 50,
+    "status": 101,
+    "welcome": true,
+    "ms": 695.1979589648545
+  },
+  {
+    "trial": 5,
+    "account_index": 51,
+    "status": 101,
+    "welcome": true,
+    "ms": 663.086999906227
+  },
+  {
+    "trial": 5,
+    "account_index": 52,
+    "status": 101,
+    "welcome": true,
+    "ms": 746.8499999959022
+  },
+  {
+    "trial": 5,
+    "account_index": 53,
+    "status": 101,
+    "welcome": true,
+    "ms": 662.0567920617759
+  },
+  {
+    "trial": 5,
+    "account_index": 54,
+    "status": 101,
+    "welcome": true,
+    "ms": 674.8791249701753
+  },
+  {
+    "trial": 5,
+    "account_index": 55,
+    "status": 101,
+    "welcome": true,
+    "ms": 727.284999913536
+  },
+  {
+    "trial": 5,
+    "account_index": 56,
+    "status": 101,
+    "welcome": true,
+    "ms": 677.9031249461696
+  },
+  {
+    "trial": 5,
+    "account_index": 57,
+    "status": 101,
+    "welcome": true,
+    "ms": 739.3952910788357
+  },
+  {
+    "trial": 5,
+    "account_index": 58,
+    "status": 101,
+    "welcome": true,
+    "ms": 703.6168340127915
+  },
+  {
+    "trial": 5,
+    "account_index": 59,
+    "status": 101,
+    "welcome": true,
+    "ms": 688.6608749628067
+  },
+  {
+    "trial": 5,
+    "account_index": 60,
+    "status": 101,
+    "welcome": true,
+    "ms": 793.0429999250919
+  },
+  {
+    "trial": 5,
+    "account_index": 61,
+    "status": 101,
+    "welcome": true,
+    "ms": 717.9182500112802
+  },
+  {
+    "trial": 5,
+    "account_index": 62,
+    "status": 101,
+    "welcome": true,
+    "ms": 687.0629580225796
+  },
+  {
+    "trial": 5,
+    "account_index": 63,
+    "status": 101,
+    "welcome": true,
+    "ms": 703.5108749987558
+  },
+  {
+    "trial": 5,
+    "account_index": 64,
+    "status": 101,
+    "welcome": true,
+    "ms": 749.6213329723105
+  },
+  {
+    "trial": 5,
+    "account_index": 65,
+    "status": 101,
+    "welcome": true,
+    "ms": 762.6465420471504
+  },
+  {
+    "trial": 5,
+    "account_index": 66,
+    "status": 101,
+    "welcome": true,
+    "ms": 771.5697499224916
+  },
+  {
+    "trial": 5,
+    "account_index": 67,
+    "status": 101,
+    "welcome": true,
+    "ms": 698.1286669615656
+  },
+  {
+    "trial": 5,
+    "account_index": 68,
+    "status": 101,
+    "welcome": true,
+    "ms": 794.3949160398915
+  },
+  {
+    "trial": 5,
+    "account_index": 69,
+    "status": 101,
+    "welcome": true,
+    "ms": 804.1913339402527
+  },
+  {
+    "trial": 5,
+    "account_index": 70,
+    "status": 101,
+    "welcome": true,
+    "ms": 775.7297910284251
+  },
+  {
+    "trial": 5,
+    "account_index": 71,
+    "status": 101,
+    "welcome": true,
+    "ms": 739.8296250030398
+  },
+  {
+    "trial": 5,
+    "account_index": 72,
+    "status": 101,
+    "welcome": true,
+    "ms": 713.8666660757735
+  },
+  {
+    "trial": 5,
+    "account_index": 73,
+    "status": 101,
+    "welcome": true,
+    "ms": 748.8803750602528
+  },
+  {
+    "trial": 5,
+    "account_index": 74,
+    "status": 101,
+    "welcome": true,
+    "ms": 822.3763749701902
+  },
+  {
+    "trial": 5,
+    "account_index": 75,
+    "status": 101,
+    "welcome": true,
+    "ms": 715.1029999367893
+  },
+  {
+    "trial": 5,
+    "account_index": 76,
+    "status": 101,
+    "welcome": true,
+    "ms": 790.8157909987494
+  },
+  {
+    "trial": 5,
+    "account_index": 77,
+    "status": 101,
+    "welcome": true,
+    "ms": 838.6771669611335
+  },
+  {
+    "trial": 5,
+    "account_index": 78,
+    "status": 101,
+    "welcome": true,
+    "ms": 689.0661249635741
+  },
+  {
+    "trial": 5,
+    "account_index": 79,
+    "status": 101,
+    "welcome": true,
+    "ms": 730.538583942689
+  },
+  {
+    "trial": 5,
+    "account_index": 80,
+    "status": 101,
+    "welcome": true,
+    "ms": 768.884374992922
+  },
+  {
+    "trial": 5,
+    "account_index": 81,
+    "status": 101,
+    "welcome": true,
+    "ms": 797.1988340141252
+  },
+  {
+    "trial": 5,
+    "account_index": 82,
+    "status": 101,
+    "welcome": true,
+    "ms": 849.3586659897119
+  },
+  {
+    "trial": 5,
+    "account_index": 83,
+    "status": 101,
+    "welcome": true,
+    "ms": 747.6064170477912
+  },
+  {
+    "trial": 5,
+    "account_index": 84,
+    "status": 101,
+    "welcome": true,
+    "ms": 863.3059170097113
+  },
+  {
+    "trial": 5,
+    "account_index": 85,
+    "status": 101,
+    "welcome": true,
+    "ms": 729.471749975346
+  },
+  {
+    "trial": 5,
+    "account_index": 86,
+    "status": 101,
+    "welcome": true,
+    "ms": 813.7014169478789
+  },
+  {
+    "trial": 5,
+    "account_index": 87,
+    "status": 101,
+    "welcome": true,
+    "ms": 783.2798339659348
+  },
+  {
+    "trial": 5,
+    "account_index": 88,
+    "status": 101,
+    "welcome": true,
+    "ms": 840.1584170060232
+  },
+  {
+    "trial": 5,
+    "account_index": 89,
+    "status": 101,
+    "welcome": true,
+    "ms": 768.8944169785827
+  },
+  {
+    "trial": 5,
+    "account_index": 90,
+    "status": 101,
+    "welcome": true,
+    "ms": 855.3758749039844
+  },
+  {
+    "trial": 5,
+    "account_index": 91,
+    "status": 101,
+    "welcome": true,
+    "ms": 787.6711670542136
+  },
+  {
+    "trial": 5,
+    "account_index": 92,
+    "status": 101,
+    "welcome": true,
+    "ms": 848.5242910683155
+  },
+  {
+    "trial": 5,
+    "account_index": 93,
+    "status": 101,
+    "welcome": true,
+    "ms": 806.0819579986855
+  },
+  {
+    "trial": 5,
+    "account_index": 94,
+    "status": 502,
+    "welcome": false,
+    "ms": 8.152542053721845
+  },
+  {
+    "trial": 5,
+    "account_index": 95,
+    "status": 502,
+    "welcome": false,
+    "ms": 8.22750001680106
+  },
+  {
+    "trial": 5,
+    "account_index": 96,
+    "status": 101,
+    "welcome": true,
+    "ms": 852.7821659808978
+  },
+  {
+    "trial": 5,
+    "account_index": 97,
+    "status": 101,
+    "welcome": true,
+    "ms": 822.4573329789564
+  },
+  {
+    "trial": 5,
+    "account_index": 98,
+    "status": 101,
+    "welcome": true,
+    "ms": 826.2503329897299
+  },
+  {
+    "trial": 5,
+    "account_index": 99,
+    "status": 101,
+    "welcome": true,
+    "ms": 871.0057089338079
+  },
+  {
+    "trial": 6,
+    "account_index": 0,
+    "status": 101,
+    "welcome": true,
+    "ms": 118.57862502802163
+  },
+  {
+    "trial": 6,
+    "account_index": 1,
+    "status": 101,
+    "welcome": true,
+    "ms": 122.28620902169496
+  },
+  {
+    "trial": 6,
+    "account_index": 2,
+    "status": 101,
+    "welcome": true,
+    "ms": 194.8982080211863
+  },
+  {
+    "trial": 6,
+    "account_index": 3,
+    "status": 101,
+    "welcome": true,
+    "ms": 195.5681670224294
+  },
+  {
+    "trial": 6,
+    "account_index": 4,
+    "status": 101,
+    "welcome": true,
+    "ms": 252.36066593788564
+  },
+  {
+    "trial": 6,
+    "account_index": 5,
+    "status": 101,
+    "welcome": true,
+    "ms": 264.6694580325857
+  },
+  {
+    "trial": 6,
+    "account_index": 6,
+    "status": 101,
+    "welcome": true,
+    "ms": 392.3331249970943
+  },
+  {
+    "trial": 6,
+    "account_index": 7,
+    "status": 101,
+    "welcome": true,
+    "ms": 388.2424159673974
+  },
+  {
+    "trial": 6,
+    "account_index": 8,
+    "status": 101,
+    "welcome": true,
+    "ms": 194.4199160207063
+  },
+  {
+    "trial": 6,
+    "account_index": 9,
+    "status": 101,
+    "welcome": true,
+    "ms": 498.46683407668024
+  },
+  {
+    "trial": 6,
+    "account_index": 10,
+    "status": 101,
+    "welcome": true,
+    "ms": 309.6704169875011
+  },
+  {
+    "trial": 6,
+    "account_index": 11,
+    "status": 101,
+    "welcome": true,
+    "ms": 512.1910420712084
+  },
+  {
+    "trial": 6,
+    "account_index": 12,
+    "status": 101,
+    "welcome": true,
+    "ms": 205.62758401501924
+  },
+  {
+    "trial": 6,
+    "account_index": 13,
+    "status": 101,
+    "welcome": true,
+    "ms": 567.3895829822868
+  },
+  {
+    "trial": 6,
+    "account_index": 14,
+    "status": 101,
+    "welcome": true,
+    "ms": 571.0820420645177
+  },
+  {
+    "trial": 6,
+    "account_index": 15,
+    "status": 101,
+    "welcome": true,
+    "ms": 621.4555409969762
+  },
+  {
+    "trial": 6,
+    "account_index": 16,
+    "status": 101,
+    "welcome": true,
+    "ms": 625.849665957503
+  },
+  {
+    "trial": 6,
+    "account_index": 17,
+    "status": 101,
+    "welcome": true,
+    "ms": 392.54612498916686
+  },
+  {
+    "trial": 6,
+    "account_index": 18,
+    "status": 101,
+    "welcome": true,
+    "ms": 572.1057920018211
+  },
+  {
+    "trial": 6,
+    "account_index": 19,
+    "status": 101,
+    "welcome": true,
+    "ms": 295.2915409114212
+  },
+  {
+    "trial": 6,
+    "account_index": 20,
+    "status": 101,
+    "welcome": true,
+    "ms": 690.6105829402804
+  },
+  {
+    "trial": 6,
+    "account_index": 21,
+    "status": 101,
+    "welcome": true,
+    "ms": 421.85954190790653
+  },
+  {
+    "trial": 6,
+    "account_index": 22,
+    "status": 101,
+    "welcome": true,
+    "ms": 504.4343749759719
+  },
+  {
+    "trial": 6,
+    "account_index": 23,
+    "status": 101,
+    "welcome": true,
+    "ms": 659.7478749463335
+  },
+  {
+    "trial": 6,
+    "account_index": 24,
+    "status": 101,
+    "welcome": true,
+    "ms": 560.4409159859642
+  },
+  {
+    "trial": 6,
+    "account_index": 25,
+    "status": 101,
+    "welcome": true,
+    "ms": 626.8464170861989
+  },
+  {
+    "trial": 6,
+    "account_index": 26,
+    "status": 101,
+    "welcome": true,
+    "ms": 709.3304579611868
+  },
+  {
+    "trial": 6,
+    "account_index": 27,
+    "status": 101,
+    "welcome": true,
+    "ms": 491.07829097192734
+  },
+  {
+    "trial": 6,
+    "account_index": 28,
+    "status": 101,
+    "welcome": true,
+    "ms": 667.521083028987
+  },
+  {
+    "trial": 6,
+    "account_index": 29,
+    "status": 101,
+    "welcome": true,
+    "ms": 616.1236249608919
+  },
+  {
+    "trial": 6,
+    "account_index": 30,
+    "status": 101,
+    "welcome": true,
+    "ms": 662.5779169844463
+  },
+  {
+    "trial": 6,
+    "account_index": 31,
+    "status": 101,
+    "welcome": true,
+    "ms": 658.264167024754
+  },
+  {
+    "trial": 6,
+    "account_index": 32,
+    "status": 101,
+    "welcome": true,
+    "ms": 696.9776670448482
+  },
+  {
+    "trial": 6,
+    "account_index": 33,
+    "status": 101,
+    "welcome": true,
+    "ms": 686.5674590226263
+  },
+  {
+    "trial": 6,
+    "account_index": 34,
+    "status": 101,
+    "welcome": true,
+    "ms": 689.8700830060989
+  },
+  {
+    "trial": 6,
+    "account_index": 35,
+    "status": 101,
+    "welcome": true,
+    "ms": 723.0263750534505
+  },
+  {
+    "trial": 6,
+    "account_index": 36,
+    "status": 101,
+    "welcome": true,
+    "ms": 723.8930839812383
+  },
+  {
+    "trial": 6,
+    "account_index": 37,
+    "status": 101,
+    "welcome": true,
+    "ms": 708.613415947184
+  },
+  {
+    "trial": 6,
+    "account_index": 38,
+    "status": 101,
+    "welcome": true,
+    "ms": 734.8323750775307
+  },
+  {
+    "trial": 6,
+    "account_index": 39,
+    "status": 101,
+    "welcome": true,
+    "ms": 742.4296250101179
+  },
+  {
+    "trial": 6,
+    "account_index": 40,
+    "status": 101,
+    "welcome": true,
+    "ms": 730.2127500297502
+  },
+  {
+    "trial": 6,
+    "account_index": 41,
+    "status": 101,
+    "welcome": true,
+    "ms": 765.9752499312162
+  },
+  {
+    "trial": 6,
+    "account_index": 42,
+    "status": 101,
+    "welcome": true,
+    "ms": 745.0400420930237
+  },
+  {
+    "trial": 6,
+    "account_index": 43,
+    "status": 101,
+    "welcome": true,
+    "ms": 761.5253329277039
+  },
+  {
+    "trial": 6,
+    "account_index": 44,
+    "status": 101,
+    "welcome": true,
+    "ms": 727.801917004399
+  },
+  {
+    "trial": 6,
+    "account_index": 45,
+    "status": 101,
+    "welcome": true,
+    "ms": 710.4005829896778
+  },
+  {
+    "trial": 6,
+    "account_index": 46,
+    "status": 101,
+    "welcome": true,
+    "ms": 748.4960419824347
+  },
+  {
+    "trial": 6,
+    "account_index": 47,
+    "status": 101,
+    "welcome": true,
+    "ms": 775.8132079616189
+  },
+  {
+    "trial": 6,
+    "account_index": 48,
+    "status": 101,
+    "welcome": true,
+    "ms": 747.8768749861047
+  },
+  {
+    "trial": 6,
+    "account_index": 49,
+    "status": 101,
+    "welcome": true,
+    "ms": 735.3138329926878
+  },
+  {
+    "trial": 6,
+    "account_index": 50,
+    "status": 101,
+    "welcome": true,
+    "ms": 753.1811249209568
+  },
+  {
+    "trial": 6,
+    "account_index": 51,
+    "status": 101,
+    "welcome": true,
+    "ms": 756.995499948971
+  },
+  {
+    "trial": 6,
+    "account_index": 52,
+    "status": 101,
+    "welcome": true,
+    "ms": 761.9611250702292
+  },
+  {
+    "trial": 6,
+    "account_index": 53,
+    "status": 101,
+    "welcome": true,
+    "ms": 769.5829590084031
+  },
+  {
+    "trial": 6,
+    "account_index": 54,
+    "status": 101,
+    "welcome": true,
+    "ms": 777.8288749977946
+  },
+  {
+    "trial": 6,
+    "account_index": 55,
+    "status": 101,
+    "welcome": true,
+    "ms": 791.2260410375893
+  },
+  {
+    "trial": 6,
+    "account_index": 56,
+    "status": 101,
+    "welcome": true,
+    "ms": 786.0742909833789
+  },
+  {
+    "trial": 6,
+    "account_index": 57,
+    "status": 101,
+    "welcome": true,
+    "ms": 801.3995409710333
+  },
+  {
+    "trial": 6,
+    "account_index": 58,
+    "status": 101,
+    "welcome": true,
+    "ms": 772.8442919906229
+  },
+  {
+    "trial": 6,
+    "account_index": 59,
+    "status": 101,
+    "welcome": true,
+    "ms": 794.9647079221904
+  },
+  {
+    "trial": 6,
+    "account_index": 60,
+    "status": 101,
+    "welcome": true,
+    "ms": 814.8374590091407
+  },
+  {
+    "trial": 6,
+    "account_index": 61,
+    "status": 101,
+    "welcome": true,
+    "ms": 801.3563749846071
+  },
+  {
+    "trial": 6,
+    "account_index": 62,
+    "status": 101,
+    "welcome": true,
+    "ms": 807.5012500630692
+  },
+  {
+    "trial": 6,
+    "account_index": 63,
+    "status": 101,
+    "welcome": true,
+    "ms": 780.7314170058817
+  },
+  {
+    "trial": 6,
+    "account_index": 64,
+    "status": 101,
+    "welcome": true,
+    "ms": 787.1024999767542
+  },
+  {
+    "trial": 6,
+    "account_index": 65,
+    "status": 101,
+    "welcome": true,
+    "ms": 798.9247500663623
+  },
+  {
+    "trial": 6,
+    "account_index": 66,
+    "status": 101,
+    "welcome": true,
+    "ms": 822.123583056964
+  },
+  {
+    "trial": 6,
+    "account_index": 67,
+    "status": 101,
+    "welcome": true,
+    "ms": 833.8035419583321
+  },
+  {
+    "trial": 6,
+    "account_index": 68,
+    "status": 101,
+    "welcome": true,
+    "ms": 826.1086250422522
+  },
+  {
+    "trial": 6,
+    "account_index": 69,
+    "status": 101,
+    "welcome": true,
+    "ms": 849.5729579590261
+  },
+  {
+    "trial": 6,
+    "account_index": 70,
+    "status": 101,
+    "welcome": true,
+    "ms": 865.7335409661755
+  },
+  {
+    "trial": 6,
+    "account_index": 71,
+    "status": 101,
+    "welcome": true,
+    "ms": 827.1289169788361
+  },
+  {
+    "trial": 6,
+    "account_index": 72,
+    "status": 101,
+    "welcome": true,
+    "ms": 838.8521251035854
+  },
+  {
+    "trial": 6,
+    "account_index": 73,
+    "status": 101,
+    "welcome": true,
+    "ms": 838.8704579556361
+  },
+  {
+    "trial": 6,
+    "account_index": 74,
+    "status": 101,
+    "welcome": true,
+    "ms": 854.804708971642
+  },
+  {
+    "trial": 6,
+    "account_index": 75,
+    "status": 101,
+    "welcome": true,
+    "ms": 838.9144170796499
+  },
+  {
+    "trial": 6,
+    "account_index": 76,
+    "status": 101,
+    "welcome": true,
+    "ms": 877.8669580351561
+  },
+  {
+    "trial": 6,
+    "account_index": 77,
+    "status": 101,
+    "welcome": true,
+    "ms": 853.4614579984918
+  },
+  {
+    "trial": 6,
+    "account_index": 78,
+    "status": 101,
+    "welcome": true,
+    "ms": 871.6383749851957
+  },
+  {
+    "trial": 6,
+    "account_index": 79,
+    "status": 101,
+    "welcome": true,
+    "ms": 897.6989589864388
+  },
+  {
+    "trial": 6,
+    "account_index": 80,
+    "status": 101,
+    "welcome": true,
+    "ms": 859.0337500208989
+  },
+  {
+    "trial": 6,
+    "account_index": 81,
+    "status": 502,
+    "welcome": false,
+    "ms": 15.507832984440029
+  },
+  {
+    "trial": 6,
+    "account_index": 82,
+    "status": 101,
+    "welcome": true,
+    "ms": 873.4154159901664
+  },
+  {
+    "trial": 6,
+    "account_index": 83,
+    "status": 502,
+    "welcome": false,
+    "ms": 15.308041940443218
+  },
+  {
+    "trial": 6,
+    "account_index": 84,
+    "status": 101,
+    "welcome": true,
+    "ms": 890.2878749649972
+  },
+  {
+    "trial": 6,
+    "account_index": 85,
+    "status": 101,
+    "welcome": true,
+    "ms": 867.7191250026226
+  },
+  {
+    "trial": 6,
+    "account_index": 86,
+    "status": 502,
+    "welcome": false,
+    "ms": 14.791375026106834
+  },
+  {
+    "trial": 6,
+    "account_index": 87,
+    "status": 101,
+    "welcome": true,
+    "ms": 921.7976249055937
+  },
+  {
+    "trial": 6,
+    "account_index": 88,
+    "status": 101,
+    "welcome": true,
+    "ms": 908.690124982968
+  },
+  {
+    "trial": 6,
+    "account_index": 89,
+    "status": 101,
+    "welcome": true,
+    "ms": 906.9169169524685
+  },
+  {
+    "trial": 6,
+    "account_index": 90,
+    "status": 101,
+    "welcome": true,
+    "ms": 811.2608750816435
+  },
+  {
+    "trial": 6,
+    "account_index": 91,
+    "status": 101,
+    "welcome": true,
+    "ms": 811.3094170112163
+  },
+  {
+    "trial": 6,
+    "account_index": 92,
+    "status": 101,
+    "welcome": true,
+    "ms": 823.7933750497177
+  },
+  {
+    "trial": 6,
+    "account_index": 93,
+    "status": 101,
+    "welcome": true,
+    "ms": 913.0565830273554
+  },
+  {
+    "trial": 6,
+    "account_index": 94,
+    "status": 101,
+    "welcome": true,
+    "ms": 900.1580419717357
+  },
+  {
+    "trial": 6,
+    "account_index": 95,
+    "status": 101,
+    "welcome": true,
+    "ms": 902.0060410257429
+  },
+  {
+    "trial": 6,
+    "account_index": 96,
+    "status": 101,
+    "welcome": true,
+    "ms": 882.7344999881461
+  },
+  {
+    "trial": 6,
+    "account_index": 97,
+    "status": 101,
+    "welcome": true,
+    "ms": 915.7465409953147
+  },
+  {
+    "trial": 6,
+    "account_index": 98,
+    "status": 101,
+    "welcome": true,
+    "ms": 901.3029590714723
+  },
+  {
+    "trial": 6,
+    "account_index": 99,
+    "status": 101,
+    "welcome": true,
+    "ms": 887.8790830494836
+  },
+  {
+    "trial": 7,
+    "account_index": 0,
+    "status": 101,
+    "welcome": true,
+    "ms": 158.05654099676758
+  },
+  {
+    "trial": 7,
+    "account_index": 1,
+    "status": 101,
+    "welcome": true,
+    "ms": 151.04324999265373
+  },
+  {
+    "trial": 7,
+    "account_index": 2,
+    "status": 101,
+    "welcome": true,
+    "ms": 205.97812498454005
+  },
+  {
+    "trial": 7,
+    "account_index": 3,
+    "status": 101,
+    "welcome": true,
+    "ms": 218.98020897060633
+  },
+  {
+    "trial": 7,
+    "account_index": 4,
+    "status": 101,
+    "welcome": true,
+    "ms": 150.19016701262444
+  },
+  {
+    "trial": 7,
+    "account_index": 5,
+    "status": 101,
+    "welcome": true,
+    "ms": 163.65008300635964
+  },
+  {
+    "trial": 7,
+    "account_index": 6,
+    "status": 101,
+    "welcome": true,
+    "ms": 218.0859170621261
+  },
+  {
+    "trial": 7,
+    "account_index": 7,
+    "status": 101,
+    "welcome": true,
+    "ms": 311.94879207760096
+  },
+  {
+    "trial": 7,
+    "account_index": 8,
+    "status": 101,
+    "welcome": true,
+    "ms": 317.0180000597611
+  },
+  {
+    "trial": 7,
+    "account_index": 9,
+    "status": 101,
+    "welcome": true,
+    "ms": 196.9615831039846
+  },
+  {
+    "trial": 7,
+    "account_index": 10,
+    "status": 101,
+    "welcome": true,
+    "ms": 300.71049998514354
+  },
+  {
+    "trial": 7,
+    "account_index": 11,
+    "status": 101,
+    "welcome": true,
+    "ms": 455.3865420166403
+  },
+  {
+    "trial": 7,
+    "account_index": 12,
+    "status": 101,
+    "welcome": true,
+    "ms": 303.50683291908354
+  },
+  {
+    "trial": 7,
+    "account_index": 13,
+    "status": 101,
+    "welcome": true,
+    "ms": 380.95608400180936
+  },
+  {
+    "trial": 7,
+    "account_index": 14,
+    "status": 101,
+    "welcome": true,
+    "ms": 399.6009579859674
+  },
+  {
+    "trial": 7,
+    "account_index": 15,
+    "status": 101,
+    "welcome": true,
+    "ms": 426.0141249978915
+  },
+  {
+    "trial": 7,
+    "account_index": 16,
+    "status": 101,
+    "welcome": true,
+    "ms": 394.42529098596424
+  },
+  {
+    "trial": 7,
+    "account_index": 17,
+    "status": 101,
+    "welcome": true,
+    "ms": 473.96329196635634
+  },
+  {
+    "trial": 7,
+    "account_index": 18,
+    "status": 101,
+    "welcome": true,
+    "ms": 448.55141593143344
+  },
+  {
+    "trial": 7,
+    "account_index": 19,
+    "status": 101,
+    "welcome": true,
+    "ms": 500.2176249399781
+  },
+  {
+    "trial": 7,
+    "account_index": 20,
+    "status": 101,
+    "welcome": true,
+    "ms": 491.993417032063
+  },
+  {
+    "trial": 7,
+    "account_index": 21,
+    "status": 101,
+    "welcome": true,
+    "ms": 521.6280000749975
+  },
+  {
+    "trial": 7,
+    "account_index": 22,
+    "status": 101,
+    "welcome": true,
+    "ms": 447.7754170075059
+  },
+  {
+    "trial": 7,
+    "account_index": 23,
+    "status": 101,
+    "welcome": true,
+    "ms": 562.6922919182107
+  },
+  {
+    "trial": 7,
+    "account_index": 24,
+    "status": 101,
+    "welcome": true,
+    "ms": 542.8022920386866
+  },
+  {
+    "trial": 7,
+    "account_index": 25,
+    "status": 101,
+    "welcome": true,
+    "ms": 491.84020899701864
+  },
+  {
+    "trial": 7,
+    "account_index": 26,
+    "status": 101,
+    "welcome": true,
+    "ms": 523.5818329965696
+  },
+  {
+    "trial": 7,
+    "account_index": 27,
+    "status": 101,
+    "welcome": true,
+    "ms": 539.0834590652958
+  },
+  {
+    "trial": 7,
+    "account_index": 28,
+    "status": 101,
+    "welcome": true,
+    "ms": 528.6105419509113
+  },
+  {
+    "trial": 7,
+    "account_index": 29,
+    "status": 101,
+    "welcome": true,
+    "ms": 556.4962079515681
+  },
+  {
+    "trial": 7,
+    "account_index": 30,
+    "status": 101,
+    "welcome": true,
+    "ms": 561.6903339978307
+  },
+  {
+    "trial": 7,
+    "account_index": 31,
+    "status": 101,
+    "welcome": true,
+    "ms": 560.1995830656961
+  },
+  {
+    "trial": 7,
+    "account_index": 32,
+    "status": 101,
+    "welcome": true,
+    "ms": 585.9598749084398
+  },
+  {
+    "trial": 7,
+    "account_index": 33,
+    "status": 101,
+    "welcome": true,
+    "ms": 668.5158330947161
+  },
+  {
+    "trial": 7,
+    "account_index": 34,
+    "status": 101,
+    "welcome": true,
+    "ms": 573.9062499487773
+  },
+  {
+    "trial": 7,
+    "account_index": 35,
+    "status": 101,
+    "welcome": true,
+    "ms": 667.7884579403326
+  },
+  {
+    "trial": 7,
+    "account_index": 36,
+    "status": 101,
+    "welcome": true,
+    "ms": 611.0661660786718
+  },
+  {
+    "trial": 7,
+    "account_index": 37,
+    "status": 101,
+    "welcome": true,
+    "ms": 673.7909580115229
+  },
+  {
+    "trial": 7,
+    "account_index": 38,
+    "status": 101,
+    "welcome": true,
+    "ms": 673.8469579722732
+  },
+  {
+    "trial": 7,
+    "account_index": 39,
+    "status": 101,
+    "welcome": true,
+    "ms": 580.7122500846162
+  },
+  {
+    "trial": 7,
+    "account_index": 40,
+    "status": 101,
+    "welcome": true,
+    "ms": 595.427083899267
+  },
+  {
+    "trial": 7,
+    "account_index": 41,
+    "status": 101,
+    "welcome": true,
+    "ms": 604.2791251093149
+  },
+  {
+    "trial": 7,
+    "account_index": 42,
+    "status": 101,
+    "welcome": true,
+    "ms": 613.4161660447717
+  },
+  {
+    "trial": 7,
+    "account_index": 43,
+    "status": 101,
+    "welcome": true,
+    "ms": 686.0527909593657
+  },
+  {
+    "trial": 7,
+    "account_index": 44,
+    "status": 101,
+    "welcome": true,
+    "ms": 697.3437089473009
+  },
+  {
+    "trial": 7,
+    "account_index": 45,
+    "status": 101,
+    "welcome": true,
+    "ms": 672.5890829693526
+  },
+  {
+    "trial": 7,
+    "account_index": 46,
+    "status": 101,
+    "welcome": true,
+    "ms": 682.4884170200676
+  },
+  {
+    "trial": 7,
+    "account_index": 47,
+    "status": 101,
+    "welcome": true,
+    "ms": 693.4862079797313
+  },
+  {
+    "trial": 7,
+    "account_index": 48,
+    "status": 101,
+    "welcome": true,
+    "ms": 705.6244999403134
+  },
+  {
+    "trial": 7,
+    "account_index": 49,
+    "status": 101,
+    "welcome": true,
+    "ms": 706.653333036229
+  },
+  {
+    "trial": 7,
+    "account_index": 50,
+    "status": 101,
+    "welcome": true,
+    "ms": 660.6488329125568
+  },
+  {
+    "trial": 7,
+    "account_index": 51,
+    "status": 101,
+    "welcome": true,
+    "ms": 672.5462079048157
+  },
+  {
+    "trial": 7,
+    "account_index": 52,
+    "status": 101,
+    "welcome": true,
+    "ms": 672.1515000099316
+  },
+  {
+    "trial": 7,
+    "account_index": 53,
+    "status": 101,
+    "welcome": true,
+    "ms": 676.7667500535026
+  },
+  {
+    "trial": 7,
+    "account_index": 54,
+    "status": 101,
+    "welcome": true,
+    "ms": 630.2977909799665
+  },
+  {
+    "trial": 7,
+    "account_index": 55,
+    "status": 101,
+    "welcome": true,
+    "ms": 581.9234170485288
+  },
+  {
+    "trial": 7,
+    "account_index": 56,
+    "status": 101,
+    "welcome": true,
+    "ms": 717.7648750366643
+  },
+  {
+    "trial": 7,
+    "account_index": 57,
+    "status": 101,
+    "welcome": true,
+    "ms": 783.3058750256896
+  },
+  {
+    "trial": 7,
+    "account_index": 58,
+    "status": 101,
+    "welcome": true,
+    "ms": 708.4128339774907
+  },
+  {
+    "trial": 7,
+    "account_index": 59,
+    "status": 101,
+    "welcome": true,
+    "ms": 783.5721250157803
+  },
+  {
+    "trial": 7,
+    "account_index": 60,
+    "status": 101,
+    "welcome": true,
+    "ms": 816.9256669934839
+  },
+  {
+    "trial": 7,
+    "account_index": 61,
+    "status": 101,
+    "welcome": true,
+    "ms": 674.9744999688119
+  },
+  {
+    "trial": 7,
+    "account_index": 62,
+    "status": 101,
+    "welcome": true,
+    "ms": 675.3004579804838
+  },
+  {
+    "trial": 7,
+    "account_index": 63,
+    "status": 101,
+    "welcome": true,
+    "ms": 782.5289580505341
+  },
+  {
+    "trial": 7,
+    "account_index": 64,
+    "status": 101,
+    "welcome": true,
+    "ms": 674.6036669937894
+  },
+  {
+    "trial": 7,
+    "account_index": 65,
+    "status": 101,
+    "welcome": true,
+    "ms": 689.5712499972433
+  },
+  {
+    "trial": 7,
+    "account_index": 66,
+    "status": 101,
+    "welcome": true,
+    "ms": 678.1027090037242
+  },
+  {
+    "trial": 7,
+    "account_index": 67,
+    "status": 101,
+    "welcome": true,
+    "ms": 710.0927910069004
+  },
+  {
+    "trial": 7,
+    "account_index": 68,
+    "status": 101,
+    "welcome": true,
+    "ms": 781.1583750881255
+  },
+  {
+    "trial": 7,
+    "account_index": 69,
+    "status": 101,
+    "welcome": true,
+    "ms": 783.8196250377223
+  },
+  {
+    "trial": 7,
+    "account_index": 70,
+    "status": 101,
+    "welcome": true,
+    "ms": 781.5667500253767
+  },
+  {
+    "trial": 7,
+    "account_index": 71,
+    "status": 101,
+    "welcome": true,
+    "ms": 680.4065830074251
+  },
+  {
+    "trial": 7,
+    "account_index": 72,
+    "status": 101,
+    "welcome": true,
+    "ms": 846.5039159636945
+  },
+  {
+    "trial": 7,
+    "account_index": 73,
+    "status": 101,
+    "welcome": true,
+    "ms": 899.4892089394853
+  },
+  {
+    "trial": 7,
+    "account_index": 74,
+    "status": 101,
+    "welcome": true,
+    "ms": 692.9877500515431
+  },
+  {
+    "trial": 7,
+    "account_index": 75,
+    "status": 502,
+    "welcome": false,
+    "ms": 13.579125050455332
+  },
+  {
+    "trial": 7,
+    "account_index": 76,
+    "status": 101,
+    "welcome": true,
+    "ms": 790.2038340689614
+  },
+  {
+    "trial": 7,
+    "account_index": 77,
+    "status": 101,
+    "welcome": true,
+    "ms": 1264.0622499166057
+  },
+  {
+    "trial": 7,
+    "account_index": 78,
+    "status": 101,
+    "welcome": true,
+    "ms": 842.1641670865938
+  },
+  {
+    "trial": 7,
+    "account_index": 79,
+    "status": 101,
+    "welcome": true,
+    "ms": 1133.7871249997988
+  },
+  {
+    "trial": 7,
+    "account_index": 80,
+    "status": 101,
+    "welcome": true,
+    "ms": 1097.3582080332562
+  },
+  {
+    "trial": 7,
+    "account_index": 81,
+    "status": 101,
+    "welcome": true,
+    "ms": 1006.6743750358
+  },
+  {
+    "trial": 7,
+    "account_index": 82,
+    "status": 101,
+    "welcome": true,
+    "ms": 1053.1555840279907
+  },
+  {
+    "trial": 7,
+    "account_index": 83,
+    "status": 101,
+    "welcome": true,
+    "ms": 894.699458964169
+  },
+  {
+    "trial": 7,
+    "account_index": 84,
+    "status": 101,
+    "welcome": true,
+    "ms": 970.2824589330703
+  },
+  {
+    "trial": 7,
+    "account_index": 85,
+    "status": 101,
+    "welcome": true,
+    "ms": 773.2400000095367
+  },
+  {
+    "trial": 7,
+    "account_index": 86,
+    "status": 101,
+    "welcome": true,
+    "ms": 839.6082920953631
+  },
+  {
+    "trial": 7,
+    "account_index": 87,
+    "status": 101,
+    "welcome": true,
+    "ms": 961.0885420115665
+  },
+  {
+    "trial": 7,
+    "account_index": 88,
+    "status": 101,
+    "welcome": true,
+    "ms": 926.846000016667
+  },
+  {
+    "trial": 7,
+    "account_index": 89,
+    "status": 101,
+    "welcome": true,
+    "ms": 1118.77408309374
+  },
+  {
+    "trial": 7,
+    "account_index": 90,
+    "status": 101,
+    "welcome": true,
+    "ms": 775.7287080166861
+  },
+  {
+    "trial": 7,
+    "account_index": 91,
+    "status": 101,
+    "welcome": true,
+    "ms": 1036.7678329348564
+  },
+  {
+    "trial": 7,
+    "account_index": 92,
+    "status": 101,
+    "welcome": true,
+    "ms": 870.3960420098156
+  },
+  {
+    "trial": 7,
+    "account_index": 93,
+    "status": 101,
+    "welcome": true,
+    "ms": 810.3850830812007
+  },
+  {
+    "trial": 7,
+    "account_index": 94,
+    "status": 101,
+    "welcome": true,
+    "ms": 1225.9032089496031
+  },
+  {
+    "trial": 7,
+    "account_index": 95,
+    "status": 101,
+    "welcome": true,
+    "ms": 1184.1588750248775
+  },
+  {
+    "trial": 7,
+    "account_index": 96,
+    "status": 101,
+    "welcome": true,
+    "ms": 823.6387498909608
+  },
+  {
+    "trial": 7,
+    "account_index": 97,
+    "status": 101,
+    "welcome": true,
+    "ms": 698.0983339017257
+  },
+  {
+    "trial": 7,
+    "account_index": 98,
+    "status": 101,
+    "welcome": true,
+    "ms": 796.5515829855576
+  },
+  {
+    "trial": 7,
+    "account_index": 99,
+    "status": 101,
+    "welcome": true,
+    "ms": 772.6017499808222
+  },
+  {
+    "trial": 8,
+    "account_index": 0,
+    "status": 101,
+    "welcome": true,
+    "ms": 1204.3248330010101
+  },
+  {
+    "trial": 8,
+    "account_index": 1,
+    "status": 101,
+    "welcome": true,
+    "ms": 1209.7288750810549
+  },
+  {
+    "trial": 8,
+    "account_index": 2,
+    "status": 101,
+    "welcome": true,
+    "ms": 1225.8354579098523
+  },
+  {
+    "trial": 8,
+    "account_index": 3,
+    "status": 101,
+    "welcome": true,
+    "ms": 1230.5598750244826
+  },
+  {
+    "trial": 8,
+    "account_index": 4,
+    "status": 101,
+    "welcome": true,
+    "ms": 1284.3104579951614
+  },
+  {
+    "trial": 8,
+    "account_index": 5,
+    "status": 101,
+    "welcome": true,
+    "ms": 1330.9160419739783
+  },
+  {
+    "trial": 8,
+    "account_index": 6,
+    "status": 101,
+    "welcome": true,
+    "ms": 1295.0779580278322
+  },
+  {
+    "trial": 8,
+    "account_index": 7,
+    "status": 101,
+    "welcome": true,
+    "ms": 1261.9853750802577
+  },
+  {
+    "trial": 8,
+    "account_index": 8,
+    "status": 101,
+    "welcome": true,
+    "ms": 1316.581082995981
+  },
+  {
+    "trial": 8,
+    "account_index": 9,
+    "status": 101,
+    "welcome": true,
+    "ms": 1283.587042009458
+  },
+  {
+    "trial": 8,
+    "account_index": 10,
+    "status": 101,
+    "welcome": true,
+    "ms": 1314.8559590335935
+  },
+  {
+    "trial": 8,
+    "account_index": 11,
+    "status": 101,
+    "welcome": true,
+    "ms": 1250.8966659661382
+  },
+  {
+    "trial": 8,
+    "account_index": 12,
+    "status": 101,
+    "welcome": true,
+    "ms": 1269.8790830327198
+  },
+  {
+    "trial": 8,
+    "account_index": 13,
+    "status": 101,
+    "welcome": true,
+    "ms": 1357.5950419763103
+  },
+  {
+    "trial": 8,
+    "account_index": 14,
+    "status": 101,
+    "welcome": true,
+    "ms": 1212.7044999506325
+  },
+  {
+    "trial": 8,
+    "account_index": 15,
+    "status": 101,
+    "welcome": true,
+    "ms": 1370.9826249396428
+  },
+  {
+    "trial": 8,
+    "account_index": 16,
+    "status": 101,
+    "welcome": true,
+    "ms": 1264.3368750577793
+  },
+  {
+    "trial": 8,
+    "account_index": 17,
+    "status": 101,
+    "welcome": true,
+    "ms": 1307.187750004232
+  },
+  {
+    "trial": 8,
+    "account_index": 18,
+    "status": 101,
+    "welcome": true,
+    "ms": 1292.9550830740482
+  },
+  {
+    "trial": 8,
+    "account_index": 19,
+    "status": 101,
+    "welcome": true,
+    "ms": 1201.2732919538394
+  },
+  {
+    "trial": 8,
+    "account_index": 20,
+    "status": 101,
+    "welcome": true,
+    "ms": 1214.7315830225125
+  },
+  {
+    "trial": 8,
+    "account_index": 21,
+    "status": 101,
+    "welcome": true,
+    "ms": 1222.6465839194134
+  },
+  {
+    "trial": 8,
+    "account_index": 22,
+    "status": 101,
+    "welcome": true,
+    "ms": 1313.2458330364898
+  },
+  {
+    "trial": 8,
+    "account_index": 23,
+    "status": 101,
+    "welcome": true,
+    "ms": 1356.5412920434028
+  },
+  {
+    "trial": 8,
+    "account_index": 24,
+    "status": 101,
+    "welcome": true,
+    "ms": 1329.99875000678
+  },
+  {
+    "trial": 8,
+    "account_index": 25,
+    "status": 101,
+    "welcome": true,
+    "ms": 1291.4372920058668
+  },
+  {
+    "trial": 8,
+    "account_index": 26,
+    "status": 101,
+    "welcome": true,
+    "ms": 1361.2356659723446
+  },
+  {
+    "trial": 8,
+    "account_index": 27,
+    "status": 101,
+    "welcome": true,
+    "ms": 1346.7445420101285
+  },
+  {
+    "trial": 8,
+    "account_index": 28,
+    "status": 101,
+    "welcome": true,
+    "ms": 1246.7707910109311
+  },
+  {
+    "trial": 8,
+    "account_index": 29,
+    "status": 101,
+    "welcome": true,
+    "ms": 1341.4270830107853
+  },
+  {
+    "trial": 8,
+    "account_index": 30,
+    "status": 101,
+    "welcome": true,
+    "ms": 1386.9902919977903
+  },
+  {
+    "trial": 8,
+    "account_index": 31,
+    "status": 101,
+    "welcome": true,
+    "ms": 1403.2356250099838
+  },
+  {
+    "trial": 8,
+    "account_index": 32,
+    "status": 101,
+    "welcome": true,
+    "ms": 1326.7542909597978
+  },
+  {
+    "trial": 8,
+    "account_index": 33,
+    "status": 101,
+    "welcome": true,
+    "ms": 1283.1327499588951
+  },
+  {
+    "trial": 8,
+    "account_index": 34,
+    "status": 101,
+    "welcome": true,
+    "ms": 1379.713415983133
+  },
+  {
+    "trial": 8,
+    "account_index": 35,
+    "status": 101,
+    "welcome": true,
+    "ms": 1340.1564999949187
+  },
+  {
+    "trial": 8,
+    "account_index": 36,
+    "status": 101,
+    "welcome": true,
+    "ms": 1373.7482079304755
+  },
+  {
+    "trial": 8,
+    "account_index": 37,
+    "status": 101,
+    "welcome": true,
+    "ms": 1236.596249975264
+  },
+  {
+    "trial": 8,
+    "account_index": 38,
+    "status": 101,
+    "welcome": true,
+    "ms": 1367.4227090086788
+  },
+  {
+    "trial": 8,
+    "account_index": 39,
+    "status": 101,
+    "welcome": true,
+    "ms": 1365.4391670133919
+  },
+  {
+    "trial": 8,
+    "account_index": 40,
+    "status": 101,
+    "welcome": true,
+    "ms": 1418.3534580515698
+  },
+  {
+    "trial": 8,
+    "account_index": 41,
+    "status": 101,
+    "welcome": true,
+    "ms": 1427.41104203742
+  },
+  {
+    "trial": 8,
+    "account_index": 42,
+    "status": 101,
+    "welcome": true,
+    "ms": 1404.8374999547377
+  },
+  {
+    "trial": 8,
+    "account_index": 43,
+    "status": 101,
+    "welcome": true,
+    "ms": 1390.207124990411
+  },
+  {
+    "trial": 8,
+    "account_index": 44,
+    "status": 101,
+    "welcome": true,
+    "ms": 1339.4515420077369
+  },
+  {
+    "trial": 8,
+    "account_index": 45,
+    "status": 101,
+    "welcome": true,
+    "ms": 1328.337874962017
+  },
+  {
+    "trial": 8,
+    "account_index": 46,
+    "status": 101,
+    "welcome": true,
+    "ms": 1394.3009580252692
+  },
+  {
+    "trial": 8,
+    "account_index": 47,
+    "status": 101,
+    "welcome": true,
+    "ms": 1403.5117089515552
+  },
+  {
+    "trial": 8,
+    "account_index": 48,
+    "status": 101,
+    "welcome": true,
+    "ms": 1441.2642910610884
+  },
+  {
+    "trial": 8,
+    "account_index": 49,
+    "status": 101,
+    "welcome": true,
+    "ms": 1386.0976250143722
+  },
+  {
+    "trial": 8,
+    "account_index": 50,
+    "status": 101,
+    "welcome": true,
+    "ms": 1353.7622920703143
+  },
+  {
+    "trial": 8,
+    "account_index": 51,
+    "status": 101,
+    "welcome": true,
+    "ms": 1544.515542103909
+  },
+  {
+    "trial": 8,
+    "account_index": 52,
+    "status": 101,
+    "welcome": true,
+    "ms": 1421.2640419136733
+  },
+  {
+    "trial": 8,
+    "account_index": 53,
+    "status": 101,
+    "welcome": true,
+    "ms": 1416.61691700574
+  },
+  {
+    "trial": 8,
+    "account_index": 54,
+    "status": 101,
+    "welcome": true,
+    "ms": 1478.9685419527814
+  },
+  {
+    "trial": 8,
+    "account_index": 55,
+    "status": 101,
+    "welcome": true,
+    "ms": 1513.3376669837162
+  },
+  {
+    "trial": 8,
+    "account_index": 56,
+    "status": 101,
+    "welcome": true,
+    "ms": 1423.864166950807
+  },
+  {
+    "trial": 8,
+    "account_index": 57,
+    "status": 101,
+    "welcome": true,
+    "ms": 1507.1436249418184
+  },
+  {
+    "trial": 8,
+    "account_index": 58,
+    "status": 101,
+    "welcome": true,
+    "ms": 1278.5839999560267
+  },
+  {
+    "trial": 8,
+    "account_index": 59,
+    "status": 101,
+    "welcome": true,
+    "ms": 1444.4960829569027
+  },
+  {
+    "trial": 8,
+    "account_index": 60,
+    "status": 101,
+    "welcome": true,
+    "ms": 1311.0167499398813
+  },
+  {
+    "trial": 8,
+    "account_index": 61,
+    "status": 101,
+    "welcome": true,
+    "ms": 1462.731417035684
+  },
+  {
+    "trial": 8,
+    "account_index": 62,
+    "status": 101,
+    "welcome": true,
+    "ms": 1418.6074580065906
+  },
+  {
+    "trial": 8,
+    "account_index": 63,
+    "status": 101,
+    "welcome": true,
+    "ms": 1434.6085420111194
+  },
+  {
+    "trial": 8,
+    "account_index": 64,
+    "status": 101,
+    "welcome": true,
+    "ms": 1431.5669169882312
+  },
+  {
+    "trial": 8,
+    "account_index": 65,
+    "status": 101,
+    "welcome": true,
+    "ms": 1458.7535000173375
+  },
+  {
+    "trial": 8,
+    "account_index": 66,
+    "status": 101,
+    "welcome": true,
+    "ms": 1450.8047089911997
+  },
+  {
+    "trial": 8,
+    "account_index": 67,
+    "status": 101,
+    "welcome": true,
+    "ms": 1450.3455410012975
+  },
+  {
+    "trial": 8,
+    "account_index": 68,
+    "status": 101,
+    "welcome": true,
+    "ms": 1474.6445410419255
+  },
+  {
+    "trial": 8,
+    "account_index": 69,
+    "status": 101,
+    "welcome": true,
+    "ms": 1469.5123750716448
+  },
+  {
+    "trial": 8,
+    "account_index": 70,
+    "status": 101,
+    "welcome": true,
+    "ms": 1472.0202079042792
+  },
+  {
+    "trial": 8,
+    "account_index": 71,
+    "status": 101,
+    "welcome": true,
+    "ms": 1503.9830829482526
+  },
+  {
+    "trial": 8,
+    "account_index": 72,
+    "status": 101,
+    "welcome": true,
+    "ms": 1488.0740839289501
+  },
+  {
+    "trial": 8,
+    "account_index": 73,
+    "status": 502,
+    "welcome": false,
+    "ms": 10.228542028926313
+  },
+  {
+    "trial": 8,
+    "account_index": 74,
+    "status": 101,
+    "welcome": true,
+    "ms": 1638.6953750625253
+  },
+  {
+    "trial": 8,
+    "account_index": 75,
+    "status": 502,
+    "welcome": false,
+    "ms": 10.160667006857693
+  },
+  {
+    "trial": 8,
+    "account_index": 76,
+    "status": 101,
+    "welcome": true,
+    "ms": 1508.8803339749575
+  },
+  {
+    "trial": 8,
+    "account_index": 77,
+    "status": 101,
+    "welcome": true,
+    "ms": 1580.1527079893276
+  },
+  {
+    "trial": 8,
+    "account_index": 78,
+    "status": 101,
+    "welcome": true,
+    "ms": 1597.9537499370053
+  },
+  {
+    "trial": 8,
+    "account_index": 79,
+    "status": 101,
+    "welcome": true,
+    "ms": 1509.0850830310956
+  },
+  {
+    "trial": 8,
+    "account_index": 80,
+    "status": 101,
+    "welcome": true,
+    "ms": 1667.4454580061138
+  },
+  {
+    "trial": 8,
+    "account_index": 81,
+    "status": 101,
+    "welcome": true,
+    "ms": 1621.524874935858
+  },
+  {
+    "trial": 8,
+    "account_index": 82,
+    "status": 101,
+    "welcome": true,
+    "ms": 1578.6657501012087
+  },
+  {
+    "trial": 8,
+    "account_index": 83,
+    "status": 101,
+    "welcome": true,
+    "ms": 1593.2060410268605
+  },
+  {
+    "trial": 8,
+    "account_index": 84,
+    "status": 101,
+    "welcome": true,
+    "ms": 1593.966083950363
+  },
+  {
+    "trial": 8,
+    "account_index": 85,
+    "status": 101,
+    "welcome": true,
+    "ms": 1492.2978330869228
+  },
+  {
+    "trial": 8,
+    "account_index": 86,
+    "status": 101,
+    "welcome": true,
+    "ms": 1579.128458048217
+  },
+  {
+    "trial": 8,
+    "account_index": 87,
+    "status": 101,
+    "welcome": true,
+    "ms": 1715.7530420226976
+  },
+  {
+    "trial": 8,
+    "account_index": 88,
+    "status": 101,
+    "welcome": true,
+    "ms": 1726.4904589392245
+  },
+  {
+    "trial": 8,
+    "account_index": 89,
+    "status": 101,
+    "welcome": true,
+    "ms": 1703.6840840009972
+  },
+  {
+    "trial": 8,
+    "account_index": 90,
+    "status": 101,
+    "welcome": true,
+    "ms": 1524.5872919913381
+  },
+  {
+    "trial": 8,
+    "account_index": 91,
+    "status": 101,
+    "welcome": true,
+    "ms": 1536.578334053047
+  },
+  {
+    "trial": 8,
+    "account_index": 92,
+    "status": 101,
+    "welcome": true,
+    "ms": 1700.2771249972284
+  },
+  {
+    "trial": 8,
+    "account_index": 93,
+    "status": 101,
+    "welcome": true,
+    "ms": 1698.2055829139426
+  },
+  {
+    "trial": 8,
+    "account_index": 94,
+    "status": 101,
+    "welcome": true,
+    "ms": 1678.5566250327975
+  },
+  {
+    "trial": 8,
+    "account_index": 95,
+    "status": 101,
+    "welcome": true,
+    "ms": 1600.56320799049
+  },
+  {
+    "trial": 8,
+    "account_index": 96,
+    "status": 101,
+    "welcome": true,
+    "ms": 1588.5204580845311
+  },
+  {
+    "trial": 8,
+    "account_index": 97,
+    "status": 101,
+    "welcome": true,
+    "ms": 1510.4579579783604
+  },
+  {
+    "trial": 8,
+    "account_index": 98,
+    "status": 101,
+    "welcome": true,
+    "ms": 1559.1352919582278
+  },
+  {
+    "trial": 8,
+    "account_index": 99,
+    "status": 101,
+    "welcome": true,
+    "ms": 1522.4944161018357
+  }
+]

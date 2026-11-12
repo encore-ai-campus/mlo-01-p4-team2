@@ -1,0 +1,17 @@
+{
+  "report_sha256": "f1f7ab2c5ee85e57d84e197b037a8817b1a98b54f4c0ab3b09db93cc52deae4d",
+  "timestamp": "2026-11-07T22:14:15.294085+09:00",
+  "scope": "accuracy of latest r2 report; not whole-platform pass",
+  "reviewers": [
+    {
+      "agent": "conn128_review1",
+      "decision": "approved",
+      "checked": "raw denominators, expected rejections, actual errors, percentiles, failures and limits"
+    },
+    {
+      "agent": "final_review2",
+      "decision": "approved",
+      "checked": "independent raw recalculation, gateway cause, current source, integrity and test limits"
+    }
+  ]
+}

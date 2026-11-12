@@ -1,0 +1,9 @@
+{
+  "https://my.contentpass.net": {
+    "PrivateStateTokenV1VOPRF": "REDACTED"
+  },
+  "https://privatetokens.dev": "REDACTED",
+  "https://www.amazon.com": {
+    "PrivateStateTokenV1VOPRF": "REDACTED"
+  }
+}

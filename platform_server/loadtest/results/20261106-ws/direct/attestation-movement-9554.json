@@ -1,0 +1,16 @@
+{
+  "worker": "movement-9554",
+  "pid": 4964,
+  "database": "query_ws_direct_20261106_v2",
+  "db_port": "55480",
+  "movement_redis": "redis://127.0.0.1:57413/0",
+  "service_redis": "redis://127.0.0.1:57414/0",
+  "secret_fingerprint": "REDACTED",
+  "debug": false,
+  "event_window_override": true,
+  "pool_options": {
+    "min_size": 1,
+    "max_size": 10
+  },
+  "connection_max_age": 0
+}

@@ -5,7 +5,7 @@
   function create({isBlocked=()=>false,onOpen=()=>{},onClose=()=>{}}={}){
     const $=id=>document.getElementById(id),button=$('achievementsOpen'),dialog=$('achievementsDialog');
     const list=$('achievementsList'),status=$('achievementsStatus'),retry=$('achievementsRetry');
-    let items=null,pending=null,version=0;
+    let items=null,pending=null,version=0,mainBadge=null;
     const discoveries=new Map();
     function rememberDiscoveries(rows){
       if(!Array.isArray(rows))return;
@@ -62,6 +62,16 @@
       const newly=items?next.filter(row=>row.achieved&&items.some(old=>old.event_uuid===row.event_uuid&&!old.achieved)).map(row=>row.event_uuid):[];
       rememberDiscoveries(next);items=next;version++;render();enqueueNotices(newly);
     }
+    function renderMain(){
+      if(!mainBadge||!items)return;
+      const row=document.createElement('li'),image=document.createElement('img'),name=document.createElement('strong'),state=document.createElement('span'),note=document.createElement('small'),replay=document.createElement('button');
+      row.className='achievement-item main-mission-badge';row.dataset.achieved=String(mainBadge.achieved);row.dataset.discovered=String(mainBadge.achieved);
+      image.src=mainBadge.image_url;image.alt='';image.width=144;image.height=144;name.textContent=mainBadge.name;
+      state.textContent=mainBadge.achieved?'나의 메인 미션 달성 완료':'메인 미션 최종 전달 후 획득';note.className='first-discoverer';note.textContent='개인 배지 · 완료한 모든 이용자 획득';
+      replay.type='button';replay.className='main-badge-replay';replay.textContent=mainBadge.achieved?'완료 연출 다시 보기':'관리자 연출 미리보기';replay.hidden=!mainBadge.achieved&&!mainBadge.can_preview;replay.onclick=()=>window.CampusMainCompletion?.show(mainBadge);
+      row.append(image,name,state,note,replay);list.append(row);
+    }
+    window.addEventListener('campus:main-achievement',event=>{mainBadge=event.detail;if(items)render();});
     function render(){
       list.replaceChildren();list.hidden=items===null;
       if(!items)return;
@@ -77,6 +87,7 @@
         name.textContent=item.name;state.textContent=item.achieved?'나의 달성 완료':first?'달성 마감':hasAchievement?'추가 달성 불가 · 계정당 1개':'도전 가능';
         row.append(image,name,state,discovery);list.append(row);
       }
+      renderMain();
       status.textContent='';retry.hidden=true;dialog.removeAttribute('aria-busy');
     }
     function refresh(){
@@ -88,7 +99,7 @@
           const response=await fetch('/api/event-story/achievements/',{credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'},signal:controller.signal});
           if(!response.ok||response.redirected||!response.headers.get('content-type')?.includes('application/json'))throw new Error('Achievements unavailable');
           const data=await response.json();
-          if(version===started)accept(data.achievements);
+          if(version===started){mainBadge=data.main_achievement||mainBadge;accept(data.achievements);}
         }catch{
           if(version===started){status.textContent='수사 기록을 불러오지 못했어요. 다시 시도해 주세요.';retry.hidden=false;}
         }finally{clearTimeout(timer);pending=null;dialog.removeAttribute('aria-busy');}

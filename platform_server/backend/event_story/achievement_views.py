@@ -6,6 +6,7 @@ from .game_services import GameError, finish_game
 from django.views.decorators.cache import never_cache
 
 from .achievement_services import achievement_snapshot
+from .main_achievement import snapshot as main_badge
 
 
 @never_cache
@@ -16,7 +17,7 @@ def achievements(request):
         response = JsonResponse({"error": "지원하지 않는 요청입니다."}, status=405)
         response["Allow"] = "GET"
         return response
-    return JsonResponse({"achievements": achievement_snapshot(request.user)})
+    return JsonResponse({"achievements": achievement_snapshot(request.user), "main_achievement": main_badge(request.user)})
 
 
 @never_cache

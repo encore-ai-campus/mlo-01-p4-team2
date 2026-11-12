@@ -268,7 +268,7 @@ class SplitSocketTests(TransactionTestCase):
                 self.assertEqual(await self.close_code(a.chat), 4401)
 
     async def test_oversized_or_invalid_frames_close_only_chat(self):
-        for data, code in [('x' * 4097, 1009), ('{broken', 1007)]:
+        for data, code in [('x' * 4097, 4009), ('{broken', 4007)]:
             async with self.connections(self.a) as (a,):
                 await a.chat.send_to(text_data=data)
                 self.assertEqual(await self.close_code(a.chat), code)

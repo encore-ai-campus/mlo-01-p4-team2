@@ -90,6 +90,52 @@ class LauncherTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Missing environment variables'):
                 launcher.load_environment(env_file)
 
+    def test_password_file_replaces_the_password_only_when_it_fits_the_connection(self):
+        secret = 'not-a-real-secret-7f3a'
+        values = {name: 'test-value' for name in (
+            'DJANGO_SECRET_KEY', 'FRONTEND_SECRET_KEY', 'DJANGO_ALLOWED_HOSTS',
+            'FRONTEND_ALLOWED_HOSTS', 'DJANGO_CSRF_TRUSTED_ORIGINS',
+            'CAMPUS_MOVEMENT_REDIS_URL', 'CAMPUS_SERVICE_REDIS_URL')}
+        values.update(POSTGRES_HOST='127.0.0.1', POSTGRES_PORT='5000', POSTGRES_DB='metaverse', POSTGRES_USER='metaverse_app')
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {}, clear=True):
+            env_file, password_file = Path(directory) / '.env', Path(directory) / 'app.pgpass'
+
+            def load(lines, mode=0o600, **extra):
+                if password_file.exists():
+                    password_file.chmod(0o600)  # writable again after a read-only case
+                password_file.write_text(''.join(line + '\n' for line in lines))
+                password_file.chmod(mode)
+                env_file.write_text('\n'.join(f'{key}={value}' for key, value in
+                                              {**values, 'PGPASSFILE': str(password_file), **extra}.items()))
+                return launcher.load_environment(env_file)
+
+            fitting = f'127.0.0.1:5000:metaverse:metaverse_app:{secret}'
+            env = load(['# comment', f'127.0.0.1:5000:other:metaverse_app:{secret}', fitting])
+            self.assertEqual(env['PGPASSFILE'], str(password_file.resolve()))
+            self.assertFalse(env.get('POSTGRES_PASSWORD'))  # Django then sends none and libpq reads the file
+            refused = (
+                ([fitting], 0o640, {}, 'mode 0600, not 0640'),
+                ([fitting], 0o400, {}, 'mode 0600, not 0400'),
+                (['127.0.0.1:5432:metaverse:metaverse_app:' + secret], 0o600, {}, 'no line for'),
+                (['127.0.0.1:5000:metaverse:metaverse_app:'], 0o600, {}, 'no line for'),
+                (['# ' + fitting], 0o600, {}, 'no line for'),
+                ([fitting], 0o600, {'POSTGRES_USER': 'other'}, 'no line for'),
+            )
+            for lines, mode, extra, message in refused:
+                with self.subTest(message=message, mode=oct(mode), extra=extra):
+                    with self.assertRaisesRegex(ValueError, message) as caught:
+                        load(lines, mode, **extra)
+                    self.assertNotIn(secret, str(caught.exception))
+            with patch.object(launcher.os, 'geteuid', return_value=os.geteuid() + 1), \
+                    self.assertRaisesRegex(ValueError, 'owned by the user running the launcher'):
+                load([fitting])
+            with self.assertRaisesRegex(ValueError, 'cannot be read by this user'):
+                load([fitting], PGPASSFILE=str(Path(directory) / 'missing.pgpass'))
+            with self.assertRaisesRegex(ValueError, r'POSTGRES_PASSWORD \(or PGPASSFILE\)'):
+                load([fitting], PGPASSFILE='')
+            # A password in the environment wins (libpq ignores the file then), so the file is not checked.
+            self.assertEqual(load([], 0o644, POSTGRES_PASSWORD='test-value')['POSTGRES_PASSWORD'], 'test-value')
+
     @unittest.skipUnless(hasattr(os, "killpg") and hasattr(signal, "SIGKILL"), "POSIX process groups require Ubuntu/WSL")
     def test_child_failure_and_shutdown_escalation(self):
         exited = Mock(returncode=2)

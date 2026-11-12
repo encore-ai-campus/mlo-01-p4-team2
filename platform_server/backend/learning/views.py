@@ -3,7 +3,7 @@ import logging
 import os
 from functools import wraps
 from django.core.exceptions import ValidationError
-from django.db import OperationalError
+from django.db import OperationalError, connection
 from django.db.models import Sum, Count, Q
 from django.http import JsonResponse, Http404
 from config.presentation import presentation_response as render
@@ -48,7 +48,9 @@ def endpoint(method):
             except Http404:
                 return JsonResponse({'error': 'not_found'}, status=404)
             except OperationalError as error:
-                if 'locked' not in str(error).lower():
+                # SQLite 의 'database is locked' 만 이 자리에서 답한다. 다른 DB 의 일시 오류(PostgreSQL 교착의
+                # 'blocked by process' 등)는 config.dberrors 의 503·Retry-After 로 간다.
+                if connection.vendor != 'sqlite' or 'locked' not in str(error).lower():
                     raise
                 # Route template excludes user/session identifiers and query data.
                 route = request.resolver_match.route if request.resolver_match else '<unresolved>'

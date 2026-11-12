@@ -1,5 +1,22 @@
-> 과거 Outbox 발행 계약이다. 현재 event 브랜치는 Outbox와 직접 Kafka 발행을 제거했다.
-> PostgreSQL CDC 확장은 별도 단계에서 검증한다. [현재 실행 가이드](RUN_GUIDE.md)를 참고한다.
+> 바로 아래 "현재 계약" 절이 지금의 계약이다. 그 아래 1~8절은 앱 발행기가 Kafka로 직접 보내던 과거 계약이다.
+> 현재 계약도 사건 종류(1절)·`raw_manifest`와 `raw_data` 공통 필드(2절)·사건별 필드(3절)는 같게 쓴다. 다른 점은
+> 봉투 최상위 키가 `event_uuid`가 아니라 `outbox_uuid`인 것, Kafka 키, UUID 판(아래 절)이다. [현재 실행 가이드](RUN_GUIDE.md)를 참고한다.
+
+## 현재 계약 — Outbox CDC 토픽 `metaverse.outbox.events`(2026-11-08)
+
+앱은 Kafka로 직접 보내지 않는다. 업무 변경과 **같은 트랜잭션**에서 Outbox 표 `eventing_eventoutbox`에 행을 쓰고, Debezium(PostgreSQL CDC, INSERT 전용 publication)이 새 행을 이 토픽 하나로 보낸다. 앱 발행기와 Outbox 정리 작업은 없다(`published_at`은 NULL, `retry_count`는 0 그대로).
+
+- **Kafka Key:** `outbox_uuid`. Debezium 기본 키(Outbox 표의 PK)이며 JSON `{"schema": …, "payload": {"outbox_uuid": "…"}}` 형태다. 행마다 다르다.
+- **Kafka Value:** Debezium 변경 이벤트 JSON. `after`가 Outbox 행 10열이다: `outbox_uuid`·`event_type`·`topic`·`message_key`·`raw_data`·`occurred_at`·`payload_json`·`retry_count`·`created_at`·`published_at`.
+  - `payload_json`은 봉투 `{"outbox_uuid", "raw_manifest", "raw_data"}`다. `raw_manifest`는 `schema_version`·`event_type`·`occurred_at`·`source`·`fingerprint_algorithm`(`xxh3_64`)·`fingerprint`(= `raw_data`의 정규화 JSON 해시)를 담는다.
+  - `raw_data`·`payload_json`은 jsonb 열이라 JSON 문자열로 오고 키 순서·공백은 정해져 있지 않다. 한 번 더 풀어 읽는다. `fingerprint`는 정규화 JSON으로 계산하므로 영향이 없다.
+- `topic` 열의 값(`raw.account` 등 1절 표, 이벤트 스토리·학습 사건은 `raw.event`)은 Kafka 토픽 이름이 아니라 사건 분류다.
+- 사용자 UUID는 키에 없고 `after.message_key`와 `raw_data`의 `user_uuid`에 있다. 사용자별 순서는 받는 쪽이 `occurred_at`으로 맞춘다.
+- 같은 사건이 재발행(증분 스냅샷, `op` = `r`)으로 다시 올 수 있다. 받는 쪽은 `outbox_uuid`로 중복을 거른다.
+- `*_uuid` 값: 행마다 만드는 ID는 UUIDv4, 카탈로그·정의 참조(콘텐츠·분류·구역·층·기수·이벤트 정의·게임 정의)는 v4 또는 v5다.
+- 사건 종류 22개(계약 23줄 — `quiz_answered`는 1.0·1.1). 필드의 원본은 `backend/eventing/events.py`의 `TOPIC_BY_TYPE`·`EXTRA_FIELDS`·`validate_raw_data`다.
+  - 1절의 15종(`quiz_answered`는 판 1.1).
+  - `raw.event` 7종: `event_progress_completed`(접속 NULL 허용), `game_play_started`, `game_play_ended`, `manager_greeted`, `manager_poked`, `story_action_recorded`, `learning_session_completed`. 업무 행마다 한 번 내고, 업무가 실패하면 사건도 없다.
 
 # 플랫폼 Kafka 토픽 정리
 

@@ -17,3 +17,5 @@ urlpatterns = [
     path("", include("eventing.urls")),
     path("", include("campus.urls")),
 ]
+
+handler500 = "config.dberrors.server_error"

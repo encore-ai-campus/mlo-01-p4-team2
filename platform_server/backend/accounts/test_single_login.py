@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from campus import session_registry
 from eventing.models import PlatformSession
-from .models import ActiveLogin, Profile
+from .models import ActiveLogin, Position, Profile
 from .session_policy import check_session
 
 
@@ -84,6 +84,32 @@ class SingleLoginTests(PresentationTestCase):
         self.addCleanup(session_registry.unregister, player)
         self.log_in()
         self.assertEqual(Profile.objects.get(user=self.user).position.last_position, position)
+
+    def test_position_read_before_the_locks_is_not_used_when_the_owner_changed_meanwhile(self):
+        _, old_key = self.log_in()
+        other = Client()
+        other.force_login(self.user)
+        other_key = other.session.session_key
+        checkpoint = {"floor": "campus", "x": 1200, "y": 500, "dir": "up"}
+        Position.objects.filter(profile__user=self.user).update(last_position=checkpoint, last_position_at=timezone.now())
+        live = {"floor": "rooftop", "x": 1812.25, "y": 1478.5, "dir": "right"}
+
+        def read_then_owner_changes(key, user_id):
+            # 미리 읽은 뒤 잠그기 전에 다른 로그인이 주인을 바꿨다
+            ActiveLogin.objects.filter(user=self.user).update(session_key=other_key)
+            return live, timezone.now()
+
+        with patch("campus.session_registry.latest", side_effect=read_then_owner_changes) as latest:
+            self.log_in()
+        latest.assert_called_once_with(old_key, self.user.pk)  # 잠금 안에서 다시 읽지 않는다
+        self.assertFalse(Session.objects.filter(pk=other_key).exists())
+        self.assertEqual(Profile.objects.get(user=self.user).position.last_position, checkpoint)  # 다른 세션의 위치를 쓰지 않고 DB 체크포인트를 둔다
+
+    def test_login_after_logout_reads_no_position(self):
+        client, _ = self.log_in()
+        client.post("/accounts/logout/")
+        with patch("campus.session_registry.latest", side_effect=AssertionError("옛 세션이 없으면 읽을 위치도 없다")):
+            self.log_in()
 
     def test_superseded_legacy_key_cannot_reclaim_after_latest_logout(self):
         old = Client()

@@ -33,10 +33,16 @@ def replace_login(session, user, now):
 
 
 def _replace_login(session, user, now):
+    from campus import session_registry
     from .session_policy import expire_record, notify_expiry
 
     if not session.session_key:
         session.create()
+    # 옛 세션의 마지막 위치(다른 프로세스면 Redis)는 잠그기 전에 읽는다. Redis 가 느려도 아래 잠금은 길어지지 않는다
+    seen_key = ActiveLogin.objects.filter(user=user).values_list("session_key", flat=True).first()
+    seen = None
+    if seen_key and seen_key != session.session_key and Session.objects.filter(session_key=seen_key).exists():
+        seen = session_registry.latest(seen_key, user.pk)
     with transaction.atomic():
         # Lock an existing account row as well as its optional ownership row, so
         # simultaneous first logins cannot both become current on MySQL.
@@ -49,7 +55,9 @@ def _replace_login(session, user, now):
             if old is not None:
                 data = old.get_decoded()
                 if str(data.get(SESSION_KEY)) == str(user.pk):
-                    expire_record(old, data, "replaced", now=now, notify=False)
+                    # 그사이 다른 로그인이 주인을 바꿨으면 미리 읽은 위치는 다른 세션 것이다. DB 체크포인트로 갈음한다
+                    expire_record(old, data, "replaced", now=now, notify=False,
+                                  snapshot=seen if previous_key == seen_key else None)
             # Notify only after commit: the old socket must observe the revoked
             # key, and a failed new login must not close the previous login.
             transaction.on_commit(lambda: notify_expiry(previous_key, "replaced"), robust=True)

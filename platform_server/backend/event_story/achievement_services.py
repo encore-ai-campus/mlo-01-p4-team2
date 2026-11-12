@@ -35,7 +35,7 @@ ACHIEVEMENT_IMAGES = {
     FRAGILE_ID: "/static/campus/assets/achievements/fragile-pepero-v1.webp",
     CS_ID: "/static/campus/assets/achievements/cs-intermediate.png",
     RECIPE_ID: "/static/campus/assets/achievements/secret-recipe.png",
-    KKUWANG_HIT_ID: "/static/campus/assets/achievements/fragile-pepero-v1.webp",
+    KKUWANG_HIT_ID: "/static/campus/assets/achievements/kkuwang-pepero-hit-v1.png",
     MEMORY_ID: "/static/campus/assets/achievements/term-match.png",
 }
 

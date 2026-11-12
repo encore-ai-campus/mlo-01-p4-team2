@@ -359,6 +359,7 @@
   document.addEventListener('keyup',e=>{const k=window.CampusKeyboard.key(e);keys.delete(k);suppressedKeys.delete(k);});
   window.addEventListener('blur',()=>{keys.clear();suppressedKeys.clear();});
   window.addEventListener('campus:freeze',()=>{
+    if(window.CampusFreeze?.adminBypass)return;
     for(const key of keys)suppressedKeys.add(key);
     keys.clear();press=null;hover=nearby=null;player.moving=false;player.running=false;player.guarding=false;
     jump.reset();poke.stop(true);presence.setPoking(false,null,[]);presence.setInput([]);classroom.freeze?.();

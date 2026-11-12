@@ -58,10 +58,11 @@
     }catch(e){$('campusEventError').textContent=e.message;}finally{eventBusy=false;$('campusEventSave').disabled=false;refresh();}
   };
 
-  function emit(){window.dispatchEvent(new CustomEvent('campus:freeze',{detail:{...state,blocking:!known||state.paused}}));}
+  const blocked=()=>!known||state.unavailable===true||(state.paused&&!canManage);
+  function emit(){window.dispatchEvent(new CustomEvent('campus:freeze',{detail:{...state,blocking:blocked()}}));}
   function accept(next){if(!next||typeof next.paused!=='boolean'||!Number.isInteger(next.revision)||next.revision<0)return;
     if(known&&next.revision<state.revision)return;
-    const changed=!known||state.paused!==next.paused||state.revision!==next.revision;
+    const changed=!known||state.paused!==next.paused||state.revision!==next.revision||(typeof next.canManage==='boolean'&&canManage!==next.canManage);
     if(typeof next.canManage==='boolean')canManage=next.canManage;
     state={paused:next.paused,revision:next.revision,message:typeof next.message==='string'?next.message:state.message,unavailable:next.unavailable===true,mode:next.mode||'MANUAL',phase:next.phase};known=true;
     if(next.session)window.CampusSession?.receive(next.session);
@@ -69,12 +70,12 @@
     for(const id of ['campusFreezeMode','campusFreezePausedMode']){if(document.activeElement!==$(id)&&!busy)$(id).value=selectedMode();}
     $('campusFreezePausedAdmin').hidden=!canManage;
     $('campusFreezeTitle').textContent=state.phase==='class'?'강의 시간에는 이용할 수 없습니다':state.phase==='outside'?'캠퍼스 운영 시간이 아닙니다':'캠퍼스 이용 일시정지';
-    panel.hidden=!canManage;$('campusFreezeState').textContent=state.paused?'현재 캠퍼스 이용이 정지되어 있습니다.':'현재 캠퍼스 이용이 가능합니다.';
+    panel.hidden=!canManage;$('campusFreezeState').textContent=state.paused?(canManage?'일반 이용자는 일시정지 중 · 관리자는 이동·테스트할 수 있어요.':'현재 캠퍼스 이용이 정지되어 있습니다.'):'현재 캠퍼스 이용이 가능합니다.';
     if(document.activeElement!==$('campusFreezeReason'))$('campusFreezeReason').value=state.mode==='AUTO'?'강의 시간에는 이용할 수 없습니다. 쉬는 시간에 다시 이용할 수 있어요.':state.message;
     $('campusFreezeToggle').textContent=state.paused?'이용 재개':'강의 중 이용 일시정지';$('campusFreezeToggle').disabled=busy||state.unavailable;
     $('campusFreezeMessage').textContent=state.message;$('campusFreezeResume').hidden=!canManage;$('campusFreezeResume').disabled=busy||state.unavailable;
     if(changed){for(const code of held)suppressed.add(code);emit();}
-    if(state.paused&&!dialog.open)dialog.showModal();else if(!state.paused&&dialog.open)dialog.close();
+    if(blocked()&&!dialog.open)dialog.showModal();else if(!blocked()&&dialog.open)dialog.close();
   }
   async function refresh(){if(polling)return;polling=true;try{const response=await fetch(url,{credentials:'same-origin',cache:'no-store'});if(response.status===401){window.CampusSession?.verify?.();return;}const data=await response.json();if(response.ok||response.status===503)accept(data);}catch{if(!known)accept({paused:true,revision:0,message:'이용 상태를 확인하고 있어요. 연결을 확인해 주세요.',unavailable:true});}finally{polling=false;}}
   function csrf(){const config=document.getElementById('campusSessionPolicyConfig');try{const token=JSON.parse(config?.textContent||'{}').csrfToken;if(token)return token;}catch{}return document.querySelector('[name=csrfmiddlewaretoken]')?.value||document.cookie.split('; ').find(x=>x.startsWith('csrftoken='))?.slice(10)||'';}
@@ -85,12 +86,12 @@
   }
   $('campusFreezeLogout').onclick=()=>document.getElementById('campusLogoutForm')?.requestSubmit();
   $('campusFreezeToggle').onclick=toggle;$('campusFreezeResume').onclick=toggle;
-  window.CampusFreeze={get blocking(){return !known||state.paused;},get paused(){return state.paused;},get revision(){return state.revision;},accept,refresh};
-  document.addEventListener('keydown',e=>{held.add(e.code);const adminInput=panel.contains(e.target)&&e.target.closest?.('input,textarea,select');const navigation=(dialog.contains(e.target)||panel.contains(e.target))&&['Tab','Enter','Space','Escape','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.code);if((!known||state.paused)&&!adminInput&&!navigation||suppressed.has(e.code)){e.preventDefault();e.stopImmediatePropagation();}},true);
+  window.CampusFreeze={get adminBypass(){return known&&canManage&&!state.unavailable;},get blocking(){return blocked();},get paused(){return state.paused;},get revision(){return state.revision;},accept,refresh};
+  document.addEventListener('keydown',e=>{held.add(e.code);const adminInput=panel.contains(e.target)&&e.target.closest?.('input,textarea,select');const navigation=(dialog.contains(e.target)||panel.contains(e.target))&&['Tab','Enter','Space','Escape','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.code);if(blocked()&&!adminInput&&!navigation||suppressed.has(e.code)){e.preventDefault();e.stopImmediatePropagation();}},true);
   document.addEventListener('keyup',e=>{held.delete(e.code);suppressed.delete(e.code);},true);
   window.addEventListener('blur',()=>held.clear());
   window.addEventListener('campus:ready',emit);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
-  new MutationObserver(records=>{if(state.paused&&dialog.open&&records.some(r=>r.target!==dialog&&r.target instanceof HTMLDialogElement&&r.target.open)){dialog.close();dialog.showModal();}}).observe(document.body,{subtree:true,attributes:true,attributeFilter:['open']});
+  new MutationObserver(records=>{if(blocked()&&dialog.open&&records.some(r=>r.target!==dialog&&r.target instanceof HTMLDialogElement&&r.target.open)){dialog.close();dialog.showModal();}}).observe(document.body,{subtree:true,attributes:true,attributeFilter:['open']});
   refresh();setInterval(refresh,15000);
 })();

@@ -50,7 +50,7 @@ def freeze(request):
                                  **service.read_state(force=True)}, status=409)
     else:
         state = service.read_state()
-    payload = {**state, 'eventAccess': event_access.snapshot(), 'canManage': bool(request.user.is_active and request.user.is_staff)}
+    payload = {**service.for_user(state,request.user), 'eventAccess': event_access.snapshot()}
     if state['paused']:
         # The lecture pause must not look like user inactivity. Absolute login
         # lifetime and single-login checks still apply; never revive expired sessions.

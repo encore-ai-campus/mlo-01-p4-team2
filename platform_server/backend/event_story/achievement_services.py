@@ -176,7 +176,7 @@ def record_guide_talk(user, remaining, session_uuid=None):
         get_user_model().objects.select_for_update().get(pk=user.pk)
         if type(remaining) is int and remaining == 1:
             from .game_services import require_open
-            require_open()
+            require_open(user)
         # The global one-winner badge is granted only when the user accepts the
         # hidden last-bite story, not merely by opening the guide dialogue.
     return {"achievements": achievement_snapshot(user), "newly_completed": []}

@@ -116,9 +116,9 @@ def window():
     return snapshot()
 
 
-def ensure_open():
-    from campus_control.service import read_state
-    if read_state(force=True).get('paused'):
+def ensure_open(user=None):
+    from campus_control.service import read_state,admin_exempt
+    if read_state(force=True).get('paused') and not admin_exempt(user):
         raise LearningError('강의 중에는 미니게임을 진행할 수 없습니다.','campus_frozen',423)
     state=window()
     if not state['open']:
@@ -232,7 +232,7 @@ def _action(user,data,session_uuid):
         p,_=StoryProgress.objects.get_or_create(user=user,event_key='pepero-2026-ui-notices')
         _,created=StoryRecord.objects.get_or_create(progress=p,key=timezone.now().astimezone(TZ).date().isoformat(),defaults={'kind':'daily_notice'})
         return dict(show_notice=created)
-    ensure_open()
+    ensure_open(user)
     if a=='investigate':
         verify(user,data.get('ticket'),'investigate')
         first=not done(user,'1');complete_now(user,'1',session_uuid)

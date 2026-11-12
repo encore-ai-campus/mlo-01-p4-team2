@@ -102,3 +102,11 @@ def change(actor, paused, message, expected_revision, mode='MANUAL'):
             interrupt_running()
     invalidate()
     return read_state(force=True)
+
+
+def admin_exempt(user):
+    return bool(getattr(user,'is_authenticated',False) and getattr(user,'is_active',False) and getattr(user,'is_staff',False))
+
+def for_user(state,user):
+    bypass=admin_exempt(user) and not state.get('unavailable',False)
+    return {**state,'canManage':admin_exempt(user),'adminBypass':bypass,'blocked':bool(state['paused'] and not bypass)}

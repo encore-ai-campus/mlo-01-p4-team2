@@ -18,9 +18,9 @@ def window(now=None):
     return snapshot(now)
 
 
-def ensure_open():
+def ensure_open(user=None):
     from .main import ensure_open as ensure
-    ensure()
+    ensure(user)
 
 
 def key():
@@ -64,7 +64,7 @@ def status(user, progress=None):
 
 @learning.learning_write_transaction
 def act(user, data, session_uuid=None):
-    ensure_open()
+    ensure_open(user)
     p = locked_progress(user)
     action = data.get('action')
     allowed = {'popup_view', 'start', 'board', 'wrapper', 'count', 'memo', 'quantity', 'ethics', 'apology', 'finish'}

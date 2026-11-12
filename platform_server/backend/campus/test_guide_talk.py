@@ -1,6 +1,6 @@
 import asyncio
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, call, patch
 
 from channels.db import database_sync_to_async
 from channels.testing import WebsocketCommunicator
@@ -28,6 +28,7 @@ class GuideTalkControlTests(SimpleTestCase):
         self.c.control_lock = asyncio.Lock()
         self.c.logout_prepared = False
         self.c.current_identity = AsyncMock(return_value={'id': 'authenticated-player'})
+        self.c.user = SimpleNamespace(pk='authenticated-player', is_staff=False)
         self.result = {'achievements': [], 'newly_completed': []}
         self.db = AsyncMock(return_value=self.result)
         replace = patch.object(consumers.socket_db, 'run', self.db)
@@ -36,7 +37,8 @@ class GuideTalkControlTests(SimpleTestCase):
     async def test_control_dispatch_uses_server_inventory_and_keeps_the_biscuit(self):
         await self.c.receive_control({'requestId': 'guide-check', 'action': 'guide_talk',
                                      'data': {'objectId': 'campus-guide-kkuwang', 'remaining': 10, 'user_id': 'forged'}})
-        self.db.assert_awaited_once_with(self.c.guide_talk_now, 1)
+        from event_story.game_services import require_open
+        self.assertEqual(self.db.await_args_list, [call(require_open, self.c.user), call(self.c.guide_talk_now, 1)])
         self.assertEqual(self.c.pepero_remaining, 1)
         packet = self.c.send_packet.await_args.args[0]
         self.assertEqual(packet['result'], {'type': 'guide_talk', **self.result})
@@ -61,7 +63,7 @@ class GuideTalkControlTests(SimpleTestCase):
         self.db.assert_not_awaited()
 
     async def test_database_failure_returns_retryable_error_instead_of_closing_the_socket(self):
-        self.db.side_effect = DatabaseError('save failed')
+        self.db.side_effect = [None, DatabaseError('save failed')]
         with self.assertLogs('campus.consumers', level='ERROR'):
             await self.c.receive_control({'requestId': 'guide-check', 'action': 'guide_talk',
                                          'data': {'objectId': 'campus-guide-kkuwang'}})
@@ -91,6 +93,8 @@ class GuideTalkSocketTests(TransactionTestCase):
         self.cookie = f'{settings.SESSION_COOKIE_NAME}={client.cookies[settings.SESSION_COOKIE_NAME].value}'
         room = patch.object(consumers, 'room', consumers.CampusRoom())
         room.start();self.addCleanup(room.stop)
+        from campus_control.service import read_state
+        read_state(force=True)
 
     async def talk(self, stock, supplied, repeat=False):
         from config.asgi import application

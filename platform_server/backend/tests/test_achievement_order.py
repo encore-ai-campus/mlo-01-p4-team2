@@ -11,7 +11,7 @@ from django.db import close_old_connections, connection, connections, transactio
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
-from event_story.achievement_services import AD_ID, RECIPE_ID, achievement_snapshot, complete_achievement
+from event_story.achievement_services import KKUWANG_HIT_ID, RECIPE_ID, achievement_snapshot, complete_achievement
 from event_story.models import EventProgress
 from event_story.test_achievements import seed_definitions
 
@@ -24,29 +24,29 @@ class AchievementOrderTests(TestCase):
         self.now = timezone.now()
 
     def test_each_egg_and_account_has_one_completion_and_duplicates_keep_first_receipt(self):
-        self.assertTrue(complete_achievement(self.alice, AD_ID, self.now))
-        self.assertFalse(complete_achievement(self.bob, AD_ID, self.now))
+        self.assertTrue(complete_achievement(self.alice, KKUWANG_HIT_ID, self.now))
+        self.assertFalse(complete_achievement(self.bob, KKUWANG_HIT_ID, self.now))
         self.assertTrue(complete_achievement(self.bob, RECIPE_ID, self.now))
         self.assertFalse(complete_achievement(self.alice, RECIPE_ID, self.now))
-        self.assertFalse(complete_achievement(self.alice, AD_ID, self.now + timedelta(seconds=5)))
-        row = EventProgress.objects.get(user=self.alice, event_id=AD_ID)
+        self.assertFalse(complete_achievement(self.alice, KKUWANG_HIT_ID, self.now + timedelta(seconds=5)))
+        row = EventProgress.objects.get(user=self.alice, event_id=KKUWANG_HIT_ID)
         self.assertEqual((row.completion_order, row.completed_at), (1, self.now))
-        self.assertFalse(EventProgress.objects.filter(user=self.bob, event_id=AD_ID).exists())
+        self.assertFalse(EventProgress.objects.filter(user=self.bob, event_id=KKUWANG_HIT_ID).exists())
         self.assertEqual(EventProgress.objects.get(user=self.bob, event_id=RECIPE_ID).completion_order, 1)
-        badge = next(r for r in achievement_snapshot(self.alice) if r['event_uuid'] == str(AD_ID))
+        badge = next(r for r in achievement_snapshot(self.alice) if r['event_uuid'] == str(KKUWANG_HIT_ID))
         self.assertEqual(badge['completion_order'], 1)
 
     def test_rollback_does_not_consume_rank(self):
         with self.assertRaises(RuntimeError), transaction.atomic():
-            complete_achievement(self.alice, AD_ID, self.now)
+            complete_achievement(self.alice, KKUWANG_HIT_ID, self.now)
             raise RuntimeError('rollback')
-        complete_achievement(self.bob, AD_ID, self.now)
-        self.assertEqual(EventProgress.objects.get(user=self.bob, event_id=AD_ID).completion_order, 1)
+        complete_achievement(self.bob, KKUWANG_HIT_ID, self.now)
+        self.assertEqual(EventProgress.objects.get(user=self.bob, event_id=KKUWANG_HIT_ID).completion_order, 1)
 
     def test_historical_backfill_uses_time_and_is_idempotent(self):
-        later = EventProgress.objects.create(user=self.alice, event_id=AD_ID, status='COMPLETED',
+        later = EventProgress.objects.create(user=self.alice, event_id=KKUWANG_HIT_ID, status='COMPLETED',
                                              completed_at=self.now + timedelta(seconds=1))
-        earlier = EventProgress.objects.create(user=self.bob, event_id=AD_ID, status='COMPLETED',
+        earlier = EventProgress.objects.create(user=self.bob, event_id=KKUWANG_HIT_ID, status='COMPLETED',
                                                completed_at=self.now)
         pending = EventProgress.objects.create(user=self.alice, event_id=RECIPE_ID)
         backfill = import_module('event_story.migrations.0008_easter_egg_completion_order').backfill
@@ -72,12 +72,12 @@ class ConcurrentAchievementOrderTests(TransactionTestCase):
             try:
                 user = get_user_model().objects.get(pk=user_id)
                 start.wait(timeout=5)
-                return complete_achievement(user, AD_ID, timezone.now())
+                return complete_achievement(user, KKUWANG_HIT_ID, timezone.now())
             finally:
                 connections.close_all()
 
         with ThreadPoolExecutor(max_workers=2) as pool:
             futures = [pool.submit(finish, user_id) for user_id in users]
             self.assertEqual(sum(future.result(timeout=10) for future in futures), 1)
-        self.assertEqual(list(EventProgress.objects.filter(event_id=AD_ID).order_by(
+        self.assertEqual(list(EventProgress.objects.filter(event_id=KKUWANG_HIT_ID).order_by(
             'completion_order').values_list('completion_order', flat=True)), [1])

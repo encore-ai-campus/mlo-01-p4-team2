@@ -3,7 +3,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 
-function app({authenticated = true, secure = false, floors, restore = false, session, freeze} = {}) {
+function app({authenticated = true, secure = false, floors, restore = false, session, freeze, hitVersion} = {}) {
   const elements = new Map(), sockets = [], timers = new Map(), intervals = new Map(), listeners = new Map();
   let clock = 0, nextTimer = 0, redirected = null, expired = 0, logoutPosts = 0;
   const chats = [], chatErrors = [], connectionChanges = [], restores = [], controlErrors = [], jumps = [], pokes = [];
@@ -38,7 +38,7 @@ function app({authenticated = true, secure = false, floors, restore = false, ses
   const protocol = secure ? 'https:' : 'http:';
   const context = vm.createContext({URL, Event, CustomEvent:class{constructor(type,options){this.type=type;this.detail=options.detail;}}, WebSocket: Socket, performance: {now: () => clock},
     window: {location: {protocol, href: protocol + '//127.0.0.1:8000/', assign(url) {redirected = url;}},
-      addEventListener(name, callback) {listeners.set('window:' + name, callback);}, dispatchEvent(event) {events.push(event.type);listeners.get('window:'+event.type)?.(event);}, CampusSession: session, CampusFreeze: freeze},
+      addEventListener(name, callback) {listeners.set('window:' + name, callback);}, dispatchEvent(event) {events.push(event.type);listeners.get('window:'+event.type)?.(event);}, CampusSession: session, CampusFreeze: freeze, CampusAchievements: {hitVersion}},
     document: {getElementById: element, createElement: () => domElement(),
       addEventListener(name, callback) {listeners.set('document:' + name, callback);}},
     setTimeout(callback, delay) {const id = ++nextTimer; timers.set(id, {callback, delay}); return id;},
@@ -363,4 +363,25 @@ test('freeze revision accompanies movement and paused clients block input and co
  const count=f.movement().sent.length;await assert.rejects(f.presence.command('quick_travel'),/일시정지/);assert.equal(f.movement().sent.length,count);
  freeze.blocking=false;freeze.revision=9;f.presence.setInput(['d']);
  assert.deepEqual(plain(f.movement().sent.at(-1)),{type:'input',freezeRevision:9,keys:['d']});f.presence.close();
+});
+
+test('new achievement UI prepares before input even while frozen, and prepares again on reconnect',async()=>{
+ const f=app({floors,hitVersion:'kkuwang-hit-v1',freeze:{blocking:true,revision:3}});f.welcome();
+ const first=f.movement().sent.find(p=>p.action==='achievement_ui_ready');
+ assert.ok(first);assert.equal(first.data.version,'kkuwang-hit-v1');
+ f.movement().receive({type:'control_result',requestId:first.requestId,result:{ready:true}});
+ await Promise.resolve();
+ f.movement().close();
+ const reconnect=[...f.timers.values()].find(t=>t.delay>=500&&t.delay<=1500);assert.ok(reconnect);reconnect.callback();f.welcome();
+ assert.ok(f.movement().sent.some(p=>p.action==='achievement_ui_ready'));
+ f.presence.close();
+});
+
+test('old UI never declares hit support and a missing acknowledgement is retried',async()=>{
+ const old=app({floors});old.welcome();assert.ok(!old.movement().sent.some(p=>p.action==='achievement_ui_ready'));old.presence.close();
+ const f=app({floors,hitVersion:'kkuwang-hit-v1'});f.welcome();
+ const ack=[...f.timers.values()].find(t=>t.delay===10000);assert.ok(ack);ack.callback();
+ await Promise.resolve();await Promise.resolve();
+ const retry=[...f.timers.values()].find(t=>t.delay===1000);assert.ok(retry);retry.callback();
+ assert.equal(f.movement().sent.filter(p=>p.action==='achievement_ui_ready').length,2);f.presence.close();
 });

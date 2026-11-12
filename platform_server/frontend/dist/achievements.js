@@ -39,6 +39,7 @@
       if(!Array.isArray(rows))throw new Error('Invalid achievements');
       const expected=[...names];
       if(rows.some(row=>row?.name==='시선 강탈 사건'))expected.push('시선 강탈 사건');
+      if(rows.some(row=>row?.name==='한 입 달랬지, 한 대 달랬니?'))expected.push('한 입 달랬지, 한 대 달랬니?');
       if(rows.some(row=>row?.name==='기억력 도둑'))expected.push('기억력 도둑');
       const next=expected.map(name=>{
         const item=rows.find(row=>row?.name===name);
@@ -99,6 +100,8 @@
     dialog.addEventListener('close',()=>{onClose();button.focus({preventScroll:true});});
     retry.addEventListener('click',refresh);
     window.addEventListener('campus:achievements',event=>{try{accept(event.detail);}catch{refresh();}});
+    window.CampusAchievements.hitVersion='kkuwang-hit-v1';
+    window.dispatchEvent(new Event('campus:achievement-ui-ready'));
     refresh();
     return {refresh,get blocking(){return dialog.open;}};
   }

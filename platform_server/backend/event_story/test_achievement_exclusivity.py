@@ -15,8 +15,8 @@ from learning import services as learning
 from tests.test_recipe_note import ticket
 from . import main, recipe
 from .achievement_services import (
-    AD_ID, RECIPE_ID, SQL_ID, TIMER_ID, complete_achievement,
-    manager_ids, record_ad_click, record_guide_talk, record_manager_action,
+    KKUWANG_HIT_ID, RECIPE_ID, SQL_ID, TIMER_ID, complete_achievement,
+    manager_ids, record_kkuwang_hit, record_guide_talk, record_manager_action,
 )
 from .game_services import finish_game, start_game
 from .models import EventProgress, GamePlay, StoryProgress
@@ -36,39 +36,39 @@ class AchievementExclusivityTests(TestCase):
         return complete_achievement(user, event, self.now)
 
     def test_one_egg_has_one_owner_and_rejected_claim_does_not_consume_account_quota(self):
-        self.assertTrue(self.claim(self.a, AD_ID))
-        self.assertFalse(self.claim(self.b, AD_ID))
+        self.assertTrue(self.claim(self.a, KKUWANG_HIT_ID))
+        self.assertFalse(self.claim(self.b, KKUWANG_HIT_ID))
         self.assertFalse(EventProgress.objects.filter(user=self.b).exists())
         self.assertTrue(self.claim(self.b, RECIPE_ID))
         self.assertEqual(EventProgress.objects.filter(status='COMPLETED').count(), 2)
 
     def test_one_account_has_one_egg_and_failed_claim_does_not_reserve_another_egg(self):
-        self.assertTrue(self.claim(self.a, AD_ID))
+        self.assertTrue(self.claim(self.a, KKUWANG_HIT_ID))
         self.assertFalse(self.claim(self.a, RECIPE_ID))
         self.assertFalse(EventProgress.objects.filter(event_id=RECIPE_ID).exists())
         self.assertTrue(self.claim(self.b, RECIPE_ID))
         self.assertEqual(EventProgress.objects.filter(user=self.a, status='COMPLETED').count(), 1)
 
     def test_pending_records_do_not_consume_quota_and_denials_preserve_them(self):
-        EventProgress.objects.create(user=self.a, event_id=AD_ID)
-        pending = EventProgress.objects.create(user=self.b, event_id=AD_ID)
-        self.assertTrue(self.claim(self.a, AD_ID))
-        self.assertFalse(self.claim(self.b, AD_ID))
+        EventProgress.objects.create(user=self.a, event_id=KKUWANG_HIT_ID)
+        pending = EventProgress.objects.create(user=self.b, event_id=KKUWANG_HIT_ID)
+        self.assertTrue(self.claim(self.a, KKUWANG_HIT_ID))
+        self.assertFalse(self.claim(self.b, KKUWANG_HIT_ID))
         pending.refresh_from_db()
         self.assertEqual((pending.status, pending.completed_at, pending.completion_order), ('IN_PROGRESS', None, None))
         self.assertTrue(self.claim(self.b, RECIPE_ID))
 
     def test_repeat_preserves_the_first_timestamp_session_and_order(self):
         session = PlatformSession.objects.create(user=self.a, started_at=self.now, last_seen_at=self.now)
-        complete_achievement(self.a, AD_ID, self.now, session_uuid=session.pk)
-        first = EventProgress.objects.get(user=self.a, event_id=AD_ID)
-        self.assertFalse(complete_achievement(self.a, AD_ID, self.now+timedelta(seconds=60)))
+        complete_achievement(self.a, KKUWANG_HIT_ID, self.now, session_uuid=session.pk)
+        first = EventProgress.objects.get(user=self.a, event_id=KKUWANG_HIT_ID)
+        self.assertFalse(complete_achievement(self.a, KKUWANG_HIT_ID, self.now+timedelta(seconds=60)))
         again = EventProgress.objects.get(pk=first.pk)
         self.assertEqual((again.completed_at, again.session_id, again.completion_order), (self.now, session.pk, 1))
 
     def test_main_progress_is_independent_of_egg_quota(self):
         main.complete(self.a, '1')
-        self.assertTrue(self.claim(self.a, AD_ID))
+        self.assertTrue(self.claim(self.a, KKUWANG_HIT_ID))
         main.complete(self.a, '3')
         self.assertTrue(main.done(self.a, '1'));self.assertTrue(main.done(self.a, '3'))
         with self.assertRaises(ValueError):
@@ -77,9 +77,9 @@ class AchievementExclusivityTests(TestCase):
 
     def test_rollback_releases_both_the_account_and_the_egg(self):
         with self.assertRaises(RuntimeError), transaction.atomic():
-            self.assertTrue(self.claim(self.a, AD_ID))
+            self.assertTrue(self.claim(self.a, KKUWANG_HIT_ID))
             raise RuntimeError('rollback')
-        self.assertTrue(self.claim(self.b, AD_ID))
+        self.assertTrue(self.claim(self.b, KKUWANG_HIT_ID))
         self.assertTrue(self.claim(self.a, RECIPE_ID))
         self.assertEqual(set(EventProgress.objects.values_list('completion_order', flat=True)), {1})
 
@@ -105,7 +105,7 @@ class AchievementExclusivityTests(TestCase):
         self.assertFalse(EventProgress.objects.filter(user=self.b).exists())
 
     def test_recipe_story_can_finish_after_another_egg_without_a_second_award(self):
-        self.claim(self.a, AD_ID);main.complete(self.a, '6')
+        self.claim(self.a, KKUWANG_HIT_ID);main.complete(self.a, '6')
         for action, extra in [('acquire',{}),('recognize',{}),('start',{}),('topping',{'topping':'thanks'}),('finish',{})]:
             result = recipe.action(self.a, {'action':action, 'ticket':ticket(self.a, 'recipe-note' if action=='acquire' else 'recipe-guide'), **extra})
         self.assertTrue(result['state']['secretCompleted'])
@@ -115,7 +115,7 @@ class AchievementExclusivityTests(TestCase):
 
     def test_ad_manager_and_guide_paths_cannot_bypass_account_quota(self):
         self.claim(self.a, TIMER_ID)
-        ad = record_ad_click(self.a)
+        ad = record_kkuwang_hit(self.a)
         self.assertEqual(ad['newly_completed'], [])
         self.assertEqual(record_guide_talk(self.a, 1)['newly_completed'], [])
         for manager in manager_ids():result = record_manager_action(self.a, manager, 'greet')
@@ -124,8 +124,8 @@ class AchievementExclusivityTests(TestCase):
                               .values_list('event_id', flat=True)), [TIMER_ID])
 
     def test_reset_migration_removes_only_completed_eggs(self):
-        EventProgress.objects.create(user=self.a, event_id=AD_ID, status='COMPLETED', completed_at=self.now, completion_order=1)
-        EventProgress.objects.create(user=self.b, event_id=AD_ID, status='COMPLETED', completed_at=self.now, completion_order=2)
+        EventProgress.objects.create(user=self.a, event_id=KKUWANG_HIT_ID, status='COMPLETED', completed_at=self.now, completion_order=1)
+        EventProgress.objects.create(user=self.b, event_id=KKUWANG_HIT_ID, status='COMPLETED', completed_at=self.now, completion_order=2)
         EventProgress.objects.create(user=self.a, event_id=RECIPE_ID, status='COMPLETED', completed_at=self.now, completion_order=1)
         pending = EventProgress.objects.create(user=self.b, event_id=RECIPE_ID)
         main.complete(self.a, '1')
@@ -154,17 +154,17 @@ class ConcurrentExclusiveAchievementTests(TransactionTestCase):
             return [future.result(timeout=15) for future in futures]
 
     def test_eight_accounts_racing_for_one_egg_have_one_winner(self):
-        results = self.race([(user.pk, AD_ID) for user in self.users])
+        results = self.race([(user.pk, KKUWANG_HIT_ID) for user in self.users])
         self.assertEqual(sum(results), 1)
         self.assertEqual(list(EventProgress.objects.values_list('completion_order', flat=True)), [1])
 
     def test_one_account_racing_for_different_eggs_has_one_winner(self):
-        results = self.race([(self.users[0].pk, AD_ID), (self.users[0].pk, RECIPE_ID)])
+        results = self.race([(self.users[0].pk, KKUWANG_HIT_ID), (self.users[0].pk, RECIPE_ID)])
         self.assertEqual(sum(results), 1)
         self.assertEqual(EventProgress.objects.filter(user=self.users[0], status='COMPLETED').count(), 1)
 
     def test_crossed_claims_obey_both_limits_without_deadlock(self):
-        results = self.race([(user.pk, event) for user in self.users[:2] for event in [AD_ID, RECIPE_ID]])
+        results = self.race([(user.pk, event) for user in self.users[:2] for event in [KKUWANG_HIT_ID, RECIPE_ID]])
         self.assertEqual(sum(results), 2)
         for user in self.users[:2]:self.assertEqual(EventProgress.objects.filter(user=user, status='COMPLETED').count(), 1)
-        for event in [AD_ID, RECIPE_ID]:self.assertEqual(EventProgress.objects.filter(event_id=event, status='COMPLETED').count(), 1)
+        for event in [KKUWANG_HIT_ID, RECIPE_ID]:self.assertEqual(EventProgress.objects.filter(event_id=event, status='COMPLETED').count(), 1)

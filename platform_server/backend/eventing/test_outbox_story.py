@@ -12,7 +12,7 @@ from accounts.models import Profile
 from event_story import main, recipe, services as story
 from event_story.access import SALT
 from event_story.achievement_services import (
-    AD_ID, CAMPAIGN_ID, GREETING_ID, TIMER_ID, complete_achievement, manager_ids, record_manager_action,
+    KKUWANG_HIT_ID, CAMPAIGN_ID, GREETING_ID, TIMER_ID, complete_achievement, manager_ids, record_manager_action,
 )
 from event_story.game_services import finish_game, start_game
 from event_story.interrupt import interrupt_running
@@ -233,7 +233,7 @@ class ManagerAndEggEventTests(StoryEventTestCase):
         self.assertFalse(EventOutbox.objects.exists())
 
     def test_an_egg_without_a_known_session_is_reported_with_a_null_session(self):
-        self.assertTrue(complete_achievement(self.other, AD_ID, timezone.now()))
+        self.assertTrue(complete_achievement(self.other, KKUWANG_HIT_ID, timezone.now()))
         [row] = rows("event_progress_completed")
         self.assert_owner(row, self.other, None)
         self.assertEqual((row.raw_data["event_kind"], row.raw_data["completion_order"]), ("EASTER_EGG", 1))

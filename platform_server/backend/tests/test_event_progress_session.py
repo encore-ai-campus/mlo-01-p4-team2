@@ -10,8 +10,8 @@ from django.utils import timezone
 
 from event_story import main, recipe
 from event_story.achievement_services import (
-    AD_ID, GREETING_ID, RECIPE_ID, TIMER_ID, complete_achievement,
-    manager_ids, record_ad_click, record_manager_action,
+    KKUWANG_HIT_ID, GREETING_ID, RECIPE_ID, TIMER_ID, complete_achievement,
+    manager_ids, record_kkuwang_hit, record_manager_action,
 )
 from event_story.game_services import finish_game, start_game
 from event_story.models import EventProgress, GamePlay, StoryProgress
@@ -48,16 +48,16 @@ class EventProgressSessionTests(TestCase):
         self.assertTrue(columns['session_uuid'].null_ok)
 
     def test_missing_session_stays_null_even_when_an_account_has_active_sessions(self):
-        complete_achievement(self.user, AD_ID, timezone.now())
-        self.assertIsNone(EventProgress.objects.get(user=self.user, event_id=AD_ID).session_id)
-        self.assertFalse(complete_achievement(self.user, AD_ID, timezone.now(), session_uuid=self.later.pk))
-        self.assertIsNone(EventProgress.objects.get(user=self.user, event_id=AD_ID).session_id)
+        complete_achievement(self.user, KKUWANG_HIT_ID, timezone.now())
+        self.assertIsNone(EventProgress.objects.get(user=self.user, event_id=KKUWANG_HIT_ID).session_id)
+        self.assertFalse(complete_achievement(self.user, KKUWANG_HIT_ID, timezone.now(), session_uuid=self.later.pk))
+        self.assertIsNone(EventProgress.objects.get(user=self.user, event_id=KKUWANG_HIT_ID).session_id)
 
     def test_completed_achievement_keeps_first_session_timestamp_and_rank(self):
-        complete_achievement(self.user, AD_ID, timezone.now(), session_uuid=self.session.pk)
-        first = EventProgress.objects.get(user=self.user, event_id=AD_ID)
+        complete_achievement(self.user, KKUWANG_HIT_ID, timezone.now(), session_uuid=self.session.pk)
+        first = EventProgress.objects.get(user=self.user, event_id=KKUWANG_HIT_ID)
         self.assertEqual(first.session_id, self.session.pk)
-        self.assertFalse(complete_achievement(self.user, AD_ID, timezone.now(), session_uuid=self.later.pk))
+        self.assertFalse(complete_achievement(self.user, KKUWANG_HIT_ID, timezone.now(), session_uuid=self.later.pk))
         again = EventProgress.objects.get(pk=first.pk)
         self.assertEqual((again.session_id, again.completed_at, again.completion_order),
                          (first.session_id, first.completed_at, first.completion_order))
@@ -67,8 +67,8 @@ class EventProgressSessionTests(TestCase):
         ended.ended_at = timezone.now();ended.save(update_fields=['ended_at'])
         for session in (self.foreign.pk, 'invalid', ended.pk):
             with self.subTest(session=session), self.assertRaises(learning.LearningError):
-                complete_achievement(self.user, AD_ID, timezone.now(), session_uuid=session)
-            self.assertFalse(EventProgress.objects.filter(user=self.user, event_id=AD_ID).exists())
+                complete_achievement(self.user, KKUWANG_HIT_ID, timezone.now(), session_uuid=session)
+            self.assertFalse(EventProgress.objects.filter(user=self.user, event_id=KKUWANG_HIT_ID).exists())
 
     def test_main_action_records_first_completion_session(self):
         data = {'action': 'investigate', 'ticket': ticket(self.user, 'investigate')}
@@ -123,16 +123,16 @@ class EventProgressSessionTests(TestCase):
         self.assertEqual(EventProgress.objects.get(user=self.user, event_id=RECIPE_ID).session_id, self.later.pk)
 
     def test_ad_click_without_session_does_not_guess_a_session(self):
-        result = record_ad_click(self.user)
-        self.assertEqual(result['newly_completed'], [str(AD_ID)])
-        self.assertIsNone(EventProgress.objects.get(user=self.user, event_id=AD_ID).session_id)
+        result = record_kkuwang_hit(self.user)
+        self.assertEqual(result['newly_completed'], [str(KKUWANG_HIT_ID)])
+        self.assertIsNone(EventProgress.objects.get(user=self.user, event_id=KKUWANG_HIT_ID).session_id)
 
     def test_session_can_end_but_cannot_be_deleted_after_completion(self):
-        complete_achievement(self.user, AD_ID, timezone.now(), session_uuid=self.session.pk)
+        complete_achievement(self.user, KKUWANG_HIT_ID, timezone.now(), session_uuid=self.session.pk)
         self.session.ended_at = timezone.now();self.session.save(update_fields=['ended_at'])
         with self.assertRaises(ProtectedError):
             self.session.delete()
-        self.assertEqual(EventProgress.objects.get(user=self.user, event_id=AD_ID).session_id, self.session.pk)
+        self.assertEqual(EventProgress.objects.get(user=self.user, event_id=KKUWANG_HIT_ID).session_id, self.session.pk)
 
 
 class ConcurrentEventProgressSessionTests(TransactionTestCase):
@@ -145,12 +145,12 @@ class ConcurrentEventProgressSessionTests(TransactionTestCase):
             close_old_connections()
             try:
                 barrier.wait(timeout=8)
-                return complete_achievement(user, AD_ID, timezone.now(), session_uuid=session.pk)
+                return complete_achievement(user, KKUWANG_HIT_ID, timezone.now(), session_uuid=session.pk)
             finally:connections.close_all()
         with ThreadPoolExecutor(max_workers=2) as pool:
             pending = [pool.submit(complete, user, session) for user, session in zip(users, sessions)]
             outcomes = [result.result(timeout=15) for result in pending]
         self.assertEqual(sum(outcomes), 1)
-        row = EventProgress.objects.get(event_id=AD_ID)
+        row = EventProgress.objects.get(event_id=KKUWANG_HIT_ID)
         winner = outcomes.index(True)
         self.assertEqual((row.user_id, row.session_id, row.completion_order), (users[winner].pk, sessions[winner].pk, 1))

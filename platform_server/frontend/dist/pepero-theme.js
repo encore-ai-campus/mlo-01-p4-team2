@@ -8,7 +8,7 @@
   for (const key of ['monument','cart','gifts','stall','workbench','flowerbox','hero','gate','pedestal','cafe','refill-chest','timer-station-east','typing-station-east','pairing-garden-east']) {
     const image = new Image(); image.decoding = 'async';
     image.onload = () => window.dispatchEvent(new CustomEvent('campus-seasonal-assets-ready',{detail:{key}}));
-    image.src = key==='pairing-garden-east'?'assets/minigames/pairing-garden-east-v2.webp':['timer-station-east','typing-station-east'].includes(key)?`assets/minigames/${key}-v1.webp`:`assets/seasonal/pepero/${['monument','cart','gifts','refill-chest'].includes(key)?'':'reference/'}${key}.png`; art[key] = image;
+    const url = key==='pairing-garden-east'?'assets/minigames/pairing-garden-east-v2.webp':['timer-station-east','typing-station-east'].includes(key)?`assets/minigames/${key}-v1.webp`:`assets/seasonal/pepero/${['monument','cart','gifts','refill-chest'].includes(key)?'':'reference/'}${key}.png`;if(window.CampusEntry)window.CampusEntry.image(image,url,{floors:window.CampusEntry.floorsForArt(key)});else image.src=url; art[key] = image;
   }
   function drawAsset(g,image,q,w,h) {
     if (!image.complete || !image.naturalWidth) return;

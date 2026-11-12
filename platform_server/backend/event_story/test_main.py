@@ -331,7 +331,7 @@ class MainFlowTests(TestCase):
         from .models import EventDefinition
         main.complete(self.user, '1')
         EventDefinition.objects.get_or_create(event_uuid=main.uid('2'), defaults={'event_name':'Python 학습교실', 'event_type':'MAIN'})
-        old = main.complete(self.user, '2')
+        old, _ = main.complete(self.user, '2')
         completed_at = old.completed_at
         main.prepare_status(self.user)
         result = main.status(self.user)

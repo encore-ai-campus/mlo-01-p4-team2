@@ -1,4 +1,4 @@
-"""Operational catalog, sessions, chat and append-only content requests."""
+"""Operational catalog, sessions, chat, append-only content requests and the event outbox."""
 import uuid
 
 from django.conf import settings
@@ -102,3 +102,26 @@ class ContentOpenRequestLog(models.Model):
 
     class Meta:
         db_table = "content_open_request_log"
+
+
+class EventOutbox(models.Model):
+    """One immutable business event, written in the same transaction as the change it records.
+
+    The application never sends these rows; PostgreSQL CDC reads INSERTs from this table.
+    `outbox_uuid` is the event identity (a new UUIDv4 per row). It is deliberately not named
+    `event_uuid`, which is the primary key of `event_definition`.
+    """
+    outbox_uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    event_type = models.CharField(max_length=64)
+    topic = models.CharField(max_length=64)
+    message_key = models.UUIDField()
+    raw_data = models.JSONField()
+    occurred_at = models.DateTimeField()
+    payload_json = models.JSONField(null=True, blank=True)
+    retry_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["created_at", "outbox_uuid"]
+        indexes = [models.Index(fields=["published_at", "created_at"], name="eventing_outbox_pending")]

@@ -1,10 +1,22 @@
-/* 서버 회차와 이동 승인을 사용하며 광고 실패가 게임 이동을 막지 않게 한다. */
+/* 서버 회차와 이동 승인을 사용하며 광고 실패가 게임 이동을 막지 않게 한다.
+   새 광고를 받지 못하면 화면을 비우지 않고 이전 광고를 그대로 둔다(옥상 첫 광고 전에는 옥상 사진). */
 (() => {
   'use strict';
   const {ContinuousExposure,visibleRatio}=window.CampusAdVisibility;
   const detector=new ContinuousExposure();
   let roof=null,nextRoof=0,roofLoading=false,portalVersion=0,portalAds=[];
+  // CSS 화면 픽셀 기준. 진입과 이탈 여유를 달리해 경계의 작은 이동에는 재요청하지 않는다.
+  const PREFETCH_MARGIN=256,EXIT_MARGIN=384;
+  let roofZone=null,roofScheduleView=null;
+  // 지도마다 렌더러가 따로 있다. 클릭은 지금 화면의 판에 그려진 광고일 때만 보낸다(옥상 사진·다른 지도의 광고 제외).
+  let currentRenderer=null;
   const reporting=new Map();
+  // 옥상 사진(광고 아님)은 이 스크립트와 같은 출처 파일이다. 첫 광고가 오기 전 빈 판 대신 보인다.
+  const scriptBase=new URL(document.currentScript?.src||document.baseURI||location.href,location.href);
+  const fallbackViews=new WeakSet();
+  // 포털 칸마다 이 페이지에서 마지막으로 보인 광고. 새 광고가 준비될 때까지 다시 보인다.
+  const lastPortal=new Map();
+  let portalForms=new Map();
   const csrf=()=>document.querySelector('[name=csrfmiddlewaretoken]')?.value||decodeURIComponent(document.cookie.match(/(?:^|; )(?:campus_csrftoken|csrftoken)=([^;]*)/)?.[1]||'');
   async function post(path,body={},timeout=5000){
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),timeout);
@@ -38,10 +50,18 @@
     const send=()=>post('decisions/'+decision+'/impression/');
     send().catch(()=>setTimeout(()=>send().catch(()=>{}),1000));
   }
-  async function refreshRoof(view){
-    roofLoading=true;
+  function stopRoof(){
+    if(roofZone&&roofLoading)nextRoof=0;
+    roofZone=null;
+  }
+  async function refreshRoof(zone){
+    const view=zone.view,current=()=>roofZone===zone&&!document.hidden;
+    roofLoading=true;roofScheduleView=view;
     try{
       const started=performance.now(),batch=await post('placements/rooftop/');
+      if(!current())return;
+      // 서버가 동시 발급 상한에 걸려 예약 없이 바로 답했다. 지금 광고를 두고 곧 다시 묻는다.
+      if(batch.state==='BUSY'){nextRoof=performance.now()+1000;return;}
       const remaining=Date.parse(batch.expires_at)-Date.parse(batch.server_time)-(performance.now()-started);
       if(!Number.isFinite(remaining))throw Error('ad_expiry');
       if(remaining<=0){nextRoof=performance.now()+100;return;}
@@ -49,55 +69,95 @@
       // 서버 회차는 다음 조회 시각으로만 사용하고, 표시 중인 광고를 먼저 지우지 않는다.
       const deadline=performance.now()+remaining;nextRoof=deadline;
       const entry=batch.ads[0];
-      if(batch.state!=='READY'||!entry?.ad)return;
+      if(batch.state!=='READY'||!entry?.ad){zone.settled=true;return;}
       const candidate={...entry,ad:{...entry.ad,click_url:safeUrl(entry.ad.click_url)},view};
       const img=await image(candidate.ad,true);
       // 로딩 중 회차가 끝난 후보는 버리되, 기존 이미지·링크·노출 측정은 유지한다.
-      if(performance.now()>=deadline)return;
+      if(!current()||performance.now()>=deadline)return;
       if(view.setDisplayImage('roof-ad-board',img)){
         // 실제 이미지 교체가 성공한 순간에만 클릭 대상과 새 광고의 노출 측정을 바꾼다.
         if(roof?.decision_id!==candidate.decision_id)detector.reset('roof');
-        roof=candidate;
+        roof=candidate;zone.settled=true;
       }
-    }catch{nextRoof=performance.now()+5000;}
+    }catch{if(current())nextRoof=performance.now()+5000;}
     finally{roofLoading=false;}
   }
+  function showRoofFallback(view){
+    if(roof?.view===view||fallbackViews.has(view))return;
+    const list=window.CampusRoofSlideshowConfig?.images;
+    if(!Array.isArray(list)||!list.length)return;
+    fallbackViews.add(view);
+    const img=new Image();
+    // 사진이 오기 전에 광고가 먼저 그려졌으면 덮지 않는다. 사진은 노출 보고·클릭 대상이 아니다.
+    img.onload=()=>{if(roof?.view!==view)view.setDisplayImage('roof-ad-board',img);};
+    img.src=new URL(list[0],scriptBase).href;
+  }
+  function roofGeometry(renderer,camera,canvas,width,height){
+    const bounds=canvas.getBoundingClientRect();
+    if(!(width>0&&height>0&&bounds.width>0&&bounds.height>0&&camera.zoom>0))return null;
+    const rect={left:Math.max(0,bounds.left),top:Math.max(0,bounds.top),right:Math.min(innerWidth,bounds.right),bottom:Math.min(innerHeight,bounds.bottom)};
+    if(rect.right<=rect.left||rect.bottom<=rect.top)return null;
+    const project=polygon=>polygon?.map(p=>({x:bounds.left+(p.x*camera.zoom+camera.x)*bounds.width/width,y:bounds.top+(p.y*camera.zoom+camera.y)*bounds.height/height}));
+    const points=project(renderer.displayPolygon('roof-ad-board',{placeholder:true}));
+    if(!points?.length||!points.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)))return null;
+    return {points,rect,project};
+  }
   function tick({now,floor,renderer,camera,canvas,width,height,blocked}){
+    currentRenderer=renderer;
     const adFloor=floor==='rooftop'||(floor==='campus'&&renderer.hasDisplay?.('roof-ad-board'));
-    if(adFloor&&!document.hidden&&!roofLoading&&now>=nextRoof)refreshRoof(renderer);
-    let ratio=0;
-    if(roof&&roof.view===renderer&&adFloor&&!blocked&&!document.hidden&&document.hasFocus()){
-      const bounds=canvas.getBoundingClientRect(),polygon=renderer.displayPolygon('roof-ad-board');
-      if(polygon){
-        const points=polygon.map(p=>({x:bounds.left+(p.x*camera.zoom+camera.x)*bounds.width/width,y:bounds.top+(p.y*camera.zoom+camera.y)*bounds.height/height}));
-        ratio=visibleRatio(points,{left:Math.max(0,bounds.left),top:Math.max(0,bounds.top),right:Math.min(innerWidth,bounds.right),bottom:Math.min(innerHeight,bounds.bottom)});
+    const geometry=adFloor&&!blocked&&!document.hidden?roofGeometry(renderer,camera,canvas,width,height):null;
+    const margin=roofZone?.view===renderer?EXIT_MARGIN:PREFETCH_MARGIN;
+    const near=geometry&&visibleRatio(geometry.points,{left:geometry.rect.left-margin,top:geometry.rect.top-margin,right:geometry.rect.right+margin,bottom:geometry.rect.bottom+margin})>0;
+    if(roofZone&&(!near||roofZone.view!==renderer))stopRoof();
+    if(near){
+      if(!roofZone){
+        roofZone={view:renderer,settled:false};
+        if(roofScheduleView!==renderer)nextRoof=0;
       }
+      showRoofFallback(renderer);
+      // 화면 밖에서는 접근당 한 번 미리 받는다. 표시 중에만 다음 회차를 계속 조회한다.
+      const visible=visibleRatio(geometry.points,geometry.rect)>0;
+      if(!roofLoading&&now>=nextRoof&&(!roofZone.settled||visible))refreshRoof(roofZone);
+    }
+    let ratio=0;
+    if(roof&&roof.view===renderer&&geometry&&document.hasFocus()){
+      const points=geometry.project(renderer.displayPolygon('roof-ad-board'));
+      if(points)ratio=visibleRatio(points,geometry.rect);
     }
     if(detector.observe('roof',roof?.decision_id,ratio,now))report(roof.decision_id);
   }
   function stopPortal(){
-    portalVersion++;portalAds=[];detector.reset();
+    portalVersion++;portalAds=[];portalForms=new Map();detector.reset();
     const slot=document.getElementById('floorTransitionAdSlot');slot.replaceChildren();slot.hidden=true;
+  }
+  async function mountPortal(entry,index,version,fresh,freshIndexes){
+    try{
+      const img=await image(entry.ad);
+      if(version!==portalVersion||!document.getElementById('floorTransitionDialog').open)return;
+      // 이전 광고는 새 광고가 이미 들어온 칸을 덮지 않는다.
+      if(!fresh&&freshIndexes.has(index))return;
+      safeUrl(entry.ad.click_url);
+      const form=clickForm(entry),button=document.createElement('button');
+      form.className='portal-ad portal-ad-'+index;button.type='submit';button.className='portal-ad-button';
+      img.alt=entry.ad.title;button.append(img);form.append(button);
+      if(fresh){freshIndexes.add(index);lastPortal.set(index,entry);}
+      portalForms.set(index,form);
+      portalAds=portalAds.filter(item=>item.index!==index).concat({entry,img,index});
+      const slot=document.getElementById('floorTransitionAdSlot');
+      slot.replaceChildren(...[...portalForms.keys()].sort((a,b)=>a-b).map(key=>portalForms.get(key)));slot.hidden=false;
+    }catch{ /* 로딩하지 못한 이미지는 표시·노출 보고하지 않는다. 그 칸의 이전 광고는 그대로 둔다. */ }
   }
   async function startPortal(token){
     stopPortal();const version=portalVersion;if(!token)return;
+    const freshIndexes=new Set();
+    // 새 광고가 오기 전까지 칸마다 마지막 광고를 보인다. 같은 결정의 노출은 다시 보고하지 않는다(reporting).
+    const previous=[...lastPortal].map(([index,entry])=>mountPortal(entry,index,version,false,freshIndexes));
     try{
       const batch=await post('placements/portal/',{token},2500);
       if(version!==portalVersion||!document.getElementById('floorTransitionDialog').open||batch.state!=='READY')return;
-      const slot=document.getElementById('floorTransitionAdSlot');
-      await Promise.all(batch.ads.map(async(entry,index)=>{
-        if(!entry.ad)return;
-        try{
-          const img=await image(entry.ad);
-          if(version!==portalVersion||!document.getElementById('floorTransitionDialog').open)return;
-          safeUrl(entry.ad.click_url);
-          const form=clickForm(entry),button=document.createElement('button');
-          form.className='portal-ad portal-ad-'+index;button.type='submit';button.className='portal-ad-button';
-          img.alt=entry.ad.title;button.append(img);form.append(button);slot.append(form);slot.hidden=false;
-          portalAds.push({entry,img,index});
-        }catch{ /* 로딩하지 못한 이미지는 표시·노출 보고하지 않는다. */ }
-      }));
-    }catch{ /* 광고 실패에도 3초 이동 화면은 계속 진행한다. */ }
+      await Promise.all(batch.ads.map((entry,index)=>entry.ad?mountPortal(entry,index,version,true,freshIndexes):null));
+    }catch{ /* 광고 실패에도 3초 이동 화면은 계속 진행한다. 이전 광고는 그대로 둔다. */ }
+    await Promise.all(previous);
   }
   function portalTick(now){
     for(const {entry,img,index} of portalAds){
@@ -108,12 +168,12 @@
     }
     requestAnimationFrame(portalTick);
   }
-  document.addEventListener('visibilitychange',()=>detector.reset());
+  document.addEventListener('visibilitychange',()=>{detector.reset();if(document.hidden)stopRoof();});
   window.addEventListener('blur',()=>detector.reset());
   window.addEventListener('campus:floor-transition-end',stopPortal);
   requestAnimationFrame(portalTick);
   window.CampusAds={tick,startPortal,stopPortal,clickRoof(){
-    if(!roof)return false;
+    if(!roof||roof.view!==currentRenderer)return false;
     const form=clickForm(roof);form.hidden=true;document.body.append(form);form.submit();form.remove();return true;
   }};
 })();

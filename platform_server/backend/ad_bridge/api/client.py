@@ -16,6 +16,8 @@ from .types import Ad, Decision, Reaction
 _UUID = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
 _UTC = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,6})?Z")
 _MAX_RESPONSE_BYTES = 1024 * 1024
+# 광고 서버 대상 그룹 코드 형식(C1 v1.6 segment).
+SEGMENT_FORMAT = re.compile(r"[a-z][a-z0-9-]{0,31}")
 
 
 class _NoRedirect(HTTPRedirectHandler):
@@ -112,12 +114,23 @@ class AdsClient:
             pass  # HTML 오류 페이지나 손상된 본문이어도 HTTP 상태를 잃지 않는다.
         return AdsHTTPError(response.code, code=code, request_id=request_id, retry_after=retry_after)
 
-    def create_decision(self, slot_id: str | UUID, subject_id: str | UUID | None = None) -> Decision:
-        """개인 슬롯에는 가명 subject_id를 전달하고, shared 슬롯에서는 생략한다. 자동 재시도하지 않는다."""
+    def create_decision(self, slot_id: str | UUID, subject_id: str | UUID | None = None,
+                        segment: str | None = None) -> Decision:
+        """개인 슬롯에는 가명 subject_id를 전달하고, shared 슬롯에서는 생략한다. 자동 재시도하지 않는다.
+
+        segment는 등록된 과정 코드일 때만 받는다(C1 v1.6). 없으면 키를 싣지 않는다.
+        """
         slot = _uuid(slot_id, "slot_id")
         payload = {"slot_id": slot}
         if subject_id is not None:
             payload["subject_id"] = _uuid(subject_id, "subject_id")
+        if segment is not None:
+            # 광고 서버는 shared 요청의 segment와 형식이 틀린 값을 400으로 거절해 결정이 없다. 보내기 전에 막는다.
+            if subject_id is None:
+                raise ValueError("segment는 개인 슬롯 요청에만 보낼 수 있습니다.")
+            if not isinstance(segment, str) or not SEGMENT_FORMAT.fullmatch(segment):
+                raise ValueError("segment 형식이 올바르지 않습니다.")
+            payload["segment"] = segment
         audience = "shared" if subject_id is None else "individual"
         request = Request(
             f"{self._config.base_url}/decisions", method="POST",

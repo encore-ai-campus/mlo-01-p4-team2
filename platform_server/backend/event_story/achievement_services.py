@@ -70,10 +70,14 @@ def achievement_snapshot(user):
 
 @transaction.atomic
 def complete_achievement(user, event_id, completed_at, *, started_at=None, session_uuid=None):
+    if user.is_staff or user.is_superuser:
+        return False
     from campus_control.event_access import snapshot
     if not snapshot()['open']:return False
     # Every entry point locks the account before the shared egg definition.
-    get_user_model().objects.select_for_update().get(pk=user.pk)
+    account = get_user_model().objects.select_for_update().get(pk=user.pk)
+    if not account.is_active or account.is_staff or account.is_superuser:
+        return False
     definition = EventDefinition.objects.select_for_update().get(pk=event_id)
     if definition.event_type != 'EASTER_EGG':
         raise ValueError('이스터에그 정의를 확인해 주세요.')

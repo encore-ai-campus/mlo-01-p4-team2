@@ -415,7 +415,7 @@
   dialog.addEventListener('close',()=>{keys.clear();presence.setInput([]);canvas.focus({preventScroll:true});});
   $('interactionPrompt').querySelector('button').onclick=()=>nearby&&showDetail(nearby);
   // 이미지 주소·이름이 같으면 다시 넣지 않는다(계획 5단계)
-  function updateAvatarPreview(){const id=window.CampusAvatars.resolve(player.avatar),src=`assets/characters/${id.startsWith('female-')?'female':'male'}-face.png`,name=window.CampusAvatars.definitions[id].name;if($('avatarPreview').getAttribute('src')!==src)$('avatarPreview').src=src;if($('avatarName').textContent!==name)$('avatarName').textContent=name;}
+  function updateAvatarPreview(){const id=window.CampusAvatars.resolve(player.avatar),src=`assets/characters/${(window.CampusAvatars.definitions[id].base||id).startsWith('female-')?'female':'male'}-face.png`,name=window.CampusAvatars.definitions[id].name;if($('avatarPreview').getAttribute('src')!==src)$('avatarPreview').src=src;if($('avatarName').textContent!==name)$('avatarName').textContent=name;}
   updateAvatarPreview();
   window.addEventListener('campus:avatar',updateAvatarPreview);
   window.CampusApp={showDetail,greetManager,openRegularBoard(){showBoard();communityUI.open();},get scene(){return scene;},player,camera,screenToWorld,worldToScreen,canZoom:isAdmin,canFreeCamera:isAdmin,boothUI,floorTransition,social,presence,classroom,poke,get nearby(){return nearby;},get renderer(){return renderer;},get floor(){return D.id;},get data(){return D;},visibleActors,switchFloor,quickTravelMenu:spaceGuide,render,toast,zoomBy};

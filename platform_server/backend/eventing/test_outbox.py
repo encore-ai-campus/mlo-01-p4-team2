@@ -360,6 +360,24 @@ class HttpEventTests(TestCase):
         self.assertEqual(created, {comment["commentUuid"]: None,
                                    reply.json()["comment"]["commentUuid"]: comment["commentUuid"]})
 
+    def test_post_delete_soft_deletes_remaining_comments_and_records_each_once(self):
+        post = Post.objects.create(author=self.user, category="free", title="게시글", body="본문")
+        first = Comment.objects.create(post=post, author=self.user, body="댓글")
+        reply = Comment.objects.create(post=post, parent=first, author=self.user, body="답글")
+        already_deleted = Comment.objects.create(post=post, author=self.user, body="삭제됨", deleted_at=timezone.now())
+        url = f"/api/community/posts/{post.id}/"
+        self.assertEqual(self.send("delete", url).status_code, 200)
+        self.assertEqual(self.send("delete", url).status_code, 404)
+        first.refresh_from_db(); reply.refresh_from_db(); already_deleted.refresh_from_db()
+        self.assertIsNotNone(first.deleted_at)
+        self.assertIsNotNone(reply.deleted_at)
+        self.assertEqual((first.revision, reply.revision, already_deleted.revision), (2, 2, 1))
+        self.assertEqual(EventOutbox.objects.filter(event_type="post_deleted").count(), 1)
+        rows = list(EventOutbox.objects.filter(event_type="comment_deleted"))
+        self.assertEqual({row.raw_data["comment_uuid"] for row in rows}, {str(first.pk), str(reply.pk)})
+        self.assertEqual({row.raw_data["revision"] for row in rows}, {2})
+        self.assertEqual({row.raw_data["user_uuid"] for row in rows}, {str(self.user.pk)})
+
     def test_a_read_event_once_per_read_request_uuid(self):
         post = Post.objects.create(author=self.user, category="free", title="읽기", body="본문")
         key = uuid.uuid4()

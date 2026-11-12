@@ -38,3 +38,72 @@ test('enlarged map merges classroom 3/4 with only a mounted board, and keeps the
   assert.equal(D.objects.filter(o=>o.workSeat).length,3);
   assert.equal(D.rooms.find(r=>r.id==='lounge1').target[0],1893);
 });
+
+// 실제 렌더러 생성·이미지 교체 경로를 실행한다. Canvas 그리기만 대체한다.
+function displayRenderer(board){
+  const drawing=new Proxy({measureText:()=>({width:10}),createLinearGradient:()=>({addColorStop(){}})},
+    {get:(target,key)=>key in target?target[key]:()=>{}});
+  const context=vm.createContext({window:{addEventListener(){}},document:{createElement:()=>({getContext:()=>drawing})}});
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../dist/isometric.js'),'utf8'),context);
+  return context.window.CampusIsometric.create({data:{id:'test',width:1000,height:500,rooms:[],walls:[],objects:[board],elevationAt:()=>20}});
+}
+
+test('이미지 없는 실제 광고판은 사전 요청 좌표만 제공하고 이미지 교체 후에도 고정 크기를 유지한다',()=>{
+  const board={...D.objects.find(o=>o.id==='roof-ad-board')},r=displayRenderer(board);
+  assert.equal(r.displayPolygon(board.id),null);
+  const before=r.displayPolygon(board.id,{placeholder:true});
+  assert.equal(before.length,4);assert.ok(before.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)));
+  assert.equal(before[3].y-before[0].y,board.posterHeight);
+  const bottom=r.projection.project(board.x,board.y,20+board.posterBottom);
+  assert.deepEqual({...before[3]},{...bottom});
+  for(const image of [{width:100,height:400},{width:400,height:100}]){
+    assert.equal(r.setDisplayImage(board.id,image),true);
+    assert.deepEqual(r.displayPolygon(board.id),before);
+  }
+  assert.equal(r.displayPolygon('missing',{placeholder:true}),null);
+});
+
+test('크기 미지정 벽 광고는 로딩 전 추정 크기를 사용하고 로딩 후 실제 이미지 비율을 따른다',()=>{
+  const r=displayRenderer({id:'board',type:'wall-poster',x:20,y:20,w:160,h:1,imageOnly:true});
+  const before=r.displayPolygon('board',{placeholder:true});assert.equal(before[3].y-before[0].y,90);
+  r.setDisplayImage('board',{width:100,height:200});
+  const after=r.displayPolygon('board');assert.equal(after[3].y-after[0].y,320);
+  assert.deepEqual(after[3],before[3]);
+});
+
+test('독립형 광고판은 지정된 화면 크기로 미리 계산하고 이미지 로딩 후 실제 비율을 사용한다',()=>{
+  const r=displayRenderer({id:'board',type:'plaza-display',x:20,y:20,w:160,h:1,screenWidth:200,screenHeight:120,imageOnly:true,displayAxis:'y'});
+  assert.equal(r.displayPolygon('board'),null);
+  const before=r.displayPolygon('board',{placeholder:true});assert.ok(Math.abs(before[3].y-before[0].y-120)<1e-8);
+  r.setDisplayImage('board',{width:200,height:300});
+  const after=r.displayPolygon('board');assert.ok(Math.abs(after[3].y-after[0].y-300)<1e-8);
+  assert.deepEqual(after[3],before[3]);
+});
+
+// 빼빼로 시즌 장식이 광고판을 직접 그리면 광고 이미지가 화면에 나오지 않는데도 노출이 측정된다(AB-2 운영 확인).
+// 시즌이 있든 없든 "판에 실제로 그린 이미지 = 노출을 재는 영역(displayPolygon)" 이어야 한다.
+function seasonRenderer(board,season){
+  const painted=[],drawn=[];
+  const drawing=new Proxy({measureText:()=>({width:10}),createLinearGradient:()=>({addColorStop(){}}),drawImage:image=>drawn.push(image)},
+    {get:(target,key)=>key in target?target[key]:()=>{}});
+  // 시즌 함수는 광고판 장식(paint)만 흉내 내고 나머지(바닥·분위기 등)는 아무것도 하지 않는다.
+  const seasonal=new Proxy({paint:o=>{painted.push(o.id);return o.id==='roof-ad-board';}},{get:(target,key)=>key in target?target[key]:()=>false});
+  const context=vm.createContext({window:{addEventListener(){},CAMPUS_SEASON:season,CampusSeasonal:seasonal},
+    document:{createElement:()=>({getContext:()=>drawing})},setTimeout:()=>0});
+  vm.runInContext(fs.readFileSync(path.join(__dirname,'../dist/isometric.js'),'utf8'),context);
+  const renderer=context.window.CampusIsometric.create({data:{id:'campus',width:1000,height:500,rooms:[],walls:[],objects:[board],elevationAt:()=>20}});
+  return {renderer,painted,drawn};
+}
+for(const season of ['pepero',undefined]){
+  test(`광고판에 이미지가 들어오면 시즌(${season||'없음'})과 관계없이 그 이미지를 그리고, 그린 영역으로 노출을 잰다`,()=>{
+    const board={...D.objects.find(o=>o.id==='roof-ad-board')},{renderer:r,painted,drawn}=seasonRenderer(board,season);
+    assert.equal(painted.includes('roof-ad-board'),season==='pepero','이미지 전에는 시즌일 때만 시즌 장식이 광고판을 그린다');
+    assert.equal(r.displayPolygon(board.id),null);
+    painted.length=0;drawn.length=0;
+    const image={width:400,height:300};
+    assert.equal(r.setDisplayImage(board.id,image),true);
+    assert.equal(painted.includes('roof-ad-board'),false,'이미지가 들어오면 시즌 장식을 부르지 않는다');
+    assert.ok(drawn.includes(image),'들어온 이미지를 그린다');
+    assert.equal(r.displayPolygon(board.id).length,4,'그린 이미지의 영역이 노출 측정 영역이다');
+  });
+}

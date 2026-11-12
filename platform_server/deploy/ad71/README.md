@@ -22,6 +22,8 @@
 
 ## 재전송 서비스
 
+온프레미스(`deploy/onprem/run.py`)에서는 서비스 역할의 `campus_jobs`가 노출 전송 작업자를 돌린다. 그때는 아래 유닛을 설치하지 않는다([onprem 안내](../onprem/README.md)의 광고 절). 노출 요청은 대기만 저장하므로, 어느 방식이든 작업자 하나는 반드시 돌아야 노출이 광고 서버로 간다. 돌고 있는지는 `manage.py dispatch_ad_reactions --status`로 확인한다.
+
 함께 제공한 service는 위 백엔드 경로와 `ubuntu` 계정을 사용한다. 다른 환경은 경로·계정을 맞춘 뒤 설치한다. 명령은 저장소 루트에서 실행한다.
 
 ```bash

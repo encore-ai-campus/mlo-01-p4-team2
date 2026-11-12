@@ -12,6 +12,8 @@ COURSE_AVATARS = {"mlo": ("male-1", "female-2"), "skn": ("male-2", "female-1"), 
 
 
 def course_for_cohort(cohort):
+    if cohort == "ops-team":
+        return "운영팀"
     return cohort.split("-", 1)[0] if cohort in dict(COHORT_CHOICES) else ""
 
 

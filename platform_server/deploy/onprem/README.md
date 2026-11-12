@@ -104,6 +104,50 @@ curl --fail http://127.0.0.1:8000/static/campus/presence.js -o /dev/null
 프로세스 확인과 DB·Redis·사용자 기능 확인은 별도로 수행한다.
 외부 연결 담당자에게는 [ingress.md](ingress.md)를 전달한다.
 
+### 광고 연결(서비스 PC)
+
+동작과 설정의 뜻은 [광고 모듈 안내](../../backend/ad_bridge/README.md)에 있다. 여기는 서비스 PC에서 켜는 순서다.
+
+- 켜기 전에 광고 서버의 `/assets` 응답에 `Access-Control-Allow-Origin`이 붙었는지 광고 쪽에 확인한다. 없으면 옥상 광고 이미지가 그려지지 않는다(포털은 상관없음).
+- `ad_bridge` 마이그레이션은 0005까지다. 위 `migrate`로 적용된다.
+- `.env`에 광고 항목을 넣는다. 키·가명 비밀과 광고 서버 주소는 저장소에 넣지 않는다.
+
+| 항목 | 값 |
+|---|---|
+| `ADS_ROOFTOP_SLOT_ID` | `01a1be71-5a7e-73c9-9e96-bfc94decc812` (individual) |
+| `ADS_PORTAL_LEFT_SLOT_ID` | `01a1be71-9c05-778c-9f21-d55e150a003b` (individual) |
+| `ADS_PORTAL_RIGHT_SLOT_ID` | `01a1be71-d5fe-7731-ab9b-060750738639` (individual) |
+| `ADS_SEGMENT_CODES` | `aio,mle,mlo,skn` — 광고 서버에 등록된 과정 코드와 같게 |
+| `ADS_API_BASE_URL` | 광고 서버의 `/api/media/v1` 주소(서비스 PC에서 닿는 주소) |
+| `ADS_MEDIA_KEY`, `ADS_SUBJECT_SECRET` | 비밀 — 따로 전달받는다 |
+| `ADS_API_TIMEOUT` | `1` |
+| `ADS_DISPATCH_WORKERS` | 비우면 4. `ADS_DISPATCH_WORKERS` + 2 ≤ `POSTGRES_POOL_MAX_SIZE` |
+| `ADS_DECISION_CONCURRENCY` | 비우면 8(Backend 프로세스당 동시 결정 발급 상한) |
+
+- `ADS_ENABLED=1`로 바꾼 뒤 서비스 역할을 다시 띄운다(`.env`는 시작 때 한 번 읽는다). 이미 열린 게임 화면은 새로고침해야 새 JS를 쓴다.
+- 노출 전송은 서비스 역할의 `jobs`(`campus_jobs`)가 돌린다. `deploy/ad71`의 별도 유닛은 설치하지 않는다.
+- 켠 뒤 5분 안에 확인한다.
+  - 서비스 실행 출력에 `ads impression dispatch: 4 workers`가 있는지 본다. `NOT RUNNING`이면 바로 위 오류 줄이 까닭이다(설정 값은 찍히지 않는다). `off (ADS_ENABLED=0)`이면 켜기 전 값으로 떠 있는 것이다.
+  - 아래 상태 점검을 한 번 돌린다. 그 뒤로는 하루에 한 번, 그리고 광고 성과가 이상할 때 돌린다.
+
+```bash
+cd backend
+../.venv/bin/python - <<'PY'
+import os
+from dotenv import load_dotenv
+from django.core.management import execute_from_command_line
+# 서비스가 읽는 것과 같은 환경 파일: systemd 배치는 /etc/playdata/service.env, 손으로 띄웠으면 그때의 --env-file
+load_dotenv('/etc/playdata/service.env', override=True)
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+execute_from_command_line(['manage.py', 'dispatch_ad_reactions', '--status'])
+PY
+cd ..
+```
+
+- 상태 점검은 광고 설정을 읽지 않고 DB만 읽는다. 종료 코드 1(`기한이 지난 노출 전송이 …초 밀렸습니다`)이면 작업자가 돌지 않는 것이다. 이때 화면에는 광고가 정상으로 보여도 노출이 광고 서버로 가지 않고, 그 광고의 클릭도 인정되지 않는다.
+- `states`의 `BLOCKED`가 지난번보다 늘었으면 광고 서버가 4xx로 거절한 노출이다. 다시 보내지 않으므로 서비스 Backend·jobs 로그에서 까닭(키·슬롯·매체 상태)을 확인한다. 401은 고친 뒤 `dispatch_ad_reactions --recover-401 <반응 UUID>`로 한 건씩 다시 보낼 수 있다.
+- 광고 결정 발급이 실패하면 서비스 Backend 로그에 `광고 결정 발급 실패: slot=… status=… code=…`가 남는다(같은 종류는 프로세스당 60초에 한 번). `code=unknown_segment`면 `ADS_SEGMENT_CODES`와 광고 서버 등록이 어긋난 것이고, `status=404`면 슬롯 ID, `status=401`·`403`이면 키나 매체 상태를 본다.
+
 ## 4. 테스트
 
 현재 맵 브랜치의 실제 결과와 미통과 항목은 [2026-10-26 통합 검증](VALIDATION-20261026.md)을 우선 확인한다. 아래 검증 표와 설명은 공통 기반 feat/15에서 기록한 기준 결과다.

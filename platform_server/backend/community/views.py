@@ -4,7 +4,7 @@ import uuid
 
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Count, Exists, OuterRef, Prefetch, Q
+from django.db.models import Count, Exists, F, OuterRef, Prefetch, Q
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
@@ -165,6 +165,7 @@ def posts(request):
         if failure:
             return failure
         page, pagination = result
+        pagination["startIndex"] = page.start_index()
         return JsonResponse({"posts": [post_data(item, request) for item in page], "pagination": pagination})
     data, failure = payload(request)
     if failure:
@@ -217,6 +218,16 @@ def post_detail(request, post_id):
                 return error("다른 화면에서 수정된 글이에요. 최신 글을 다시 확인해 주세요.", 409)
             item.revision = next_revision
             record_post_event("post_deleted", request.user, request.session.get(SESSION_KEY), item)
+            active_comments = list(Comment.objects.select_related("post").select_for_update().filter(
+                post=item, deleted_at__isnull=True
+            ))
+            if active_comments:
+                Comment.objects.filter(pk__in=[comment.pk for comment in active_comments]).update(
+                    deleted_at=now, updated_at=now, revision=F("revision") + 1
+                )
+                for comment in active_comments:
+                    comment.revision += 1
+                    record_comment_event("comment_deleted", request.user, request.session.get(SESSION_KEY), comment)
         return JsonResponse({"deleted": True})
     data, failure = payload(request)
     if failure:
@@ -283,6 +294,8 @@ def comments(request, post_id):
     item.post = post
     item.author = request.user
     with transaction.atomic():
+        if not Post.objects.select_for_update().filter(pk=post.pk, deleted_at__isnull=True).exists():
+            return error("글이 삭제되었거나 존재하지 않아요.", 404)
         if parent_uuid is not None:
             parent = Comment.objects.select_for_update().filter(
                 comment_uuid=parent_uuid, post=post, deleted_at__isnull=True

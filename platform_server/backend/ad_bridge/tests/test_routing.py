@@ -19,7 +19,7 @@ from ad_bridge.delivery.worker import dispatch_due_impressions
 from ad_bridge.game.placements import placement
 from ad_bridge.game.views import report_impression, reaction_result
 from ad_bridge.impressions import store
-from ad_bridge.impressions.service import report_impression_once
+from ad_bridge.impressions.service import queue_impression
 from ad_bridge.models import IssuedDecision
 from ad_bridge.placements import transfer_token
 from ad_bridge.routing import RoutedAdsClient
@@ -66,10 +66,14 @@ class MediaRoutingTests(TransactionTestCase):
         return decision
 
     def report(self, router, decision):
-        return report_impression_once(
-            client=router, store=store, decision_id=decision.decision_id, owner_id=self.owner,
+        """노출을 대기에 넣고 작업자 한 회차로 보낸다(AB-1 §4.5 — 요청 안에서는 보내지 않음)."""
+        _, created = queue_impression(
+            store=store, decision_id=decision.decision_id, owner_id=self.owner,
             subject_id=self.subject, occurred_at=self.now.isoformat().replace('+00:00', 'Z'),
             now=lambda: self.now)
+        dispatch_due_impressions(client=router, store=store, now=lambda: self.now)
+        record = store.get_impression(decision_id=decision.decision_id, owner_id=self.owner)
+        return SimpleNamespace(record=record, created=created)
 
     def request(self, body=None):
         request = RequestFactory().post('/api/ads/', data=json.dumps(body or {}), content_type='application/json')
@@ -96,7 +100,7 @@ class MediaRoutingTests(TransactionTestCase):
         self.assertEqual(self.clients['portal-test-key'].create_decision.call_count, 2)
         ads = json.loads(portal.content)['ads']
         self.assertEqual(len(ads), 2)
-        self.assertEqual(ads[0]['decision_id'], ads[1]['decision_id'])
+        self.assertNotEqual(ads[0]['decision_id'], ads[1]['decision_id'])
         self.assertNotIn('portal-test-key', portal.content.decode())
 
     def test_impressions_use_saved_slots_and_duplicates_never_send_again(self):
@@ -110,16 +114,30 @@ class MediaRoutingTests(TransactionTestCase):
         self.assertEqual(self.clients['default-test-key'].report_impression.call_count, 2)
         self.assertEqual(self.clients['portal-test-key'].report_impression.call_count, 1)
 
-    def test_impression_and_result_views_use_portal_key(self):
+    def test_impression_and_result_views_never_call_the_ads_server(self):
         decision = self.decision(self.portal)
         with patch.dict(os.environ, self.env), patch('ad_bridge.game.views.AdsConfig.from_env', return_value=self.config):
             sent = report_impression(self.request(), decision.decision_id)
-            result = reaction_result(self.request(), decision.decision_id)
-        self.assertEqual((sent.status_code, result.status_code), (201, 200))
+            again = report_impression(self.request(), decision.decision_id)
+            queued = reaction_result(self.request(), decision.decision_id)
+        self.assertEqual((sent.status_code, again.status_code, queued.status_code), (202, 202, 202))
+        self.assertEqual((json.loads(sent.content), json.loads(again.content)),
+                         ({'state': 'queued', 'duplicate': False}, {'state': 'queued', 'duplicate': True}))
+        for client in self.clients.values():
+            client.report_impression.assert_not_called()
+            client.get_reaction.assert_not_called()
+        self.factory.assert_not_called()
+        # 작업자가 발급 슬롯의 매체 키로 보낸다.
+        router = RoutedAdsClient(self.config, environ=self.env)
+        dispatch_due_impressions(client=router, store=store, now=lambda: datetime.now(timezone.utc))
         self.clients['portal-test-key'].report_impression.assert_called_once()
-        self.clients['portal-test-key'].get_reaction.assert_called_once()
         self.clients['default-test-key'].report_impression.assert_not_called()
-        self.clients['default-test-key'].get_reaction.assert_not_called()
+        with patch.dict(os.environ, self.env):
+            sent_result = reaction_result(self.request(), decision.decision_id)
+        self.assertEqual(sent_result.status_code, 200)
+        self.assertEqual(json.loads(sent_result.content)['delivery_state'], 'ACKNOWLEDGED')
+        for client in self.clients.values():
+            client.get_reaction.assert_not_called()
 
     def test_mixed_retry_batch_keeps_keys_reaction_ids_and_subjects(self):
         router = RoutedAdsClient(self.config, environ=self.env)
@@ -132,6 +150,7 @@ class MediaRoutingTests(TransactionTestCase):
             client.report_impression.reset_mock()
             client.report_impression.side_effect = self.receive
         due = max(result.record.next_attempt_at for result in pending) + timedelta(seconds=1)
+        self.assertEqual({result.record.delivery_state for result in pending}, {'UNCONFIRMED'})
         counts = dispatch_due_impressions(client=router, store=store, now=lambda: due)
         self.assertEqual(counts['acknowledged'], 3)
         for key, client in self.clients.items():

@@ -18,7 +18,7 @@ from ad_bridge.clicks import click_token
 from ad_bridge.decisions.store import remember_decision
 from ad_bridge.delivery.worker import dispatch_due_impressions
 from ad_bridge.impressions import store
-from ad_bridge.impressions.service import report_impression_once
+from ad_bridge.impressions.service import queue_impression
 from ad_bridge.models import Impression
 from ad_bridge.tests.support import shared_decision
 from event_story.models import EventProgress
@@ -70,9 +70,11 @@ class AdAchievementTests(TestCase):
 
 
     def report(self, decision, status=201):
+        # 노출은 대기에 넣고 작업자가 보낸다(AB-1 §4.5).
         self.api._opener.open.side_effect = lambda request, **kwargs: Response(request, status)
-        return report_impression_once(client=self.api, store=store, decision_id=decision.decision_id,
+        queue_impression(store=store, decision_id=decision.decision_id,
             owner_id=self.user.campus_profile.user_uuid, occurred_at='2026-11-04T01:00:00Z')
+        return dispatch_due_impressions(client=self.api, store=store)
 
 
     def test_missing_forged_other_account_and_other_decision_tokens_are_rejected(self):
@@ -120,7 +122,9 @@ class AdAchievementTests(TestCase):
 
     def test_confirmed_impressions_do_not_award(self):
         for status in (200, 201):
-            self.assertEqual(self.report(self.decision(), status).record.delivery_state, 'ACKNOWLEDGED')
+            decision = self.decision()
+            self.report(decision, status)
+            self.assertEqual(Impression.objects.get(decision_id=decision.decision_id).delivery_state, 'ACKNOWLEDGED')
         self.assertEqual(Impression.objects.count(), 2)
         self.assertFalse(EventProgress.objects.exists())
 
@@ -128,10 +132,13 @@ class AdAchievementTests(TestCase):
     def test_impression_worker_retries_do_not_award(self):
         decision = self.decision()
         self.api._opener.open.side_effect = URLError('unreachable')
-        result = report_impression_once(client=self.api, store=store, decision_id=decision.decision_id,
+        queue_impression(store=store, decision_id=decision.decision_id,
             owner_id=self.user.campus_profile.user_uuid, occurred_at='2026-11-04T01:00:00Z')
+        dispatch_due_impressions(client=self.api, store=store)
+        retry = Impression.objects.get()
+        self.assertEqual(retry.delivery_state, 'UNCONFIRMED')
         self.api._opener.open.side_effect = lambda request, **kwargs: Response(request, 200)
-        dispatch_due_impressions(client=self.api, store=store, now=lambda: result.record.next_attempt_at+timedelta(seconds=1))
+        dispatch_due_impressions(client=self.api, store=store, now=lambda: retry.next_attempt_at+timedelta(seconds=1))
         self.assertEqual(Impression.objects.get().delivery_state, 'ACKNOWLEDGED')
         self.assertFalse(EventProgress.objects.exists())
 

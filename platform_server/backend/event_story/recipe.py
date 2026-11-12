@@ -36,7 +36,7 @@ def action(user, data, session_uuid=None):
 
 @learning_write_transaction
 def _write_action(user,data,session_uuid):
-    main.ensure_open()
+    main.ensure_open(user)
     action = data.get('action')
     if action not in ('acquire', 'recognize', 'defer', 'start', 'topping', 'finish'):
         raise LearningError('지원하지 않는 쪽지 요청입니다.')

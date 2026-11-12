@@ -70,6 +70,8 @@ def achievement_snapshot(user):
 
 @transaction.atomic
 def complete_achievement(user, event_id, completed_at, *, started_at=None, session_uuid=None):
+    from campus_control.event_access import snapshot
+    if not snapshot()['open']:return False
     # Every entry point locks the account before the shared egg definition.
     get_user_model().objects.select_for_update().get(pk=user.pk)
     definition = EventDefinition.objects.select_for_update().get(pk=event_id)
@@ -123,6 +125,9 @@ def record_ad_click(user, session_uuid=None):
 
 
 def record_manager_action(user, manager_id, action, session_uuid=None):
+    from campus_control.event_access import snapshot
+    if not snapshot()['open']:
+        return {'achievements': achievement_snapshot(user), 'newly_completed': []}
     required = manager_ids()
     if not isinstance(manager_id, str) or manager_id not in required:
         raise ValueError("매니저 NPC를 확인해 주세요.")
@@ -171,13 +176,15 @@ def record_guide_talk(user, remaining, session_uuid=None):
         get_user_model().objects.select_for_update().get(pk=user.pk)
         if type(remaining) is int and remaining == 1:
             from .game_services import require_open
-            require_open()
+            require_open(user)
         # The global one-winner badge is granted only when the user accepts the
         # hidden last-bite story, not merely by opening the guide dialogue.
     return {"achievements": achievement_snapshot(user), "newly_completed": []}
 
 
 def record_learning_completion(user, lesson, session_uuid=None):
+    from campus_control.event_access import snapshot
+    if not snapshot()['open']:return None
     if (lesson.user_id != user.pk or lesson.completed_at is None or lesson.total_questions != 10
             or lesson.correct_count < 7 or lesson.subject not in ("python", "sql", "cs")):
         return None

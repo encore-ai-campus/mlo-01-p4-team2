@@ -425,7 +425,7 @@ class CampusConsumer(CleanupWebsocketConsumer):
         action_request = data.get("type") in {"input", "move", "control"}
         permitted = data.get("type") == "control" and data.get("action") == "prepare_logout"
         stale = pause['revision'] > 0 and data.get('freezeRevision') != pause['revision']
-        if action_request and not permitted and (pause['paused'] or stale):
+        if action_request and not permitted and (pause.get('blocked',pause['paused']) or stale):
             if data.get('type') == 'control':
                 await self.send_packet({'type': 'control_result', 'requestId': data.get('requestId'),
                                         'error': pause['message'] if pause['paused'] else '이용 상태가 바뀌었어요. 키를 놓고 다시 시도해 주세요.'})
@@ -584,21 +584,23 @@ class CampusConsumer(CleanupWebsocketConsumer):
                     or self.poke_requested or self.poke_started is not None)
 
     async def sync_freeze(self):
-        state = await freeze_state()
-        signature = (state['revision'], state['paused'], state.get('unavailable', False))
+        from campus_control.service import for_user
+        state = for_user(await freeze_state(),getattr(self,'user',None))
+        signature = (state['revision'], state['paused'], state.get('unavailable', False),state['adminBypass'])
         if getattr(self, 'freeze_signature', None) != signature:
             self.freeze_signature = signature
             c = self.controller
-            if c:
+            if c and not state['adminBypass']:
                 c.keys.clear(); c.route = []; c.last_input = -math.inf
                 c.pending_transfer = None; c.classroom_exit_armed = False
                 c.ignore_current_portal()
                 c.pose.update(moving=False, running=False, guarding=False)
                 if c.interior:
                     c.interior['actor'].update(moving=False, running=False, guarding=False)
-            self.poke_requested = False
-            self.poke_input_scope = None
-            await self.stop_poke()
+            if not state['adminBypass']:
+                self.poke_requested = False
+                self.poke_input_scope = None
+                await self.stop_poke()
             await self.send_packet({'type': 'campus_freeze', **state})
         return state
 
@@ -621,13 +623,13 @@ class CampusConsumer(CleanupWebsocketConsumer):
                     if self.player_id not in room.players or self.logout_prepared:
                         return
                     pause = await self.sync_freeze()
-                    events = [] if pause['paused'] else self.controller.tick(seconds, now)
+                    events = [] if pause.get('blocked',pause['paused']) else self.controller.tick(seconds, now)
                     moved = self.pose_changed()
                     if moved:
                         await self.receive_movement({**self.controller.pose, "color": self.state["color"]}, authoritative=True)
                     if self.controller.interior and self.controller.interior["actor"]["moving"]:
                         await self.touch_activity(wait=False)
-                    if not pause['paused']:
+                    if not pause.get('blocked',pause['paused']):
                         await self.tick_poke()
                     sent = await self.send_control_state(only_changes=True)
                     for event in events:
@@ -657,6 +659,9 @@ class CampusConsumer(CleanupWebsocketConsumer):
             if action != "jump" and await self.current_identity() is None:
                 await self.session_expired({"reason": self.policy_status.get("reason", "signed_out")})
                 return
+            if action in {'mission_room_enter','story_access','guide_talk','kkuwang_last_bite'}:
+                from event_story.game_services import require_open
+                await socket_db.run(require_open,self.user)
             self.last_seen = time.monotonic()
             async with self.control_lock:
                 if action == "prepare_logout":
@@ -878,7 +883,7 @@ class CampusConsumer(CleanupWebsocketConsumer):
             return {"eligible": False}
         def claim_state():
             from event_story.game_services import require_open
-            require_open()
+            require_open(self.user)
             already_claimed = EventProgress.objects.filter(
                 event_id=FRAGILE_ID, status=EventProgress.Status.COMPLETED,
             ).exists()
@@ -1169,6 +1174,7 @@ class CampusConsumer(CleanupWebsocketConsumer):
         user = get_user(SimpleNamespace(session=store))
         if not user.is_authenticated or not user.is_active or user.pk != self.user.pk:
             return None
+        self.user=user
         return user
 
     async def store_position(self, position, observed_at, transfer_from=None):

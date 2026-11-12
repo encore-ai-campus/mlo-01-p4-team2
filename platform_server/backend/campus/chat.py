@@ -114,9 +114,9 @@ class ChatConsumer(CleanupWebsocketConsumer):
             await self.receive_chat(data)
 
     async def receive_chat(self, data):
-        from campus_control.service import async_state
-        pause = await async_state()
-        if pause["paused"]:
+        from campus_control.service import async_state,for_user
+        pause = for_user(await async_state(),getattr(self,"user",None))
+        if pause["blocked"]:
             await self.chat_error(pause["message"])
             return
         text = data.get("text")
@@ -182,6 +182,7 @@ class ChatConsumer(CleanupWebsocketConsumer):
         if not user.is_authenticated or not user.is_active or user.pk != self.user.pk:
             return None
         self.platform_session_uuid = store.get(SESSION_KEY)
+        self.user=user
         return get_identity(user)
 
     def store_chat(self, text, floor):

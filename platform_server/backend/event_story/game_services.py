@@ -23,11 +23,11 @@ class GameError(Exception):
         super().__init__(message)
 
 
-def require_open():
+def require_open(user=None):
     from .main import ensure_open
     from learning.services import LearningError
     try:
-        ensure_open()
+        ensure_open(user)
     except LearningError as error:
         raise GameError(str(error), error.status) from error
 
@@ -52,7 +52,7 @@ def active_session(user, session_id):
 
 @transaction.atomic
 def start_game(user, code, session_id):
-    require_open()
+    require_open(user)
     get_user_model().objects.select_for_update().get(pk=user.pk)
     if code not in CONFIGS:
         raise GameError("지원하는 게임을 확인해 주세요.")
@@ -109,7 +109,7 @@ def finish_game(user, play_id, session_id, data):
 
 @transaction.atomic
 def _finish_game(user,play_id,session_id,data):
-    require_open()
+    require_open(user)
     if not isinstance(data, dict) or set(data) not in ({"duration_ms", "status"}, {"duration_ms", "status", "picks"}):
         raise GameError("게임 결과 형식을 확인해 주세요.")
     status, duration = data["status"], data["duration_ms"]

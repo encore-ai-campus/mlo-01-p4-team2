@@ -112,19 +112,17 @@ def _initialize_catalog():
     EventDefinition.objects.filter(pk=uid('4'),game__isnull=True).update(game=touch)
 
 def window():
-    now=timezone.now().astimezone(TZ)
-    preview=bool(settings.DEBUG and settings.EVENT_STORY_PREVIEW)
-    phase='before' if now<datetime(2026,11,9,8,30,tzinfo=TZ) else 'closed' if now>=datetime(2026,11,11,22,tzinfo=TZ) else 'open'
-    slots=[('08:30','09:00'),('09:50','10:00'),('10:50','11:00'),('11:50','12:00'),('12:50','14:00'),('14:50','15:00'),('15:50','16:00'),('16:50','17:00'),('17:50','22:00')]
-    if phase=='open' and not any(time.fromisoformat(a)<=now.time().replace(tzinfo=None)<time.fromisoformat(b) for a,b in slots): phase='class'
-    return dict(phase='open' if preview else phase,preview=preview,end=datetime(2026,11,11,22,tzinfo=TZ).isoformat())
+    from campus_control.event_access import snapshot
+    return snapshot()
 
-def ensure_open():
-    from campus_control.service import read_state
-    if read_state(force=True).get('paused'):
+
+def ensure_open(user=None):
+    from campus_control.service import read_state,admin_exempt
+    if read_state(force=True).get('paused') and not admin_exempt(user):
         raise LearningError('강의 중에는 미니게임을 진행할 수 없습니다.','campus_frozen',423)
-    if window()['phase']!='open':
-        raise LearningError('현재 이벤트 이용 시간이 아닙니다. 저장된 진행은 보존됩니다.', 'event_blocked', 423)
+    state=window()
+    if not state['open']:
+        raise LearningError(state['message'], 'event_blocked', 423)
 
 def done(user, code):
     return EventProgress.objects.filter(user=user,event_id=uid(code),status='COMPLETED').exists()
@@ -154,6 +152,7 @@ def room1_briefed(user):
 
 def recover_finished_challenge(user):
     """Existing validated full rounds also satisfy the now-enabled fourth stage."""
+    if not window()['open']:return
     completed=set(EventProgress.objects.filter(user=user,event_id__in=[uid('3'),uid('4')],status='COMPLETED').values_list('event_id',flat=True))
     if uid('3') not in completed or uid('4') in completed:return
     _recover_finished_challenge(user)
@@ -233,7 +232,7 @@ def _action(user,data,session_uuid):
         p,_=StoryProgress.objects.get_or_create(user=user,event_key='pepero-2026-ui-notices')
         _,created=StoryRecord.objects.get_or_create(progress=p,key=timezone.now().astimezone(TZ).date().isoformat(),defaults={'kind':'daily_notice'})
         return dict(show_notice=created)
-    ensure_open()
+    ensure_open(user)
     if a=='investigate':
         verify(user,data.get('ticket'),'investigate')
         first=not done(user,'1');complete_now(user,'1',session_uuid)

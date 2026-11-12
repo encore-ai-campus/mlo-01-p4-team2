@@ -1,5 +1,5 @@
 from django.http import JsonResponse
-from .service import read_state
+from .service import read_state, admin_exempt
 
 
 class CampusFreezeMiddleware:
@@ -11,7 +11,7 @@ class CampusFreezeMiddleware:
         if request.path.startswith(('/api/campus/freeze/', '/accounts/', '/api/accounts/', '/static/')):
             return self.get_response(request)
         guarded = request.path.startswith(('/api/', '/content/', '/learning/'))
-        if guarded and request.user.is_authenticated:
+        if guarded and request.user.is_authenticated and not admin_exempt(request.user):
             state = read_state()
             if state['paused']:
                 response = JsonResponse({'error': state['message'], 'code': 'campus_frozen',

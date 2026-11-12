@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "checkpoint_epoch": 3,
+  "max_len": 1024,
+  "gpu_inference_verified": true,
+  "gpu_scores_identical_to_original": true,
+  "cpu_inference_verified": true,
+  "cpu_and_gpu_labels_match": true,
+  "cpu_gpu_max_score_difference": 0.0010111996821268732,
+  "markdown_cleaner_matches_training": true,
+  "model_hashes_match_source": true,
+  "dependency_installation_in_fresh_environment_tested": false,
+  "desktop_entrypoint_verified": true,
+  "desktop_scores_identical_to_original": true
+}

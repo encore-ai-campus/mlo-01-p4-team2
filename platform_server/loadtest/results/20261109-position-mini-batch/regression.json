@@ -1,0 +1,17 @@
+{
+  "base_commit": "617e9b8",
+  "tests": 62,
+  "status": "passed",
+  "seconds": 19.888,
+  "maximum_state_gap_ms_with_one_second_storage_delay": 49.17204100638628,
+  "database": "disposable local PostgreSQL 17.7",
+  "test_modules": [
+    "tests.test_position_batch",
+    "campus.test_positions.PositionStorageTests",
+    "campus.test_load_reduction",
+    "campus.test_socket_cleanup",
+    "campus.test_movement_work",
+    "campus_control.test_movement_cache"
+  ],
+  "full_mixed_load_rerun_on_pr_base": false
+}

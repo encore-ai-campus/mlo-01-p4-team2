@@ -12,6 +12,7 @@ from accounts.models import Profile
 
 FLOOR_BOUNDS = {"campus": (2448, 1230), "rooftop": (2448, 1800)}
 DIRECTIONS = {"up", "down", "left", "right"}
+POSITION_BATCH_SIZE = 10
 # Just inside the 18F external entrance (dist/map-data.js, scaled by 1.5).
 DEFAULT_POSITION = {"floor": "campus", "x": 1998.75, "y": 910.5, "dir": "up"}
 
@@ -54,6 +55,10 @@ def movement_event_due_at(user):
     """When the stored unsent movement sample may become an outbox event, or None if none is pending."""
     from accounts.models import Position
     record = Position.objects.filter(profile__user=user).first()
+    return _movement_event_due_at(record)
+
+
+def _movement_event_due_at(record):
     if record is None or not record.movement_event_pending:
         return None
     if record.last_movement_event_at is None:
@@ -112,23 +117,70 @@ def save_position(user, data, observed_at=None, *, session_uuid=None):
         profile, _ = Profile.objects.get_or_create(user=user, defaults={"nickname": user.get_username()[:20]})
         Profile.objects.select_for_update().get(pk=profile.pk)
         record, _ = Position.objects.get_or_create(profile=profile)
-        now = timezone.now()
-        previous = safe_position(record.last_position) or DEFAULT_POSITION
-        # Facing is useful on resume, but isn't a movement observation.
-        moved = any(previous[key] != position[key] for key in ("floor", "x", "y"))
-        # Stale or repeated snapshots never overwrite the accepted position.
-        updated = record.last_position_at is None or record.last_position_at < observed_at
-        fields = []
-        if updated:
-            record.last_position, record.last_position_at = position, observed_at
-            fields.extend(("last_position", "last_position_at"))
-            if moved and session_uuid is not None:
-                record.movement_event_pending = {
-                    "position": position, "observed_at": observed_at.isoformat(), "session_uuid": str(session_uuid),
-                }
-                fields.append("movement_event_pending")
-        if _emit_pending_movement(user, record, now):
-            fields.extend(("last_movement_event_at", "movement_event_pending"))
+        updated, fields = _apply_position(user, record, position, observed_at, session_uuid)
         if fields:
             record.save(update_fields=set(fields))
     return updated
+
+
+def _apply_position(user, record, position, observed_at, session_uuid):
+    now = timezone.now()
+    previous = safe_position(record.last_position) or DEFAULT_POSITION
+    # Facing is useful on resume, but isn't a movement observation.
+    moved = any(previous[key] != position[key] for key in ("floor", "x", "y"))
+    # Stale or repeated snapshots never overwrite the accepted position.
+    updated = record.last_position_at is None or record.last_position_at < observed_at
+    fields = []
+    if updated:
+        record.last_position, record.last_position_at = position, observed_at
+        fields.extend(("last_position", "last_position_at"))
+        if moved and session_uuid is not None:
+            record.movement_event_pending = {
+                "position": position, "observed_at": observed_at.isoformat(), "session_uuid": str(session_uuid),
+            }
+            fields.append("movement_event_pending")
+    if _emit_pending_movement(user, record, now):
+        fields.extend(("last_movement_event_at", "movement_event_pending"))
+    return updated, fields
+
+
+def save_positions(rows):
+    """Save up to ten authenticated users; preserve the individual writer's locks and event rules."""
+    from accounts.models import Position
+
+    if len(rows) > POSITION_BATCH_SIZE:
+        raise ValueError("A position batch cannot exceed ten users")
+    latest = {}
+    for user, data, observed_at, session_uuid in rows:
+        position = safe_position(data)
+        if not user.is_authenticated or not user.is_active or position is None:
+            continue
+        observed_at = observed_at or timezone.now()
+        if user.pk not in latest or latest[user.pk][2] < observed_at:
+            latest[user.pk] = (user, position, observed_at, session_uuid)
+    if not latest:
+        return {}
+    with transaction.atomic():
+        # Every position writer locks Profile; one stable order also prevents overlapping batches deadlocking.
+        profiles = list(Profile.objects.select_for_update().filter(pk__in=latest).order_by("pk"))
+        records = Position.objects.in_bulk(latest)
+        if len(profiles) == len(latest) and len(records) == len(latest):
+            changed = []
+            due = {}
+            for key, (user, position, observed_at, session_uuid) in latest.items():
+                record = records[key]
+                _, fields = _apply_position(user, record, position, observed_at, session_uuid)
+                if fields:
+                    changed.append(record)
+                due[key] = _movement_event_due_at(record)
+            if changed:
+                Position.objects.bulk_update(changed, (
+                    "last_position", "last_position_at", "last_movement_event_at", "movement_event_pending",
+                ), batch_size=POSITION_BATCH_SIZE)
+            return due
+    # Legacy accounts can lack a profile or position. Release all batch locks before using the existing repair path.
+    due = {}
+    for key, (user, position, observed_at, session_uuid) in latest.items():
+        save_position(user, position, observed_at, session_uuid=session_uuid)
+        due[key] = movement_event_due_at(user)
+    return due

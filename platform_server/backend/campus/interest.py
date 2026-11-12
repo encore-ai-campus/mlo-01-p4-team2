@@ -33,11 +33,21 @@ class InterestView:
     def __init__(self):
         self.visible = set()
         self.identities = {}
+        self.observer_key = None
 
-    def packet(self, index, observer, changed, compact=True, overview=False):
-        visible = set()
+    def packet(self, index, observer, changed, compact=True, overview=False, reconcile=False):
+        # A stationary viewer only needs distances checked for changed actors.
+        # Moving viewers and roster changes still discover stationary neighbours.
+        key = (observer['id'], observer.get('floor', 'campus'), observer['x'], observer['y'],
+               bool(observer.get('inClassroom')), overview)
+        refresh = reconcile or key != self.observer_key
+        visible = set() if refresh else (self.visible - changed) & index.states.keys()
         if not observer.get('inClassroom'):
-            for state in index.candidates(observer, overview):
+            candidates = (index.candidates(observer, overview) if refresh else
+                          (state for pid in changed if (state := index.states.get(pid)) is not None
+                           and state.get('floor', 'campus') == observer.get('floor', 'campus')
+                           and not state.get('inClassroom')))
+            for state in candidates:
                 pid = state['id']
                 if pid == observer['id']:
                     continue
@@ -57,6 +67,7 @@ class InterestView:
         for pid in hidden:
             self.identities.pop(pid, None)
         self.visible = visible
+        self.observer_key = key
         packet = {'type': 'moves', 'players': rows}
         if hidden:
             packet['hidden'] = sorted(hidden)

@@ -26,6 +26,9 @@ def seed_definitions():
     import_module("event_story.migrations.0007_ad_impression_achievement").seed(apps, SimpleNamespace(connection=connection))
     import_module("event_story.migrations.0009_term_match_achievement").seed(apps, SimpleNamespace(connection=connection))
     import_module("event_story.migrations.0013_fragile_pepero_achievement").seed(apps, SimpleNamespace(connection=connection))
+    import_module("event_story.migrations.0015_kkuwang_pepero_hit").seed(apps, SimpleNamespace(connection=connection))
+    from campus_control.models import EventAccessState
+    EventAccessState.objects.update_or_create(pk=1, defaults={"mode": "OPEN"})
 
 
 class ManagerAchievementTests(TestCase):
@@ -44,7 +47,7 @@ class ManagerAchievementTests(TestCase):
             "manager-yeongseok", "manager-jeonghun",
         })
         snapshot = achievement_snapshot(self.alice)
-        self.assertEqual([row["name"] for row in snapshot], ["수상한 친화력", "참을성 테스트", "뱀을 길들이는 자", "데이터의 비밀문", "찰나의 기적", "손가락에 불났다", "부서지기 직전", "컴퓨터의 속마음", "꾸왕이의 비밀 레시피", "시선 강탈 사건", "기억력 도둑"])
+        self.assertEqual([row["name"] for row in snapshot], ["수상한 친화력", "참을성 테스트", "뱀을 길들이는 자", "데이터의 비밀문", "찰나의 기적", "손가락에 불났다", "부서지기 직전", "컴퓨터의 속마음", "꾸왕이의 비밀 레시피", "한 입 달랬지, 한 대 달랬니?", "기억력 도둑"])
         self.assertTrue(all(not row["achieved"] and row["completed_at"] is None for row in snapshot))
         self.assertTrue(all(row["image_url"].startswith("/static/campus/assets/achievements/") for row in snapshot))
         fragile = next(row for row in snapshot if row["event_uuid"] == str(FRAGILE_ID))

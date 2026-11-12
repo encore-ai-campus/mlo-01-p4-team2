@@ -23,6 +23,7 @@ from config.dberrors import is_transient
 from eventing.events import ensure_platform_session, record_floor_transfer, touch_platform_session
 from event_story.achievement_services import record_manager_action, record_guide_talk
 from event_story.game_services import GameError, start_game
+from learning.services import LearningError
 from . import cluster, session_registry, poke, socket_db
 from campus_control.service import movement_state as freeze_state
 from .interest import InterestView, SpatialIndex
@@ -426,7 +427,7 @@ class CampusConsumer(CleanupWebsocketConsumer):
             return
         pause = await self.sync_freeze()
         action_request = data.get("type") in {"input", "move", "control"}
-        permitted = data.get("type") == "control" and data.get("action") == "prepare_logout"
+        permitted = data.get("type") == "control" and data.get("action") in {"prepare_logout", "achievement_ui_ready"}
         stale = pause['revision'] > 0 and data.get('freezeRevision') != pause['revision']
         if action_request and not permitted and (pause.get('blocked',pause['paused']) or stale):
             if data.get('type') == 'control':
@@ -667,6 +668,11 @@ class CampusConsumer(CleanupWebsocketConsumer):
                 await socket_db.run(require_open,self.user)
             self.last_seen = time.monotonic()
             async with self.control_lock:
+                if action == "achievement_ui_ready":
+                    self.kkuwang_hit_ui_ready = arguments == {'version': 'kkuwang-hit-v1'}
+                    await self.send_packet({'type': 'control_result', 'requestId': request_id,
+                                            'result': {'ready': self.kkuwang_hit_ui_ready}})
+                    return
                 if action == "prepare_logout":
                     result = await self.prepare_logout()
                     await self.send_packet({"type": "control_result", "requestId": request_id, "result": result})
@@ -874,6 +880,37 @@ class CampusConsumer(CleanupWebsocketConsumer):
         if await self.current_identity() is not None:
             await self.send_packet({'type': 'achievement_update', **event['result']})
 
+    def kkuwang_hit_now(self):
+        from event_story.achievement_services import record_kkuwang_hit
+        user = self.session_user()
+        return record_kkuwang_hit(user, self.platform_session_uuid) if user is not None else None
+
+    async def record_kkuwang_hit(self, hit):
+        if (not hit or self.controller.interior or self.controller.pending_transfer
+                or self.controller.pose['floor'] != 'campus' or getattr(self, 'kkuwang_hit_resolved', False)):
+            return
+        if not getattr(self, 'kkuwang_hit_ui_ready', False):
+            if not getattr(self, 'kkuwang_hit_refresh_notified', False):
+                self.kkuwang_hit_refresh_notified = True
+                await self.send_packet({'type': 'control_error', 'message': '새 업적을 받으려면 페이지를 새로고침해 주세요.'})
+            return
+        try:
+            result = await socket_db.run(self.kkuwang_hit_now)
+        except LearningError as error:
+            if error.status == 401:
+                await self.session_expired({'reason': 'signed_out'})
+            else:
+                await self.send_packet({'type': 'control_error', 'message': str(error)})
+            return
+        except DatabaseError:
+            logging.getLogger(__name__).exception('Could not save a Kkuwang hit')
+            await self.send_packet({'type': 'control_error', 'message': '명중 업적을 저장하지 못했어요. 다시 시도해 주세요.'})
+            return
+        if result is None:
+            await self.session_expired({'reason': 'signed_out'})
+            return
+        self.kkuwang_hit_resolved = result['resolved']
+
     async def kkuwang_last_bite(self, arguments):
         from event_story.achievement_services import FRAGILE_ID, complete_global_achievement, achievement_snapshot
         from event_story.models import EventProgress
@@ -1002,6 +1039,7 @@ class CampusConsumer(CleanupWebsocketConsumer):
             await self.send_poke_to(self.poke_audience(expected), packet)
         # Database work must not hold the room-wide movement lock.
         await self.record_manager_poke(manager_id)
+        await self.record_kkuwang_hit(target_id == 'campus-guide-kkuwang' and pepero_effect['peperoBefore'] > 0 and not blocked)
         return {"type": "poke", "hit": target_id is not None and not blocked, "blocked": blocked}
 
     def current_poke_scope(self):
@@ -1069,6 +1107,7 @@ class CampusConsumer(CleanupWebsocketConsumer):
         self.poke_direction = direction
         self.last_poke = now
         manager_id = None
+        kkuwang_hit = False
         async with room.lock:
             if self.player_id not in room.players:
                 await self.stop_poke()
@@ -1091,11 +1130,13 @@ class CampusConsumer(CleanupWebsocketConsumer):
                 blocked=bool(next((target for target in targets if target.get("id")==target_id),{}).get("guarding"))
                 manager_id = active_world.objects.get(target_id, {}).get("managerId",target_id) if self.pepero_remaining > 0 and not blocked and active_world.objects.get(target_id, {}).get("action") == "manager_greet" else None
                 pepero_effect = await self.spend_pepero(target_id, blocked)
+                kkuwang_hit = target_id == 'campus-guide-kkuwang' and pepero_effect['peperoBefore'] > 0 and not blocked
                 await self.send_poke_to(audience, {
                     **pepero_effect, "remaining": self.pepero_remaining, "type": "poke_hit", "id": uuid4().hex, "actorId": self.player_id,
                     "targetId": target_id, "dir": direction, "floor": self.state["floor"], "blocked":blocked, **scope,
                 })
         await self.record_manager_poke(manager_id)
+        await self.record_kkuwang_hit(kkuwang_hit)
 
     async def touch_activity(self, wait=True):
         now = time.monotonic()

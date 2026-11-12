@@ -20,10 +20,10 @@ function fixture(){
   showModal(){this.open=true;},close(){this.open=false;this.handlers.close?.();},
  };}
  const get=id=>{if(!elements.has(id))elements.set(id,element());return elements.get(id);};
- const window={location:{origin:'http://campus.test'},addEventListener:(name,fn)=>listeners.set(name,fn)};
+ const window={dispatchEvent(event){listeners.get(event.type)?.(event);},location:{origin:'http://campus.test'},addEventListener:(name,fn)=>listeners.set(name,fn)};
  const document={baseURI:'http://campus.test/static/campus/',getElementById:get,createElement:element};
  const fetch=(url,options)=>new Promise((resolve,reject)=>requests.push({url,options,resolve,reject}));
- vm.runInNewContext(source,{window,document,fetch,URL,AbortController,
+ vm.runInNewContext(source,{window,document,fetch,URL,AbortController,Event,
   setTimeout(fn,ms){const id={};timers.set(id,{fn,ms});return id;},clearTimeout:id=>timers.delete(id)});
  const api=window.CampusAchievements.create({isBlocked:()=>blocked,onOpen(){opens++;},onClose(){closes++;}});
  const flush=()=>new Promise(resolve=>setImmediate(resolve));
@@ -151,11 +151,11 @@ test('CS and three-subject achievements queue both earned notices once',async()=
 
 test('the advertising badge is optional during rollout and joins the existing notice flow',async()=>{
  const f=fixture();await f.respond();assert.equal(f.get('achievementsList').children.length,9);
- const ad={event_uuid:'ad',name:'시선 강탈 사건',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/ad-impression.png'};
+ const ad={event_uuid:'ad',name:'한 입 달랬지, 한 대 달랬니?',achieved:false,completed_at:null,image_url:'/static/campus/assets/achievements/fragile-pepero-v1.webp'};
  f.update([...rows(),ad]);assert.equal(f.get('achievementsList').children.length,10);
  f.update([...rows(),{...ad,achieved:true,completed_at:'2026-11-04T00:00:00Z'}]);f.runTimer(0);
- assert.equal(f.get('achievementNoticeName').textContent,'시선 강탈 사건');
- assert.match(f.get('achievementNoticeImage').src,/ad-impression.png$/);
+ assert.equal(f.get('achievementNoticeName').textContent,'한 입 달랬지, 한 대 달랬니?');
+ assert.match(f.get('achievementNoticeImage').src,/fragile-pepero-v1.webp$/);
 });
 
 test('term pairing renders the supplied badge and announces its first completion',async()=>{

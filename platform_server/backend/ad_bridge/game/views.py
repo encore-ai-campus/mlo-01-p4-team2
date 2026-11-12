@@ -101,10 +101,7 @@ def request_decision(request):
 @login_required
 @require_POST
 def report_click(request, decision_id):
-    """폼을 제출한 새 탭은 업적 저장이 끝난 뒤 광고 서버로 이동한다."""
-    from event_story.achievement_services import record_ad_click
-    from eventing.events import SESSION_KEY
-    from learning.services import LearningError
+    """로그인 계정에 발급한 광고를 확인한 뒤 새 탭을 광고 서버로 이동한다."""
     from ..models import IssuedDecision
 
     try:
@@ -118,14 +115,11 @@ def report_click(request, decision_id):
         if not known:
             return HttpResponse('광고를 확인할 수 없습니다. 게임 화면에서 광고를 다시 눌러 주세요.',
                                 status=404, content_type='text/plain; charset=utf-8')
-        record_ad_click(request.user, request.session.get(SESSION_KEY))
     except (signing.BadSignature, ValueError):
         return HttpResponse('광고 링크를 확인할 수 없습니다. 게임 화면에서 광고를 다시 눌러 주세요.',
                             status=400, content_type='text/plain; charset=utf-8')
-    except LearningError as error:
-        return HttpResponse(str(error), status=error.status, content_type='text/plain; charset=utf-8')
     except DatabaseError:
-        return HttpResponse('업적 저장을 확인하지 못했습니다. 게임 화면에서 광고를 다시 눌러 주세요.',
+        return HttpResponse('광고를 확인하지 못했습니다. 게임 화면에서 광고를 다시 눌러 주세요.',
                             status=503, content_type='text/plain; charset=utf-8')
     return HttpResponseRedirect(target, status=303, headers={'Referrer-Policy': 'no-referrer'})
 

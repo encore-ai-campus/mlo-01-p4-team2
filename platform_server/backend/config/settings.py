@@ -108,6 +108,22 @@ if DATABASE_ENGINE in {"postgresql", "postgres", "pgsql"}:
     if pool_max_size:
         DATABASES["default"]["OPTIONS"]["pool"] = {"min_size": 1, "max_size": pool_max_size}
         DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
+    # Only explicitly selected community reads use this alias; no global read router.
+    # Its endpoint must target replicas, never the write endpoint.
+    if os.environ.get("POSTGRES_READ_HOST", "").strip():
+        from copy import deepcopy
+        DATABASES["community_read"] = deepcopy(DATABASES["default"])
+        _read = DATABASES["community_read"]
+        _read.update(
+            HOST=os.environ["POSTGRES_READ_HOST"].strip(),
+            PORT=os.environ.get("POSTGRES_READ_PORT", "5432"),
+            USER=os.environ.get("POSTGRES_READ_USER") or _read["USER"],
+            PASSWORD=os.environ.get("POSTGRES_READ_PASSWORD") or _read["PASSWORD"],
+        )
+        _read["OPTIONS"]["options"] += " -c default_transaction_read_only=on -c statement_timeout=5s"
+        if pool_max_size:
+            _read["OPTIONS"]["pool"] = {"min_size": 0, "max_size": int(os.environ.get("POSTGRES_READ_POOL_MAX_SIZE", "5"))}
+        _read["TEST"] = {"MIRROR": "default"}
 elif DATABASE_ENGINE == "mysql":
     DATABASES = {"default": {
         "ENGINE": "django.db.backends.mysql",

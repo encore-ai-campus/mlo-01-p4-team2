@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from campus.motion import geometry, mission_geometry
 from eventing.events import enqueue_event, record_progress_completed
-from learning.services import active_platform_session
+from learning.services import LearningError, active_platform_session
 from .models import EventDefinition, EventProgress, ManagerInteraction
 
 
@@ -23,7 +23,7 @@ SQL_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd111")
 TIMER_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd108")
 TYPING_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd109")
 RECIPE_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd103")
-AD_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd104")
+KKUWANG_HIT_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd104")
 MEMORY_ID = UUID("c7024a2d-9f1a-46c2-b7c5-99fe57afd110")
 ACHIEVEMENT_IMAGES = {
     GREETING_ID: "/static/campus/assets/achievements/manager-greeting.png",
@@ -35,7 +35,7 @@ ACHIEVEMENT_IMAGES = {
     FRAGILE_ID: "/static/campus/assets/achievements/fragile-pepero-v1.webp",
     CS_ID: "/static/campus/assets/achievements/cs-intermediate.png",
     RECIPE_ID: "/static/campus/assets/achievements/secret-recipe.png",
-    AD_ID: "/static/campus/assets/achievements/ad-impression.png",
+    KKUWANG_HIT_ID: "/static/campus/assets/achievements/fragile-pepero-v1.webp",
     MEMORY_ID: "/static/campus/assets/achievements/term-match.png",
 }
 
@@ -99,8 +99,8 @@ def complete_global_achievement(user, event_id, completed_at, *, started_at=None
     return complete_achievement(user, event_id, completed_at, started_at=started_at, session_uuid=session_uuid)
 
 
-def record_ad_click(user, session_uuid=None):
-    """검증한 광고 클릭으로 기존 업적을 저장하고 저장 후 게임 탭에 알린다."""
+def record_kkuwang_hit(user, session_uuid=None):
+    """서버가 확인한 빼빼로 명중을 저장하고 커밋 후 획득 계정에만 알린다."""
     from accounts.models import ActiveLogin
     from asgiref.sync import async_to_sync
     from channels.layers import get_channel_layer
@@ -109,11 +109,14 @@ def record_ad_click(user, session_uuid=None):
     with transaction.atomic():
         user = get_user_model().objects.select_for_update().filter(pk=user.pk, is_active=True).first()
         if user is None:
-            raise ValueError('다시 로그인해 주세요.')
+            raise LearningError('다시 로그인해 주세요.', 'authentication_required', 401)
         newly_completed = []
-        if complete_achievement(user, AD_ID, timezone.now(), session_uuid=session_uuid):
-            newly_completed.append(str(AD_ID))
-        result = {'achievements': achievement_snapshot(user), 'newly_completed': newly_completed}
+        if complete_achievement(user, KKUWANG_HIT_ID, timezone.now(), session_uuid=session_uuid):
+            newly_completed.append(str(KKUWANG_HIT_ID))
+        completed = EventProgress.objects.filter(status=EventProgress.Status.COMPLETED)
+        resolved = bool(newly_completed) or completed.filter(event_id=KKUWANG_HIT_ID).exists() or completed.filter(
+            user=user, event__event_type='EASTER_EGG').exists()
+        result = {'achievements': achievement_snapshot(user), 'newly_completed': newly_completed, 'resolved': resolved}
         key = ActiveLogin.objects.filter(user=user).values_list('session_key', flat=True).first()
         if newly_completed and key:
             def notify():

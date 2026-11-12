@@ -113,7 +113,7 @@
         publish(performance.now(),true);
       }
       function command(action,data={}) {
-        if(window.CampusFreeze?.blocking&&action!=='prepare_logout')return Promise.reject(new Error('캠퍼스 이용이 일시정지되어 있어요.'));
+        if(window.CampusFreeze?.blocking&&!['prepare_logout','achievement_ui_ready'].includes(action))return Promise.reject(new Error('캠퍼스 이용이 일시정지되어 있어요.'));
         if(!ready||socket?.readyState!==WebSocket.OPEN)return Promise.reject(new Error('연결된 뒤 이용해 주세요.'));
         const requestId=String(++sequence);
         return new Promise((resolve,reject)=>{
@@ -125,6 +125,13 @@
       function rejectPending() {
         for(const {reject,timer} of pending.values()){clearTimeout(timer);reject(new Error('연결이 끊겼어요. 다시 연결해 주세요.'));}
         pending.clear();inputKeys=[];lastInput='';poking=false;pokeContext=null;player.moving=false;player.running=false;player.guarding=false;
+      }
+      function prepareHitAchievement() {
+        if(!ready||window.CampusAchievements?.hitVersion!=='kkuwang-hit-v1')return;
+        const current=socket;
+        command('achievement_ui_ready',{version:'kkuwang-hit-v1'}).catch(()=>{
+          setTimeout(()=>{if(current===socket&&!closed)prepareHitAchievement();},1000);
+        });
       }
       function acceptSelf(p) {
         if(!validPeer(p)||p.id!==selfId)return;
@@ -175,6 +182,7 @@
             if(validPeer(own)){onRestore(own);acceptSelf(own);}
             for (const p of message.players) upsert(p);
             ready = true; retryDelay = 1000; lastSent = -Infinity; lastInput = ''; authChecked = false;
+            prepareHitAchievement();
             updateRoster(); publish(performance.now());
             if (!chatSocket) connectChat();
             clearInterval(heartbeat);
@@ -352,6 +360,7 @@
         socket = chatSocket = null;selfId = null;
         previous?.close(1000);previousChat?.close(1000);
       }
+      window.addEventListener('campus:achievement-ui-ready',prepareHitAchievement);
       window.addEventListener('pagehide', close);
       window.addEventListener('pageshow', event => {
         if (event.persisted) {closed = false; connect();}

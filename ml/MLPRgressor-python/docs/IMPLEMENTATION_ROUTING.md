@@ -124,6 +124,6 @@ FAIL이면 해당 문서만 수정하고 같은 검토자에게 재검토받는�
 | DF 전체 문서 | PASS | `reviews/DF-final-docs.md` |
 | CP01 구현 | PASS: 코드 검토·검증·테스트18개 | `reviews/CP01-code.md`, `reviews/CP01-validation.md` |
 | CP02 구현 | PASS: 코드 검토·검증·테스트34개 | `reviews/CP02-code.md`, `reviews/CP02-validation.md` |
-| CP03 구현 | 후속 체크포인트 커밋에 반영 예정 | 로컬 검토·검증 완료본 |
+| CP03 구현 | PASS: 코드 검토·검증·테스트45개 | `reviews/CP03-code.md`, `reviews/CP03-validation.md` |
 | CP04 구현 | 후속 체크포인트 커밋에 반영 예정 | 로컬 검토·검증 완료본 |
 | IF 전체 구현 | 최종 체크포인트 커밋에 기록 반영 예정 | 로컬 독립 최종 검토 완료 |

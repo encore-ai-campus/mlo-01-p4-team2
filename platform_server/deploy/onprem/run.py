@@ -6,6 +6,7 @@ from pathlib import Path
 import shutil
 import signal
 import socket
+import stat
 import subprocess
 import sys
 import time
@@ -40,6 +41,32 @@ def parse_args(argv=None):
     return options
 
 
+def check_password_file(env):
+    """Without POSTGRES_PASSWORD Django sends no password and libpq reads it from PGPASSFILE.
+
+    Fail at startup rather than at the first query: the file must be mode 0600, owned by the user
+    running this launcher (libpq in every child reads it as that user), and hold a
+    host:port:database:user line equal to the connection settings. Nothing from the file is printed.
+    """
+    path = Path(env["PGPASSFILE"].strip()).expanduser().resolve()
+    try:
+        status = path.stat()
+        lines = path.read_text().splitlines()
+    except OSError as error:
+        raise ValueError(f"PGPASSFILE cannot be read by this user ({type(error).__name__}); "
+                         "run the launcher as the file owner") from None
+    if status.st_uid != os.geteuid():
+        raise ValueError("PGPASSFILE must be owned by the user running the launcher")
+    if stat.S_IMODE(status.st_mode) != 0o600:
+        raise ValueError(f"PGPASSFILE must be mode 0600, not {stat.S_IMODE(status.st_mode):04o}")
+    wanted = [env["POSTGRES_HOST"].strip(), (env.get("POSTGRES_PORT") or "5432").strip(),
+              env["POSTGRES_DB"].strip(), env["POSTGRES_USER"].strip()]
+    entries = (line.split(":", 4) for line in lines if not line.startswith("#"))
+    if not any(len(fields) == 5 and fields[:4] == wanted and fields[4] for fields in entries):
+        raise ValueError("PGPASSFILE has no line for POSTGRES_HOST:POSTGRES_PORT:POSTGRES_DB:POSTGRES_USER")
+    env["PGPASSFILE"] = str(path)
+
+
 def load_environment(env_file):
     from dotenv import dotenv_values
 
@@ -49,13 +76,17 @@ def load_environment(env_file):
     required = (
         "DJANGO_SECRET_KEY", "FRONTEND_SECRET_KEY", "DJANGO_ALLOWED_HOSTS",
         "FRONTEND_ALLOWED_HOSTS", "DJANGO_CSRF_TRUSTED_ORIGINS", "POSTGRES_HOST",
-        "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD",
+        "POSTGRES_DB", "POSTGRES_USER",
         "CAMPUS_MOVEMENT_REDIS_URL", "CAMPUS_SERVICE_REDIS_URL",
     )
     missing = [key for key in required if not (env.get(key) or "").strip()]
+    if not any((env.get(key) or "").strip() for key in ("POSTGRES_PASSWORD", "PGPASSFILE")):
+        missing.append("POSTGRES_PASSWORD (or PGPASSFILE)")
     if missing:
         raise ValueError("Missing environment variables: " + ", ".join(missing))
     env = {key: value for key, value in env.items() if value is not None}
+    if not env.get("POSTGRES_PASSWORD", "").strip():
+        check_password_file(env)
     env.update(DJANGO_DEBUG="0", FRONTEND_DEBUG="0", DATABASE_ENGINE="postgresql",
                DJANGO_SETTINGS_MODULE="config.settings", PYTHONUNBUFFERED="1")
     return env

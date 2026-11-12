@@ -11,6 +11,8 @@ from django.core.management import call_command
 from django.db import close_old_connections, connections
 from django.utils import timezone
 
+from config.dberrors import is_transient, sqlstate
+
 logger = logging.getLogger(__name__)
 _worker = None
 
@@ -58,8 +60,12 @@ def cleanup_loop(stop):
         try:
             close_old_connections()
             run_due_cleanup()
-        except Exception:
-            logger.exception("Expired-session cleanup failed; retrying later")
+        except Exception as error:
+            if is_transient(error):  # DB 를 잠깐 못 씀(장애 전환·잠금 대기): 경고 한 줄만, 다음 주기에 다시 한다(04 §23)
+                logger.warning("Expired-session cleanup could not use the database (%s sqlstate=%s); retrying later",
+                               type(error).__name__, sqlstate(error))
+            else:
+                logger.exception("Expired-session cleanup failed; retrying later")
         finally:
             connections.close_all()
         stop.wait(60)

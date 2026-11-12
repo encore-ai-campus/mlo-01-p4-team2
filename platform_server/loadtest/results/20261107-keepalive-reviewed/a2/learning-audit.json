@@ -1,0 +1,14 @@
+{
+  "wrong_wallet_balance": 0,
+  "wrong_answer_session": 0,
+  "wrong_event_session_owner": 0,
+  "wrong_play_session_owner": 0,
+  "started_lessons": 100,
+  "completed_lessons": 14,
+  "new_answers": 926,
+  "new_ledger": 926,
+  "duplicate_answer_groups": 0,
+  "wrong_owner": 0,
+  "wrong_ledger": 0,
+  "duplicate_reward_groups": 0
+}

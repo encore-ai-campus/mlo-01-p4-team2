@@ -52,6 +52,7 @@ class EnqueueTests(Cases, TestCase):
         self.assertEqual(schemas.SCHEMA_VERSIONS, {  # 종류별(6-10c): 결정만 3(2: 단위 → `charge_shares`, 3: 대상 그룹 — TG-S3)
             "ad.decision": 3, "ad.reaction_received": 1, "ad.reaction": 1, "ad.charge": 1,
             "ad.bid_policy_changed": 1, "ad.bid_added": 1, "ad.campaign_changed": 1, "ad.ad_group_changed": 1, "ad.segment_changed": 1,
+            "ad.ad_group_profile_changed": 1,
         })
         self.assertEqual(row.created_at, NOW)  # produced_at = outbox 에 쓴 시각
         self.assertEqual(row.payload["decision_id"], str(DECISION))
@@ -91,6 +92,9 @@ class EnqueueTests(Cases, TestCase):
             requested_amount=30, charged_amount=20, shortfall=10, budget_day=datetime.date(2026, 10, 10),
         )
         self.assertEqual((c["budget_day"], c["requested_amount"], c["shortfall"]), ("2026-10-10", 30, 10))
+        g = schemas.ad_group_profile_changed_payload(ad_group_id=DECISION, version=1, category=None, weight_mlo=0, weight_aio=0, weight_skn=0, changed_at=NOW)
+        self.assertEqual(list(g), ["ad_group_id", "version", "category", "weight_mlo", "weight_aio", "weight_skn", "changed_at"])  # 과정 순서 MLO → AIO → SKN, 바꾼 사람 없음
+        self.assertEqual((g["category"], g["changed_at"]), (None, "2026-10-10T03:00:00.123456+00:00"))  # 분류 전은 null
 
     def case_received_event_carries_only_reported_facts(self):
         p = schemas.reaction_received_payload(
@@ -102,7 +106,8 @@ class EnqueueTests(Cases, TestCase):
         self.assertEqual(p["raw"], {"type": "IMPRESSION"})
 
     def case_change_events_carry_the_planned_fields_under_their_own_message_key(self):
-        """정책·입찰·캠페인·광고그룹 이벤트(계획 docs/plans/00 §5.1): 필드는 표 그대로(사유·바꾼 사람·이름 없음), 대상 키는 종류별 대상."""
+        """정책·입찰·캠페인·광고그룹·광고 카테고리 이벤트(계획 docs/plans/00 §5.1): 필드는 표 그대로(사유·바꾼 사람·이름 없음), 대상 키는 종류별 대상.
+        광고 카테고리는 원천 ID 가 판 행(O13) ID 가 아니라 (광고, 판) 문자열이다."""
         slot, policy, ad_group, bid, campaign, change = (uuid.uuid4() for _ in range(6))
         policy_fields = dict(slot_id=slot, bid_policy_id=policy, policy_version=1, floor_amount=100, base_amount=200, cap_amount=300,
                              impression_share=98, click_share=1, conversion_share=1, changed_at=NOW)
@@ -117,6 +122,8 @@ class EnqueueTests(Cases, TestCase):
              {"campaign_id", "change_id", "change_type", "previous_value", "new_value", "changed_at"}),
             (events.record_ad_group_changed, dict(ad_group_id=ad_group, campaign_id=campaign, **change_fields), "ad.ad_group_changed", change, ad_group,
              {"ad_group_id", "campaign_id", "change_id", "change_type", "previous_value", "new_value", "changed_at"}),
+            (events.record_ad_group_profile_changed, dict(ad_group_id=ad_group, version=3, category=12, weight_mlo=50, weight_aio=30, weight_skn=20, changed_at=NOW),
+             "ad.ad_group_profile_changed", f"{ad_group}/3", ad_group, {"ad_group_id", "version", "category", "weight_mlo", "weight_aio", "weight_skn", "changed_at"}),
         ]
         for record, fields, name, source, key, names in cases:
             with self.subTest(name):

@@ -29,10 +29,13 @@ class CampusLearningIntegrationTests(PresentationTestCase):
         self.assertNotContains(response, '<!-- learning-assets -->')
         self.assertNotContains(response, 'sample_questions')
 
-    def test_standalone_map_has_no_server_template_tags(self):
-        source = (settings.BASE_DIR.parent / 'frontend/dist/index.html').read_text(encoding='utf-8')
+    def test_rendered_map_has_no_server_template_tags(self):
+        self.client.force_login(self.user)
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        source = response.content.decode()
         self.assertNotIn('{%', source)
-        self.assertIn('<!-- learning-panels -->', source)
+        self.assertNotIn('<!-- learning-panels -->', source)
         self.assertIn('lunch-wheel.js', source)
 
     def test_both_datasets_seed_120_questions_idempotently(self):

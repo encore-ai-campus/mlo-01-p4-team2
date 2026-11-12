@@ -16,6 +16,7 @@ from django.db import connection
 from django.test import SimpleTestCase, TestCase, TransactionTestCase, override_settings, tag
 
 from billing import api as billing
+from campaigns import api as campaigns
 from events import api as events, hops, ndjson, store
 from events.models import EventOutbox
 from events.relay import relay_batch
@@ -128,7 +129,7 @@ class WindowedSummaryTests(Cases, TestCase):
     SINCE = datetime(2026, 10, 7, tzinfo=UTC)
     STREAM = {events.NAMES["decision"]: "결정", events.NAMES["reaction_received"]: "접수", events.NAMES["reaction"]: "처리", events.NAMES["charge"]: "처리",  # 과금은 판정과 같은 시각
               events.NAMES["bid_policy_changed"]: "정책", events.NAMES["bid_added"]: "입찰", events.NAMES["campaign_changed"]: "캠페인", events.NAMES["ad_group_changed"]: "광고그룹",
-              events.NAMES["segment_changed"]: "대상 그룹"}
+              events.NAMES["segment_changed"]: "대상 그룹", events.NAMES["ad_group_profile_changed"]: "광고 카테고리"}
 
     def setUp(self):
         w = World(ends_in=None)
@@ -142,6 +143,9 @@ class WindowedSummaryTests(Cases, TestCase):
         g = masters.create_segment(w.admin, w.slot.media_id, "mlo", "MLO", now=NOW - DAY)  # 대상 그룹 판: 10-06(--since 앞)·10-08·10-10(열린 창)
         masters.update_segment(w.admin, g.segment_id, 1, name="MLO 과정", now=NOW + DAY)
         masters.update_segment(w.admin, g.segment_id, 2, is_active=False, now=NOW + 3 * DAY)
+        client = masters.authenticate_internal_key(masters.issue_internal_key(w.admin, "모듈", now=NOW).key)  # 광고 카테고리 판(C8, ACW-3): 판 1(10-07)·판 2(10-08)·판 3(10-10, 열린 창)
+        campaigns.write_categories(client, [{"ad_group_id": str(w.group.ad_group_id), "category": 1}], now=NOW + DAY)
+        campaigns.write_weights(client, [{"ad_group_id": str(w.group.ad_group_id), "weight_mlo": 10, "weight_aio": 0, "weight_skn": 0}], now=NOW + 3 * DAY)
 
     def everything(self):
         """전부 읽은 기대 이벤트(예전 방식의 입력)."""
@@ -149,7 +153,8 @@ class WindowedSummaryTests(Cases, TestCase):
 
     def case_the_source_hop_matches_summarizing_everything_at_once(self):
         docs = self.everything()
-        self.assertEqual({d["event_name"] for d in docs}, set(self.STREAM))  # 아홉 종류가 모두 있다(과금·구성의 첫 정책·광고그룹의 첫 입찰·캠페인 생성·광고그룹 생성과 소재 선택 포함)
+        self.assertEqual({d["event_name"] for d in docs}, set(self.STREAM))  # 열 종류가 모두 있다(과금·구성의 첫 정책·광고그룹의 첫 입찰·캠페인 생성·광고그룹 생성과 소재 선택·광고 카테고리 판 1 포함)
+        self.assertEqual(sorted(d["payload"]["version"] for d in docs if d["event_name"] == events.NAMES["ad_group_profile_changed"]), [1, 2, 3])  # 원본 재구성에 판 셋(판 표 O13)
         for since, size in ((None, hops.DAY), (self.SINCE, hops.DAY), (None, hops.HOUR)):
             lines, open_windows, _read, _largest = events.summarize_windows(records.source_streams(), self.AS_OF, 120, since, size)
             self.assertEqual((lines, open_windows), events.summarize(docs, self.AS_OF, 120, since, size), (since, size))
@@ -251,11 +256,11 @@ class ExportHopManifestsTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         ok, text = self.export("--since", "2026-10-07", "--as-of", "2026-10-10T00:05:00Z")
         self.assertTrue(ok, text)
         hop_lines = {h: self.lines(h) for h in ("hop_source", "hop_outbox", "hop_mongo")}
-        self.assertEqual([l["window_start"][:10] for l in hop_lines["hop_source"][0]], ["2026-10-07"] * 8 + ["2026-10-08"])  # 10-07: 결정·접수·판정·과금·정책·입찰·캠페인·광고그룹 변경(세계 둘)
+        self.assertEqual([l["window_start"][:10] for l in hop_lines["hop_source"][0]], ["2026-10-07"] * 9 + ["2026-10-08"])  # 10-07: 결정·접수·판정·과금·정책·입찰·캠페인·광고그룹 변경·광고 카테고리(세계 둘)
         for hop, (lines, manifest) in hop_lines.items():
             self.assertEqual([(l["count"], l["ids_sha256"], l["content_sha256"]) for l in lines], [(l["count"], l["ids_sha256"], l["content_sha256"]) for l in hop_lines["hop_source"][0]], hop)
-            self.assertEqual(manifest["checkpoint"]["scanned_events"], 15, hop)  # 10-05 의 결정은 읽지 않는다(10-07 의 넷 + 정책·입찰·캠페인 생성 둘씩 + 광고그룹 변경 넷 + 10-08 의 결정)
-        self.assertRegex(text, r"hop_source: rows=9 events=15 open_windows=0 largest_window=\d+ ")
+            self.assertEqual(manifest["checkpoint"]["scanned_events"], 17, hop)  # 10-05 의 결정은 읽지 않는다(10-07 의 넷 + 정책·입찰·캠페인 생성·광고 카테고리 판 둘씩 + 광고그룹 변경 넷 + 10-08 의 결정)
+        self.assertRegex(text, r"hop_source: rows=10 events=17 open_windows=0 largest_window=\d+ ")
         self.assertRegex(text, r"peak_rss=\d+(\.\d)?MiB")
 
     def case_a_charge_that_cannot_be_placed_in_a_window_fails_the_export_and_the_check(self):
@@ -275,7 +280,7 @@ class ExportHopManifestsTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         ok, text = self.verify()
         self.assertFalse(ok, text)
         self.assertIn(f"FAIL hop_source: 창에 놓을 수 없는 과금 원장 줄 1건(반응이 없거나 판정 전, 예: {orphan.entry_id})", text)
-        self.assertIn("결과: {'match': 24}", text)  # 정상 이벤트 여덟 종(결정·접수·판정·과금·정책·입찰·캠페인·광고그룹 변경)의 대조는 그대로
+        self.assertIn("결과: {'match': 27}", text)  # 정상 이벤트 아홉 종(결정·접수·판정·과금·정책·입찰·캠페인·광고그룹 변경·광고 카테고리)의 대조는 그대로
 
     def case_a_charge_key_that_only_looks_like_a_judged_reactions_key_is_unresolved(self):
         """재검토(5e8fa8c) P2 재현: 판정한 반응의 키를 다른 UUID 표기(대문자·하이픈 없음·중괄호)로 바꾼 과금 세 건이 원본 구간의 문자열 조회에도,
@@ -291,7 +296,7 @@ class ExportHopManifestsTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.assertIn("창에 놓을 수 없는 과금 원장 줄 3건", text)
         ok, text = self.verify()
         self.assertFalse(ok, text)
-        self.assertIn("결과: {'match': 24}", text)  # 정상 이벤트 여덟 종(결정·접수·판정·과금·정책·입찰·캠페인·광고그룹 변경)의 대조는 그대로
+        self.assertIn("결과: {'match': 27}", text)  # 정상 이벤트 아홉 종(결정·접수·판정·과금·정책·입찰·캠페인·광고그룹 변경·광고 카테고리)의 대조는 그대로
 
     def case_manifests_describe_scope_and_are_valid(self):
         relay_batch()
@@ -301,7 +306,7 @@ class ExportHopManifestsTests(Cases, MongoDatabaseMixin, TransactionTestCase):
             manifest = ndjson.read_manifest(path)
             self.assertEqual((ndjson.verify(path), manifest["source_kind"], manifest["schema_version"]), ([], hop, 1))
             cp = manifest["checkpoint"]
-            self.assertEqual((cp["hop"], cp["window"], cp["grace_seconds"], cp["scanned_events"]), (hop, "utc-day", 120, 9))  # 결정·접수·판정·과금 + 구성의 첫 정책·광고그룹의 첫 입찰·캠페인 생성·광고그룹 생성과 소재 선택
+            self.assertEqual((cp["hop"], cp["window"], cp["grace_seconds"], cp["scanned_events"]), (hop, "utc-day", 120, 10))  # 결정·접수·판정·과금 + 구성의 첫 정책·광고그룹의 첫 입찰·캠페인 생성·광고그룹 생성과 소재 선택·광고 카테고리 판 1
         self.assertEqual(ndjson.read_manifest(ndjson.manifest_path(self.dir / "out", "hop_source"))["checkpoint"]["scope"], "postgresql-repeatable-read-snapshot")
         self.assertEqual(ndjson.read_manifest(ndjson.manifest_path(self.dir / "out", "hop_mongo"))["checkpoint"]["scope"], "mongodb-read-outside-snapshot")
 
@@ -357,7 +362,7 @@ class ExportHopManifestsTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         with override_settings(EVENTS_OUTBOX_RETENTION_DAYS=4):  # 기준 시각이 창 시작보다 앞: 대조한다
             self.export("--as-of", "2026-10-10T12:00:00Z", out="clear")
         self.assertEqual(self.lines("hop_outbox", out="clear")[1]["checkpoint"]["not_comparable_windows"], [])
-        self.assertEqual(len(self.lines("hop_outbox", out="clear")[0]), 8)
+        self.assertEqual(len(self.lines("hop_outbox", out="clear")[0]), 9)  # 아홉 종류 — 광고 카테고리 포함
 
     def case_hour_windows_use_the_exact_cutoff_too(self):
         relay_batch()

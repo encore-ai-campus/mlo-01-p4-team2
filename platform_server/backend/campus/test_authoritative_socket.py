@@ -8,10 +8,12 @@ from channels.testing import WebsocketCommunicator
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
-from django.db import DatabaseError
+from django.db import DatabaseError, IntegrityError
 from django.test import Client, TransactionTestCase, override_settings
+import psycopg.errors
 
 from accounts.models import Profile, Position
+from config.tests import driver_error, lock_timeout, read_only
 
 from . import consumers
 from .positions import DEFAULT_POSITION
@@ -31,9 +33,9 @@ class AuthoritativeSocketTests(TransactionTestCase):
         replacement.start()
         self.addCleanup(replacement.stop)
 
-    def socket(self):
+    def socket(self, path='/ws/campus/'):
         from config.asgi import application
-        return WebsocketCommunicator(application, '/ws/campus/', headers=[
+        return WebsocketCommunicator(application, path, headers=[
             (b'origin', b'http://127.0.0.1'), (b'host', b'127.0.0.1'), (b'cookie', self.cookie.encode())])
 
     async def packet(self, socket, kind):
@@ -215,5 +217,69 @@ class AuthoritativeSocketTests(TransactionTestCase):
             self.assertEqual(result['type'], 'transfer_ready')
             self.assertEqual(transfer_identity(result["ads_token"], self.user.pk), result["transfer_id"])
             self.assertEqual(next(iter(self.room.players.values()))["floor"], "campus")
+        finally:
+            await socket.disconnect()
+
+    async def test_database_failover_while_connecting_closes_with_try_again_later(self):
+        # accept 뒤에 4013 으로 닫는다(accept 전 close 는 daphne 가 코드 없이 403 으로 거절한다)
+        for path, target in (('/ws/campus/', 'campus.consumers.needs_profile_setup'),
+                             ('/ws/chat/', 'campus.chat.needs_profile_setup')):
+            with self.subTest(path=path), patch(target, side_effect=read_only()):
+                socket = self.socket(path)
+                try:
+                    with self.assertLogs('campus.socket_db', level='WARNING') as logs:
+                        self.assertTrue((await socket.connect())[0])
+                        self.assertEqual(await socket.receive_output(timeout=2), {'type': 'websocket.close', 'code': 4013})
+                    self.assertIn('sqlstate=25006', logs.output[0])
+                finally:
+                    await socket.disconnect()
+        self.assertEqual(self.room.players, {})
+
+    async def test_lock_timeout_in_a_control_request_reports_retry_and_keeps_the_socket(self):
+        socket = self.socket()
+        try:
+            self.assertTrue((await socket.connect())[0])
+            await self.packet(socket, 'welcome')
+            with patch('campus.consumers.check_session', side_effect=lock_timeout()):
+                await socket.send_json_to({'type': 'control', 'requestId': 'busy', 'action': 'navigate', 'data': {}})
+                self.assertEqual(await self.packet(socket, 'control_result'),
+                                 {'type': 'control_result', 'requestId': 'busy', 'error': '잠시 후 다시 시도해 주세요.'})
+            await socket.send_json_to({'type': 'ping'})
+            await self.packet(socket, 'pong')
+        finally:
+            await socket.disconnect()
+
+    async def test_other_database_errors_still_raise_instead_of_try_again_later(self):
+        # D5 는 일시 오류만 4013·"잠시 후 다시"다. 스키마·코드 버그로 난 DB 오류는 지금처럼 올라가 예외 로그로 드러난다
+        errors = (driver_error(IntegrityError, psycopg.errors.UniqueViolation, 'duplicate key value'), DatabaseError('unknown'))
+        for path, target in (('/ws/campus/', 'campus.consumers.needs_profile_setup'),
+                             ('/ws/chat/', 'campus.chat.needs_profile_setup')):
+            for error in errors:
+                with self.subTest(path=path, error=type(error).__name__), patch(target, side_effect=error):
+                    socket = self.socket(path)
+                    with self.assertRaises(type(error)):  # 4013 으로 닫히지 않고 연결 처리 자체가 실패한다
+                        await socket.connect()
+        for error in errors:
+            with self.subTest(path='control', error=type(error).__name__):
+                socket = self.socket()
+                self.assertTrue((await socket.connect())[0])
+                await self.packet(socket, 'welcome')
+                with patch('campus.consumers.check_session', side_effect=error):
+                    await socket.send_json_to({'type': 'control', 'requestId': 'bug', 'action': 'navigate', 'data': {}})
+                    with self.assertRaises(type(error)):  # "잠시 후 다시" 응답이 아니라 예외
+                        await self.packet(socket, 'control_result')
+
+    async def test_movement_calculation_failure_closes_with_4011(self):
+        # 1011 은 daphne 에서 보낼 수 없다(이동 작업 안에서 예외가 되어 소켓이 열린 채 남았다)
+        socket = self.socket()
+        try:
+            with patch('campus.consumers.MotionController.tick', side_effect=RuntimeError('broken tick')), \
+                    self.assertLogs('campus.consumers', level='ERROR'):
+                self.assertTrue((await socket.connect())[0])
+                for _ in range(10):
+                    output = await socket.receive_output(timeout=2)
+                    if output['type'] == 'websocket.close':
+                        break
+                self.assertEqual(output, {'type': 'websocket.close', 'code': 4011})
         finally:
             await socket.disconnect()

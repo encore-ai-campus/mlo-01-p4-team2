@@ -111,6 +111,7 @@ class ScreenQualityTests(Cases, TestCase):
         Client().post(reverse("login"), {"username": self.w.admin.username, "password": PW})  # 접속 기록
         AccessFailureLog.objects.create(username="nobody", ip_address="127.0.0.1", user_agent="test", path_info="/", locked_out=False)  # 설정이 꺼져 있어도 화면은 있다
         masters.issue_media_key(self.w.admin, self.w.slot.media_id, "점검")
+        masters.issue_internal_key(self.w.admin, "<b>분류 모듈</b>")  # 내부 키(C8, ACW-3) 목록·상세 — 이름은 이스케이프된다
         archived = masters.create_segment(self.w.admin, self.w.slot.media_id, "skn", "<b>SKN</b>")  # 매체 상세의 대상 그룹 줄(사용·보관됨 둘 — 버튼이 다르다)
         masters.update_segment(self.w.admin, archived.segment_id, 1, is_active=False)
         masters.create_segment(self.w.admin, self.w.slot.media_id, "mlo", "MLO")

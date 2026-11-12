@@ -18,7 +18,7 @@ LAYERS = {
     "masters": 2, "engine": 2, "assets": 2,
     "campaigns": 3, "billing": 3,
     "records": 4,
-    "serving_api": 5, "console": 5,
+    "serving_api": 5, "console": 5, "internal_api": 5,
 }
 
 

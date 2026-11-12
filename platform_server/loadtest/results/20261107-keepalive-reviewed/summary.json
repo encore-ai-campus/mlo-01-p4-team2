@@ -1,0 +1,6650 @@
+{
+  "variants": {
+    "a1": {
+      "functional": {
+        "requests": 7738,
+        "success": 7115,
+        "normal_handling": 600,
+        "errors": 23,
+        "unanswered": 0,
+        "p95": 898.96,
+        "p99": 5001.7,
+        "received_response_latency": {
+          "n": 7738,
+          "p95": 898.96,
+          "p99": 5001.7
+        },
+        "statuses": {
+          "101": 400,
+          "ok": 400,
+          "200": 4461,
+          "rejected": 300,
+          "400": 100,
+          "201": 2054,
+          "504": 23
+        }
+      },
+      "actions": {
+        "achievements:restore": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 353.82,
+          "p99": 369.98,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 353.82,
+            "p99": 369.98
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "learning:answer": {
+          "requests": 984,
+          "success": 979,
+          "normal_handling": 0,
+          "errors": 5,
+          "unanswered": 0,
+          "p95": 925.3,
+          "p99": 6913.31,
+          "received_response_latency": {
+            "n": 984,
+            "p95": 925.3,
+            "p99": 6913.31
+          },
+          "statuses": {
+            "201": 979,
+            "504": 5
+          }
+        },
+        "learning:answer_retry": {
+          "requests": 979,
+          "success": 975,
+          "normal_handling": 0,
+          "errors": 4,
+          "unanswered": 0,
+          "p95": 718.18,
+          "p99": 6885.64,
+          "received_response_latency": {
+            "n": 979,
+            "p95": 718.18,
+            "p99": 6885.64
+          },
+          "statuses": {
+            "201": 975,
+            "504": 4
+          }
+        },
+        "learning:complete": {
+          "requests": 82,
+          "success": 77,
+          "normal_handling": 0,
+          "errors": 5,
+          "unanswered": 0,
+          "p95": 6972.81,
+          "p99": 13174.4,
+          "received_response_latency": {
+            "n": 82,
+            "p95": 6972.81,
+            "p99": 13174.4
+          },
+          "statuses": {
+            "200": 77,
+            "504": 5
+          }
+        },
+        "learning:question": {
+          "requests": 993,
+          "success": 984,
+          "normal_handling": 0,
+          "errors": 9,
+          "unanswered": 0,
+          "p95": 950.75,
+          "p99": 6823.56,
+          "received_response_latency": {
+            "n": 993,
+            "p95": 950.75,
+            "p99": 6823.56
+          },
+          "statuses": {
+            "200": 984,
+            "504": 9
+          }
+        },
+        "learning:start": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 2434.67,
+          "p99": 2436.58,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 2434.67,
+            "p99": 2436.58
+          },
+          "statuses": {
+            "201": 100
+          }
+        },
+        "main:deliver:first": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 155.51,
+          "p99": 168.92,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 155.51,
+            "p99": 168.92
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:deliver:retry": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 127.19,
+          "p99": 158.38,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 127.19,
+            "p99": 158.38
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:card_match": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 264.37,
+          "p99": 317.68,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 264.37,
+            "p99": 317.68
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:coating": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 134.79,
+          "p99": 153.63,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 134.79,
+            "p99": 153.63
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:kkuwang_touch": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 245.76,
+          "p99": 255.52,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 245.76,
+            "p99": 255.52
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:sql_memory": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 218.29,
+          "p99": 231.47,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 218.29,
+            "p99": 231.47
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:topping": {
+          "requests": 100,
+          "success": 0,
+          "normal_handling": 100,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 103.97,
+          "p99": 119.17,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 103.97,
+            "p99": 119.17
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:wrapping": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 129.89,
+          "p99": 162.97,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 129.89,
+            "p99": 162.97
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:card_match": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 257.85,
+          "p99": 279.43,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 257.85,
+            "p99": 279.43
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:coating": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 139.74,
+          "p99": 169.36,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 139.74,
+            "p99": 169.36
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:kkuwang_touch": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 153.38,
+          "p99": 189.51,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 153.38,
+            "p99": 189.51
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:sql_memory": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 581.92,
+          "p99": 594.78,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 581.92,
+            "p99": 594.78
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:topping": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 118.76,
+          "p99": 138.21,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 118.76,
+            "p99": 138.21
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:wrapping": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 85.36,
+          "p99": 119.57,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 85.36,
+            "p99": 119.57
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:investigate": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 594.42,
+          "p99": 607.65,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 594.42,
+            "p99": 607.65
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:restore": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 1078.12,
+          "p99": 1176.91,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 1078.12,
+            "p99": 1176.91
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:room1_briefing": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 536.19,
+          "p99": 545.97,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 536.19,
+            "p99": 545.97
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:sql_answer": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 157.9,
+          "p99": 174.03,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 157.9,
+            "p99": 174.03
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:acquire": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 690.27,
+          "p99": 1006.42,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 690.27,
+            "p99": 1006.42
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:defer": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 568.89,
+          "p99": 600.01,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 568.89,
+            "p99": 600.01
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:finish": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 664.57,
+          "p99": 677.15,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 664.57,
+            "p99": 677.15
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:recognize": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 794.41,
+          "p99": 806.0,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 794.41,
+            "p99": 806.0
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:restore": {
+          "requests": 200,
+          "success": 200,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 498.04,
+          "p99": 694.19,
+          "received_response_latency": {
+            "n": 200,
+            "p95": 498.04,
+            "p99": 694.19
+          },
+          "statuses": {
+            "200": 200
+          }
+        },
+        "recipe:start": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 595.81,
+          "p99": 642.56,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 595.81,
+            "p99": 642.56
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:topping": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 546.82,
+          "p99": 560.64,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 546.82,
+            "p99": 560.64
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "term_match:result": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 745.71,
+          "p99": 896.84,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 745.71,
+            "p99": 896.84
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "term_match:retry": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 860.99,
+          "p99": 895.7,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 860.99,
+            "p99": 895.7
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "timer:result": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 799.5,
+          "p99": 813.01,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 799.5,
+            "p99": 813.01
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "timer:retry": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 758.98,
+          "p99": 779.06,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 758.98,
+            "p99": 779.06
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "typing:interrupt": {
+          "requests": 100,
+          "success": 0,
+          "normal_handling": 100,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 110.86,
+          "p99": 160.7,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 110.86,
+            "p99": 160.7
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "typing:over_limit": {
+          "requests": 100,
+          "success": 0,
+          "normal_handling": 100,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 329.88,
+          "p99": 486.87,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 329.88,
+            "p99": 486.87
+          },
+          "statuses": {
+            "400": 100
+          }
+        },
+        "typing:result": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 713.36,
+          "p99": 778.24,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 713.36,
+            "p99": 778.24
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "typing:retry": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 745.79,
+          "p99": 777.99,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 745.79,
+            "p99": 777.99
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "ws:game_start": {
+          "requests": 400,
+          "success": 400,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 794.22,
+          "p99": 875.04,
+          "received_response_latency": {
+            "n": 400,
+            "p95": 794.22,
+            "p99": 875.04
+          },
+          "statuses": {
+            "ok": 400
+          }
+        },
+        "ws:guide_talk": {
+          "requests": 300,
+          "success": 0,
+          "normal_handling": 300,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 156.78,
+          "p99": 163.45,
+          "received_response_latency": {
+            "n": 300,
+            "p95": 156.78,
+            "p99": 163.45
+          },
+          "statuses": {
+            "rejected": 300
+          }
+        },
+        "ws_connect": {
+          "requests": 400,
+          "success": 400,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 2481.66,
+          "p99": 2564.16,
+          "received_response_latency": {
+            "n": 400,
+            "p95": 2481.66,
+            "p99": 2564.16
+          },
+          "statuses": {
+            "101": 400
+          }
+        }
+      },
+      "account_checks": [
+        {
+          "phase": "connect:timer",
+          "users": 100,
+          "seconds": 2.6,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "standalone:timer",
+          "users": 100,
+          "seconds": 12.83,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "far_guide_rejection:timer",
+          "users": 100,
+          "seconds": 0.16,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:timer",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "connect:typing",
+          "users": 100,
+          "seconds": 0.67,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "standalone:typing",
+          "users": 100,
+          "seconds": 3.74,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "far_guide_rejection:typing",
+          "users": 100,
+          "seconds": 0.17,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:typing",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "connect:term_match",
+          "users": 100,
+          "seconds": 0.65,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "standalone:term_match",
+          "users": 100,
+          "seconds": 7.6,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "far_guide_rejection:term_match",
+          "users": 100,
+          "seconds": 0.17,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "main_games_and_final_rank",
+          "users": 100,
+          "seconds": 57.7,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "recipe_full_branches",
+          "users": 100,
+          "seconds": 3.49,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "learning_all_subjects_and_types",
+          "users": 100,
+          "seconds": 30.35,
+          "passed": 77,
+          "errors": {
+            "learning:answer: 504 {'error': 'non-json response'}": 5,
+            "learning:question: 504 {'error': 'non-json response'}": 9,
+            "learning:answer_retry: 504 {'error': 'non-json response'}": 4,
+            "learning:complete: 504 {'error': 'non-json response'}": 5
+          }
+        },
+        {
+          "phase": "disconnect:final",
+          "users": 100,
+          "seconds": 0.04,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "reconnect:restore",
+          "users": 100,
+          "seconds": 0.67,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "state_after_reconnect",
+          "users": 100,
+          "seconds": 1.6,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:cleanup",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        }
+      ],
+      "http_connections": {
+        "front-service": {
+          "requests": 6615,
+          "tcp_connections": 6615
+        },
+        "movement-9751": {
+          "requests": 100,
+          "tcp_connections": 100
+        },
+        "movement-9752": {
+          "requests": 100,
+          "tcp_connections": 100
+        },
+        "movement-9753": {
+          "requests": 100,
+          "tcp_connections": 100
+        },
+        "movement-9754": {
+          "requests": 100,
+          "tcp_connections": 100
+        },
+        "service-9761": {
+          "requests": 1642,
+          "tcp_connections": 1642
+        },
+        "service-9762": {
+          "requests": 1762,
+          "tcp_connections": 1762
+        },
+        "service-9763": {
+          "requests": 1588,
+          "tcp_connections": 1588
+        },
+        "service-9764": {
+          "requests": 1623,
+          "tcp_connections": 1623
+        }
+      },
+      "study_selections": 100,
+      "study_audit": {
+        "wrong_wallet_balance": 0,
+        "wrong_answer_session": 0,
+        "wrong_event_session_owner": 0,
+        "wrong_play_session_owner": 0,
+        "started_lessons": 100,
+        "completed_lessons": 77,
+        "new_answers": 979,
+        "new_ledger": 979,
+        "duplicate_answer_groups": 0,
+        "wrong_owner": 0,
+        "wrong_ledger": 0,
+        "duplicate_reward_groups": 0
+      },
+      "event_audit": {
+        "egg_count": 7,
+        "duplicate_users": [],
+        "duplicate_eggs": [],
+        "invalid_egg_metadata": 0,
+        "egg_order_not_one": 0,
+        "eggs_missing_session": 0,
+        "main_completed": 100,
+        "main_rank_unique": true,
+        "main_ranks_contiguous": true,
+        "main_missing_session": 0,
+        "recipe_completed": 100,
+        "plays": {
+          "FAILED": 100,
+          "INTERRUPTED": 100,
+          "SUCCESS": 700,
+          "FINISHED": 100
+        },
+        "learning_completed": 163,
+        "answers": 2169,
+        "ledger_rows": 1988
+      },
+      "mixed": {
+        "walk": {
+          "http": {
+            "requests": 3483,
+            "success": 3483,
+            "normal_handling": 0,
+            "errors": 0,
+            "unanswered": 0,
+            "p95": 35.08,
+            "p99": 56.11,
+            "received_response_latency": {
+              "n": 3483,
+              "p95": 35.08,
+              "p99": 56.11
+            },
+            "statuses": {
+              "200": 3483
+            }
+          },
+          "control": {
+            "requests": 725,
+            "success": 725,
+            "normal_handling": 0,
+            "errors": 0,
+            "unanswered": 0,
+            "p95": 2.49,
+            "p99": 6.11,
+            "received_response_latency": {
+              "n": 725,
+              "p95": 2.49,
+              "p99": 6.11
+            },
+            "statuses": {
+              "ok": 725
+            }
+          },
+          "chat": {
+            "requests": 1123,
+            "success": 1123,
+            "normal_handling": 0,
+            "errors": 0,
+            "unanswered": 0,
+            "p95": 46.34,
+            "p99": 94.04,
+            "received_response_latency": {
+              "n": 1123,
+              "p95": 46.34,
+              "p99": 94.04
+            },
+            "statuses": {
+              "ok": 1123
+            }
+          },
+          "drain": [
+            {
+              "worker": 0,
+              "pending_at_end": 0,
+              "drain_seconds": 0.0005729999393224716,
+              "unresolved": 0,
+              "generation_stopped_epoch": 1794065877.341197
+            },
+            {
+              "worker": 1,
+              "pending_at_end": 0,
+              "drain_seconds": 0.0005059591494500637,
+              "unresolved": 0,
+              "generation_stopped_epoch": 1794065877.3374796
+            }
+          ],
+          "browser_js_errors": [],
+          "browser_ws_closed": [],
+          "movement_p95_p99": {
+            "n": 960,
+            "p95": 2.72,
+            "p99": 9.29
+          },
+          "state_gap_p95_p99": {
+            "n": 51099,
+            "p95": 35.55,
+            "p99": 37.85
+          }
+        },
+        "real": {
+          "http": {
+            "requests": 5499,
+            "success": 5499,
+            "normal_handling": 0,
+            "errors": 0,
+            "unanswered": 0,
+            "p95": 184.14,
+            "p99": 386.44,
+            "received_response_latency": {
+              "n": 5499,
+              "p95": 184.14,
+              "p99": 386.44
+            },
+            "statuses": {
+              "200": 5090,
+              "201": 409
+            }
+          },
+          "control": {
+            "requests": 10210,
+            "success": 10156,
+            "normal_handling": 54,
+            "errors": 0,
+            "unanswered": 0,
+            "p95": 59.15,
+            "p99": 229.05,
+            "received_response_latency": {
+              "n": 10210,
+              "p95": 59.15,
+              "p99": 229.05
+            },
+            "statuses": {
+              "ok": 10156,
+              "rejected": 54
+            }
+          },
+          "chat": {
+            "requests": 1437,
+            "success": 1437,
+            "normal_handling": 0,
+            "errors": 0,
+            "unanswered": 0,
+            "p95": 168.82,
+            "p99": 343.4,
+            "received_response_latency": {
+              "n": 1437,
+              "p95": 168.82,
+              "p99": 343.4
+            },
+            "statuses": {
+              "ok": 1437
+            }
+          },
+          "drain": [
+            {
+              "worker": 0,
+              "pending_at_end": 0,
+              "drain_seconds": 0.001998292049393058,
+              "unresolved": 0,
+              "generation_stopped_epoch": 1794066095.0608795
+            },
+            {
+              "worker": 1,
+              "pending_at_end": 0,
+              "drain_seconds": 0.0022351660300046206,
+              "unresolved": 0,
+              "generation_stopped_epoch": 1794066095.066323
+            }
+          ],
+          "browser_js_errors": [],
+          "browser_ws_closed": [],
+          "movement_p95_p99": {
+            "n": 118151,
+            "p95": 35.59,
+            "p99": 63.76
+          },
+          "state_gap_p95_p99": {
+            "n": 303485,
+            "p95": 41.01,
+            "p99": 54.35
+          }
+        }
+      },
+      "receipt": {
+        "requests": 832,
+        "success": 830,
+        "normal_handling": 2,
+        "errors": 0,
+        "unanswered": 0,
+        "p95": 878.11,
+        "p99": 1199.97,
+        "received_response_latency": {
+          "n": 832,
+          "p95": 878.11,
+          "p99": 1199.97
+        },
+        "statuses": {
+          "200": 830,
+          "409": 1,
+          "500": 1
+        }
+      },
+      "receipt_checks": {
+        "outcome": "passed",
+        "checks": [
+          {
+            "name": "owned_fresh_fixture",
+            "passed": true
+          },
+          {
+            "name": "empty_final_ranking",
+            "passed": true
+          },
+          {
+            "name": "active_sessions",
+            "passed": true
+          },
+          {
+            "name": "warmup_status",
+            "passed": true
+          },
+          {
+            "name": "start_same_request.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "original_receipt_for_every_duplicate",
+            "passed": true
+          },
+          {
+            "name": "duplicate_start_creates_100_plays",
+            "passed": true
+          },
+          {
+            "name": "start_fresh.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "start_old_receipt.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "old_receipt_is_interrupted_and_unchanged",
+            "passed": true
+          },
+          {
+            "name": "old_replay_does_not_interrupt_current_play",
+            "passed": true
+          },
+          {
+            "name": "finish.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "finish_retry.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "result_receipt_replay_unchanged",
+            "passed": true
+          },
+          {
+            "name": "result_db_replay_unchanged",
+            "passed": true
+          },
+          {
+            "name": "finished_result_evidence_and_server_timing",
+            "passed": true
+          },
+          {
+            "name": "conflicting_result_rejected",
+            "passed": true
+          },
+          {
+            "name": "deliver.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "rank_1_to_100_unique",
+            "passed": true
+          },
+          {
+            "name": "completion_time_and_session",
+            "passed": true
+          },
+          {
+            "name": "deliver_retry.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "completion_rank_return_and_db_unchanged",
+            "passed": true
+          },
+          {
+            "name": "start_sql_memory.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "retry_sql_memory.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "sql_memory_original_challenge_and_token",
+            "passed": true
+          },
+          {
+            "name": "start_card_match.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "retry_card_match.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "card_match_original_challenge_and_token",
+            "passed": true
+          },
+          {
+            "name": "start_coating.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "retry_coating.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "coating_original_challenge_and_token",
+            "passed": true
+          },
+          {
+            "name": "start_topping.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "retry_topping.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "topping_original_challenge_and_token",
+            "passed": true
+          },
+          {
+            "name": "start_wrapping.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "retry_wrapping.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "wrapping_original_challenge_and_token",
+            "passed": true
+          },
+          {
+            "name": "cross_process_start.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "cross_process_same_account_one_receipt",
+            "passed": true
+          },
+          {
+            "name": "unread_body_success_headers",
+            "passed": true
+          },
+          {
+            "name": "unread_body_retry_recovers_saved_receipt",
+            "passed": true
+          },
+          {
+            "name": "write_receipt_survives_status_fail",
+            "passed": true
+          },
+          {
+            "name": "write_receipt_survives_status_delay",
+            "passed": true
+          },
+          {
+            "name": "status_2sec_delay_does_not_delay_writes",
+            "passed": true
+          },
+          {
+            "name": "status_after_cleanup",
+            "passed": true
+          },
+          {
+            "name": "previous_progress_timestamps_and_sessions_unchanged",
+            "passed": true
+          },
+          {
+            "name": "final_progress_unchanged",
+            "passed": true
+          },
+          {
+            "name": "final_integrity",
+            "passed": true
+          },
+          {
+            "name": "all_responses_valid_and_received",
+            "passed": true
+          },
+          {
+            "name": "all_submitted_requests_drained",
+            "passed": true
+          }
+        ],
+        "metrics": [
+          {
+            "request": "cross_process_start",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 24.12,
+            "p95_ms": 32.04,
+            "observed_response_p95_ms": 32.04,
+            "max_ms": 32.04,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "deliver",
+            "submitted": 100,
+            "requests": 100,
+            "success": 100,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 100,
+            "peak_inflight": 100,
+            "p50_ms": 756.65,
+            "p95_ms": 1217.29,
+            "observed_response_p95_ms": 1217.29,
+            "max_ms": 1266.06,
+            "http_statuses": {
+              "200": 100
+            }
+          },
+          {
+            "request": "deliver_retry",
+            "submitted": 100,
+            "requests": 100,
+            "success": 100,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 100,
+            "peak_inflight": 100,
+            "p50_ms": 534.89,
+            "p95_ms": 747.69,
+            "observed_response_p95_ms": 747.69,
+            "max_ms": 762.27,
+            "http_statuses": {
+              "200": 100
+            }
+          },
+          {
+            "request": "finish",
+            "submitted": 100,
+            "requests": 100,
+            "success": 100,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 100,
+            "peak_inflight": 100,
+            "p50_ms": 524.56,
+            "p95_ms": 664.83,
+            "observed_response_p95_ms": 664.83,
+            "max_ms": 673.91,
+            "http_statuses": {
+              "200": 100
+            }
+          },
+          {
+            "request": "finish_conflict",
+            "submitted": 1,
+            "requests": 1,
+            "success": 0,
+            "expected_rejection": 1,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 19.36,
+            "p95_ms": 19.36,
+            "observed_response_p95_ms": 19.36,
+            "max_ms": 19.36,
+            "http_statuses": {
+              "409": 1
+            }
+          },
+          {
+            "request": "finish_retry",
+            "submitted": 100,
+            "requests": 100,
+            "success": 100,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 100,
+            "peak_inflight": 100,
+            "p50_ms": 400.74,
+            "p95_ms": 519.45,
+            "observed_response_p95_ms": 519.45,
+            "max_ms": 528.74,
+            "http_statuses": {
+              "200": 100
+            }
+          },
+          {
+            "request": "investigate_status_delay",
+            "submitted": 1,
+            "requests": 1,
+            "success": 1,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 23.56,
+            "p95_ms": 23.56,
+            "observed_response_p95_ms": 23.56,
+            "max_ms": 23.56,
+            "http_statuses": {
+              "200": 1
+            }
+          },
+          {
+            "request": "investigate_status_fail",
+            "submitted": 1,
+            "requests": 1,
+            "success": 1,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 21.9,
+            "p95_ms": 21.9,
+            "observed_response_p95_ms": 21.9,
+            "max_ms": 21.9,
+            "http_statuses": {
+              "200": 1
+            }
+          },
+          {
+            "request": "retry_after_unread_body",
+            "submitted": 1,
+            "requests": 1,
+            "success": 1,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 23.73,
+            "p95_ms": 23.73,
+            "observed_response_p95_ms": 23.73,
+            "max_ms": 23.73,
+            "http_statuses": {
+              "200": 1
+            }
+          },
+          {
+            "request": "retry_card_match",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 26.71,
+            "p95_ms": 26.99,
+            "observed_response_p95_ms": 26.99,
+            "max_ms": 26.99,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "retry_coating",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 29.11,
+            "p95_ms": 29.47,
+            "observed_response_p95_ms": 29.47,
+            "max_ms": 29.47,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "retry_sql_memory",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 28.32,
+            "p95_ms": 28.52,
+            "observed_response_p95_ms": 28.52,
+            "max_ms": 28.52,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "retry_topping",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 29.46,
+            "p95_ms": 29.93,
+            "observed_response_p95_ms": 29.93,
+            "max_ms": 29.93,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "retry_wrapping",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 28.52,
+            "p95_ms": 28.82,
+            "observed_response_p95_ms": 28.82,
+            "max_ms": 28.82,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "start_card_match",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 30.83,
+            "p95_ms": 31.26,
+            "observed_response_p95_ms": 31.26,
+            "max_ms": 31.26,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "start_coating",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 31.47,
+            "p95_ms": 31.83,
+            "observed_response_p95_ms": 31.83,
+            "max_ms": 31.83,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "start_fresh",
+            "submitted": 100,
+            "requests": 100,
+            "success": 100,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 100,
+            "peak_inflight": 100,
+            "p50_ms": 757.24,
+            "p95_ms": 813.38,
+            "observed_response_p95_ms": 813.38,
+            "max_ms": 825.99,
+            "http_statuses": {
+              "200": 100
+            }
+          },
+          {
+            "request": "start_old_receipt",
+            "submitted": 100,
+            "requests": 100,
+            "success": 100,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 100,
+            "peak_inflight": 100,
+            "p50_ms": 513.67,
+            "p95_ms": 586.97,
+            "observed_response_p95_ms": 586.97,
+            "max_ms": 591.07,
+            "http_statuses": {
+              "200": 100
+            }
+          },
+          {
+            "request": "start_same_request",
+            "submitted": 200,
+            "requests": 200,
+            "success": 200,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 200,
+            "peak_inflight": 100,
+            "p50_ms": 512.1,
+            "p95_ms": 791.53,
+            "observed_response_p95_ms": 791.53,
+            "max_ms": 895.54,
+            "http_statuses": {
+              "200": 200
+            }
+          },
+          {
+            "request": "start_sql_memory",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 30.56,
+            "p95_ms": 32.26,
+            "observed_response_p95_ms": 32.26,
+            "max_ms": 32.26,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "start_status_delay",
+            "submitted": 1,
+            "requests": 1,
+            "success": 1,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 27.02,
+            "p95_ms": 27.02,
+            "observed_response_p95_ms": 27.02,
+            "max_ms": 27.02,
+            "http_statuses": {
+              "200": 1
+            }
+          },
+          {
+            "request": "start_status_fail",
+            "submitted": 1,
+            "requests": 1,
+            "success": 1,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 29.53,
+            "p95_ms": 29.53,
+            "observed_response_p95_ms": 29.53,
+            "max_ms": 29.53,
+            "http_statuses": {
+              "200": 1
+            }
+          },
+          {
+            "request": "start_topping",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 34.53,
+            "p95_ms": 35.6,
+            "observed_response_p95_ms": 35.6,
+            "max_ms": 35.6,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "start_wrapping",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 35.44,
+            "p95_ms": 35.61,
+            "observed_response_p95_ms": 35.61,
+            "max_ms": 35.61,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "status_baseline",
+            "submitted": 1,
+            "requests": 1,
+            "success": 1,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 24.31,
+            "p95_ms": 24.31,
+            "observed_response_p95_ms": 24.31,
+            "max_ms": 24.31,
+            "http_statuses": {
+              "200": 1
+            }
+          },
+          {
+            "request": "status_delay",
+            "submitted": 1,
+            "requests": 1,
+            "success": 1,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 2038.11,
+            "p95_ms": 2038.11,
+            "observed_response_p95_ms": 2038.11,
+            "max_ms": 2038.11,
+            "http_statuses": {
+              "200": 1
+            }
+          },
+          {
+            "request": "status_fail",
+            "submitted": 1,
+            "requests": 1,
+            "success": 0,
+            "expected_rejection": 0,
+            "expected_fault": 1,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 21.25,
+            "p95_ms": 21.25,
+            "observed_response_p95_ms": 21.25,
+            "max_ms": 21.25,
+            "http_statuses": {
+              "500": 1
+            }
+          },
+          {
+            "request": "status_restored",
+            "submitted": 1,
+            "requests": 1,
+            "success": 1,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 39.14,
+            "p95_ms": 39.14,
+            "observed_response_p95_ms": 39.14,
+            "max_ms": 39.14,
+            "http_statuses": {
+              "200": 1
+            }
+          }
+        ],
+        "audit": {
+          "plays": {
+            "checked_at": "final_integrity",
+            "rows": 214,
+            "requests": 214,
+            "duplicateGroups": 0,
+            "statuses": {
+              "FINISHED": 100,
+              "INTERRUPTED": 110,
+              "RUNNING": 4
+            }
+          },
+          "ranks": {
+            "count": 100,
+            "unique": 100,
+            "minimum": 1,
+            "maximum": 100
+          },
+          "intentionalUnreadBodyRequests": 1,
+          "delayMs": {
+            "start": 27.016833890229464,
+            "investigate": 23.562709102407098,
+            "status": 2038.1063751410693
+          }
+        },
+        "failure": null,
+        "condition": {
+          "accounts": 100,
+          "httpConcurrencyLimit": 100,
+          "movement": 4,
+          "service": 4,
+          "frontends": 2,
+          "jobs": 1,
+          "windowOverride": true,
+          "latency": "full HTTP body and JSON parse; thread-pool queue excluded; nearest-rank percentiles",
+          "duplicateBatch": "100 accounts x 2 requests; 50 accounts with paired requests per initial wave; fresh-start batch has 100 accounts concurrently",
+          "movementChatLoad": false,
+          "timingComparison": "current source only, no before/after claim"
+        }
+      },
+      "browser_receipt": {
+        "checks": [
+          {
+            "name": "actual_map_and_both_websockets_loaded",
+            "passed": true
+          },
+          {
+            "name": "opening_investigation_does_not_preload_status",
+            "passed": true
+          },
+          {
+            "name": "first_investigation_receipt_received",
+            "passed": true
+          },
+          {
+            "name": "success_ui_shown_while_status_is_pending",
+            "passed": true
+          },
+          {
+            "name": "lost_receipt_offers_same_request_retry",
+            "passed": true
+          },
+          {
+            "name": "same_uuid_and_original_receipt_recovered",
+            "passed": true
+          },
+          {
+            "name": "one_saved_play_matches_client",
+            "passed": true
+          },
+          {
+            "name": "start_ui_survives_status_failure",
+            "passed": true
+          },
+          {
+            "name": "result_saved_despite_failed_snapshot",
+            "passed": true
+          },
+          {
+            "name": "client_retains_result_for_retry",
+            "passed": true
+          },
+          {
+            "name": "same_play_token_and_result_resent",
+            "passed": true
+          },
+          {
+            "name": "finish_retry_preserves_one_record_and_timestamp",
+            "passed": true
+          },
+          {
+            "name": "client_receives_updated_mission_state",
+            "passed": true
+          },
+          {
+            "name": "reload_restores_db_progress_without_new_play",
+            "passed": true
+          },
+          {
+            "name": "no_uncaught_javascript_exceptions",
+            "passed": true
+          }
+        ],
+        "http": [
+          {
+            "path": "/accounts/session/status/",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 229.59999990463257,
+            "hasState": false
+          },
+          {
+            "path": "/api/campus/freeze/",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 227.20000004768372,
+            "hasState": false
+          },
+          {
+            "path": "/api/learning/wallet/",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 205.20000004768372,
+            "hasState": false
+          },
+          {
+            "path": "/static/campus/minigames/timer.html",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 145.5,
+            "hasState": false
+          },
+          {
+            "path": "/api/community/notices/",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 108.70000004768372,
+            "hasState": false
+          },
+          {
+            "path": "/static/campus/minigames/typing.html",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 3,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/status/",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 49.40000009536743,
+            "hasState": false
+          },
+          {
+            "path": "/static/campus/minigames/term_match.html",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 1.7000000476837158,
+            "hasState": false
+          },
+          {
+            "path": "/static/campus/event-games/sql-memory.html",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 1.4000000953674316,
+            "hasState": false
+          },
+          {
+            "path": "/static/campus/event-games/card.html",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 1.3999998569488525,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/action/",
+            "method": "POST",
+            "action": "notice",
+            "phase": "initial",
+            "status": 200,
+            "ms": 50.60000014305115,
+            "hasState": true
+          },
+          {
+            "path": "/api/event-story/achievements/",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 35.90000009536743,
+            "hasState": false
+          },
+          {
+            "path": "/api/messages/status/",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 40.299999952316284,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/status/",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 47.799999952316284,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/action/",
+            "method": "POST",
+            "action": "notice",
+            "phase": "initial",
+            "status": 200,
+            "ms": 36.19999980926514,
+            "hasState": true
+          },
+          {
+            "path": "/api/event-story/achievements/",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 23.899999856948853,
+            "hasState": false
+          },
+          {
+            "path": "/api/messages/status/",
+            "method": "GET",
+            "phase": "investigate-delay",
+            "status": 200,
+            "ms": 29,
+            "hasState": false
+          },
+          {
+            "path": "/accounts/session/activity/",
+            "method": "POST",
+            "phase": "investigate-delay",
+            "status": 200,
+            "ms": 29.09999990463257,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/action/",
+            "method": "POST",
+            "action": "investigate",
+            "phase": "investigate-delay",
+            "status": 200,
+            "ms": 59.299999952316284,
+            "first": true,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/status/",
+            "method": "GET",
+            "phase": "investigate-delay",
+            "status": 200,
+            "ms": 2037.0999999046326,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/status/",
+            "method": "GET",
+            "phase": "start-loss",
+            "status": 200,
+            "ms": 66.20000004768372,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/status/",
+            "method": "GET",
+            "phase": "start-loss",
+            "status": 200,
+            "ms": 50.799999952316284,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/action/",
+            "method": "POST",
+            "action": "game_start",
+            "phase": "start-loss",
+            "status": 200,
+            "ms": 63.39999985694885,
+            "play": "48a67fcb-9557-4fe9-aaed-f33e5b6171e4",
+            "playStatus": "RUNNING",
+            "hasState": false,
+            "request_uuid": "80c2ae58-f73d-43af-912a-f7673f05db0c",
+            "injectedLoss": true
+          },
+          {
+            "path": "/api/event-main/action/",
+            "method": "POST",
+            "action": "game_start",
+            "phase": "start-loss",
+            "status": 200,
+            "ms": 50.09999990463257,
+            "play": "48a67fcb-9557-4fe9-aaed-f33e5b6171e4",
+            "playStatus": "RUNNING",
+            "hasState": false,
+            "request_uuid": "80c2ae58-f73d-43af-912a-f7673f05db0c"
+          },
+          {
+            "path": "/api/event-main/status/",
+            "method": "GET",
+            "phase": "start-loss",
+            "status": 500,
+            "ms": 50.5,
+            "hasState": false
+          },
+          {
+            "path": "/api/campus/freeze/",
+            "method": "GET",
+            "phase": "finish-status-failure",
+            "status": 200,
+            "ms": 23.200000047683716,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/action/",
+            "method": "POST",
+            "action": "game_finish",
+            "phase": "finish-status-failure",
+            "status": 500,
+            "ms": 48.59999990463257,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/action/",
+            "method": "POST",
+            "action": "game_finish",
+            "phase": "finish-status-failure",
+            "status": 200,
+            "ms": 41.89999985694885,
+            "hasState": true
+          }
+        ],
+        "chrome": "Chrome/156.0.8078.81",
+        "jsErrors": [],
+        "actualBrowser": true,
+        "lossInjection": "fetch rejects after actual POST body was read; raw connection body loss is tested separately",
+        "windowOverride": true
+      },
+      "security": {
+        "requests": 419,
+        "success": 409,
+        "normal_handling": 10,
+        "errors": 0,
+        "unanswered": 0,
+        "p95": 989.11,
+        "p99": 1143.22,
+        "received_response_latency": {
+          "n": 419,
+          "p95": 989.11,
+          "p99": 1143.22
+        },
+        "statuses": {
+          "101": 406,
+          "403": 8,
+          "302": 1,
+          "4401": 2,
+          "pong": 2
+        }
+      },
+      "admission": {
+        "requests": 1000,
+        "success": 1000,
+        "normal_handling": 0,
+        "errors": 0,
+        "unanswered": 0,
+        "p95": 2009.27,
+        "p99": 2156.22,
+        "received_response_latency": {
+          "n": 1000,
+          "p95": 2009.27,
+          "p99": 2156.22
+        },
+        "statuses": {
+          "101": 1000
+        }
+      },
+      "entry_5xx_status_counts": {
+        "504": 23
+      }
+    },
+    "b1": {
+      "functional": {
+        "requests": 7800,
+        "success": 7200,
+        "normal_handling": 600,
+        "errors": 0,
+        "unanswered": 0,
+        "p95": 813.8,
+        "p99": 1990.03,
+        "received_response_latency": {
+          "n": 7800,
+          "p95": 813.8,
+          "p99": 1990.03
+        },
+        "statuses": {
+          "101": 400,
+          "ok": 400,
+          "200": 4500,
+          "rejected": 300,
+          "400": 100,
+          "201": 2100
+        }
+      },
+      "actions": {
+        "achievements:restore": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 362.57,
+          "p99": 420.39,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 362.57,
+            "p99": 420.39
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "learning:answer": {
+          "requests": 1000,
+          "success": 1000,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 877.66,
+          "p99": 960.43,
+          "received_response_latency": {
+            "n": 1000,
+            "p95": 877.66,
+            "p99": 960.43
+          },
+          "statuses": {
+            "201": 1000
+          }
+        },
+        "learning:answer_retry": {
+          "requests": 1000,
+          "success": 1000,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 638.35,
+          "p99": 707.62,
+          "received_response_latency": {
+            "n": 1000,
+            "p95": 638.35,
+            "p99": 707.62
+          },
+          "statuses": {
+            "201": 1000
+          }
+        },
+        "learning:complete": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 684.62,
+          "p99": 695.31,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 684.62,
+            "p99": 695.31
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "learning:question": {
+          "requests": 1000,
+          "success": 1000,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 740.59,
+          "p99": 1090.75,
+          "received_response_latency": {
+            "n": 1000,
+            "p95": 740.59,
+            "p99": 1090.75
+          },
+          "statuses": {
+            "200": 1000
+          }
+        },
+        "learning:start": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 2376.46,
+          "p99": 2435.72,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 2376.46,
+            "p99": 2435.72
+          },
+          "statuses": {
+            "201": 100
+          }
+        },
+        "main:deliver:first": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 437.18,
+          "p99": 447.15,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 437.18,
+            "p99": 447.15
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:deliver:retry": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 421.71,
+          "p99": 476.49,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 421.71,
+            "p99": 476.49
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:card_match": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 143.05,
+          "p99": 153.93,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 143.05,
+            "p99": 153.93
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:coating": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 79.29,
+          "p99": 106.99,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 79.29,
+            "p99": 106.99
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:kkuwang_touch": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 133.96,
+          "p99": 148.45,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 133.96,
+            "p99": 148.45
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:sql_memory": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 181.97,
+          "p99": 200.9,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 181.97,
+            "p99": 200.9
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:topping": {
+          "requests": 100,
+          "success": 0,
+          "normal_handling": 100,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 64.88,
+          "p99": 78.94,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 64.88,
+            "p99": 78.94
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:wrapping": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 150.95,
+          "p99": 174.39,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 150.95,
+            "p99": 174.39
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:card_match": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 120.47,
+          "p99": 141.78,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 120.47,
+            "p99": 141.78
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:coating": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 102.86,
+          "p99": 137.62,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 102.86,
+            "p99": 137.62
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:kkuwang_touch": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 149.17,
+          "p99": 158.12,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 149.17,
+            "p99": 158.12
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:sql_memory": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 552.73,
+          "p99": 571.02,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 552.73,
+            "p99": 571.02
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:topping": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 69.6,
+          "p99": 85.36,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 69.6,
+            "p99": 85.36
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:wrapping": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 59.85,
+          "p99": 69.47,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 59.85,
+            "p99": 69.47
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:investigate": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 688.01,
+          "p99": 695.68,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 688.01,
+            "p99": 695.68
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:restore": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 528.23,
+          "p99": 540.05,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 528.23,
+            "p99": 540.05
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:room1_briefing": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 519.61,
+          "p99": 542.15,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 519.61,
+            "p99": 542.15
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:sql_answer": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 152.14,
+          "p99": 160.02,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 152.14,
+            "p99": 160.02
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:acquire": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 683.06,
+          "p99": 696.76,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 683.06,
+            "p99": 696.76
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:defer": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 519.92,
+          "p99": 547.7,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 519.92,
+            "p99": 547.7
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:finish": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 652.72,
+          "p99": 681.81,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 652.72,
+            "p99": 681.81
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:recognize": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 572.98,
+          "p99": 595.14,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 572.98,
+            "p99": 595.14
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:restore": {
+          "requests": 200,
+          "success": 200,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 392.45,
+          "p99": 421.54,
+          "received_response_latency": {
+            "n": 200,
+            "p95": 392.45,
+            "p99": 421.54
+          },
+          "statuses": {
+            "200": 200
+          }
+        },
+        "recipe:start": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 491.42,
+          "p99": 499.3,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 491.42,
+            "p99": 499.3
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:topping": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 470.26,
+          "p99": 476.07,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 470.26,
+            "p99": 476.07
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "term_match:result": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 632.03,
+          "p99": 709.23,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 632.03,
+            "p99": 709.23
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "term_match:retry": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 642.64,
+          "p99": 684.88,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 642.64,
+            "p99": 684.88
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "timer:result": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 921.22,
+          "p99": 957.11,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 921.22,
+            "p99": 957.11
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "timer:retry": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 884.8,
+          "p99": 908.91,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 884.8,
+            "p99": 908.91
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "typing:interrupt": {
+          "requests": 100,
+          "success": 0,
+          "normal_handling": 100,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 100.03,
+          "p99": 185.85,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 100.03,
+            "p99": 185.85
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "typing:over_limit": {
+          "requests": 100,
+          "success": 0,
+          "normal_handling": 100,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 339.16,
+          "p99": 462.09,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 339.16,
+            "p99": 462.09
+          },
+          "statuses": {
+            "400": 100
+          }
+        },
+        "typing:result": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 678.18,
+          "p99": 710.67,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 678.18,
+            "p99": 710.67
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "typing:retry": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 700.26,
+          "p99": 740.7,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 700.26,
+            "p99": 740.7
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "ws:game_start": {
+          "requests": 400,
+          "success": 400,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 761.78,
+          "p99": 836.3,
+          "received_response_latency": {
+            "n": 400,
+            "p95": 761.78,
+            "p99": 836.3
+          },
+          "statuses": {
+            "ok": 400
+          }
+        },
+        "ws:guide_talk": {
+          "requests": 300,
+          "success": 0,
+          "normal_handling": 300,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 156.28,
+          "p99": 162.53,
+          "received_response_latency": {
+            "n": 300,
+            "p95": 156.28,
+            "p99": 162.53
+          },
+          "statuses": {
+            "rejected": 300
+          }
+        },
+        "ws_connect": {
+          "requests": 400,
+          "success": 400,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 2115.59,
+          "p99": 2162.85,
+          "received_response_latency": {
+            "n": 400,
+            "p95": 2115.59,
+            "p99": 2162.85
+          },
+          "statuses": {
+            "101": 400
+          }
+        }
+      },
+      "account_checks": [
+        {
+          "phase": "connect:timer",
+          "users": 100,
+          "seconds": 2.19,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "standalone:timer",
+          "users": 100,
+          "seconds": 13.01,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "far_guide_rejection:timer",
+          "users": 100,
+          "seconds": 0.16,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:timer",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "connect:typing",
+          "users": 100,
+          "seconds": 0.68,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "standalone:typing",
+          "users": 100,
+          "seconds": 3.68,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "far_guide_rejection:typing",
+          "users": 100,
+          "seconds": 0.17,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:typing",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "connect:term_match",
+          "users": 100,
+          "seconds": 0.63,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "standalone:term_match",
+          "users": 100,
+          "seconds": 7.38,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "far_guide_rejection:term_match",
+          "users": 100,
+          "seconds": 0.17,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "main_games_and_final_rank",
+          "users": 100,
+          "seconds": 57.39,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "recipe_full_branches",
+          "users": 100,
+          "seconds": 3.17,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "learning_all_subjects_and_types",
+          "users": 100,
+          "seconds": 18.82,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:final",
+          "users": 100,
+          "seconds": 0.02,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "reconnect:restore",
+          "users": 100,
+          "seconds": 0.66,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "state_after_reconnect",
+          "users": 100,
+          "seconds": 1.04,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:cleanup",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        }
+      ],
+      "http_connections": {
+        "front-service": {
+          "requests": 6700,
+          "tcp_connections": 191
+        },
+        "movement-9751": {
+          "requests": 100,
+          "tcp_connections": 100
+        },
+        "movement-9752": {
+          "requests": 100,
+          "tcp_connections": 100
+        },
+        "movement-9753": {
+          "requests": 100,
+          "tcp_connections": 100
+        },
+        "movement-9754": {
+          "requests": 100,
+          "tcp_connections": 100
+        },
+        "service-9761": {
+          "requests": 1742,
+          "tcp_connections": 49
+        },
+        "service-9762": {
+          "requests": 1541,
+          "tcp_connections": 43
+        },
+        "service-9763": {
+          "requests": 1675,
+          "tcp_connections": 47
+        },
+        "service-9764": {
+          "requests": 1742,
+          "tcp_connections": 48
+        }
+      },
+      "study_selections": 100,
+      "study_audit": {
+        "wrong_wallet_balance": 0,
+        "wrong_answer_session": 0,
+        "wrong_event_session_owner": 0,
+        "wrong_play_session_owner": 0,
+        "started_lessons": 100,
+        "completed_lessons": 100,
+        "new_answers": 1000,
+        "new_ledger": 1000,
+        "duplicate_answer_groups": 0,
+        "wrong_owner": 0,
+        "wrong_ledger": 0,
+        "duplicate_reward_groups": 0
+      },
+      "event_audit": {
+        "egg_count": 7,
+        "duplicate_users": [],
+        "duplicate_eggs": [],
+        "invalid_egg_metadata": 0,
+        "egg_order_not_one": 0,
+        "eggs_missing_session": 0,
+        "main_completed": 100,
+        "main_rank_unique": true,
+        "main_ranks_contiguous": true,
+        "main_missing_session": 0,
+        "recipe_completed": 100,
+        "plays": {
+          "FAILED": 100,
+          "INTERRUPTED": 100,
+          "SUCCESS": 700,
+          "FINISHED": 100
+        },
+        "learning_completed": 186,
+        "answers": 2190,
+        "ledger_rows": 2009
+      },
+      "mixed": {
+        "walk": {
+          "http": {
+            "requests": 3485,
+            "success": 3485,
+            "normal_handling": 0,
+            "errors": 0,
+            "unanswered": 0,
+            "p95": 32.06,
+            "p99": 44.19,
+            "received_response_latency": {
+              "n": 3485,
+              "p95": 32.06,
+              "p99": 44.19
+            },
+            "statuses": {
+              "200": 3485
+            }
+          },
+          "control": {
+            "requests": 729,
+            "success": 729,
+            "normal_handling": 0,
+            "errors": 0,
+            "unanswered": 0,
+            "p95": 2.08,
+            "p99": 3.64,
+            "received_response_latency": {
+              "n": 729,
+              "p95": 2.08,
+              "p99": 3.64
+            },
+            "statuses": {
+              "ok": 729
+            }
+          },
+          "chat": {
+            "requests": 1122,
+            "success": 1122,
+            "normal_handling": 0,
+            "errors": 0,
+            "unanswered": 0,
+            "p95": 45.85,
+            "p99": 68.46,
+            "received_response_latency": {
+              "n": 1122,
+              "p95": 45.85,
+              "p99": 68.46
+            },
+            "statuses": {
+              "ok": 1122
+            }
+          },
+          "drain": [
+            {
+              "worker": 0,
+              "pending_at_end": 0,
+              "drain_seconds": 0.0005231250543147326,
+              "unresolved": 0,
+              "generation_stopped_epoch": 1794067323.954694
+            },
+            {
+              "worker": 1,
+              "pending_at_end": 0,
+              "drain_seconds": 0.0005352918524295092,
+              "unresolved": 0,
+              "generation_stopped_epoch": 1794067323.9518971
+            }
+          ],
+          "browser_js_errors": [],
+          "browser_ws_closed": [],
+          "movement_p95_p99": {
+            "n": 951,
+            "p95": 2.37,
+            "p99": 4.37
+          },
+          "state_gap_p95_p99": {
+            "n": 50311,
+            "p95": 35.0,
+            "p99": 36.6
+          }
+        },
+        "real": {
+          "http": {
+            "requests": 5250,
+            "success": 5250,
+            "normal_handling": 0,
+            "errors": 0,
+            "unanswered": 0,
+            "p95": 138.73,
+            "p99": 333.15,
+            "received_response_latency": {
+              "n": 5250,
+              "p95": 138.73,
+              "p99": 333.15
+            },
+            "statuses": {
+              "200": 4863,
+              "201": 387
+            }
+          },
+          "control": {
+            "requests": 10367,
+            "success": 10340,
+            "normal_handling": 27,
+            "errors": 0,
+            "unanswered": 0,
+            "p95": 37.83,
+            "p99": 85.12,
+            "received_response_latency": {
+              "n": 10367,
+              "p95": 37.83,
+              "p99": 85.12
+            },
+            "statuses": {
+              "ok": 10340,
+              "rejected": 27
+            }
+          },
+          "chat": {
+            "requests": 1484,
+            "success": 1484,
+            "normal_handling": 0,
+            "errors": 0,
+            "unanswered": 0,
+            "p95": 127.27,
+            "p99": 205.29,
+            "received_response_latency": {
+              "n": 1484,
+              "p95": 127.27,
+              "p99": 205.29
+            },
+            "statuses": {
+              "ok": 1484
+            }
+          },
+          "drain": [
+            {
+              "worker": 0,
+              "pending_at_end": 0,
+              "drain_seconds": 0.002057458972558379,
+              "unresolved": 0,
+              "generation_stopped_epoch": 1794067541.7360506
+            },
+            {
+              "worker": 1,
+              "pending_at_end": 0,
+              "drain_seconds": 0.0018996659200638533,
+              "unresolved": 0,
+              "generation_stopped_epoch": 1794067541.7364516
+            }
+          ],
+          "browser_js_errors": [],
+          "browser_ws_closed": [],
+          "movement_p95_p99": {
+            "n": 118143,
+            "p95": 33.94,
+            "p99": 48.64
+          },
+          "state_gap_p95_p99": {
+            "n": 310383,
+            "p95": 39.76,
+            "p99": 55.94
+          }
+        }
+      },
+      "receipt": {
+        "requests": 832,
+        "success": 830,
+        "normal_handling": 2,
+        "errors": 0,
+        "unanswered": 0,
+        "p95": 825.52,
+        "p99": 1134.38,
+        "received_response_latency": {
+          "n": 832,
+          "p95": 825.52,
+          "p99": 1134.38
+        },
+        "statuses": {
+          "200": 830,
+          "409": 1,
+          "500": 1
+        }
+      },
+      "receipt_checks": {
+        "outcome": "passed",
+        "checks": [
+          {
+            "name": "owned_fresh_fixture",
+            "passed": true
+          },
+          {
+            "name": "empty_final_ranking",
+            "passed": true
+          },
+          {
+            "name": "active_sessions",
+            "passed": true
+          },
+          {
+            "name": "warmup_status",
+            "passed": true
+          },
+          {
+            "name": "start_same_request.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "original_receipt_for_every_duplicate",
+            "passed": true
+          },
+          {
+            "name": "duplicate_start_creates_100_plays",
+            "passed": true
+          },
+          {
+            "name": "start_fresh.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "start_old_receipt.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "old_receipt_is_interrupted_and_unchanged",
+            "passed": true
+          },
+          {
+            "name": "old_replay_does_not_interrupt_current_play",
+            "passed": true
+          },
+          {
+            "name": "finish.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "finish_retry.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "result_receipt_replay_unchanged",
+            "passed": true
+          },
+          {
+            "name": "result_db_replay_unchanged",
+            "passed": true
+          },
+          {
+            "name": "finished_result_evidence_and_server_timing",
+            "passed": true
+          },
+          {
+            "name": "conflicting_result_rejected",
+            "passed": true
+          },
+          {
+            "name": "deliver.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "rank_1_to_100_unique",
+            "passed": true
+          },
+          {
+            "name": "completion_time_and_session",
+            "passed": true
+          },
+          {
+            "name": "deliver_retry.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "completion_rank_return_and_db_unchanged",
+            "passed": true
+          },
+          {
+            "name": "start_sql_memory.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "retry_sql_memory.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "sql_memory_original_challenge_and_token",
+            "passed": true
+          },
+          {
+            "name": "start_card_match.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "retry_card_match.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "card_match_original_challenge_and_token",
+            "passed": true
+          },
+          {
+            "name": "start_coating.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "retry_coating.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "coating_original_challenge_and_token",
+            "passed": true
+          },
+          {
+            "name": "start_topping.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "retry_topping.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "topping_original_challenge_and_token",
+            "passed": true
+          },
+          {
+            "name": "start_wrapping.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "retry_wrapping.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "wrapping_original_challenge_and_token",
+            "passed": true
+          },
+          {
+            "name": "cross_process_start.full_expected_responses",
+            "passed": true
+          },
+          {
+            "name": "cross_process_same_account_one_receipt",
+            "passed": true
+          },
+          {
+            "name": "unread_body_success_headers",
+            "passed": true
+          },
+          {
+            "name": "unread_body_retry_recovers_saved_receipt",
+            "passed": true
+          },
+          {
+            "name": "write_receipt_survives_status_fail",
+            "passed": true
+          },
+          {
+            "name": "write_receipt_survives_status_delay",
+            "passed": true
+          },
+          {
+            "name": "status_2sec_delay_does_not_delay_writes",
+            "passed": true
+          },
+          {
+            "name": "status_after_cleanup",
+            "passed": true
+          },
+          {
+            "name": "previous_progress_timestamps_and_sessions_unchanged",
+            "passed": true
+          },
+          {
+            "name": "final_progress_unchanged",
+            "passed": true
+          },
+          {
+            "name": "final_integrity",
+            "passed": true
+          },
+          {
+            "name": "all_responses_valid_and_received",
+            "passed": true
+          },
+          {
+            "name": "all_submitted_requests_drained",
+            "passed": true
+          }
+        ],
+        "metrics": [
+          {
+            "request": "cross_process_start",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 24.94,
+            "p95_ms": 33.65,
+            "observed_response_p95_ms": 33.65,
+            "max_ms": 33.65,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "deliver",
+            "submitted": 100,
+            "requests": 100,
+            "success": 100,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 100,
+            "peak_inflight": 100,
+            "p50_ms": 717.95,
+            "p95_ms": 1149.86,
+            "observed_response_p95_ms": 1149.86,
+            "max_ms": 1197.85,
+            "http_statuses": {
+              "200": 100
+            }
+          },
+          {
+            "request": "deliver_retry",
+            "submitted": 100,
+            "requests": 100,
+            "success": 100,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 100,
+            "peak_inflight": 100,
+            "p50_ms": 471.51,
+            "p95_ms": 675.72,
+            "observed_response_p95_ms": 675.72,
+            "max_ms": 693.82,
+            "http_statuses": {
+              "200": 100
+            }
+          },
+          {
+            "request": "finish",
+            "submitted": 100,
+            "requests": 100,
+            "success": 100,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 100,
+            "peak_inflight": 100,
+            "p50_ms": 480.53,
+            "p95_ms": 617.87,
+            "observed_response_p95_ms": 617.87,
+            "max_ms": 629.97,
+            "http_statuses": {
+              "200": 100
+            }
+          },
+          {
+            "request": "finish_conflict",
+            "submitted": 1,
+            "requests": 1,
+            "success": 0,
+            "expected_rejection": 1,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 17.99,
+            "p95_ms": 17.99,
+            "observed_response_p95_ms": 17.99,
+            "max_ms": 17.99,
+            "http_statuses": {
+              "409": 1
+            }
+          },
+          {
+            "request": "finish_retry",
+            "submitted": 100,
+            "requests": 100,
+            "success": 100,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 100,
+            "peak_inflight": 100,
+            "p50_ms": 468.62,
+            "p95_ms": 565.54,
+            "observed_response_p95_ms": 565.54,
+            "max_ms": 572.88,
+            "http_statuses": {
+              "200": 100
+            }
+          },
+          {
+            "request": "investigate_status_delay",
+            "submitted": 1,
+            "requests": 1,
+            "success": 1,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 30.08,
+            "p95_ms": 30.08,
+            "observed_response_p95_ms": 30.08,
+            "max_ms": 30.08,
+            "http_statuses": {
+              "200": 1
+            }
+          },
+          {
+            "request": "investigate_status_fail",
+            "submitted": 1,
+            "requests": 1,
+            "success": 1,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 28.46,
+            "p95_ms": 28.46,
+            "observed_response_p95_ms": 28.46,
+            "max_ms": 28.46,
+            "http_statuses": {
+              "200": 1
+            }
+          },
+          {
+            "request": "retry_after_unread_body",
+            "submitted": 1,
+            "requests": 1,
+            "success": 1,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 23.07,
+            "p95_ms": 23.07,
+            "observed_response_p95_ms": 23.07,
+            "max_ms": 23.07,
+            "http_statuses": {
+              "200": 1
+            }
+          },
+          {
+            "request": "retry_card_match",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 26.03,
+            "p95_ms": 26.2,
+            "observed_response_p95_ms": 26.2,
+            "max_ms": 26.2,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "retry_coating",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 28.6,
+            "p95_ms": 28.92,
+            "observed_response_p95_ms": 28.92,
+            "max_ms": 28.92,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "retry_sql_memory",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 25.38,
+            "p95_ms": 26.67,
+            "observed_response_p95_ms": 26.67,
+            "max_ms": 26.67,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "retry_topping",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 27.9,
+            "p95_ms": 29.0,
+            "observed_response_p95_ms": 29.0,
+            "max_ms": 29.0,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "retry_wrapping",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 27.02,
+            "p95_ms": 27.5,
+            "observed_response_p95_ms": 27.5,
+            "max_ms": 27.5,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "start_card_match",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 29.99,
+            "p95_ms": 30.59,
+            "observed_response_p95_ms": 30.59,
+            "max_ms": 30.59,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "start_coating",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 32.39,
+            "p95_ms": 32.81,
+            "observed_response_p95_ms": 32.81,
+            "max_ms": 32.81,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "start_fresh",
+            "submitted": 100,
+            "requests": 100,
+            "success": 100,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 100,
+            "peak_inflight": 100,
+            "p50_ms": 471.48,
+            "p95_ms": 618.24,
+            "observed_response_p95_ms": 618.24,
+            "max_ms": 626.56,
+            "http_statuses": {
+              "200": 100
+            }
+          },
+          {
+            "request": "start_old_receipt",
+            "submitted": 100,
+            "requests": 100,
+            "success": 100,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 100,
+            "peak_inflight": 100,
+            "p50_ms": 402.87,
+            "p95_ms": 496.25,
+            "observed_response_p95_ms": 496.25,
+            "max_ms": 505.4,
+            "http_statuses": {
+              "200": 100
+            }
+          },
+          {
+            "request": "start_same_request",
+            "submitted": 200,
+            "requests": 200,
+            "success": 200,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 200,
+            "peak_inflight": 100,
+            "p50_ms": 402.04,
+            "p95_ms": 723.32,
+            "observed_response_p95_ms": 723.32,
+            "max_ms": 858.0,
+            "http_statuses": {
+              "200": 200
+            }
+          },
+          {
+            "request": "start_sql_memory",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 31.02,
+            "p95_ms": 32.91,
+            "observed_response_p95_ms": 32.91,
+            "max_ms": 32.91,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "start_status_delay",
+            "submitted": 1,
+            "requests": 1,
+            "success": 1,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 40.03,
+            "p95_ms": 40.03,
+            "observed_response_p95_ms": 40.03,
+            "max_ms": 40.03,
+            "http_statuses": {
+              "200": 1
+            }
+          },
+          {
+            "request": "start_status_fail",
+            "submitted": 1,
+            "requests": 1,
+            "success": 1,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 29.53,
+            "p95_ms": 29.53,
+            "observed_response_p95_ms": 29.53,
+            "max_ms": 29.53,
+            "http_statuses": {
+              "200": 1
+            }
+          },
+          {
+            "request": "start_topping",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 36.57,
+            "p95_ms": 37.77,
+            "observed_response_p95_ms": 37.77,
+            "max_ms": 37.77,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "start_wrapping",
+            "submitted": 2,
+            "requests": 2,
+            "success": 2,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 2,
+            "peak_inflight": 2,
+            "p50_ms": 32.26,
+            "p95_ms": 33.43,
+            "observed_response_p95_ms": 33.43,
+            "max_ms": 33.43,
+            "http_statuses": {
+              "200": 2
+            }
+          },
+          {
+            "request": "status_baseline",
+            "submitted": 1,
+            "requests": 1,
+            "success": 1,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 25.29,
+            "p95_ms": 25.29,
+            "observed_response_p95_ms": 25.29,
+            "max_ms": 25.29,
+            "http_statuses": {
+              "200": 1
+            }
+          },
+          {
+            "request": "status_delay",
+            "submitted": 1,
+            "requests": 1,
+            "success": 1,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 2040.41,
+            "p95_ms": 2040.41,
+            "observed_response_p95_ms": 2040.41,
+            "max_ms": 2040.41,
+            "http_statuses": {
+              "200": 1
+            }
+          },
+          {
+            "request": "status_fail",
+            "submitted": 1,
+            "requests": 1,
+            "success": 0,
+            "expected_rejection": 0,
+            "expected_fault": 1,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 26.07,
+            "p95_ms": 26.07,
+            "observed_response_p95_ms": 26.07,
+            "max_ms": 26.07,
+            "http_statuses": {
+              "500": 1
+            }
+          },
+          {
+            "request": "status_restored",
+            "submitted": 1,
+            "requests": 1,
+            "success": 1,
+            "expected_rejection": 0,
+            "expected_fault": 0,
+            "errors": 0,
+            "no_response": 0,
+            "not_started": 0,
+            "complete_responses": 1,
+            "peak_inflight": 1,
+            "p50_ms": 29.74,
+            "p95_ms": 29.74,
+            "observed_response_p95_ms": 29.74,
+            "max_ms": 29.74,
+            "http_statuses": {
+              "200": 1
+            }
+          }
+        ],
+        "audit": {
+          "plays": {
+            "checked_at": "final_integrity",
+            "rows": 214,
+            "requests": 214,
+            "duplicateGroups": 0,
+            "statuses": {
+              "FINISHED": 100,
+              "INTERRUPTED": 110,
+              "RUNNING": 4
+            }
+          },
+          "ranks": {
+            "count": 100,
+            "unique": 100,
+            "minimum": 1,
+            "maximum": 100
+          },
+          "intentionalUnreadBodyRequests": 1,
+          "delayMs": {
+            "start": 40.03387503325939,
+            "investigate": 30.076166847720742,
+            "status": 2040.4131249524653
+          }
+        },
+        "failure": null,
+        "condition": {
+          "accounts": 100,
+          "httpConcurrencyLimit": 100,
+          "movement": 4,
+          "service": 4,
+          "frontends": 2,
+          "jobs": 1,
+          "windowOverride": true,
+          "latency": "full HTTP body and JSON parse; thread-pool queue excluded; nearest-rank percentiles",
+          "duplicateBatch": "100 accounts x 2 requests; 50 accounts with paired requests per initial wave; fresh-start batch has 100 accounts concurrently",
+          "movementChatLoad": false,
+          "timingComparison": "current source only, no before/after claim"
+        }
+      },
+      "browser_receipt": {
+        "checks": [
+          {
+            "name": "actual_map_and_both_websockets_loaded",
+            "passed": true
+          },
+          {
+            "name": "opening_investigation_does_not_preload_status",
+            "passed": true
+          },
+          {
+            "name": "first_investigation_receipt_received",
+            "passed": true
+          },
+          {
+            "name": "success_ui_shown_while_status_is_pending",
+            "passed": true
+          },
+          {
+            "name": "lost_receipt_offers_same_request_retry",
+            "passed": true
+          },
+          {
+            "name": "same_uuid_and_original_receipt_recovered",
+            "passed": true
+          },
+          {
+            "name": "one_saved_play_matches_client",
+            "passed": true
+          },
+          {
+            "name": "start_ui_survives_status_failure",
+            "passed": true
+          },
+          {
+            "name": "result_saved_despite_failed_snapshot",
+            "passed": true
+          },
+          {
+            "name": "client_retains_result_for_retry",
+            "passed": true
+          },
+          {
+            "name": "same_play_token_and_result_resent",
+            "passed": true
+          },
+          {
+            "name": "finish_retry_preserves_one_record_and_timestamp",
+            "passed": true
+          },
+          {
+            "name": "client_receives_updated_mission_state",
+            "passed": true
+          },
+          {
+            "name": "reload_restores_db_progress_without_new_play",
+            "passed": true
+          },
+          {
+            "name": "no_uncaught_javascript_exceptions",
+            "passed": true
+          }
+        ],
+        "http": [
+          {
+            "path": "/accounts/session/status/",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 176.29999995231628,
+            "hasState": false
+          },
+          {
+            "path": "/api/campus/freeze/",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 290,
+            "hasState": false
+          },
+          {
+            "path": "/api/learning/wallet/",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 278.09999990463257,
+            "hasState": false
+          },
+          {
+            "path": "/static/campus/minigames/timer.html",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 58.200000047683716,
+            "hasState": false
+          },
+          {
+            "path": "/api/community/notices/",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 249.39999985694885,
+            "hasState": false
+          },
+          {
+            "path": "/static/campus/minigames/typing.html",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 12,
+            "hasState": false
+          },
+          {
+            "path": "/static/campus/minigames/term_match.html",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 5.299999952316284,
+            "hasState": false
+          },
+          {
+            "path": "/static/campus/event-games/sql-memory.html",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 25,
+            "hasState": false
+          },
+          {
+            "path": "/static/campus/event-games/card.html",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 12,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/status/",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 28.09999990463257,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/action/",
+            "method": "POST",
+            "action": "notice",
+            "phase": "initial",
+            "status": 200,
+            "ms": 41.39999985694885,
+            "hasState": true
+          },
+          {
+            "path": "/api/event-story/achievements/",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 42.09999990463257,
+            "hasState": false
+          },
+          {
+            "path": "/api/messages/status/",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 39.09999990463257,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/status/",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 46.200000047683716,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/action/",
+            "method": "POST",
+            "action": "notice",
+            "phase": "initial",
+            "status": 200,
+            "ms": 47.200000047683716,
+            "hasState": true
+          },
+          {
+            "path": "/api/event-story/achievements/",
+            "method": "GET",
+            "phase": "initial",
+            "status": 200,
+            "ms": 16.700000047683716,
+            "hasState": false
+          },
+          {
+            "path": "/api/messages/status/",
+            "method": "GET",
+            "phase": "investigate-delay",
+            "status": 200,
+            "ms": 26.899999856948853,
+            "hasState": false
+          },
+          {
+            "path": "/accounts/session/activity/",
+            "method": "POST",
+            "phase": "investigate-delay",
+            "status": 200,
+            "ms": 28,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/action/",
+            "method": "POST",
+            "action": "investigate",
+            "phase": "investigate-delay",
+            "status": 200,
+            "ms": 39.299999952316284,
+            "first": true,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/status/",
+            "method": "GET",
+            "phase": "investigate-delay",
+            "status": 200,
+            "ms": 2045.4000000953674,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/status/",
+            "method": "GET",
+            "phase": "start-loss",
+            "status": 200,
+            "ms": 33.799999952316284,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/status/",
+            "method": "GET",
+            "phase": "start-loss",
+            "status": 200,
+            "ms": 33.299999952316284,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/action/",
+            "method": "POST",
+            "action": "game_start",
+            "phase": "start-loss",
+            "status": 200,
+            "ms": 60.09999990463257,
+            "play": "b31b1ef4-9edc-4c2b-aef1-2e687dcfc8ab",
+            "playStatus": "RUNNING",
+            "hasState": false,
+            "request_uuid": "61ba9512-4dc5-4e3a-a200-4835a4b51af7",
+            "injectedLoss": true
+          },
+          {
+            "path": "/api/event-main/action/",
+            "method": "POST",
+            "action": "game_start",
+            "phase": "start-loss",
+            "status": 200,
+            "ms": 46.60000014305115,
+            "play": "b31b1ef4-9edc-4c2b-aef1-2e687dcfc8ab",
+            "playStatus": "RUNNING",
+            "hasState": false,
+            "request_uuid": "61ba9512-4dc5-4e3a-a200-4835a4b51af7"
+          },
+          {
+            "path": "/api/event-main/status/",
+            "method": "GET",
+            "phase": "start-loss",
+            "status": 500,
+            "ms": 107,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/action/",
+            "method": "POST",
+            "action": "game_finish",
+            "phase": "finish-status-failure",
+            "status": 500,
+            "ms": 55,
+            "hasState": false
+          },
+          {
+            "path": "/api/event-main/action/",
+            "method": "POST",
+            "action": "game_finish",
+            "phase": "finish-status-failure",
+            "status": 200,
+            "ms": 38,
+            "hasState": true
+          }
+        ],
+        "chrome": "Chrome/156.0.8078.81",
+        "jsErrors": [],
+        "actualBrowser": true,
+        "lossInjection": "fetch rejects after actual POST body was read; raw connection body loss is tested separately",
+        "windowOverride": true
+      },
+      "security": {
+        "requests": 419,
+        "success": 409,
+        "normal_handling": 10,
+        "errors": 0,
+        "unanswered": 0,
+        "p95": 1153.48,
+        "p99": 1312.44,
+        "received_response_latency": {
+          "n": 419,
+          "p95": 1153.48,
+          "p99": 1312.44
+        },
+        "statuses": {
+          "101": 406,
+          "403": 8,
+          "302": 1,
+          "4401": 2,
+          "pong": 2
+        }
+      },
+      "admission": {
+        "requests": 1000,
+        "success": 1000,
+        "normal_handling": 0,
+        "errors": 0,
+        "unanswered": 0,
+        "p95": 631.44,
+        "p99": 672.89,
+        "received_response_latency": {
+          "n": 1000,
+          "p95": 631.44,
+          "p99": 672.89
+        },
+        "statuses": {
+          "101": 1000
+        }
+      },
+      "entry_5xx_status_counts": {}
+    },
+    "b2": {
+      "functional": {
+        "requests": 7800,
+        "success": 7200,
+        "normal_handling": 600,
+        "errors": 0,
+        "unanswered": 0,
+        "p95": 773.89,
+        "p99": 2013.9,
+        "received_response_latency": {
+          "n": 7800,
+          "p95": 773.89,
+          "p99": 2013.9
+        },
+        "statuses": {
+          "101": 400,
+          "ok": 400,
+          "200": 4500,
+          "rejected": 300,
+          "400": 100,
+          "201": 2100
+        }
+      },
+      "actions": {
+        "achievements:restore": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 364.54,
+          "p99": 369.27,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 364.54,
+            "p99": 369.27
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "learning:answer": {
+          "requests": 1000,
+          "success": 1000,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 828.99,
+          "p99": 904.64,
+          "received_response_latency": {
+            "n": 1000,
+            "p95": 828.99,
+            "p99": 904.64
+          },
+          "statuses": {
+            "201": 1000
+          }
+        },
+        "learning:answer_retry": {
+          "requests": 1000,
+          "success": 1000,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 595.24,
+          "p99": 657.03,
+          "received_response_latency": {
+            "n": 1000,
+            "p95": 595.24,
+            "p99": 657.03
+          },
+          "statuses": {
+            "201": 1000
+          }
+        },
+        "learning:complete": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 647.33,
+          "p99": 743.77,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 647.33,
+            "p99": 743.77
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "learning:question": {
+          "requests": 1000,
+          "success": 1000,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 699.22,
+          "p99": 1131.85,
+          "received_response_latency": {
+            "n": 1000,
+            "p95": 699.22,
+            "p99": 1131.85
+          },
+          "statuses": {
+            "200": 1000
+          }
+        },
+        "learning:start": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 2239.19,
+          "p99": 2264.0,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 2239.19,
+            "p99": 2264.0
+          },
+          "statuses": {
+            "201": 100
+          }
+        },
+        "main:deliver:first": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 179.47,
+          "p99": 185.52,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 179.47,
+            "p99": 185.52
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:deliver:retry": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 145.21,
+          "p99": 190.9,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 145.21,
+            "p99": 190.9
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:card_match": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 242.52,
+          "p99": 282.05,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 242.52,
+            "p99": 282.05
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:coating": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 118.98,
+          "p99": 127.91,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 118.98,
+            "p99": 127.91
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:kkuwang_touch": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 210.96,
+          "p99": 235.68,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 210.96,
+            "p99": 235.68
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:sql_memory": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 231.64,
+          "p99": 253.6,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 231.64,
+            "p99": 253.6
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:topping": {
+          "requests": 100,
+          "success": 0,
+          "normal_handling": 100,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 111.64,
+          "p99": 116.01,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 111.64,
+            "p99": 116.01
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:wrapping": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 123.14,
+          "p99": 131.21,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 123.14,
+            "p99": 131.21
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:card_match": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 182.32,
+          "p99": 204.82,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 182.32,
+            "p99": 204.82
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:coating": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 201.87,
+          "p99": 212.43,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 201.87,
+            "p99": 212.43
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:kkuwang_touch": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 208.81,
+          "p99": 221.79,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 208.81,
+            "p99": 221.79
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:sql_memory": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 526.98,
+          "p99": 551.68,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 526.98,
+            "p99": 551.68
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:topping": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 100.46,
+          "p99": 105.02,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 100.46,
+            "p99": 105.02
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:wrapping": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 103.53,
+          "p99": 110.73,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 103.53,
+            "p99": 110.73
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:investigate": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 675.77,
+          "p99": 676.04,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 675.77,
+            "p99": 676.04
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:restore": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 594.17,
+          "p99": 608.45,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 594.17,
+            "p99": 608.45
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:room1_briefing": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 527.29,
+          "p99": 549.25,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 527.29,
+            "p99": 549.25
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:sql_answer": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 203.31,
+          "p99": 214.6,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 203.31,
+            "p99": 214.6
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:acquire": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 685.07,
+          "p99": 740.77,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 685.07,
+            "p99": 740.77
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:defer": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 566.2,
+          "p99": 585.62,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 566.2,
+            "p99": 585.62
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:finish": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 658.6,
+          "p99": 667.95,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 658.6,
+            "p99": 667.95
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:recognize": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 634.79,
+          "p99": 686.23,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 634.79,
+            "p99": 686.23
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:restore": {
+          "requests": 200,
+          "success": 200,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 407.61,
+          "p99": 429.77,
+          "received_response_latency": {
+            "n": 200,
+            "p95": 407.61,
+            "p99": 429.77
+          },
+          "statuses": {
+            "200": 200
+          }
+        },
+        "recipe:start": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 490.16,
+          "p99": 510.79,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 490.16,
+            "p99": 510.79
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:topping": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 540.61,
+          "p99": 571.33,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 540.61,
+            "p99": 571.33
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "term_match:result": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 700.58,
+          "p99": 725.56,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 700.58,
+            "p99": 725.56
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "term_match:retry": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 736.8,
+          "p99": 760.31,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 736.8,
+            "p99": 760.31
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "timer:result": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 844.95,
+          "p99": 879.65,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 844.95,
+            "p99": 879.65
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "timer:retry": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 737.06,
+          "p99": 772.62,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 737.06,
+            "p99": 772.62
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "typing:interrupt": {
+          "requests": 100,
+          "success": 0,
+          "normal_handling": 100,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 136.18,
+          "p99": 203.26,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 136.18,
+            "p99": 203.26
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "typing:over_limit": {
+          "requests": 100,
+          "success": 0,
+          "normal_handling": 100,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 366.07,
+          "p99": 481.79,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 366.07,
+            "p99": 481.79
+          },
+          "statuses": {
+            "400": 100
+          }
+        },
+        "typing:result": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 718.93,
+          "p99": 755.48,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 718.93,
+            "p99": 755.48
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "typing:retry": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 745.36,
+          "p99": 753.51,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 745.36,
+            "p99": 753.51
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "ws:game_start": {
+          "requests": 400,
+          "success": 400,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 779.65,
+          "p99": 953.96,
+          "received_response_latency": {
+            "n": 400,
+            "p95": 779.65,
+            "p99": 953.96
+          },
+          "statuses": {
+            "ok": 400
+          }
+        },
+        "ws:guide_talk": {
+          "requests": 300,
+          "success": 0,
+          "normal_handling": 300,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 162.55,
+          "p99": 172.09,
+          "received_response_latency": {
+            "n": 300,
+            "p95": 162.55,
+            "p99": 172.09
+          },
+          "statuses": {
+            "rejected": 300
+          }
+        },
+        "ws_connect": {
+          "requests": 400,
+          "success": 400,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 2152.61,
+          "p99": 2209.15,
+          "received_response_latency": {
+            "n": 400,
+            "p95": 2152.61,
+            "p99": 2209.15
+          },
+          "statuses": {
+            "101": 400
+          }
+        }
+      },
+      "account_checks": [
+        {
+          "phase": "connect:timer",
+          "users": 100,
+          "seconds": 2.24,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "standalone:timer",
+          "users": 100,
+          "seconds": 12.82,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "far_guide_rejection:timer",
+          "users": 100,
+          "seconds": 0.16,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:timer",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "connect:typing",
+          "users": 100,
+          "seconds": 0.68,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "standalone:typing",
+          "users": 100,
+          "seconds": 3.83,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "far_guide_rejection:typing",
+          "users": 100,
+          "seconds": 0.17,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:typing",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "connect:term_match",
+          "users": 100,
+          "seconds": 0.66,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "standalone:term_match",
+          "users": 100,
+          "seconds": 7.48,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "far_guide_rejection:term_match",
+          "users": 100,
+          "seconds": 0.18,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "main_games_and_final_rank",
+          "users": 100,
+          "seconds": 57.53,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "recipe_full_branches",
+          "users": 100,
+          "seconds": 3.24,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "learning_all_subjects_and_types",
+          "users": 100,
+          "seconds": 18.4,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:final",
+          "users": 100,
+          "seconds": 0.02,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "reconnect:restore",
+          "users": 100,
+          "seconds": 0.69,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "state_after_reconnect",
+          "users": 100,
+          "seconds": 1.03,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:cleanup",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        }
+      ],
+      "http_connections": {
+        "front-service": {
+          "requests": 6700,
+          "tcp_connections": 191
+        },
+        "movement-9751": {
+          "requests": 100,
+          "tcp_connections": 100
+        },
+        "movement-9752": {
+          "requests": 100,
+          "tcp_connections": 100
+        },
+        "movement-9753": {
+          "requests": 100,
+          "tcp_connections": 100
+        },
+        "movement-9754": {
+          "requests": 100,
+          "tcp_connections": 100
+        },
+        "service-9761": {
+          "requests": 1742,
+          "tcp_connections": 49
+        },
+        "service-9762": {
+          "requests": 1541,
+          "tcp_connections": 44
+        },
+        "service-9763": {
+          "requests": 1675,
+          "tcp_connections": 47
+        },
+        "service-9764": {
+          "requests": 1742,
+          "tcp_connections": 48
+        }
+      },
+      "study_selections": 100,
+      "study_audit": {
+        "wrong_wallet_balance": 0,
+        "wrong_answer_session": 0,
+        "wrong_event_session_owner": 0,
+        "wrong_play_session_owner": 0,
+        "started_lessons": 100,
+        "completed_lessons": 100,
+        "new_answers": 1000,
+        "new_ledger": 1000,
+        "duplicate_answer_groups": 0,
+        "wrong_owner": 0,
+        "wrong_ledger": 0,
+        "duplicate_reward_groups": 0
+      },
+      "event_audit": {
+        "egg_count": 7,
+        "duplicate_users": [],
+        "duplicate_eggs": [],
+        "invalid_egg_metadata": 0,
+        "egg_order_not_one": 0,
+        "eggs_missing_session": 0,
+        "main_completed": 100,
+        "main_rank_unique": true,
+        "main_ranks_contiguous": true,
+        "main_missing_session": 0,
+        "recipe_completed": 100,
+        "plays": {
+          "FAILED": 100,
+          "INTERRUPTED": 100,
+          "SUCCESS": 700,
+          "FINISHED": 100
+        },
+        "learning_completed": 186,
+        "answers": 2190,
+        "ledger_rows": 2009
+      },
+      "mixed": {},
+      "entry_5xx_status_counts": {}
+    },
+    "a2": {
+      "functional": {
+        "requests": 7543,
+        "success": 6840,
+        "normal_handling": 600,
+        "errors": 103,
+        "unanswered": 0,
+        "p95": 873.97,
+        "p99": 5003.58,
+        "received_response_latency": {
+          "n": 7543,
+          "p95": 873.97,
+          "p99": 5003.58
+        },
+        "statuses": {
+          "101": 400,
+          "ok": 400,
+          "200": 4312,
+          "rejected": 300,
+          "400": 100,
+          "201": 1928,
+          "504": 28,
+          "502": 75
+        }
+      },
+      "actions": {
+        "achievements:restore": {
+          "requests": 83,
+          "success": 83,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 345.08,
+          "p99": 381.09,
+          "received_response_latency": {
+            "n": 83,
+            "p95": 345.08,
+            "p99": 381.09
+          },
+          "statuses": {
+            "200": 83
+          }
+        },
+        "learning:answer": {
+          "requests": 949,
+          "success": 926,
+          "normal_handling": 0,
+          "errors": 23,
+          "unanswered": 0,
+          "p95": 930.34,
+          "p99": 6711.74,
+          "received_response_latency": {
+            "n": 949,
+            "p95": 930.34,
+            "p99": 6711.74
+          },
+          "statuses": {
+            "201": 926,
+            "504": 10,
+            "502": 13
+          }
+        },
+        "learning:answer_retry": {
+          "requests": 926,
+          "success": 902,
+          "normal_handling": 0,
+          "errors": 24,
+          "unanswered": 0,
+          "p95": 708.25,
+          "p99": 6714.16,
+          "received_response_latency": {
+            "n": 926,
+            "p95": 708.25,
+            "p99": 6714.16
+          },
+          "statuses": {
+            "201": 902,
+            "504": 8,
+            "502": 16
+          }
+        },
+        "learning:complete": {
+          "requests": 25,
+          "success": 14,
+          "normal_handling": 0,
+          "errors": 11,
+          "unanswered": 0,
+          "p95": 13111.0,
+          "p99": 13115.19,
+          "received_response_latency": {
+            "n": 25,
+            "p95": 13111.0,
+            "p99": 13115.19
+          },
+          "statuses": {
+            "200": 14,
+            "504": 3,
+            "502": 8
+          }
+        },
+        "learning:question": {
+          "requests": 977,
+          "success": 949,
+          "normal_handling": 0,
+          "errors": 28,
+          "unanswered": 0,
+          "p95": 1001.19,
+          "p99": 6711.12,
+          "received_response_latency": {
+            "n": 977,
+            "p95": 1001.19,
+            "p99": 6711.12
+          },
+          "statuses": {
+            "200": 949,
+            "504": 7,
+            "502": 21
+          }
+        },
+        "learning:start": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 2443.47,
+          "p99": 2481.01,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 2443.47,
+            "p99": 2481.01
+          },
+          "statuses": {
+            "201": 100
+          }
+        },
+        "main:deliver:first": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 422.98,
+          "p99": 438.33,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 422.98,
+            "p99": 438.33
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:deliver:retry": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 417.06,
+          "p99": 431.29,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 417.06,
+            "p99": 431.29
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:card_match": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 155.53,
+          "p99": 177.78,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 155.53,
+            "p99": 177.78
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:coating": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 112.78,
+          "p99": 127.42,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 112.78,
+            "p99": 127.42
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:kkuwang_touch": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 155.55,
+          "p99": 171.72,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 155.55,
+            "p99": 171.72
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:sql_memory": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 200.22,
+          "p99": 211.14,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 200.22,
+            "p99": 211.14
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:topping": {
+          "requests": 100,
+          "success": 0,
+          "normal_handling": 100,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 88.03,
+          "p99": 98.41,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 88.03,
+            "p99": 98.41
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_finish:wrapping": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 113.02,
+          "p99": 133.61,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 113.02,
+            "p99": 133.61
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:card_match": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 139.2,
+          "p99": 169.4,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 139.2,
+            "p99": 169.4
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:coating": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 112.13,
+          "p99": 118.86,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 112.13,
+            "p99": 118.86
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:kkuwang_touch": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 165.99,
+          "p99": 177.94,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 165.99,
+            "p99": 177.94
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:sql_memory": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 770.7,
+          "p99": 787.4,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 770.7,
+            "p99": 787.4
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:topping": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 102.58,
+          "p99": 113.05,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 102.58,
+            "p99": 113.05
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:game_start:wrapping": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 87.06,
+          "p99": 92.35,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 87.06,
+            "p99": 92.35
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:investigate": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 659.36,
+          "p99": 711.96,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 659.36,
+            "p99": 711.96
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:restore": {
+          "requests": 100,
+          "success": 83,
+          "normal_handling": 0,
+          "errors": 17,
+          "unanswered": 0,
+          "p95": 579.37,
+          "p99": 636.58,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 579.37,
+            "p99": 636.58
+          },
+          "statuses": {
+            "502": 17,
+            "200": 83
+          }
+        },
+        "main:room1_briefing": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 721.28,
+          "p99": 751.33,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 721.28,
+            "p99": 751.33
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "main:sql_answer": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 163.35,
+          "p99": 188.2,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 163.35,
+            "p99": 188.2
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:acquire": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 743.1,
+          "p99": 778.11,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 743.1,
+            "p99": 778.11
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:defer": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 535.35,
+          "p99": 604.94,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 535.35,
+            "p99": 604.94
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:finish": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 677.99,
+          "p99": 718.18,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 677.99,
+            "p99": 718.18
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:recognize": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 635.93,
+          "p99": 662.55,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 635.93,
+            "p99": 662.55
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:restore": {
+          "requests": 183,
+          "success": 183,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 410.47,
+          "p99": 452.25,
+          "received_response_latency": {
+            "n": 183,
+            "p95": 410.47,
+            "p99": 452.25
+          },
+          "statuses": {
+            "200": 183
+          }
+        },
+        "recipe:start": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 603.76,
+          "p99": 620.61,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 603.76,
+            "p99": 620.61
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "recipe:topping": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 489.12,
+          "p99": 506.52,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 489.12,
+            "p99": 506.52
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "term_match:result": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 641.54,
+          "p99": 719.03,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 641.54,
+            "p99": 719.03
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "term_match:retry": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 714.61,
+          "p99": 752.91,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 714.61,
+            "p99": 752.91
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "timer:result": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 839.86,
+          "p99": 880.17,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 839.86,
+            "p99": 880.17
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "timer:retry": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 821.86,
+          "p99": 837.06,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 821.86,
+            "p99": 837.06
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "typing:interrupt": {
+          "requests": 100,
+          "success": 0,
+          "normal_handling": 100,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 103.63,
+          "p99": 204.89,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 103.63,
+            "p99": 204.89
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "typing:over_limit": {
+          "requests": 100,
+          "success": 0,
+          "normal_handling": 100,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 366.46,
+          "p99": 491.84,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 366.46,
+            "p99": 491.84
+          },
+          "statuses": {
+            "400": 100
+          }
+        },
+        "typing:result": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 747.81,
+          "p99": 768.69,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 747.81,
+            "p99": 768.69
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "typing:retry": {
+          "requests": 100,
+          "success": 100,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 741.08,
+          "p99": 761.06,
+          "received_response_latency": {
+            "n": 100,
+            "p95": 741.08,
+            "p99": 761.06
+          },
+          "statuses": {
+            "200": 100
+          }
+        },
+        "ws:game_start": {
+          "requests": 400,
+          "success": 400,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 778.67,
+          "p99": 902.79,
+          "received_response_latency": {
+            "n": 400,
+            "p95": 778.67,
+            "p99": 902.79
+          },
+          "statuses": {
+            "ok": 400
+          }
+        },
+        "ws:guide_talk": {
+          "requests": 300,
+          "success": 0,
+          "normal_handling": 300,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 155.29,
+          "p99": 165.06,
+          "received_response_latency": {
+            "n": 300,
+            "p95": 155.29,
+            "p99": 165.06
+          },
+          "statuses": {
+            "rejected": 300
+          }
+        },
+        "ws_connect": {
+          "requests": 400,
+          "success": 400,
+          "normal_handling": 0,
+          "errors": 0,
+          "unanswered": 0,
+          "p95": 2153.83,
+          "p99": 2208.18,
+          "received_response_latency": {
+            "n": 400,
+            "p95": 2153.83,
+            "p99": 2208.18
+          },
+          "statuses": {
+            "101": 400
+          }
+        }
+      },
+      "account_checks": [
+        {
+          "phase": "connect:timer",
+          "users": 100,
+          "seconds": 2.23,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "standalone:timer",
+          "users": 100,
+          "seconds": 12.89,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "far_guide_rejection:timer",
+          "users": 100,
+          "seconds": 0.16,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:timer",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "connect:typing",
+          "users": 100,
+          "seconds": 0.68,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "standalone:typing",
+          "users": 100,
+          "seconds": 3.79,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "far_guide_rejection:typing",
+          "users": 100,
+          "seconds": 0.16,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "disconnect:typing",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "connect:term_match",
+          "users": 100,
+          "seconds": 0.63,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "standalone:term_match",
+          "users": 100,
+          "seconds": 7.5,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "far_guide_rejection:term_match",
+          "users": 100,
+          "seconds": 0.17,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "main_games_and_final_rank",
+          "users": 100,
+          "seconds": 57.94,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "recipe_full_branches",
+          "users": 100,
+          "seconds": 3.33,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "learning_all_subjects_and_types",
+          "users": 100,
+          "seconds": 30.47,
+          "passed": 14,
+          "errors": {
+            "learning:answer: 502 {'error': 'non-json response'}": 13,
+            "learning:question: 504 {'error': 'non-json response'}": 7,
+            "learning:complete: 502 {'error': 'non-json response'}": 8,
+            "learning:question: 502 {'error': 'non-json response'}": 21,
+            "learning:answer_retry: 502 {'error': 'non-json response'}": 16,
+            "learning:answer_retry: 504 {'error': 'non-json response'}": 8,
+            "learning:answer: 504 {'error': 'non-json response'}": 10,
+            "learning:complete: 504 {'error': 'non-json response'}": 3
+          }
+        },
+        {
+          "phase": "disconnect:final",
+          "users": 100,
+          "seconds": 0.05,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "reconnect:restore",
+          "users": 100,
+          "seconds": 0.85,
+          "passed": 100,
+          "errors": {}
+        },
+        {
+          "phase": "state_after_reconnect",
+          "users": 100,
+          "seconds": 1.08,
+          "passed": 83,
+          "errors": {
+            "main:restore: 502 {'error': 'non-json response'}": 17
+          }
+        },
+        {
+          "phase": "disconnect:cleanup",
+          "users": 100,
+          "seconds": 0.01,
+          "passed": 100,
+          "errors": {}
+        }
+      ],
+      "http_connections": {
+        "front-service": {
+          "requests": 6415,
+          "tcp_connections": 6415
+        },
+        "movement-9751": {
+          "requests": 100,
+          "tcp_connections": 100
+        },
+        "movement-9752": {
+          "requests": 100,
+          "tcp_connections": 100
+        },
+        "movement-9753": {
+          "requests": 100,
+          "tcp_connections": 100
+        },
+        "movement-9754": {
+          "requests": 100,
+          "tcp_connections": 100
+        },
+        "service-9761": {
+          "requests": 1645,
+          "tcp_connections": 1645
+        },
+        "service-9762": {
+          "requests": 1500,
+          "tcp_connections": 1500
+        },
+        "service-9763": {
+          "requests": 1579,
+          "tcp_connections": 1579
+        },
+        "service-9764": {
+          "requests": 1616,
+          "tcp_connections": 1616
+        }
+      },
+      "study_selections": 100,
+      "study_audit": {
+        "wrong_wallet_balance": 0,
+        "wrong_answer_session": 0,
+        "wrong_event_session_owner": 0,
+        "wrong_play_session_owner": 0,
+        "started_lessons": 100,
+        "completed_lessons": 14,
+        "new_answers": 926,
+        "new_ledger": 926,
+        "duplicate_answer_groups": 0,
+        "wrong_owner": 0,
+        "wrong_ledger": 0,
+        "duplicate_reward_groups": 0
+      },
+      "event_audit": {
+        "egg_count": 7,
+        "duplicate_users": [],
+        "duplicate_eggs": [],
+        "invalid_egg_metadata": 0,
+        "egg_order_not_one": 0,
+        "eggs_missing_session": 0,
+        "main_completed": 100,
+        "main_rank_unique": true,
+        "main_ranks_contiguous": true,
+        "main_missing_session": 0,
+        "recipe_completed": 100,
+        "plays": {
+          "FAILED": 100,
+          "INTERRUPTED": 100,
+          "SUCCESS": 700,
+          "FINISHED": 100
+        },
+        "learning_completed": 100,
+        "answers": 2116,
+        "ledger_rows": 1935
+      },
+      "mixed": {},
+      "entry_5xx_status_counts": {
+        "504": 28,
+        "502": 75
+      }
+    }
+  },
+  "comparison_valid": false,
+  "combined_functional": {
+    "a": {
+      "requests": 15281,
+      "success": 13955,
+      "normal_handling": 1200,
+      "errors": 126,
+      "unanswered": 0,
+      "p95": 888.47,
+      "p99": 5002.12,
+      "received_response_latency": {
+        "n": 15281,
+        "p95": 888.47,
+        "p99": 5002.12
+      },
+      "statuses": {
+        "101": 800,
+        "ok": 800,
+        "200": 8773,
+        "rejected": 600,
+        "400": 200,
+        "201": 3982,
+        "504": 51,
+        "502": 75
+      }
+    },
+    "b": {
+      "requests": 15600,
+      "success": 14400,
+      "normal_handling": 1200,
+      "errors": 0,
+      "unanswered": 0,
+      "p95": 793.1,
+      "p99": 2005.92,
+      "received_response_latency": {
+        "n": 15600,
+        "p95": 793.1,
+        "p99": 2005.92
+      },
+      "statuses": {
+        "101": 800,
+        "ok": 800,
+        "200": 9000,
+        "rejected": 600,
+        "400": 200,
+        "201": 4200
+      }
+    }
+  },
+  "initial_conditions_match": true,
+  "identical_question_order_and_initial_worker": true,
+  "actual_study_worker_affinity_match": false,
+  "comparison_block_reason": "Actual study-worker routing differs; compare observed outcomes, not an isolated processing-speed uplift.",
+  "route_audit": {
+    "a1": {
+      "initial_accounts": 100,
+      "served_study_uri_requests": 3015,
+      "reassigned_accounts": 50,
+      "reassigned_requests": 201,
+      "worker_transitions": {
+        "service-9764->service-9762": 67,
+        "service-9763->service-9762": 49,
+        "service-9761->service-9762": 81,
+        "service-9761->service-9763": 4
+      },
+      "multiple_worker_accounts": 50,
+      "http_hops": {
+        "entry_to_front": {
+          "requests": 6615,
+          "tcp_connections": 6615
+        },
+        "internal_to_service": {
+          "requests": 6615,
+          "tcp_connections": 6615
+        },
+        "front_to_internal": {
+          "requests": 6615,
+          "tcp_connections": 6615
+        }
+      },
+      "database_client_peak": 51,
+      "lock_wait_peak": 41
+    },
+    "b1": {
+      "initial_accounts": 100,
+      "served_study_uri_requests": 3100,
+      "reassigned_accounts": 0,
+      "reassigned_requests": 0,
+      "worker_transitions": {},
+      "multiple_worker_accounts": 0,
+      "http_hops": {
+        "entry_to_front": {
+          "requests": 6700,
+          "tcp_connections": 191
+        },
+        "internal_to_service": {
+          "requests": 6700,
+          "tcp_connections": 187
+        },
+        "front_to_internal": {
+          "requests": 6700,
+          "tcp_connections": 200
+        }
+      },
+      "database_client_peak": 51,
+      "lock_wait_peak": 39
+    },
+    "b2": {
+      "initial_accounts": 100,
+      "served_study_uri_requests": 3100,
+      "reassigned_accounts": 0,
+      "reassigned_requests": 0,
+      "worker_transitions": {},
+      "multiple_worker_accounts": 0,
+      "http_hops": {
+        "entry_to_front": {
+          "requests": 6700,
+          "tcp_connections": 191
+        },
+        "internal_to_service": {
+          "requests": 6700,
+          "tcp_connections": 188
+        },
+        "front_to_internal": {
+          "requests": 6700,
+          "tcp_connections": 200
+        }
+      },
+      "database_client_peak": 51,
+      "lock_wait_peak": 40
+    },
+    "a2": {
+      "initial_accounts": 100,
+      "served_study_uri_requests": 2791,
+      "reassigned_accounts": 4,
+      "reassigned_requests": 7,
+      "worker_transitions": {
+        "service-9763->service-9762": 1,
+        "service-9761->service-9762": 1,
+        "service-9762->service-9764": 1,
+        "service-9763->service-9764": 4
+      },
+      "multiple_worker_accounts": 4,
+      "http_hops": {
+        "entry_to_front": {
+          "requests": 6415,
+          "tcp_connections": 6415
+        },
+        "internal_to_service": {
+          "requests": 6340,
+          "tcp_connections": 6340
+        },
+        "front_to_internal": {
+          "requests": 6415,
+          "tcp_connections": 6415
+        }
+      },
+      "database_client_peak": 51,
+      "lock_wait_peak": 40
+    }
+  }
+}

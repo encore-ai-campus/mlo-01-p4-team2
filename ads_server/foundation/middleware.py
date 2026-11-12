@@ -59,7 +59,7 @@ class RequestBodyLimitMiddleware:
 
 
 class CsrfExemptPrefixesMiddleware:
-    """키 인증을 쓰는 서버 간 API(`/api/media/`)만 CSRF 검사에서 뺀다. **예외 목록은 settings 한 곳**이다.
+    """키 인증을 쓰는 서버 간 API(`/api/media/`·`/api/internal/`)만 CSRF 검사에서 뺀다. **예외 목록은 settings 한 곳**이다.
 
     CsrfViewMiddleware 앞에 둔다.
     """

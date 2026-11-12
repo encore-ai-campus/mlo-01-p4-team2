@@ -44,6 +44,10 @@ class BackendSocket(AsyncWebsocketConsumer):
         finally:
             if code in {1005, 1006, 1015}:
                 code = 1011
+            if code != 1000 and not 3000 <= code <= 4999:
+                # daphne(autobahn)는 1000·3000–4999 만 보낸다(그 밖은 예외가 되어 브라우저 소켓이 열린 채 남았다).
+                # 표준 1001–1015 는 끝 세 자리가 같은 4xxx(1011 → 4011), 나머지는 4011
+                code = code + 3000 if 1000 < code < 1016 else 4011
             await self.close(code=code)
 
     async def receive(self, text_data=None, bytes_data=None):
@@ -52,7 +56,7 @@ class BackendSocket(AsyncWebsocketConsumer):
         try:
             await self.backend.send(text_data if text_data is not None else bytes_data)
         except ConnectionClosed:
-            await self.close(code=1011)
+            await self.close(code=4011)  # 1011(서버 오류)와 같은 뜻
 
     async def disconnect(self, close_code):
         if self.reader and self.reader is not asyncio.current_task():

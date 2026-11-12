@@ -91,6 +91,8 @@ class CleanupProbe:
             return {"nickname": "probe", "avatar": "male-1"}
         if function is consumers.get_position:
             return DEFAULT_POSITION.copy()
+        if function is consumers.movement_event_due_at:
+            return None  # no unsent movement sample (outbox sampling)
         if function is consumers.touch_platform_session:
             return
         name = getattr(function, "__name__", "")

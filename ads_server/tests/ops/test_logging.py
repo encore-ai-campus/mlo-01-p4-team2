@@ -83,6 +83,7 @@ class RedactionTests(Cases, SimpleTestCase):
             "login failed password=hunter2 for user": "hunter2",
             'payload {"password": "hunter2", "a": 1}': "hunter2",
             "headers {'X-Media-Key': 'topsecretkey'}": "topsecretkey",
+            "headers {'X-Internal-Key': 'topsecretinternal'}": "topsecretinternal",  # C8(ACW-3)
             "Authorization: Bearer abc.def.ghi": "abc.def.ghi",
             "cookie sessionid=abcdef123456; other=1": "abcdef123456",
             "csrfmiddlewaretoken=zzzzTOKENzzzz&x=1": "zzzzTOKENzzzz",

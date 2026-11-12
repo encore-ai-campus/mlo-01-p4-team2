@@ -1,11 +1,18 @@
 """계약 **파일** 검증(서버와 무관): 올바른 OpenAPI 3.1 인지, 예시가 스키마를 지키는지, 계약 규칙이 서로 모순되지 않는지."""
+from datetime import datetime, timezone
+
 from django.test import SimpleTestCase, tag
 from openapi_spec_validator import validate
 
+from campaigns.services import BATCH_MAX, SOURCE_PAGE_MAX
+from events.api import ad_group_profile_changed_payload
+from foundation.api import UUID_TEXT
+from internal_api.views import CHALLENGE as INTERNAL_CHALLENGE
+from serving_api.requests import UUID_PATTERN
 from tests.support.contract_support import Contract, load_spec
 from tests.support.cases import Cases
 
-NAMES = ("serving", "console")
+NAMES = ("serving", "console", "internal")
 
 
 class ContractFileTests(Cases, SimpleTestCase):
@@ -127,4 +134,64 @@ class ServingContractRuleTests(Cases, SimpleTestCase):
         self.assertIn("교체된 이전 이미지", desc)
 
     def test_serving_contract_rule(self):
+        self.run_cases()
+
+
+@tag("security")
+class InternalContractRuleTests(Cases, SimpleTestCase):
+    """C8(ACW-3, 설계 §3 "C8 Internal API")의 규칙이 계약 파일 안에서 맞물리고, 서버 쪽 값(이벤트 페이로드·상한·ID 형식·challenge)과 같은지."""
+
+    contract = Contract("internal")
+
+    def response(self, name):
+        return self.contract.spec["components"]["responses"][name]
+
+    def case_every_operation_needs_the_internal_key_and_declares_401_403_503(self):
+        self.assertEqual(self.contract.spec["security"], [{"InternalKey": []}])
+        scheme = self.contract.spec["components"]["securitySchemes"]["InternalKey"]
+        self.assertEqual((scheme["type"], scheme["in"], scheme["name"]), ("apiKey", "header", "X-Internal-Key"))
+        operations = list(self.contract.operations())
+        self.assertEqual(sorted((path, method) for path, method, _ in operations),
+                         [("/ad-groups", "get"), ("/profiles/categories", "post"), ("/profiles/weights", "post")])
+        for path, method, op in operations:
+            self.assertNotIn("security", op, path)  # 전역 InternalKey 를 따른다
+            self.assertLessEqual({"200", "400", "401", "403", "503"}, set(op["responses"]), path)
+            if method == "post":
+                self.assertLessEqual({"413", "415"}, set(op["responses"]), path)
+
+    def case_401_challenge_and_503_retry_after(self):
+        header = self.contract.resolve(self.response("Unauthorized")["headers"]["WWW-Authenticate"])
+        self.assertTrue(header.get("required"))
+        self.assertEqual(self.contract.schema_errors(header["schema"], INTERNAL_CHALLENGE), [])  # 서버가 보내는 값 그대로
+        for bad in ("", 'MediaKey realm="ads-media-api"', "InternalKey"):
+            self.assertTrue(self.contract.schema_errors(header["schema"], bad), bad)
+        self.assertTrue(self.contract.resolve(self.response("Unavailable")["headers"]["Retry-After"]).get("required"))
+
+    def case_every_response_has_the_request_id_and_errors_are_problem_json(self):
+        for path, method, op in self.contract.operations():
+            for status, response in op["responses"].items():
+                response = self.contract.resolve(response)
+                self.assertIn("X-Request-ID", response.get("headers") or {}, f"{method} {path} {status}")
+                if status.startswith(("4", "5")):
+                    self.assertEqual(list(response["content"]), ["application/problem+json"], f"{method} {path} {status}")
+                    self.assertEqual(response["content"]["application/problem+json"]["schema"], {"$ref": "#/components/schemas/Problem"})
+
+    def case_the_profile_schema_has_the_event_payload_keys(self):
+        """응답의 `profile` = 이벤트 `ad.ad_group_profile_changed` 페이로드와 같은 일곱 키(빌더에서 만든다)."""
+        payload = ad_group_profile_changed_payload(ad_group_id="0", version=1, category=None, weight_mlo=0, weight_aio=0, weight_skn=0,
+                                                   changed_at=datetime(2026, 11, 12, tzinfo=timezone.utc))
+        schema = self.contract.spec["components"]["schemas"]["AdGroupProfile"]
+        self.assertEqual(set(schema["required"]), set(payload))
+        self.assertEqual(set(schema["properties"]), set(payload))
+
+    def case_limits_and_the_uuid_pattern_match_the_server(self):
+        limit = next(p for p in self.contract.operation("/ad-groups", "get")["parameters"] if p["name"] == "limit")["schema"]
+        self.assertEqual((limit["minimum"], limit["maximum"]), (1, SOURCE_PAGE_MAX))
+        schemas = self.contract.spec["components"]["schemas"]
+        self.assertEqual({schemas[name]["properties"]["items"]["maxItems"] for name in ("CategoryBatch", "WeightBatch")}, {BATCH_MAX})
+        self.assertEqual(schemas["AdGroupSourcePage"]["properties"]["items"]["maxItems"], SOURCE_PAGE_MAX)
+        self.assertEqual(schemas["Uuid"]["pattern"], f"^{UUID_TEXT.pattern}$")
+        self.assertEqual(UUID_TEXT.pattern, UUID_PATTERN.pattern)  # C1 과 C8 이 같은 ID 형식(N8)
+
+    def test_internal_contract_rule(self):
         self.run_cases()

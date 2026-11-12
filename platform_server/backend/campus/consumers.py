@@ -19,6 +19,7 @@ from django.utils import timezone
 
 from accounts.models import get_identity, needs_profile_setup
 from accounts.session_policy import check_session
+from config.dberrors import is_transient
 from eventing.events import ensure_platform_session, record_floor_transfer, touch_platform_session
 from event_story.achievement_services import record_manager_action, record_guide_talk
 from event_story.game_services import GameError, start_game
@@ -26,7 +27,7 @@ from . import cluster, session_registry, poke, socket_db
 from campus_control.service import async_state as freeze_state
 from .interest import InterestView, SpatialIndex
 from .motion import CLASSROOM_TRANSITION_DELAY, MotionController, ControlError, World, geometry, world
-from .positions import DIRECTIONS, FLOOR_BOUNDS, get_position, save_position, validate_position
+from .positions import DIRECTIONS, FLOOR_BOUNDS, flush_movement_event, get_position, movement_event_due_at, save_position, validate_position
 from .chat_tokens import issue_actor_token
 from .socket_lifecycle import CleanupWebsocketConsumer
 
@@ -226,6 +227,14 @@ class CampusConsumer(CleanupWebsocketConsumer):
     floor_bounds = FLOOR_BOUNDS
 
     async def connect(self):
+        try:
+            await self.open_socket()
+        except DatabaseError as error:
+            if not is_transient(error):
+                raise
+            await socket_db.try_again_later(self)
+
+    async def open_socket(self):
         self.player_id = None
         self.logout_prepared = False
         self.guard_task = None
@@ -243,6 +252,7 @@ class CampusConsumer(CleanupWebsocketConsumer):
         self.last_activity_write = -math.inf
         self.position_dirty = False
         self.pending_floor_transfer = None
+        self.movement_event_due_at = None
         self.seen_by_peers = None  # 다른 사람에게 마지막으로 보낸 내 상태(바뀐 것이 있을 때만 다시 보낸다)
         self.control_key = None  # 마지막으로 보낸 control_state 의 바탕(같으면 다시 보내지 않는다)
         self.wake = asyncio.Event()  # 쉬고 있는 이동 틱을 깨운다(입력·명령·문 변경)
@@ -281,6 +291,7 @@ class CampusConsumer(CleanupWebsocketConsumer):
         self.position_changed_at = None
         identity = await socket_db.run(get_identity, self.user)
         position = await socket_db.run(get_position, self.user)
+        self.movement_event_due_at = await socket_db.run(movement_event_due_at, self.user)
         live = await socket_db.run(cluster.stored_position, self.session_key, self.user.pk) if cluster.enabled() else None
         if live and validate_position(live[0]):
             # 같은 세션이 다른 프로세스에서 막 끊겼다(그 프로세스가 죽은 경우 등): DB 체크포인트(5초)보다 새 위치로 이어 붙는다(계획 M3)
@@ -401,13 +412,13 @@ class CampusConsumer(CleanupWebsocketConsumer):
     async def handle_message(self, text_data):
         if text_data is None or len(text_data) > 4096:
             await self.leave()
-            await self.close(code=1009)
+            await self.close(code=4009)  # 1009(너무 큼)와 같은 뜻. daphne는 앱에서 1000·3000–4999만 보낸다
             return
         try:
             data = json.loads(text_data)
         except (ValueError, RecursionError):
             await self.leave()
-            await self.close(code=1007)
+            await self.close(code=4007)  # 1007(잘못된 데이터)와 같은 뜻
             return
         if not isinstance(data, dict):
             return
@@ -627,7 +638,7 @@ class CampusConsumer(CleanupWebsocketConsumer):
             raise
         except Exception:
             logging.getLogger(__name__).exception("Campus movement calculation failed")
-            await self.close(code=1011)
+            await self.close(code=4011)  # 1011(서버 오류)와 같은 뜻. 1011은 이 경로에서 예외가 되어 소켓이 열린 채 남았다
 
     async def receive_control(self, data):
         request_id = data.get("requestId")
@@ -704,7 +715,7 @@ class CampusConsumer(CleanupWebsocketConsumer):
                 await self.touch_activity()
         except (ControlError, GameError) as error:
             await self.send_packet({"type": "control_result", "requestId": request_id, "error": str(error)})
-        except DatabaseError:
+        except DatabaseError as error:
             if action == "game_start":
                 logging.getLogger(__name__).exception("Could not start a minigame")
                 await self.send_packet({"type": "control_result", "requestId": request_id,
@@ -716,7 +727,12 @@ class CampusConsumer(CleanupWebsocketConsumer):
                 await self.send_packet({"type": "control_result", "requestId": request_id, "error": message})
                 return
             if action != "prepare_logout":
-                raise
+                if not is_transient(error):
+                    raise
+                # DB 일시 오류는 소켓을 끊지 않고 요청만 실패 처리한다.
+                await self.send_packet({"type": "control_result", "requestId": request_id,
+                                        "error": "잠시 후 다시 시도해 주세요."})
+                return
             logging.getLogger(__name__).exception("Could not save the final logout position")
             await self.send_packet({"type": "control_result", "requestId": request_id,
                                     "error": "마지막 위치를 저장하지 못했어요. 다시 시도해 주세요."})
@@ -735,7 +751,7 @@ class CampusConsumer(CleanupWebsocketConsumer):
         state = {**self.state, **self.controller.pose, "moving": False}
         observed_at = timezone.now()
         transfer = self.pending_floor_transfer
-        await socket_db.run(
+        self.movement_event_due_at = await socket_db.run(
             self.store_position_now, state, observed_at, transfer[0] if transfer else None,
             require_session=True)
         self.state.update(state)
@@ -1147,10 +1163,10 @@ class CampusConsumer(CleanupWebsocketConsumer):
         user = self.session_user()
         return get_identity(user) if user is not None else None
 
-    def session_user(self):
+    def session_user(self, update_policy=True):
         # A fresh session store catches logout/password changes in another tab.
         state = check_session(self.session_key)
-        if state.get("reason") != "retry":
+        if update_policy and state.get("reason") != "retry":
             self.policy_status = state
         if not state["authenticated"] and state.get("reason") != "retry":
             return None
@@ -1164,12 +1180,13 @@ class CampusConsumer(CleanupWebsocketConsumer):
         return await socket_db.run(self.store_position_now, position, observed_at, transfer_from)
 
     def store_position_now(self, position, observed_at, transfer_from=None, *, require_session=False):
-        user = self.session_user()
+        # 대기 표본 저장은 종료 사유를 덮지 않게 세션 정책 상태를 갱신하지 않는다.
+        user = self.session_user(update_policy=position is not None)
         if require_session and user is None:
             raise ControlError("로그인 상태를 확인한 뒤 다시 시도해 주세요.")
         if user is not None:
             if position is None:
-                return None
+                flush_movement_event(user)
             elif transfer_from:
                 saved = record_floor_transfer(
                     user, self.platform_session_uuid, transfer_from, position["floor"], position, observed_at
@@ -1178,7 +1195,7 @@ class CampusConsumer(CleanupWebsocketConsumer):
                 saved = save_position(user, position, observed_at, session_uuid=self.platform_session_uuid)
             if require_session and not saved:
                 raise ControlError("마지막 위치를 저장하지 못했어요. 다시 시도해 주세요.")
-            return None
+            return movement_event_due_at(user)
 
     async def checkpoint(self, force=False, wait=True):
         """최신 위치 하나를 저장한다(5초마다, 층 이동·종료는 바로). 쓰기는 따로 돌리고 `wait` 일 때만 끝까지 기다린다(계획 3단계).
@@ -1191,7 +1208,8 @@ class CampusConsumer(CleanupWebsocketConsumer):
                 return  # 저장 중이다: 끝난 뒤 다음 기회(다음 틱·세션 확인)에 다시 본다
             await asyncio.shield(saving)
         force = force or self.pending_floor_transfer is not None
-        if not self.position_dirty and self.pending_floor_transfer is None:
+        sample_due = self.movement_event_due_at is not None and timezone.now() >= self.movement_event_due_at
+        if not self.position_dirty and self.pending_floor_transfer is None and not sample_due:
             return
         if not force and time.monotonic() - self.last_checkpoint < self.position_interval:
             return
@@ -1204,7 +1222,7 @@ class CampusConsumer(CleanupWebsocketConsumer):
     async def write_position(self, state, observed_at, transfer):
         try:
             started = time.monotonic()
-            await self.store_position(state, observed_at, transfer[0] if transfer else None)
+            self.movement_event_due_at = await self.store_position(state, observed_at, transfer[0] if transfer else None)
             note_slow_db("position save", started)
         except DatabaseError:
             logging.getLogger(__name__).exception("Could not save the campus position")
@@ -1299,7 +1317,8 @@ class CampusConsumer(CleanupWebsocketConsumer):
 
     async def close(self, code=None, reason=None):
         if code not in (None, 1000):
-            # 서버가 끊는 이유(계획 0c). 브라우저는 4401 이면 로그인 화면으로 가므로 재로그인의 원인을 운영 로그로 가린다
+            # 4013은 연결 중 DB 일시 오류, 4007·4009·4011은 표준 1007·1009·1011과 같은 뜻이다.
+            # 브라우저는 4401이면 로그인 화면으로 가므로 재로그인의 원인을 운영 로그로 가린다.
             logging.getLogger(__name__).warning("campus socket closed by server code=%s policy=%s user=%s",
                                                 code, (self.policy_status or {}).get("reason"), getattr(self.user, "pk", None))
         await super().close(code=code, reason=reason)

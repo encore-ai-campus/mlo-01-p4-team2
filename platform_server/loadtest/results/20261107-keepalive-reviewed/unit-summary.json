@@ -1,0 +1,34 @@
+{
+  "backend": {
+    "discovered": 799,
+    "executed": 799,
+    "success": 798,
+    "errors": 0,
+    "skipped": 1,
+    "skip_reason": "MySQL row-lock specific direct-message test"
+  },
+  "frontend_python": {
+    "executed": 27,
+    "success": 27,
+    "errors": 0
+  },
+  "frontend_node": {
+    "executed": 266,
+    "success": 266,
+    "errors": 0
+  },
+  "performance_reference": {
+    "executed": 1,
+    "reference_ms": 300,
+    "observed_max_ms": 380.53870806470513,
+    "reference_exceeded": true,
+    "actual_slow_save_calls": 2
+  },
+  "earlier_attempts": {
+    "anonymous_cookie_fixture_failure": 1,
+    "backend_heartbeat_expectation_failures": 2,
+    "backend_live_server_dependency_setup_errors": 1,
+    "backend_not_executed_due_to_class_setup": 2,
+    "policy": "Retained prior logs; excluded from final application request error totals."
+  }
+}

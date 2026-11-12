@@ -17,6 +17,7 @@ from .legacy_fixtures import prepare_event_context
 
 
 class LockDiagnosticsTests(SimpleTestCase):
+    @patch('learning.views.connection', vendor='sqlite')
     def test_safe_log_and_503(self):
         request = RequestFactory().get('/api/learning/sessions/123/?answer=SECRET')
         request.user = type('User', (), {'is_authenticated': True})()
@@ -33,6 +34,17 @@ class LockDiagnosticsTests(SimpleTestCase):
         self.assertIn('api/learning/sessions/<int:session_id>/', text)
         self.assertNotIn('SECRET', text)
         self.assertNotIn('123', text.split('path=')[1].split(' pid=')[0])
+
+    @patch('learning.views.connection', vendor='postgresql')
+    def test_locked_message_from_other_databases_is_not_swallowed(self, _):
+        # PostgreSQL 교착 문구도 'locked'를 포함할 수 있다. 503·Retry-After는 handler500이 만든다.
+        request = RequestFactory().get('/')
+        request.user = type('User', (), {'is_authenticated': True})()
+        @views.endpoint('GET')
+        def failing(request):
+            raise OperationalError('deadlock detected: Process 1 waits for ShareLock; blocked by process 2')
+        with self.assertRaises(OperationalError):
+            failing(request)
 
     def test_non_lock_errors_are_not_swallowed(self):
         request = RequestFactory().get('/')
@@ -62,8 +74,8 @@ class LockDiagnosticsTests(SimpleTestCase):
 
 class LearningConcurrencyTests(TransactionTestCase):
     def setUp(self):
-        if connection.vendor != 'sqlite' or 'memory' in str(connection.settings_dict['NAME']):
-            self.skipTest('Requires a disposable file-backed SQLite test database')
+        if connection.vendor != 'postgresql' and (connection.vendor != 'sqlite' or 'memory' in str(connection.settings_dict['NAME'])):
+            self.skipTest('Requires a disposable PostgreSQL or file-backed SQLite test database')
         self.user = get_user_model().objects.create_user(username='concurrency')
         prepare_event_context(self.user)
         for n in range(10):

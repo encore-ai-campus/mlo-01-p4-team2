@@ -4,7 +4,7 @@
 (`tests/tools/load_test.py` 의 `verify_events` 도 같은 기대값을 쓴다). 형식은 `events` 의 빌더를 쓴다.
 
 생성 시각(`produced_at`)은 종류마다 생성 규약이 정한 원본 시각이다: 결정 = 결정 시각, 접수 = 수신 시각, 판정 = 처리 시각(`processed_at`),
-과금 = 그 과금을 일으킨 반응의 처리 시각(과금과 판정은 같은 처리 트랜잭션의 같은 `now` 를 쓴다), 입찰 정책 = 정책 버전의 변경 시각, 입찰 = 입찰 버전을 만든 시각, 캠페인·광고그룹 변경 = 변경 로그의 변경 시각, 대상 그룹 = 그룹 판의 변경 시각.
+과금 = 그 과금을 일으킨 반응의 처리 시각(과금과 판정은 같은 처리 트랜잭션의 같은 `now` 를 쓴다), 입찰 정책 = 정책 버전의 변경 시각, 입찰 = 입찰 버전을 만든 시각, 캠페인·광고그룹 변경 = 변경 로그의 변경 시각, 대상 그룹 = 그룹 판의 변경 시각, 광고 카테고리 = 그 판의 바뀐 시각.
 """
 from functools import reduce
 from operator import or_
@@ -36,12 +36,13 @@ def expected_events():
     expected.update(_campaign_change_event(v) for v in campaigns.change_rows(campaigns.ChangeTarget.CAMPAIGN))
     expected.update(_ad_group_change_event(v) for v in campaigns.change_rows(campaigns.ChangeTarget.AD_GROUP))
     expected.update(_segment_event(v) for v in masters.segment_versions())
+    expected.update(_profile_event(v) for v in campaigns.profile_rows())
     return expected
 
 
 def source_streams():
     """① 구간을 창으로 읽는 흐름(`events.summarize_windows` 용, 외부 검토 00d3067 P3-3). `expected_events` 와 같은 매핑을 창 하나·종류 하나씩 적용한다:
-    결정(결정 시각) / 접수(수신 시각) / 판정과 그 과금(처리 시각) / 입찰 정책(변경 시각) / 입찰(만든 시각) / 캠페인·광고그룹 변경(변경 시각) / 대상 그룹 판(변경 시각). 호출한 쪽의 읽기 스냅샷 안에서 쓴다."""
+    결정(결정 시각) / 접수(수신 시각) / 판정과 그 과금(처리 시각) / 입찰 정책(변경 시각) / 입찰(만든 시각) / 캠페인·광고그룹 변경(변경 시각) / 대상 그룹 판(변경 시각) / 광고 카테고리 판(바뀐 시각). 호출한 쪽의 읽기 스냅샷 안에서 쓴다."""
     return [
         events.table_stream(Decision.objects.all(), "decided_at", lambda rows: [_document(_decision_event(d)) for d in rows]),
         events.table_stream(Reaction.objects.all(), "received_at", lambda rows: [_document(_received_event(r)) for r in rows]),
@@ -51,6 +52,7 @@ def source_streams():
         campaigns.change_stream(campaigns.ChangeTarget.CAMPAIGN, lambda views: [_document(_campaign_change_event(v)) for v in views]),
         campaigns.change_stream(campaigns.ChangeTarget.AD_GROUP, lambda views: [_document(_ad_group_change_event(v)) for v in views]),
         masters.segment_stream(lambda views: [_document(_segment_event(v)) for v in views]),
+        campaigns.profile_stream(lambda views: [_document(_profile_event(v)) for v in views]),
     ]
 
 
@@ -165,4 +167,12 @@ def _segment_event(v):
     return events.event_id_for(name, v.segment_version_id), (name, v.segment_id, v.changed_at, events.segment_changed_payload(
         segment_id=v.segment_id, segment_version_id=v.segment_version_id, version=v.version, media_id=v.media_id, code=v.code, name=v.name,
         is_active=v.is_active, changed_at=v.changed_at,
+    ))
+
+
+def _profile_event(v):
+    name = events.NAMES["ad_group_profile_changed"]
+    return events.event_id_for(name, events.profile_source_id(v.ad_group_id, v.version)), (name, v.ad_group_id, v.changed_at, events.ad_group_profile_changed_payload(
+        ad_group_id=v.ad_group_id, version=v.version, category=v.category, weight_mlo=v.weight_mlo, weight_aio=v.weight_aio, weight_skn=v.weight_skn,
+        changed_at=v.changed_at,
     ))

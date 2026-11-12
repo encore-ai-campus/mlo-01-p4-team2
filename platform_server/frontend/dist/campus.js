@@ -25,7 +25,7 @@
   let menuRequest=null,menuVersion=0;
   let directMessages=null;
   let achievements=null,minigames=null,managerGreetingPending=false;
-  const isDialogOpen=(includeClassroom=true,includeTyping=true)=>window.CampusEntry?.blocking||window.CampusFreeze?.blocking||window.CampusNotices?.blocking||window.CampusStory?.blocking||window.CampusRecipeDiscovery?.blocking||logoutPending||managerGreetingPending||minigames?.blocking||achievements?.blocking||directMessages?.blocking||(includeClassroom&&classroom.blocking)||window.CampusLearning?.blocking||window.CampusGuide?.blocking||window.CampusSession?.ending||floorTransition.blocking||$('lunchDialog').open||dialog.open||boardDialog.open||exitDialog.open||transferDialog.open||$('settingsDialog').open||(includeTyping&&social.isTyping)||boothUI.blocking;
+  const isDialogOpen=(includeClassroom=true,includeTyping=true)=>window.CampusEntry?.blocking||window.CampusMainCompletion?.blocking||window.CampusFreeze?.blocking||window.CampusNotices?.blocking||window.CampusStory?.blocking||window.CampusRecipeDiscovery?.blocking||logoutPending||managerGreetingPending||minigames?.blocking||achievements?.blocking||directMessages?.blocking||(includeClassroom&&classroom.blocking)||window.CampusLearning?.blocking||window.CampusGuide?.blocking||window.CampusSession?.ending||floorTransition.blocking||$('lunchDialog').open||dialog.open||boardDialog.open||exitDialog.open||transferDialog.open||$('settingsDialog').open||(includeTyping&&social.isTyping)||boothUI.blocking;
   const renderers=new Map();
   const displayRefresh=new Map();
   let renderer=window.CampusIsometric.create({data:D}), P=renderer.projection, scene=renderer.scene;

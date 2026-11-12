@@ -6,7 +6,7 @@ from django.contrib import admin
 
 from foundation.api import ReadOnlyAdmin
 
-from .models import BidPolicy, Media, MediaDeactivation, MediaKey, Slot
+from .models import BidPolicy, InternalKey, Media, MediaDeactivation, MediaKey, Slot
 
 
 @admin.register(Media)
@@ -37,4 +37,12 @@ class MediaKeyAdmin(ReadOnlyAdmin):
     """키 평문은 저장하지 않고, 해시도 화면에 보이지 않는다."""
 
     list_display = ("key_id", "media", "label", "created_at", "expires_at", "revoked_at")
+    exclude = ("secret_hash",)
+
+
+@admin.register(InternalKey)
+class InternalKeyAdmin(ReadOnlyAdmin):
+    """내부 키(C8). 폐기할 키 ID 를 여기서 찾는다(폐기는 서버 명령 `internal_key revoke`). 해시는 화면에 보이지 않는다."""
+
+    list_display = ("key_id", "label", "owner", "created_at", "revoked_at")
     exclude = ("secret_hash",)

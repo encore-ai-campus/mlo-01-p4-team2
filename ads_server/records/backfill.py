@@ -5,7 +5,7 @@
 - 라이브 경로와 **같은 코드**로 만든다(`services._record_*_event`, `processing.judged_event`·`charge_event`) · 생성 시각도 같은 원본 시각 → 백필한 이벤트는 라이브 이벤트와 같다.
 - 이벤트 ID 가 결정적이고 outbox 쓰기가 "이미 있으면 바꾸지 않음"이라 라이브 처리와 동시에 돌거나 두 번 돌아도 같은 이벤트가 둘 생기지 않는다.
 - 추측하지 않는다: 원본 행이 없거나 과금의 반응을 못 찾으면 `unresolved` 로 남기고 쓰지 않는다.
-- 정책·입찰·캠페인·광고그룹 변경·대상 그룹 판 이벤트(`NOT_BACKFILLED` 다섯)는 백필하지 않는다(계획 docs/plans/00 D8): 누락 목록에 있어도 `excluded` 로 세고 건너뛴다 — 목록 전체를 거부하지 않는다.
+- 정책·입찰·캠페인·광고그룹 변경·대상 그룹 판·광고 카테고리 판 이벤트(`NOT_BACKFILLED` 여섯)는 백필하지 않는다(계획 docs/plans/00 D8): 누락 목록에 있어도 `excluded` 로 세고 건너뛴다 — 목록 전체를 거부하지 않는다.
 """
 import json
 import uuid
@@ -24,8 +24,9 @@ from .models import Decision, Reaction
 
 CHUNK = 500
 SOURCE_KINDS = {"ad.decision": "decision", "ad.reaction_received": "reaction", "ad.reaction": "reaction", "ad.charge": "ledger_charge", "ad.bid_policy_changed": "bid_policy",
-                "ad.bid_added": "bid", "ad.campaign_changed": "campaign_change", "ad.ad_group_changed": "ad_group_change", "ad.segment_changed": "segment_version"}
-NOT_BACKFILLED = {"ad.bid_policy_changed", "ad.bid_added", "ad.campaign_changed", "ad.ad_group_changed", "ad.segment_changed"}  # D8 — 과거 이력은 별도 백필(공통 설계안 §3.2.1)로 다룬다
+                "ad.bid_added": "bid", "ad.campaign_changed": "campaign_change", "ad.ad_group_changed": "ad_group_change", "ad.segment_changed": "segment_version",
+                "ad.ad_group_profile_changed": "ad_group_profile"}
+NOT_BACKFILLED = {"ad.bid_policy_changed", "ad.bid_added", "ad.campaign_changed", "ad.ad_group_changed", "ad.segment_changed", "ad.ad_group_profile_changed"}  # D8 — 과거 이력은 별도 백필(공통 설계안 §3.2.1)로 다룬다
 # 결과의 한 줄이 가질 수 있는 판정
 WRITTEN, WOULD_WRITE, ALREADY, UNRESOLVED, NOT_JUDGED, EXCLUDED = "written", "would_write", "already_present", "unresolved", "skipped_not_judged", "excluded"
 
@@ -87,8 +88,10 @@ def read_items(manifest_path):
         record = json.loads(line)
         try:
             name, kind = record["event_name"], record["source_kind"]
-            source_id, event_id = uuid.UUID(record["source_id"]), uuid.UUID(record["event_id"])
-        except (KeyError, ValueError, TypeError):
+            # 광고 카테고리 판만 원천 ID 가 (광고, 판) 문자열이다(events.profile_source_id) — 다른 종류는 그대로 UUID 만 받는다
+            source_id = record["source_id"] if SOURCE_KINDS.get(name) == "ad_group_profile" and isinstance(record["source_id"], str) else uuid.UUID(record["source_id"])
+            event_id = uuid.UUID(record["event_id"])
+        except (KeyError, ValueError, TypeError, AttributeError):  # AttributeError: 숫자인 ID(uuid.UUID 가 문자열 메서드를 부른다)
             raise InvalidInput(f"{number}번째 줄의 형식이 올바르지 않다")
         if SOURCE_KINDS.get(name) != kind:
             raise InvalidInput(f"{number}번째 줄: 이벤트 {name!r} 에 원천 종류 {kind!r} 는 맞지 않는다")

@@ -12,6 +12,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import SimpleTestCase, TransactionTestCase, tag
 
+from campaigns import api as campaigns
 from events import api as events
 from events import ndjson, store
 from events.models import EventOutbox
@@ -44,7 +45,7 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         store.ensure()
         self.dir = Path(tempfile.mkdtemp())
         self.addCleanup(__import__("shutil").rmtree, self.dir, True)
-        w = World()
+        w = self.world = World()
         self.decision = records.decide(w.slot.media_id, w.slot.slot_id, subject_id=SUBJECT, now=NOW, rng=Random(1))
         view, _ = records.receive_reaction(w.slot.media_id, self.decision.decision_id, uuid.uuid4(), "IMPRESSION", NOW, {"type": "IMPRESSION"}, now=NOW)
         records.process_reaction(view.inbox_id, now=NOW + timedelta(seconds=7))  # 처리 시각 ≠ 수신 시각
@@ -98,14 +99,14 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.assertEqual({kind for kind, scanned in stats.items() if scanned}, set(backfill.SOURCE_KINDS.values()))  # 세계에 종류마다 한 줄 이상 — 실제로 훑었다(기본값 0 이 아니다)
 
     def case_kinds_that_are_not_backfilled_are_counted_as_excluded_and_the_rest_is_written(self):
-        """정책·입찰·캠페인·광고그룹·대상 그룹 변경 이벤트는 백필하지 않는다(계획 docs/plans/00 D8). 누락 목록에 섞여 있어도 목록 전체를 거부하지 않고 `excluded` 로 센 뒤 나머지를 쓴다 — 실패로 끝나지 않는다."""
+        """정책·입찰·캠페인·광고그룹·대상 그룹 변경·광고 카테고리 판 이벤트는 백필하지 않는다(계획 docs/plans/00 D8). 누락 목록에 섞여 있어도(광고 카테고리는 원천 ID 가 문자열이어도) 목록 전체를 거부하지 않고 `excluded` 로 센 뒤 나머지를 쓴다 — 실패로 끝나지 않는다."""
         EventOutbox.objects.all().delete()
         ok, text = self.run_backfill(self.gaps_manifest(), "--apply")
         self.assertTrue(ok, text)
         rows, manifest = self.result_rows()
         self.assertEqual(sorted(r["event_name"] for r in rows if r["outcome"] == "excluded"),
-                         ["ad.ad_group_changed"] * 2 + ["ad.bid_added", "ad.bid_policy_changed", "ad.campaign_changed", "ad.segment_changed"])  # 광고그룹은 생성·소재 선택 둘
-        self.assertEqual((manifest["checkpoint"]["counts"]["excluded"], manifest["checkpoint"]["counts"]["written"], manifest["checkpoint"]["counts"]["unresolved"]), (6, 4, 0))
+                         ["ad.ad_group_changed"] * 2 + ["ad.ad_group_profile_changed", "ad.bid_added", "ad.bid_policy_changed", "ad.campaign_changed", "ad.segment_changed"])  # 광고그룹은 생성·소재 선택 둘
+        self.assertEqual((manifest["checkpoint"]["counts"]["excluded"], manifest["checkpoint"]["counts"]["written"], manifest["checkpoint"]["counts"]["unresolved"]), (7, 4, 0))
         self.assertFalse(EventOutbox.objects.filter(event_name__in=backfill.NOT_BACKFILLED).exists())  # 만들지 않았다
         self.assertEqual(snapshot(outbox()), self.live)  # 나머지 넷은 라이브와 같다
 
@@ -121,6 +122,9 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
     def case_after_backfill_the_gap_check_and_the_event_verifier_are_clean(self):
         self.wipe()
         self.run_backfill(self.gaps_manifest(), "--apply")
+        client = masters.authenticate_internal_key(masters.issue_internal_key(self.world.admin, "모듈").key)  # C8(ACW-3): 값을 두 번 바꾼 광고의 판 1·2·3 — 원본(판 표 O13)과 outbox 가 같아 누락·유령 0
+        for category in (1, 2):
+            campaigns.write_categories(client, [{"ad_group_id": str(self.world.group.ad_group_id), "category": category}])
         out = self.dir / "after"
         call_command("export_integrity", "--out", str(out), stdout=io.StringIO())  # 문제 없으면 정상 종료
         self.assertEqual(ndjson.read_manifest(ndjson.manifest_path(out, "event_gaps"))["rows"], 0)
@@ -211,6 +215,19 @@ class BackfillTests(Cases, MongoDatabaseMixin, TransactionTestCase):
         self.assertFalse(ok)
         self.assertIn("다시 계산한 값과 다르다", text)
         self.assertEqual(outbox().count(), 0)
+        from campaigns.models import AdGroupProfile
+
+        source = f"{AdGroupProfile.objects.get().ad_group_id}/1"  # 광고 카테고리 판의 원천 ID 는 (광고, 판) 문자열 — 그래도 이벤트 ID 를 다시 계산해 대조한다
+        profile = {"kind": "missing_event", "event_name": "ad.ad_group_profile_changed", "source_kind": "ad_group_profile", "source_id": source, "event_id": str(uuid.uuid4())}
+        ok, text = self.run_backfill(self.forged_manifest([profile], name="forged_profile"), "--apply", out="res_profile")
+        self.assertFalse(ok)
+        self.assertIn("다시 계산한 값과 다르다", text)
+        ok, text = self.run_backfill(self.forged_manifest([self.line(any_id, source_id=source)], name="forged_string"), "--apply", out="res_string")
+        self.assertFalse(ok)
+        self.assertIn("형식이 올바르지 않다", text)  # 문자열 원천 ID 는 광고 카테고리 판에서만 받는다
+        ok, text = self.run_backfill(self.forged_manifest([self.line(any_id, source_id=12345)], name="forged_number"), "--apply", out="res_number")
+        self.assertFalse(ok)
+        self.assertIn("형식이 올바르지 않다", text)  # 숫자 원천 ID 도 500(AttributeError)이 아니라 입력 오류다(ACW-3)
 
     def case_a_mismatched_event_name_and_source_kind_is_refused(self):
         self.wipe()

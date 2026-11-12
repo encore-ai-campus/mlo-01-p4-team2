@@ -35,7 +35,8 @@ chmod 600 deploy/onprem/.env
 | `FRONTEND_SECRET_KEY` | 개발 기본값을 사용하지 않는 별도 값 |
 | `DJANGO_ALLOWED_HOSTS`, `FRONTEND_ALLOWED_HOSTS` | 공개 도메인·필요한 내부 Host |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | 실제 공개 Origin. 예: `https://platform.example.com` |
-| `POSTGRES_*` | PostgreSQL 주소·계정·DB. 이전 절차는 [실행 가이드](../../RUN_GUIDE.md) 참고 |
+| `POSTGRES_*` | PostgreSQL 주소·계정·DB. 이전 절차는 [실행 가이드](../../RUN_GUIDE.md) 참고. `POSTGRES_SSLMODE`·`POSTGRES_SSLROOTCERT`는 선택 설정 |
+| `PGPASSFILE` | 선택. `POSTGRES_PASSWORD`를 비우면 libpq가 이 파일에서 비밀번호를 읽는다. 실행기는 시작 전에 파일 권한·소유자·접속 행을 확인하며 내용은 출력하지 않는다. `run.py`와 `manage.py`는 파일 소유 계정으로 실행한다 |
 | `CAMPUS_MOVEMENT_REDIS_URL` | 모든 프로세스에서 같은 이동 Redis 지정 |
 | `CAMPUS_SERVICE_REDIS_URL` | 모든 프로세스에서 같은 서비스 Redis 지정 |
 | `CAMPUS_DATA_DIR` | 해당 WSL의 영속 데이터 경로 |

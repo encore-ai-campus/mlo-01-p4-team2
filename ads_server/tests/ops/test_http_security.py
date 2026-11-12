@@ -112,7 +112,7 @@ class CsrfTests(Cases, TestCase):
         self.assertEqual(self.strict.get(reverse("login")).status_code, 200)
 
     def case_csrf_exempt_list_is_single_and_exact(self):
-        self.assertEqual(base.CSRF_EXEMPT_PREFIXES, ["/api/media/"])
+        self.assertEqual(base.CSRF_EXEMPT_PREFIXES, ["/api/media/", "/api/internal/"])  # C1·C8(ACW-3) — 둘 다 헤더 키로 인증하는 서버 간 API
 
     @override_settings(ROOT_URLCONF=URLS)
     def case_csrf_exempt_only_for_allowlisted_prefixes(self):

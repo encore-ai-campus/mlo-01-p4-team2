@@ -12,7 +12,7 @@ from django.views.decorators.cache import never_cache
 from accounts.models import get_avatar, get_nickname, needs_profile_setup
 from .forms import CommentForm, PostForm
 from .models import Comment, Post, PostReadLog
-from eventing.events import SESSION_KEY
+from eventing.events import SESSION_KEY, record_comment_event, record_post_event
 
 
 CATEGORY_DESCRIPTIONS = {
@@ -178,6 +178,7 @@ def posts(request):
     with transaction.atomic():
         item.save()
         item.comment_count = 0
+        record_post_event("post_created", request.user, request.session.get(SESSION_KEY), item)
     return JsonResponse({"post": post_data(item, request, detail=True)}, status=201)
 
 
@@ -193,10 +194,14 @@ def post_detail(request, post_id):
                 raise ValueError
         except (ValueError, AttributeError):
             return error("읽기 요청 UUID를 확인해 주세요.")
-        record, _ = PostReadLog.objects.get_or_create(read_uuid=read_uuid, defaults={
-            "post": item, "user": request.user, "platform_session_id": request.session[SESSION_KEY], "revision": item.revision})
-        if record.user_id != request.user.pk or record.post_id != item.pk:
-            return error("이미 사용한 읽기 요청 UUID입니다.", 409)
+        with transaction.atomic():
+            record, created = PostReadLog.objects.get_or_create(read_uuid=read_uuid, defaults={
+                "post": item, "user": request.user, "platform_session_id": request.session[SESSION_KEY], "revision": item.revision})
+            if record.user_id != request.user.pk or record.post_id != item.pk:
+                return error("이미 사용한 읽기 요청 UUID입니다.", 409)
+            if created:
+                # One read event per read request UUID; a retried request records nothing new.
+                record_post_event("post_read", request.user, record.platform_session_id, item)
         return JsonResponse({"post": post_data(item, request, detail=True)})
     if not can_manage(request, item):
         return error("본인이 쓴 글만 수정하거나 삭제할 수 있어요.", 403)
@@ -210,6 +215,7 @@ def post_detail(request, post_id):
             if not updated:
                 return error("다른 화면에서 수정된 글이에요. 최신 글을 다시 확인해 주세요.", 409)
             item.revision = next_revision
+            record_post_event("post_deleted", request.user, request.session.get(SESSION_KEY), item)
         return JsonResponse({"deleted": True})
     data, failure = payload(request)
     if failure:
@@ -230,6 +236,7 @@ def post_detail(request, post_id):
         if not updated:
             return error("다른 화면에서 수정된 글이에요. 최신 글을 다시 확인해 주세요.", 409)
         item.revision = next_revision
+        record_post_event("post_updated", request.user, request.session.get(SESSION_KEY), item)
     return JsonResponse({"post": post_data(posts_query().get(id=post_id), request, detail=True)})
 
 
@@ -284,6 +291,7 @@ def comments(request, post_id):
                 return error("답글은 원래 댓글에 남겨 주세요.")
             item.parent = parent
         item.save()
+        record_comment_event("comment_created", request.user, request.session.get(SESSION_KEY), item)
     return JsonResponse({"comment": comment_data(item, request)}, status=201)
 
 
@@ -306,6 +314,7 @@ def comment_detail(request, comment_id):
             if not updated:
                 return error("다른 화면에서 수정된 댓글이에요. 최신 댓글을 다시 확인해 주세요.", 409)
             item.revision = next_revision
+            record_comment_event("comment_deleted", request.user, request.session.get(SESSION_KEY), item)
         return JsonResponse({"deleted": True})
     data, failure = payload(request)
     if failure:
@@ -326,6 +335,7 @@ def comment_detail(request, comment_id):
         if not updated:
             return error("다른 화면에서 수정된 댓글이에요. 최신 댓글을 다시 확인해 주세요.", 409)
         item.revision = next_revision
+        record_comment_event("comment_updated", request.user, request.session.get(SESSION_KEY), item)
     return JsonResponse({"comment": comment_data(Comment.objects.select_related("author", "author__campus_profile").get(id=comment_id), request)})
 
 

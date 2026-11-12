@@ -1,0 +1,22 @@
+{
+  "egg_count": 7,
+  "duplicate_users": [],
+  "duplicate_eggs": [],
+  "invalid_egg_metadata": 0,
+  "egg_order_not_one": 0,
+  "eggs_missing_session": 0,
+  "main_completed": 100,
+  "main_rank_unique": true,
+  "main_ranks_contiguous": true,
+  "main_missing_session": 0,
+  "recipe_completed": 100,
+  "plays": {
+    "FAILED": 100,
+    "INTERRUPTED": 100,
+    "SUCCESS": 700,
+    "FINISHED": 100
+  },
+  "learning_completed": 100,
+  "answers": 2116,
+  "ledger_rows": 1935
+}

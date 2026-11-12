@@ -72,6 +72,31 @@ class TransportTests(SimpleTestCase):
         self.assertEqual(response.json()['error'], 'backend_unavailable')
         self.assertNotIn('internal hostname', response.content.decode())
 
+    def test_backend_database_busy_keeps_retry_after_and_pages_get_an_html_notice(self):
+        busy = BackendResponse(503, json.dumps({'error': 'database_busy', 'message': '잠시 후 다시 시도해 주세요.'}).encode(),
+            [('Content-Type', 'application/json'), ('Retry-After', '1')])
+        with patch('pages.views.call_backend', return_value=busy):
+            api = self.client.get('/api/campus/menu-photo/')
+            page = self.client.get('/accounts/login/')
+            content = self.client.get('/content/game-1/open/')
+        self.assertEqual((api.status_code, api['Retry-After'], api.json()['error']), (503, '1', 'database_busy'))
+        for response in (page, content):
+            self.assertEqual((response.status_code, response['Retry-After']), (503, '1'))
+            self.assertTrue(response['Content-Type'].startswith('text/html'))
+            self.assertContains(response, '잠시 후 다시 시도해 주세요.', status_code=503)
+            self.assertNotContains(response, 'database_busy', status_code=503)
+
+    def test_other_backend_errors_on_pages_pass_through_unchanged(self):
+        # 화면 안내로 바꾸는 것은 503(DB 를 잠깐 못 씀)뿐이다. 백엔드 500 은 본문·형식 그대로 넘긴다
+        failed = BackendResponse(500, b'{"error": "server_error"}', [('Content-Type', 'application/json')])
+        with patch('pages.views.call_backend', return_value=failed):
+            for path in ('/accounts/login/', '/content/game-1/open/'):
+                with self.subTest(path=path):
+                    response = self.client.get(path)
+                    self.assertEqual((response.status_code, response['Content-Type'], response.content),
+                                     (500, 'application/json', b'{"error": "server_error"}'))
+                    self.assertNotIn('Retry-After', response)
+
     def test_form_validation_errors_are_rendered_without_password_values(self):
         context = {'user': {'is_authenticated': False, 'is_staff': False}, 'csrf_token': 'csrf',
             'form': {'bound': True, 'fields': [

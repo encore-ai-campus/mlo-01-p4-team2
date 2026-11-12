@@ -1,0 +1,11 @@
+{
+  "active_questions": 3580,
+  "accounts": 100,
+  "backend_processes": 8,
+  "jobs": 1,
+  "frontends": 2,
+  "pool_max_per_process": 10,
+  "postgres_max_connections": 100,
+  "listener_backlog": 128,
+  "open_window_override": true
+}

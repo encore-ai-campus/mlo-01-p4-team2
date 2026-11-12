@@ -40,7 +40,7 @@ def call_backend(request):
 
 def apply_headers(response, backend, *, html=False):
     allowed = {'content-type', 'cache-control', 'location', 'expires', 'pragma', 'content-disposition',
-               'vary', 'allow', 'etag', 'last-modified'}
+               'vary', 'allow', 'etag', 'last-modified', 'retry-after'}
     for key, value in backend.headers:
         if key.lower() == 'set-cookie':
             response.cookies.load(value)

@@ -3,6 +3,7 @@ import asyncio
 import importlib.util
 import json
 import os
+import time
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
@@ -139,4 +140,14 @@ class MovementPositionRedisTests(SimpleTestCase):
         with patch.object(cluster, "_sync_redis", None), \
                 patch.dict("sys.modules", {"redis": SimpleNamespace(Redis=SimpleNamespace(from_url=connect))}):
             self.assertEqual(cluster.stored_position("key", 7), (position, observed))
-        connect.assert_called_once_with(MOVEMENT_URL, socket_timeout=1)
+        connect.assert_called_once_with(MOVEMENT_URL, socket_timeout=1, socket_connect_timeout=1)
+
+    def test_position_reader_stops_connecting_to_an_unanswering_redis_after_one_second(self):
+        # 192.0.2.1(RFC 5737 문서용 주소)은 SYN 에 답하지 않는다. redis-py 연결 제한 기본값이면 5초를 기다린다
+        with patch.object(cluster, "_sync_redis", None), \
+                override_settings(CAMPUS_MOVEMENT_REDIS_URL="redis://192.0.2.1:6379/0"), \
+                self.assertLogs("campus.cluster", "WARNING"):
+            started = time.monotonic()
+            self.assertIsNone(cluster.stored_position("key", 7))
+            waited = time.monotonic() - started
+        self.assertLess(waited, 2)

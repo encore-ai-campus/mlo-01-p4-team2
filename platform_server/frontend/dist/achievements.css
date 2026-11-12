@@ -132,17 +132,3 @@
  .achievement-item strong{font-size:11px}.achievement-item span{font-size:8px}
  .notebook-footnote{margin-top:5px;padding-top:5px;font-size:8px}
 }
-
-/* Notebook handwriting: selected brush style. */
-@font-face{font-family:'Campus Notebook Brush';src:url('assets/fonts/nanum-brush-script-v1.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
-#achievementsTitle,.achievement-item strong{font-family:'Campus Notebook Brush','Malgun Gothic',cursive;font-weight:400;letter-spacing:0}
-#achievementsTitle{font-size:32px;line-height:1.15}
-.achievement-item strong{font-size:20px;line-height:1.1}
-@media(max-width:650px){#achievementsTitle{font-size:25px}.achievement-item strong{font-size:16px}}
-@media(max-height:610px) and (min-width:651px){#achievementsTitle{font-size:26px}.achievement-item strong{font-size:17px}}
-
-/* Stronger handwritten ink for parchment contrast. */
-#achievementsTitle,.achievement-item strong{font-weight:700;-webkit-text-stroke:.35px currentColor;text-shadow:0 .15px 0 currentColor}
-#achievementsTitle{color:#352417;-webkit-text-stroke:.5px currentColor}
-.achievement-item strong{color:#49301d}
-.achievement-item[data-discovered="false"] strong{color:#725336}

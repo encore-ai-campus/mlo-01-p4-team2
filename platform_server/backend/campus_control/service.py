@@ -18,6 +18,33 @@ def invalidate():
         _until = 0
 
 
+def _interrupt_after_pause():
+    from event_story.interrupt import interrupt_running
+    with transaction.atomic():
+        if FreezeState.objects.filter(pk=1,paused=True).exists():interrupt_running()
+
+
+def _synchronize_auto(state):
+    from .schedule import snapshot
+    if state.mode != 'AUTO':return state,None
+    scheduled=snapshot()
+    if state.paused==scheduled['paused'] and state.message==scheduled['message']:return state,scheduled
+    with transaction.atomic():
+        locked=FreezeState.objects.select_for_update().get(pk=1)
+        if locked.mode=='AUTO':
+            scheduled=snapshot()
+            if locked.paused!=scheduled['paused'] or locked.message!=scheduled['message']:
+                entered_pause=not locked.paused and scheduled['paused']
+                locked.paused=scheduled['paused'];locked.message=scheduled['message'];locked.revision+=1
+                locked.save(update_fields=['paused','message','revision','updated_at'])
+                FreezeChange.objects.create(actor=None,paused=locked.paused,revision=locked.revision,message=locked.message)
+                if entered_pause:
+                    # Release the shared freeze-row lock before settling game rows.
+                    transaction.on_commit(_interrupt_after_pause)
+        state=locked
+    return state,scheduled if state.mode=='AUTO' else None
+
+
 def read_state(force=False):
     global _cache, _until
     with _lock:
@@ -25,7 +52,8 @@ def read_state(force=False):
             return dict(_cache)
         try:
             state, _ = FreezeState.objects.get_or_create(pk=1)
-            _cache = {'paused': state.paused, 'revision': state.revision, 'message': state.message}
+            state,scheduled=_synchronize_auto(state)
+            _cache = {'paused': state.paused, 'revision': state.revision, 'message': state.message, 'mode':state.mode, **({k:v for k,v in scheduled.items() if k not in ('paused','message')} if scheduled else {})}
         except DatabaseError:
             # Never allow actions because the pause store is temporarily unreachable.
             _cache = {'paused': True, 'revision': (_cache or {}).get('revision', 0),
@@ -49,17 +77,21 @@ class RevisionConflict(Exception):
     pass
 
 
-def change(actor, paused, message, expected_revision):
+def change(actor, paused, message, expected_revision, mode='MANUAL'):
     with transaction.atomic():
         FreezeState.objects.get_or_create(pk=1)
         state = FreezeState.objects.select_for_update().get(pk=1)
         if state.revision != expected_revision:
             raise RevisionConflict
+        if mode not in ('AUTO','MANUAL'):raise ValueError('지원하지 않는 운영 모드입니다.')
+        if mode=='AUTO':
+            from .schedule import snapshot
+            scheduled=snapshot();paused=scheduled['paused'];message=scheduled['message']
         message = message or DEFAULT_MESSAGE
-        if state.paused != paused or state.message != message:
+        if state.paused != paused or state.message != message or state.mode != mode:
             # Conditional update also serializes independent SQLite connections.
             updated = FreezeState.objects.filter(pk=1, revision=expected_revision).update(
-                paused=paused, message=message, revision=expected_revision + 1, updated_at=timezone.now())
+                paused=paused, message=message, mode=mode, revision=expected_revision + 1, updated_at=timezone.now())
             if not updated:
                 raise RevisionConflict
             FreezeChange.objects.create(actor=actor, paused=paused,

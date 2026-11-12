@@ -14,19 +14,13 @@ STEPS = ['게시판에서 조사 시작', '라운지 2의 단서 2개 조사', '
 
 
 def window(now=None):
-    now = now or timezone.now()
-    start = datetime.fromisoformat(settings.EVENT_STORY_DATE).replace(tzinfo=ZoneInfo('Asia/Seoul'))
-    end = start + timedelta(days=1)
-    preview = settings.DEBUG and settings.EVENT_STORY_PREVIEW
-    phase = 'open' if preview or start <= now < end else 'before' if now < start else 'closed'
-    return {'phase': phase, 'preview': preview, 'start': start.isoformat(), 'end': end.isoformat()}
+    from campus_control.event_access import snapshot
+    return snapshot(now)
 
 
 def ensure_open():
-    phase = window()['phase']
-    if phase != 'open':
-        message = '이벤트는 11월 11일 하루 종일 진행돼요. 11월 11일에 만나요!' if phase == 'before' else '이벤트가 종료됐어요. 저장된 기록은 그대로 보관됩니다.'
-        raise learning.LearningError(message, 'event_' + phase, 409)
+    from .main import ensure_open as ensure
+    ensure()
 
 
 def key():

@@ -30,6 +30,7 @@ from .motion import CLASSROOM_TRANSITION_DELAY, MotionController, ControlError, 
 from .positions import DIRECTIONS, FLOOR_BOUNDS, flush_movement_event, get_position, movement_event_due_at, save_position, validate_position
 from .chat_tokens import issue_actor_token
 from .socket_lifecycle import CleanupWebsocketConsumer
+from .position_batch import PositionBatch
 
 
 class CampusRoom:
@@ -48,6 +49,7 @@ class CampusRoom:
         self.interest_dirty = True
         self.pending_effects = {}  # player_id → 다음 묶음에 실을 꾸밈 효과(JSON 글)들(계획 §8)
         self.flusher = None
+        self.position_batch = PositionBatch()
         self.cluster = cluster.Cluster()  # 다른 프로세스의 사람(Redis 를 쓸 때만, 계획 M3)
 
 
@@ -1217,14 +1219,18 @@ class CampusConsumer(CleanupWebsocketConsumer):
             return
         self.last_checkpoint = time.monotonic()
         state = self.state.copy() if self.position_dirty else None
-        self.saving = asyncio.create_task(self.write_position(state, self.position_changed_at, self.pending_floor_transfer))
+        self.saving = asyncio.create_task(self.write_position(
+            state, self.position_changed_at, self.pending_floor_transfer, batch=not force and not wait))
         if wait:
             await asyncio.shield(self.saving)
 
-    async def write_position(self, state, observed_at, transfer):
+    async def write_position(self, state, observed_at, transfer, *, batch=False):
         try:
             started = time.monotonic()
-            self.movement_event_due_at = await self.store_position(state, observed_at, transfer[0] if transfer else None)
+            if batch and state is not None:
+                self.movement_event_due_at = await room.position_batch.save(self, state, observed_at)
+            else:
+                self.movement_event_due_at = await self.store_position(state, observed_at, transfer[0] if transfer else None)
             note_slow_db("position save", started)
         except DatabaseError:
             logging.getLogger(__name__).exception("Could not save the campus position")

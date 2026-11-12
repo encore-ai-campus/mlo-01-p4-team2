@@ -282,17 +282,18 @@ class IdleTrafficTests(TransactionTestCase):
 
     @tag("performance")
     async def test_a_slow_position_save_does_not_stall_walking(self):
-        original = consumers.CampusConsumer.store_position_now
+        from campus import position_batch
+        original = position_batch.store_positions_now
 
         slow_calls = []
-        def slow(consumer, *args):
+        def slow(requests):
             slow_calls.append(time.monotonic())
             time.sleep(1)
-            return original(consumer, *args)
+            return original(requests)
 
         try:
             with patch.object(consumers.CampusConsumer, 'position_interval', .1), \
-                    patch.object(consumers.CampusConsumer, 'store_position_now', slow):
+                    patch.object(position_batch, 'store_positions_now', slow):
                 a, b = await self.two_settled()
                 arrivals = []
                 for _ in range(8):  # 1.2초 걷는다(키 유효 시간 안에 다시 보낸다)

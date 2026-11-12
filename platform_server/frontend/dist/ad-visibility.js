@@ -17,6 +17,8 @@
     }
     return area(clipped)/total;
   }
+  // 면적 50% 이상·포커스가 이만큼 이어지면 노출 한 번(사용자 결정 2026-11-10: 1초 → 0.2초 — 1초 안에 누른 클릭이 노출 없이 거부되던 것).
+  const EXPOSURE_MS=200;
   class ContinuousExposure{
     constructor(){this.starts=new Map();this.seen=new Set();}
     observe(region,key,ratio,now,active=true){
@@ -24,7 +26,7 @@
       if(!active||!key||ratio<0.5){this.starts.delete(region);return false;}
       if(this.seen.has(key))return false;
       if(!old||old.key!==key){this.starts.set(region,{key,at:now});return false;}
-      if(now-old.at<1000)return false;
+      if(now-old.at<EXPOSURE_MS)return false;
       this.seen.add(key);return true;
     }
     // 한 위치의 회차 종료가 다른 위치의 연속 노출 시간을 지우지 않도록 한다.

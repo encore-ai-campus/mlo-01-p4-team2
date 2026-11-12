@@ -18,9 +18,9 @@
       let chatRetry = null, chatRetryDelay = 1000, chatHeartbeat = null, chatAuthChecked = false;
       let lastReceived = 0, lastChatReceived = 0;
       const floorBounds = floors || {campus:{width,height}};
-      const colors = new Set(['#dfa34d', '#4e9b91', '#8a78bb', '#cb7773', '#648eb5']);
+      const colors = new Set(['#dfa34d', '#4e9b91', '#8a78bb', '#cb7773', '#648eb5', '#b58a45']);
       const directions = new Set(['up', 'down', 'left', 'right']);
-      const avatars = new Set(['male-1', 'male-2', 'female-1', 'female-2']);
+      const avatars = new Set(['male-1', 'male-2', 'female-1', 'female-2', 'ops-gold', 'ops-gm1', 'ops-gm2', 'ops-gf1', 'ops-gf2']);
 
       function setStatus(text, state) {
         status.hidden = false;

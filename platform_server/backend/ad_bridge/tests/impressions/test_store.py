@@ -8,7 +8,7 @@ from django.test import TestCase
 
 from ad_bridge.decisions.store import remember_decision
 from ad_bridge.impressions.store import (
-    DecisionNotFound, NoAdForDecision, finish_impression, get_impression,
+    DecisionNotFound, NoAdForDecision, claim_due_impression, finish_impression, get_impression,
     reserve_impression, update_result,
 )
 from ad_bridge.models import Impression
@@ -36,8 +36,12 @@ class SharedImpressionStorageTests(TestCase):
         self.assertEqual(row.subject_id, self.subject)
         self.assertEqual(record.occurred_at, self.time)
         self.assertEqual(UUID(record.reaction_id).version, 4)
-        self.assertEqual(record.attempts, 1)
-        self.assertIsNotNone(record.lease_token)
+        # 요청 안에서 보내지 않으므로 임대 없이 작업자가 바로 꺼낼 수 있는 대기로 저장한다(AB-1 §4.5).
+        self.assertEqual(record.delivery_state, "UNCONFIRMED")
+        self.assertEqual(record.attempts, 0)
+        self.assertIsNone(record.lease_token)
+        self.assertIsNone(record.lease_expires_at)
+        self.assertIsNotNone(record.next_attempt_at)
 
     def test_same_user_duplicate_keeps_original_payload_after_secret_change(self):
         first, _ = self.reserve()
@@ -129,9 +133,13 @@ class SharedImpressionStorageTests(TestCase):
         other, _ = reserve_impression(
             self.decision.decision_id, uuid4(), self.time, subject_id=uuid4(),
         )
+        claimed = claim_due_impression(now=first.next_attempt_at)
+        self.assertIn(claimed.reaction_id, (first.reaction_id, other.reaction_id))
+        if claimed.reaction_id != first.reaction_id:
+            claimed = claim_due_impression(now=first.next_attempt_at)
         finish_impression(
             first.reaction_id, delivery_state="ACKNOWLEDGED", status="RECEIVED",
-            lease_token=first.lease_token,
+            lease_token=claimed.lease_token,
         )
         result = update_result(
             decision_id=first.decision_id, owner_id=self.owner,
@@ -139,4 +147,5 @@ class SharedImpressionStorageTests(TestCase):
         )
         self.assertEqual(result.status, "ACCEPTED")
         self.assertEqual(result.subject_id, first.subject_id)
-        self.assertEqual(Impression.objects.get(pk=other.reaction_id).delivery_state, "SENDING")
+        self.assertIn(Impression.objects.get(pk=other.reaction_id).delivery_state, ("UNCONFIRMED", "SENDING"))
+        self.assertIsNone(Impression.objects.get(pk=other.reaction_id).status)

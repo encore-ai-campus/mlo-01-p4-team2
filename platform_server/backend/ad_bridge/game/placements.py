@@ -11,7 +11,8 @@ from django.views.decorators.http import require_POST
 
 from ..routing import RoutedAdsClient as AdsClient
 from ..api.config import AdsConfig
-from ..placements import get_batch, public_batch, transfer_identity
+from ..placements import busy_batch, get_batch, public_batch, transfer_identity, warn_throttled
+from ..segments import segment_for
 from .views import _owner_id, _subject_id
 
 
@@ -36,9 +37,17 @@ def placement(request, location):
             return JsonResponse({"error": "unknown_placement"}, status=404)
         config = AdsConfig.from_env()
         subject = _subject_id(owner, subject_secret=config.subject_secret)
-        batch = get_batch(client=AdsClient(config), owner_id=owner, subject_id=subject, transfer_id=transfer)
+        batch = get_batch(client=AdsClient(config), owner_id=owner, subject_id=subject, transfer_id=transfer,
+                          segment=segment_for(request.user))
+        if batch is None:
+            # 동시 발급 상한: 기다리지 않고 바로 답한다. 브라우저는 이전 광고를 두고 곧 다시 묻는다.
+            return JsonResponse(busy_batch(), status=200)
         return JsonResponse(public_batch(batch, subject, owner_id=owner), status=202 if batch.state == "PENDING" else 200)
     except (signing.BadSignature, KeyError, TypeError, json.JSONDecodeError):
         return JsonResponse({"error": "invalid_transfer"}, status=400)
-    except (DatabaseError, ValueError):
+    except (DatabaseError, ValueError) as error:
+        # 설정 오류 메시지에는 값이 없다(api/config.py·routing.py). DB 오류는 종류만 남긴다.
+        detail = str(error) if isinstance(error, ValueError) else ""
+        warn_throttled(("placement-503", type(error).__name__, detail),
+                       "광고 결정 경로 503: %s %s", type(error).__name__, detail)
         return JsonResponse({"error": "ads_unavailable"}, status=503)

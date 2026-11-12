@@ -52,8 +52,9 @@ class RoutedAdsClient:
             raise ValueError("매체를 확인할 광고 발급 기록이 없습니다.") from None
         return self._for_slot(decision.slot_id)
 
-    def create_decision(self, *, slot_id, subject_id=None):
-        return self._for_slot(slot_id).create_decision(slot_id=slot_id, subject_id=subject_id)
+    def create_decision(self, *, slot_id, subject_id=None, segment=None):
+        extra = {} if segment is None else {"segment": segment}
+        return self._for_slot(slot_id).create_decision(slot_id=slot_id, subject_id=subject_id, **extra)
 
     def report_impression(self, *, decision_id, reaction_id, occurred_at, subject_id=None):
         return self._for_decision(decision_id).report_impression(

@@ -76,6 +76,7 @@ class CommunityTests(TestCase):
         for value in Post.Category.values:
             data = self.client.get(self.url("posts"), {"category": value}).json()
             self.assertEqual(data["pagination"]["total"], 1)
+            self.assertEqual(data["pagination"]["startIndex"], 1)
             self.assertEqual(data["posts"][0]["category"], value)
 
     def test_search_title_body_and_current_category(self):
@@ -83,7 +84,9 @@ class CommunityTests(TestCase):
         self.make_post(category="career", title="이력서", body="포트폴리오 정리")
         self.make_post(category="it", title="다른 글")
         self.assertEqual(self.client.get(self.url("posts"), {"q": "포트폴리오"}).json()["pagination"]["total"], 2)
-        self.assertEqual(self.client.get(self.url("posts"), {"q": "포트폴리오", "category": "career"}).json()["pagination"]["total"], 1)
+        filtered = self.client.get(self.url("posts"), {"q": "포트폴리오", "category": "career"}).json()
+        self.assertEqual(filtered["pagination"]["total"], 1)
+        self.assertEqual(filtered["pagination"]["startIndex"], 1)
 
     def test_newest_first_and_paginated(self):
         ids = [self.make_post(title=str(i)).id for i in range(25)]
@@ -91,13 +94,33 @@ class CommunityTests(TestCase):
         self.assertEqual(len(first["posts"]), 12)
         self.assertEqual(first["posts"][0]["id"], ids[-1])
         self.assertEqual(first["pagination"]["pages"], 3)
+        self.assertEqual(first["pagination"]["startIndex"], 1)
+        second = self.client.get(self.url("posts"), {"page": "2"}).json()
+        self.assertEqual(second["pagination"]["startIndex"], 13)
+        self.assertEqual([item["id"] for item in second["posts"]], list(reversed(ids[1:13])))
         last = self.client.get(self.url("posts"), {"page": "100000"}).json()
         self.assertEqual(last["pagination"]["page"], 3)
+        self.assertEqual(last["pagination"]["startIndex"], 25)
         self.assertEqual(len(last["posts"]), 1)
+
+    def test_filtered_numbering_clamps_after_last_page_post_is_deleted(self):
+        ids = []
+        for index in range(13):
+            ids.append(self.make_post(category="it", title=f"번호 검사 {index}").id)
+            self.make_post(category="free", title="번호 검사 다른 게시판")
+        self.make_post(category="it", title="검색에서 제외할 글")
+        params = {"category": "it", "q": "번호 검사", "page": "2"}
+        last = self.client.get(self.url("posts"), params).json()
+        self.assertEqual(last["pagination"], {"page": 2, "pages": 2, "total": 13, "startIndex": 13})
+        self.assertEqual([item["id"] for item in last["posts"]], [ids[0]])
+        self.assertEqual(self.send("delete", self.url("post-detail", ids[0])).status_code, 200)
+        refreshed = self.client.get(self.url("posts"), params).json()
+        self.assertEqual(refreshed["pagination"], {"page": 1, "pages": 1, "total": 12, "startIndex": 1})
+        self.assertEqual([item["id"] for item in refreshed["posts"]], list(reversed(ids[1:])))
 
     def test_empty_list_has_valid_pagination(self):
         result = self.client.get(self.url("posts")).json()
-        self.assertEqual(result, {"posts": [], "pagination": {"page": 1, "pages": 1, "total": 0}})
+        self.assertEqual(result, {"posts": [], "pagination": {"page": 1, "pages": 1, "total": 0, "startIndex": 0}})
 
     def test_invalid_filters_and_page_numbers(self):
         for params in [{"category": "fake"}, {"page": "-1"}, {"page": "abc"}, {"page": "0"}, {"q": "a" * 101}]:

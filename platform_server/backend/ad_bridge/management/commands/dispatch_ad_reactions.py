@@ -15,6 +15,8 @@ from ad_bridge.delivery.worker import dispatch_due_impressions
 from ad_bridge.delivery.policy import RetryPolicy, utc_now
 from ad_bridge.delivery.sender import send_once
 
+STALLED_SECONDS = 120
+
 
 class Command(BaseCommand):
     help = "미접수 노출을 재전송합니다. --once는 한 배치, --recover-401은 지정한 기록만 한 번 처리합니다."
@@ -26,8 +28,12 @@ class Command(BaseCommand):
         parser.add_argument("--batch-size", type=int, default=100, help="한 배치의 최대 처리 건수 (기본 100)")
         parser.add_argument("--poll-interval", type=float, default=1.0, help="배치 사이 대기 초 (기본 1)")
         parser.add_argument("--recover-401", metavar="REACTION_UUID", help="지정한 401 차단 노출을 한 번 복구")
+        parser.add_argument("--status", action="store_true",
+                            help="노출 전송 상태만 읽어 출력(광고 설정을 읽지 않음). 기한이 지난 전송이 120초 넘게 밀렸으면 종료 코드 1")
 
     def handle(self, *args, **options):
+        if options["status"]:
+            return self._status()
         recovery_id = options["recover_401"]
         if recovery_id is not None:
             try:
@@ -102,6 +108,40 @@ class Command(BaseCommand):
                 close_old_connections()
             except DatabaseError:
                 self.stderr.write("광고 재전송 종료 중 DB 연결 정리에 실패했습니다.")
+
+    def _status(self):
+        """작업자가 도는지 사람이 알아채는 점검(AB-1 C4). 상태별 수와 밀린 시간만 찍고 ID·가명은 찍지 않는다."""
+        from datetime import datetime
+        from django.db.models import Count, Min, Q
+        from django.utils import timezone
+        from ad_bridge.models import Impression
+
+        now = timezone.now()
+        try:
+            counts = dict(Impression.objects.values_list("delivery_state").annotate(n=Count("pk")))
+            # 기한이 지났는데 아직 꺼내지 않은 것. 작업자가 돌면 몇 초 안에 비워진다.
+            overdue = Impression.objects.filter(
+                Q(delivery_state="UNCONFIRMED", next_attempt_at__lte=now)
+                | Q(delivery_state="SENDING", lease_expires_at__lte=now)
+            ).aggregate(n=Count("pk"), due=Min("next_attempt_at"), lease=Min("lease_expires_at"))
+            pending = Impression.objects.filter(delivery_state__in=("UNCONFIRMED", "SENDING")).aggregate(
+                n=Count("pk"), oldest=Min("occurred_at"))
+        except DatabaseError:
+            raise CommandError("노출 전송 상태를 읽지 못했습니다(DB).") from None
+        starts = [value for value in (overdue["due"], overdue["lease"]) if value is not None]
+        overdue_seconds = int((now - min(starts)).total_seconds()) if starts else 0
+        oldest = pending["oldest"]
+        pending_seconds = (int((now - datetime.fromisoformat(oldest.replace("Z", "+00:00"))).total_seconds())
+                           if oldest else 0)
+        states = " ".join(f"{name}={counts.get(name, 0)}"
+                          for name in ("UNCONFIRMED", "SENDING", "ACKNOWLEDGED", "BLOCKED"))
+        self.stdout.write(f"states {states}")
+        self.stdout.write(f"overdue count={overdue['n']} oldest_seconds={overdue_seconds}")
+        self.stdout.write(f"pending count={pending['n']} oldest_occurred_seconds={pending_seconds}")
+        if overdue_seconds > STALLED_SECONDS:
+            raise CommandError(f"기한이 지난 노출 전송이 {overdue_seconds}초 밀렸습니다. "
+                               "campus_jobs의 'ads impression dispatch' 줄과 오류를 확인하세요.")
+        self.stdout.write("result ok")
 
     def _recover_401(self, *, client, policy, reaction_id):
         """명시한 기록을 한 번만 복구하며 접수가 확인된 경우에만 성공 종료한다."""

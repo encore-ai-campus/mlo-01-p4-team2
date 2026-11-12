@@ -146,13 +146,13 @@
       $('communityPostCount').textContent = (search ? '검색 결과 ' : '전체 ') + data.pagination.total.toLocaleString('ko-KR') + '개';
       $('communitySearchReset').hidden = !search;
       const rows = $('communityPostRows'); rows.replaceChildren();
-      for (const item of data.posts) {
+      for (const [index, item] of data.posts.entries()) {
         const row = node('tr'); row.dataset.postId = String(item.id);
         const subject = node('td', 'community-subject'), link = button('', () => openPost(item.id), 'community-subject-button');
         link.append(categoryBadge(item), node('span', 'community-subject-title', item.title)); link.setAttribute('aria-label', item.title + ' 읽기'); subject.append(link);
         const author = node('td', 'community-author', item.author.nickname); author.title = item.author.nickname;
         const date = node('td', 'community-date', shortDate(item.createdAt)); date.title = fullDate(item.createdAt);
-        row.append(node('td', 'community-number', String(item.id)), subject, author, date, node('td', 'community-replies', String(item.commentCount))); rows.append(row);
+        row.append(node('td', 'community-number', String(data.pagination.startIndex + index)), subject, author, date, node('td', 'community-replies', String(item.commentCount))); rows.append(row);
       }
       if (!data.posts.length) rows.append(emptyRow(search ? '검색 결과가 없어요' : '아직 등록된 글이 없어요', search ? '다른 검색어로 다시 찾아보세요.' : canWriteCategory() ? '이 게시판의 첫 이야기를 남겨 보세요.' : '관리자가 공지사항을 등록하면 이곳에서 볼 수 있어요.'));
       renderPagination($('communityPagination'), data.pagination, next => {page = next; loadList({focus: true});});

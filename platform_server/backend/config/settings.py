@@ -209,6 +209,13 @@ ADS_ENABLED = os.environ.get("ADS_ENABLED", "0") == "1"
 ADS_ROOFTOP_SLOT_ID = os.environ.get("ADS_ROOFTOP_SLOT_ID", "")
 ADS_PORTAL_LEFT_SLOT_ID = os.environ.get("ADS_PORTAL_LEFT_SLOT_ID", "")
 ADS_PORTAL_RIGHT_SLOT_ID = os.environ.get("ADS_PORTAL_RIGHT_SLOT_ID", "")
+# 광고 서버에 등록된 과정 코드(쉼표 목록). 사용자 과정이 이 안에 있을 때만 결정 요청에 segment로 싣는다.
+# 원문 그대로 두고 쓰는 곳(ad_bridge.segments)에서 읽는다 — 형식이 틀린 항목은 버리고 경고만 남긴다.
+ADS_SEGMENT_CODES = os.environ.get("ADS_SEGMENT_CODES", "")
+# 광고 노출 전송 작업자 수(campus_jobs, 기본 4, 1~8)와 백엔드 프로세스당 동시 결정 발급 상한(기본 8).
+# 틀린 값이면 쓰는 곳에서 기본값으로 돈다(시작을 막지 않음).
+ADS_DISPATCH_WORKERS = os.environ.get("ADS_DISPATCH_WORKERS", "")
+ADS_DECISION_CONCURRENCY = os.environ.get("ADS_DECISION_CONCURRENCY", "")
 
 # Event main story: production follows the KST event day; local preview is explicit.
 EVENT_STORY_DATE = os.environ.get("EVENT_STORY_DATE", "2026-11-11")

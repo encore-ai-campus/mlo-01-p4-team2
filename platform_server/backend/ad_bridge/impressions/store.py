@@ -106,9 +106,12 @@ def _lease_end(now: datetime, lease_seconds: float) -> datetime:
 
 def reserve_impression(
     decision_id: str | UUID, owner_id: str | UUID, occurred_at: str,
-    *, subject_id: str | UUID | None = None,
-    now: datetime | None = None, lease_seconds: float = 60,
+    *, subject_id: str | UUID | None = None, now: datetime | None = None,
 ) -> tuple[StoredImpression, bool]:
+    """노출 한 건을 보낼 대기로 저장한다. 보내기는 백그라운드 작업자만 한다(AB-1 §4.5).
+
+    요청 안에서 광고 서버를 부르지 않으므로 임대 없이 바로 꺼낼 수 있는 UNCONFIRMED로 둔다.
+    """
     from django.db import transaction
 
     from ..models import Impression, IssuedDecision
@@ -117,8 +120,7 @@ def reserve_impression(
     owner_uuid = _uuid(owner_id)
     _utc_time(occurred_at)
     current_time = _aware_time(now if now is not None else datetime.now(timezone.utc), "now")
-    expires = _lease_end(current_time, lease_seconds)
-    # 반환 뒤 즉시 HTTP를 보내므로 외부 트랜잭션 안에서 미커밋 기록을 반환하지 않는다.
+    # 작업자가 다른 연결에서 꺼내므로 외부 트랜잭션 안에서 미커밋 기록을 남기지 않는다.
     with transaction.atomic(durable=True):
         try:
             decision = IssuedDecision.objects.get(decision_id=decision_uuid)
@@ -144,7 +146,7 @@ def reserve_impression(
             **lookup,
             defaults={
                 "owner_id": owner_uuid, "subject_id": subject, "occurred_at": occurred_at,
-                "attempts": 1, "lease_token": uuid4, "lease_expires_at": expires,
+                "delivery_state": "UNCONFIRMED", "next_attempt_at": current_time, "attempts": 0,
             },
         )
         if not shared and (record.subject_id != subject or record.owner_id not in (None, owner_uuid)):

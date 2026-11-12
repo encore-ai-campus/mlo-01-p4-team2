@@ -92,6 +92,8 @@ class MapRenderingTests(SimpleTestCase):
             self.assertEqual('src="campus-ads.js?' in html, enabled)
             self.assertEqual('src="ad-visibility.js?' in html, enabled)
             self.assertEqual('src="roof-slideshow.js?' in html, not enabled)
+            # 광고를 켜도 첫 광고 전 옥상 사진을 쓰므로 사진 목록은 늘 싣는다(AB-1).
+            self.assertIn('src="roof-slideshow-config.js?', html)
 
     def test_backend_cannot_choose_an_arbitrary_template(self):
         with self.assertRaises(ValueError):

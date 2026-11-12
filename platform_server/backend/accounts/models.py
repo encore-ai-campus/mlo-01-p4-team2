@@ -4,7 +4,7 @@ import uuid
 from django.db import models
 from config.fields import LosslessJSONField
 
-from .avatars import AVATAR_CHOICES, AVATAR_IDS, DEFAULT_AVATAR
+from .avatars import AVATAR_CHOICES, AVATAR_IDS, DEFAULT_AVATAR, OPERATOR_AVATAR_IDS
 from .cohorts import COHORT_CHOICES, course_for_cohort
 
 
@@ -59,6 +59,8 @@ def get_nickname(user):
 def get_avatar(user):
     profile = getattr(user, "campus_profile", None)
     avatar = getattr(profile, "avatar", DEFAULT_AVATAR)
+    if avatar in OPERATOR_AVATAR_IDS and not (user.is_staff or user.is_superuser):
+        return DEFAULT_AVATAR
     return avatar if avatar in AVATAR_IDS else DEFAULT_AVATAR
 
 

@@ -8,7 +8,9 @@ AVATARS = (
     {"id": "female-2", "gender": "female", "type": "타입 2", "name": "초록색 카디건", "description": "포니테일 · 초록색 카디건"},
 )
 AVATAR_CHOICES = tuple((avatar["id"], avatar["name"]) for avatar in AVATARS)
-AVATAR_IDS = frozenset(avatar["id"] for avatar in AVATARS)
+# Private operator variant is valid on the map, never a public signup choice.
+OPERATOR_AVATAR_IDS = frozenset({"ops-gold", "ops-gm1", "ops-gm2", "ops-gf1", "ops-gf2"})
+AVATAR_IDS = frozenset(avatar["id"] for avatar in AVATARS) | OPERATOR_AVATAR_IDS
 
 
 def avatar_options(ids=AVATAR_IDS):

@@ -12,7 +12,7 @@ def utc_now() -> datetime:
 @dataclass(frozen=True, slots=True)
 class RetryPolicy:
     base_delay: float = 1
-    max_delay: float = 300
+    max_delay: float = 60  # 회복 뒤 노출이 클릭 인정 창(300초) 안에 닿도록 짧게 둔다(AB-1 §4.3)
     lease_seconds: float = 60
 
     def __post_init__(self):

@@ -59,7 +59,7 @@ class FreezeApiTests(TestCase):
     def test_all_content_requests_blocked_but_logout_and_status_available(self):
         self.toggle(True)
         self.login(self.user)
-        for path in ['/api/learning/sessions/','/api/community/posts/','/api/messages/status/','/content/youtube/open/','/api/ads/decision/','/api/event-story/status/']:
+        for path in ['/api/learning/sessions/','/api/community/posts/','/api/messages/status/','/content/youtube/open/','/api/ads/placements/rooftop/','/api/event-story/status/']:
             self.assertEqual(self.client.get(path).status_code,423,path)
         self.assertEqual(self.client.get('/api/campus/freeze/').status_code,200)
         self.login(self.staff);self.assertEqual(self.toggle(False,1).status_code,200)

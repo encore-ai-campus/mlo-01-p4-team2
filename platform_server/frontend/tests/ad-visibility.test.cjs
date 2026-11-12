@@ -6,8 +6,9 @@ test('노출 비율은 광고 면적을 기준으로 하며 50% 경계를 포함
   assert.equal(visibleRatio(square,{left:200,top:0,right:300,bottom:100}),0);
   const d=new ContinuousExposure();
   assert.equal(d.observe('left','a',.5,0),false);
-  assert.equal(d.observe('left','a',.5,999),false);
-  assert.equal(d.observe('left','a',.5,1000),true);
+  // 노출 판정은 0.2초(사용자 결정 2026-11-10, 전에는 1초).
+  assert.equal(d.observe('left','a',.5,199),false);
+  assert.equal(d.observe('left','a',.5,200),true);
   assert.equal(d.observe('left','a',1,2000),false);
 });
 test('40% 이탈을 반복한 0.1초 열 번은 누적하지 않는다',()=>{
@@ -21,11 +22,11 @@ test('40% 이탈을 반복한 0.1초 열 번은 누적하지 않는다',()=>{
 });
 test('좌우 시간은 합산하지 않고 동일 결정의 보고는 한 번만 한다',()=>{
   const d=new ContinuousExposure();
-  d.observe('left','same',1,0);d.observe('left','same',0,500);
-  d.observe('right','same',1,500);
-  assert.equal(d.observe('right','same',1,1000),false);
-  assert.equal(d.observe('right','same',1,1500),true);
-  assert.equal(d.observe('left','same',1,2500),false);
+  d.observe('left','same',1,0);d.observe('left','same',0,100);
+  d.observe('right','same',1,100);
+  assert.equal(d.observe('right','same',1,299),false);
+  assert.equal(d.observe('right','same',1,300),true);
+  assert.equal(d.observe('left','same',1,400),false);
 });
 test('결정 교체와 탭 숨김은 시간을 초기화하지만 인정된 결정은 유지한다',()=>{
   const d=new ContinuousExposure();d.observe('roof','a',1,0);

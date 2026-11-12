@@ -1,6 +1,7 @@
 """관리자가 소유하는 마스터: 매체·게재 위치(슬롯)·입찰 정책(설계 §4.1)."""
 import uuid
 
+from django.conf import settings
 from django.db import models
 from django.db.models import F, Q
 from django.db.models.lookups import Exact
@@ -140,6 +141,21 @@ class MediaKey(models.Model):
     class Meta:
         db_table = "masters_media_key"
         constraints = [models.UniqueConstraint(fields=["request_key"], name="masters_key_once_per_request")]  # NULL(키 없는 발급)은 서로 다르다
+
+
+class InternalKey(models.Model):
+    """내부 모듈(LLM 분류·가중치 모델)이 `X-Internal-Key` 로 보내는 키(설계 §3 C8, DRD M9). **평문은 저장하지 않는다** — 형식·비교는 매체 키와 같다.
+    운영자 계정에 속한다(키의 주인 = 발급한 운영자 = C8 쓰기의 감사 행위자). 매체에 묶이지 않는다. 표가 달라 C1 키와 C8 키는 서로를 대신하지 못한다."""
+
+    key_id = models.UUIDField(primary_key=True, default=uuid.uuid7, editable=False)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    secret_hash = models.CharField(max_length=64)
+    label = models.CharField(max_length=100)
+    created_at = models.DateTimeField(default=timezone.now)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "masters_internal_key"
 
 
 class BidPolicy(AppendOnlyModel):

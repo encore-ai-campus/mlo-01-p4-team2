@@ -24,6 +24,8 @@ EXPECTED_PUBLIC = {
     # 매체 API(C1): 세션 로그인이 아니라 `X-Media-Key` 로 인증한다(`media_endpoint`). health 는 인증 없음
     "/api/media/v1/health", "/api/media/v1/decisions", "/api/media/v1/decisions/<str:decision_id>",
     "/api/media/v1/decisions/<str:decision_id>/reactions/<str:reaction_id>",
+    # 내부 입력 API(C8, ACW-3): 세션 로그인이 아니라 `X-Internal-Key` 로 인증한다(`internal_endpoint`)
+    "/api/internal/v1/ad-groups", "/api/internal/v1/profiles/categories", "/api/internal/v1/profiles/weights",
     "/c/<str:token>",  # 클릭 관측(C1 v1.1): 최종 사용자 브라우저가 연다. 서명 토큰이 곧 자격이다
     "/health/db",  # 감시 M9(MON-4): 앱 → DB 경로 확인. 세션·사용자를 보지 않고 200/503 만 답한다(공개는 EC2 nginx 가 감시 서버로만)
 }

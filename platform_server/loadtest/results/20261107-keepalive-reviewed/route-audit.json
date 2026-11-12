@@ -1,0 +1,108 @@
+{
+  "a1": {
+    "database_client_peak": 51,
+    "http_hops": {
+      "entry_to_front": {
+        "requests": 6615,
+        "tcp_connections": 6615
+      },
+      "front_to_internal": {
+        "requests": 6615,
+        "tcp_connections": 6615
+      },
+      "internal_to_service": {
+        "requests": 6615,
+        "tcp_connections": 6615
+      }
+    },
+    "initial_accounts": 100,
+    "lock_wait_peak": 41,
+    "multiple_worker_accounts": 50,
+    "reassigned_accounts": 50,
+    "reassigned_requests": 201,
+    "served_study_uri_requests": 3015,
+    "worker_transitions": {
+      "service-9761->service-9762": 81,
+      "service-9761->service-9763": 4,
+      "service-9763->service-9762": 49,
+      "service-9764->service-9762": 67
+    }
+  },
+  "a2": {
+    "database_client_peak": 51,
+    "http_hops": {
+      "entry_to_front": {
+        "requests": 6415,
+        "tcp_connections": 6415
+      },
+      "front_to_internal": {
+        "requests": 6415,
+        "tcp_connections": 6415
+      },
+      "internal_to_service": {
+        "requests": 6340,
+        "tcp_connections": 6340
+      }
+    },
+    "initial_accounts": 100,
+    "lock_wait_peak": 40,
+    "multiple_worker_accounts": 4,
+    "reassigned_accounts": 4,
+    "reassigned_requests": 7,
+    "served_study_uri_requests": 2791,
+    "worker_transitions": {
+      "service-9761->service-9762": 1,
+      "service-9762->service-9764": 1,
+      "service-9763->service-9762": 1,
+      "service-9763->service-9764": 4
+    }
+  },
+  "b1": {
+    "database_client_peak": 51,
+    "http_hops": {
+      "entry_to_front": {
+        "requests": 6700,
+        "tcp_connections": 191
+      },
+      "front_to_internal": {
+        "requests": 6700,
+        "tcp_connections": 200
+      },
+      "internal_to_service": {
+        "requests": 6700,
+        "tcp_connections": 187
+      }
+    },
+    "initial_accounts": 100,
+    "lock_wait_peak": 39,
+    "multiple_worker_accounts": 0,
+    "reassigned_accounts": 0,
+    "reassigned_requests": 0,
+    "served_study_uri_requests": 3100,
+    "worker_transitions": {}
+  },
+  "b2": {
+    "database_client_peak": 51,
+    "http_hops": {
+      "entry_to_front": {
+        "requests": 6700,
+        "tcp_connections": 191
+      },
+      "front_to_internal": {
+        "requests": 6700,
+        "tcp_connections": 200
+      },
+      "internal_to_service": {
+        "requests": 6700,
+        "tcp_connections": 188
+      }
+    },
+    "initial_accounts": 100,
+    "lock_wait_peak": 40,
+    "multiple_worker_accounts": 0,
+    "reassigned_accounts": 0,
+    "reassigned_requests": 0,
+    "served_study_uri_requests": 3100,
+    "worker_transitions": {}
+  }
+}

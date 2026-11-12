@@ -152,6 +152,11 @@ CAMPUS_SESSION_CLEANUP_ENABLED = os.environ.get("CAMPUS_SESSION_CLEANUP_ENABLED"
 CAMPUS_SESSION_CLEANUP_TIME = os.environ.get("CAMPUS_SESSION_CLEANUP_TIME", "04:00")
 CAMPUS_SESSION_CLEANUP_STATE = DATA_DIR / "var" / "session-cleanup.json"
 
+# Business events are written to the transactional outbox (eventing_eventoutbox); PostgreSQL CDC reads it.
+# The application never publishes to Kafka itself.
+CAMPUS_RAW_SOURCE = os.environ.get("CAMPUS_RAW_SOURCE", "platform_server_1").strip() or "platform_server_1"
+CAMPUS_MOVEMENT_EVENT_INTERVAL_SECONDS = 30
+
 LANGUAGE_CODE = "ko-kr"
 TIME_ZONE = "Asia/Seoul"
 USE_I18N = True

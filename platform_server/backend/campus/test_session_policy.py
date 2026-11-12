@@ -75,7 +75,8 @@ class SessionSocketTests(TransactionTestCase):
     async def test_continuous_movement_cannot_extend_maximum_login_lifetime(self):
         now = timezone.now()
         key = self.a.cookies["campus_sessionid"].value
-        with patch("accounts.session_policy.timezone.now", return_value=now) as clock:
+        with patch("accounts.session_policy.timezone.now", return_value=now) as clock, \
+                self.assertLogs("campus.consumers", "WARNING") as logs:
             async with self.connections(self.a) as (ws,):
                 await ws.receive_json_from()
                 for elapsed, floor in ((20, "rooftop"), (40, "campus")):
@@ -91,6 +92,8 @@ class SessionSocketTests(TransactionTestCase):
                 self.assertEqual((await ws.receive_output())["code"], 4401)
                 position = await database_sync_to_async(lambda: Profile.objects.get(user=self.alice).position.last_position)()
                 self.assertEqual(position["x"], 1740)
+        # 40초 이동의 대기 표본이 끊을 때 기한을 넘겨, 정리 저장이 지워진 세션을 다시 확인한다. 로그 사유는 만료 사유 그대로다
+        self.assertTrue(any("closed by server code=4401 policy=maximum" in line for line in logs.output), logs.output)
 
     async def test_a_server_close_leaves_its_code_and_policy_reason(self):
         """재로그인의 원인을 운영 로그로 가린다(계획 0c): 서버가 4401 로 끊으면 세션 정책의 사유가 한 줄 남는다."""

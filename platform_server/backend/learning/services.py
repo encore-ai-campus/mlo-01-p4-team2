@@ -12,7 +12,7 @@ from django.utils import timezone
 from .models import Subject, Difficulty, QuestionType, Question, LearningSession, SessionQuestion, UserAnswer
 from .content_catalog import get_learning_content
 from .point_integration import ensure_wallet, grant_answer_points
-from eventing.events import record_content_open
+from eventing.events import enqueue_event, record_content_open
 from eventing.models import ContentItem, PlatformSession
 
 MAX_ATTEMPTS = 3
@@ -97,14 +97,13 @@ def learning_write_transaction(view):
 def start_learning_session(user, question_type, difficulty, subject=Subject.PYTHON):
     if subject not in Subject.values or question_type not in QuestionType.values or difficulty not in Difficulty.values:
         raise LearningError('유효한 문제 유형과 난이도를 선택하세요.')
-    pool = list(Question.objects.filter(is_active=True, subject=subject, question_type=question_type, difficulty=difficulty).prefetch_related('choices'))
+    # Seed/import validate question content before play.
+    pool = list(Question.objects.filter(is_active=True, subject=subject, question_type=question_type, difficulty=difficulty))
     if not pool:
         raise LearningError('해당 유형과 난이도의 활성 문제가 없습니다.', 'empty_question_pool', 409)
     if len(pool) < 10:
         raise LearningError('활성 문제가 10개 이상 필요합니다.', 'insufficient_question_pool', 409)
     selected = random.sample(pool, 10)
-    for question in selected:
-        validate_question(question)
     session = LearningSession.objects.create(user=user, subject=subject, question_type=question_type, difficulty=difficulty, total_questions=len(selected))
     for order, question in enumerate(selected, 1):
         # save/full_clean also verifies type/difficulty relationships.
@@ -216,7 +215,6 @@ def submit_answer(user, session_id, order, answer, submission_request_uuid=None,
         code = 'attempt_limit_reached' if progress['outcome'] == 'incorrect' else 'question_finalized'
         raise LearningError('이미 확정된 문제에는 더 제출할 수 없습니다.', code, 409)
     question = item.question
-    validate_question(question)
     selected_choice = None
     if question.question_type == QuestionType.MULTIPLE_CHOICE:
         matches = [c for c in question.choices.all() if normalize_answer(c.choice_text) == normalize_answer(answer)
@@ -239,7 +237,18 @@ def submit_answer(user, session_id, order, answer, submission_request_uuid=None,
     # do not change the score; avoid a full-session rescan and model validation.
     if result.is_correct:
         LearningSession.objects.filter(pk=session.pk).update(correct_count=F('correct_count') + 1)
+    enqueue_event('quiz_answered', user, login_session.pk, {
+        'attempt_uuid': str(result.attempt_uuid), 'question_uuid': str(question.question_uuid),
+        'content_uuid': str(content.pk), 'question_type': question.question_type.upper(),
+        'choice_uuid': str(selected_choice.choice_uuid) if selected_choice else None,
+        'is_correct': result.is_correct,
+    }, occurred_at=result.answered_at)
     points, ledger = grant_answer_points(result)
+    if ledger is not None:
+        enqueue_event('point_granted', user, login_session.pk, {
+            'ledger_uuid': str(ledger.pk), 'attempt_uuid': str(result.attempt_uuid),
+            'delta': ledger.delta, 'balance_after': ledger.balance_after,
+        }, occurred_at=ledger.granted_at)
     result.response_snapshot = answer_payload(result, points=points)
     UserAnswer.objects.filter(pk=result.pk).update(response_snapshot=result.response_snapshot)
     return result
@@ -266,6 +275,13 @@ def _complete_session(user,session_id,platform_session_uuid):
         session.correct_count = stats['correct_count']
         session.completed_at = timezone.now()
         session.save(update_fields=['correct_count', 'completed_at'])
+        # The HTTP view always passes the middleware's platform session; a call without one records no event.
+        if platform_session_uuid is not None:
+            enqueue_event('learning_session_completed', user, platform_session_uuid, {
+                'learning_session_id': session.pk, 'subject': session.subject.upper(),
+                'question_type': session.question_type.upper(), 'difficulty': session.difficulty.upper(),
+                'total_questions': session.total_questions, 'correct_count': session.correct_count,
+            }, occurred_at=session.completed_at)
     session.achievement_update = record_learning_completion(user, session, platform_session_uuid)
     from event_story.services import learning_completed
     learning_completed(session)

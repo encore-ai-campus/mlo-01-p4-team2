@@ -211,7 +211,10 @@ class Boundaries(unittest.TestCase):
         done = gold_framework._txn_versions(spark, gold_control.corrections_path(folder, "ads"))
         for t, path in zip(tables.TABLES, gold_paths):
             latest = silver_framework.table_state(spark, path)[0]
-            self.assertEqual((latest, done[gold_framework.app_id("ads", t)]), (before[path][0][0] + 1, latest))
+            if t.corrections:
+                self.assertEqual((latest, done[gold_framework.app_id("ads", t)]), (before[path][0][0] + 1, latest))
+            else:  # (ACW-2 리뷰 조건) 정정을 쓰지 않는 표(ML 표 v2 — U33)는 판만 하나 늘고 정정 표 txn 이 없다
+                self.assertEqual((latest, gold_framework.app_id("ads", t) in done), (before[path][0][0] + 1, False))
         self.assertIn("lines=0", out.getvalue())
 
 

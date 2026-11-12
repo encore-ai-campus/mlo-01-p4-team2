@@ -17,10 +17,10 @@ from events import api as events
 from foundation.api import MAX_AMOUNT, clean_request_key, clean_text, errors, is_int, parse_uuid, parse_uuids, record_audit, require_admin, violated_constraint
 
 from .models import (
-    DISPLAY_SIZE_MAX, MAX_SHARE, MIN_FLOOR, MIN_SHARE, SEGMENT_CODE_PATTERN, SHARE_FIELDS, Audience, BidPolicy, DisplayFit, Media, MediaDeactivation, MediaKey, Segment,
+    DISPLAY_SIZE_MAX, MAX_SHARE, MIN_FLOOR, MIN_SHARE, SEGMENT_CODE_PATTERN, SHARE_FIELDS, Audience, BidPolicy, DisplayFit, InternalKey, Media, MediaDeactivation, MediaKey, Segment,
     SegmentVersion, Slot,
 )
-from .types import IssuedKey, MediaIdentity, MediaKeyView, MediaView, PolicyView, RequestSegment, SegmentVersionView, SegmentView, SlotDisplay, SlotView
+from .types import InternalIdentity, IssuedInternalKey, IssuedKey, MediaIdentity, MediaKeyView, MediaView, PolicyView, RequestSegment, SegmentVersionView, SegmentView, SlotDisplay, SlotView
 
 
 def _validated_shares(floor, base, cap, impression_share, click_share, conversion_share):
@@ -584,19 +584,61 @@ def list_media_keys(actor, media_id, now=None):
     return [_key_view(k, now) for k in MediaKey.objects.filter(media_id=parse_uuid(media_id, "매체")).order_by("-created_at")]
 
 
-def authenticate_media_key(raw_key, now=None):
-    """`X-Media-Key` 값을 검증한다. 성공하면 `MediaIdentity`, 아니면 `None`(호출하는 쪽이 401).
+def _find_key(model, related, raw_key):
+    """키 문자열에 맞는 `model` 행(매체 키·내부 키 공용 — `related` 를 함께 읽는다), 아니면 `None`.
 
     형식이 틀린 값은 DB 를 보지 않고 거절한다. 형식이 맞으면 `key_id` 로 행을 찾고 비밀의 해시를 **상수시간으로 비교**한다
-    (없는 키도 더미 해시와 같은 비교를 한다). 폐기·만료된 키는 거절한다. 매체가 비활성이어도 신원은 돌려준다(403 은 호출하는 쪽의 몫).
+    (없는 키도 더미 해시와 같은 비교를 한다). 폐기·만료는 호출하는 쪽이 본다.
     """
-    now = _now(now)
     if not isinstance(raw_key, str) or not KEY_RE.fullmatch(raw_key):
         return None
     key_hex, secret = raw_key.split(".", 1)
-    row = MediaKey.objects.select_related("media").filter(key_id=uuid.UUID(key_hex)).first()
-    expected = row.secret_hash if row is not None else _DUMMY_HASH
-    matches = hmac.compare_digest(_hash_secret(secret), expected)
-    if row is None or not matches or not _key_active(row, now):
+    row = model.objects.select_related(related).filter(key_id=uuid.UUID(key_hex)).first()
+    matches = hmac.compare_digest(_hash_secret(secret), row.secret_hash if row is not None else _DUMMY_HASH)
+    return row if row is not None and matches else None
+
+
+def authenticate_media_key(raw_key, now=None):
+    """`X-Media-Key` 값을 검증한다. 성공하면 `MediaIdentity`, 아니면 `None`(호출하는 쪽이 401).
+    폐기·만료된 키는 거절한다. 매체가 비활성이어도 신원은 돌려준다(403 은 호출하는 쪽의 몫). 형식·비교는 `_find_key`."""
+    now = _now(now)
+    row = _find_key(MediaKey, "media", raw_key)
+    if row is None or not _key_active(row, now):
         return None
     return MediaIdentity(media_id=row.media_id, key_id=row.key_id, media_is_active=row.media.is_active)
+
+
+# ---------------------------------------------------------------- 내부 키 (C8 인증, ACW-3)
+
+def issue_internal_key(actor, label, now=None):
+    """내부 모듈용 키를 발급한다(서버 명령 `internal_key issue`). **키의 주인 = 발급한 운영자**(C8 쓰기의 감사 행위자). 평문은 반환값에만 있다."""
+    require_admin(actor)
+    label = clean_text(label, "이름", "/label")
+    now = _now(now)
+    secret = secrets.token_urlsafe(32)
+    with transaction.atomic():
+        row = InternalKey.objects.create(owner=actor, secret_hash=_hash_secret(secret), label=label, created_at=now)
+        _audit(actor, "masters.internal_key_issued", ("masters.internal_key", row.key_id), {"label": label})  # 키·해시는 남기지 않는다
+    return IssuedInternalKey(key_id=row.key_id, label=label, key=f"{row.key_id.hex}.{secret}", created_at=now)
+
+
+def revoke_internal_key(actor, key_id, now=None):
+    """내부 키를 즉시 폐기한다. 이미 폐기된 키는 변화 없음 — 동시에 두 번 폐기해도 한 번만 바꾸고 한 번만 감사한다(매체 키와 같다)."""
+    require_admin(actor)
+    now = _now(now)
+    with transaction.atomic():
+        try:
+            k = InternalKey.objects.get(key_id=parse_uuid(key_id, "키"))
+        except InternalKey.DoesNotExist:
+            raise errors.NotFound("키를 찾을 수 없습니다.")
+        if InternalKey.objects.filter(pk=k.pk, revoked_at__isnull=True).update(revoked_at=now):
+            _audit(actor, "masters.internal_key_revoked", ("masters.internal_key", k.key_id), {"label": k.label})
+
+
+def authenticate_internal_key(raw_key):
+    """`X-Internal-Key` 값을 검증한다. 성공하면 `InternalIdentity`, 아니면 `None`(호출하는 쪽이 401). 폐기된 키는 거절한다(만료는 없다).
+    주인이 지금도 활성 운영자인지는 여기서 보지 않는다 — C8 서비스의 `require_admin(주인)` 이 403 으로 본다."""
+    row = _find_key(InternalKey, "owner", raw_key)
+    if row is None or row.revoked_at is not None:
+        return None
+    return InternalIdentity(key_id=row.key_id, label=row.label, owner=row.owner)

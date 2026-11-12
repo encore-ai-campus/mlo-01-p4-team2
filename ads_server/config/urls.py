@@ -11,6 +11,7 @@ urlpatterns = [
     path(settings.ADMIN_URL_PATH + "operator/", include("console.operator.urls")),  # 관리자 운영 화면(서비스를 부른다). 관리자 경로 규칙 아래
     path(settings.ADMIN_URL_PATH, admin.site.urls),  # 경로는 환경변수로 정한다(prod 는 기본값 금지)
     path("api/media/v1/", include("serving_api.urls")),
+    path("api/internal/v1/", include("internal_api.urls")),  # C8 내부 입력 API(ACW-3)
     path("", include("assets.urls")),
     path("", include("serving_api.root_urls")),  # 클릭 관측 /c/{token}
     path("", include("console.urls")),

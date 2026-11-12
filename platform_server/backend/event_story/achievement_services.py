@@ -9,6 +9,7 @@ from django.db.models import F, OuterRef, Subquery
 from django.utils import timezone
 
 from campus.motion import geometry, mission_geometry
+from eventing.events import enqueue_event, record_progress_completed
 from learning.services import active_platform_session
 from .models import EventDefinition, EventProgress, ManagerInteraction
 
@@ -119,6 +120,7 @@ def complete_achievement(user, event_id, completed_at, *, started_at=None, sessi
     progress.status, progress.completed_at = EventProgress.Status.COMPLETED, completed_at
     progress.session = active_platform_session(user, session_uuid) if session_uuid is not None else None
     progress.save(update_fields=["status", "completed_at", "completion_order", "session"])
+    record_progress_completed(progress)
     transaction.on_commit(publish_discoveries, robust=True)
     return True
 
@@ -172,12 +174,20 @@ def record_manager_action(user, manager_id, action, session_uuid=None):
         interaction, _ = ManagerInteraction.objects.get_or_create(
             user=user, campaign_id=CAMPAIGN_ID, manager_id=manager_id,
         )
+        fields = {"interaction_uuid": str(interaction.pk), "event_definition_uuid": str(CAMPAIGN_ID),
+                  "manager_code": manager_id}
+        # The socket always passes its platform session; a call without one records no event.
         if action == "greet" and interaction.greeted_at is None:
             interaction.greeted_at = now
             interaction.save(update_fields=["greeted_at"])
+            if session_uuid is not None:
+                enqueue_event("manager_greeted", user, session_uuid, fields, occurred_at=now)
         elif action == "poke":
             interaction.poke_count += 1
             interaction.save(update_fields=["poke_count"])
+            if session_uuid is not None:
+                enqueue_event("manager_poked", user, session_uuid,
+                              {**fields, "poke_count": interaction.poke_count}, occurred_at=now)
         event_id = GREETING_ID if action == "greet" else POKING_ID
         interactions = ManagerInteraction.objects.filter(
             user=user, campaign_id=CAMPAIGN_ID, manager_id__in=required,

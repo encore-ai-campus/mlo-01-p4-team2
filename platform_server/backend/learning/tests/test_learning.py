@@ -2,9 +2,11 @@ import uuid
 from .legacy_fixtures import start_legacy_session
 import json
 from io import StringIO
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.core.management import call_command
+from django.core.management import call_command, CommandError
 from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
 from django.test import TestCase, Client
@@ -145,12 +147,28 @@ class ServiceTests(TestCase):
                 services.start_learning_session(self.user, kind, level)
         self.assertEqual(LearningSession.objects.count(), 0)
 
-    def test_invalid_pool_rolls_back(self):
-        for n in range(10):
-            Question.objects.create(question_type='multiple_choice', difficulty='beginner', category='list', question_text=f'invalid {n}', correct_answer='x')
-        with self.assertRaises(ValidationError):
-            services.start_learning_session(self.user, 'multiple_choice', 'beginner')
-        self.assertFalse(LearningSession.objects.exists())
+    def test_bank_save_rejects_invalid_questions_and_rolls_back(self):
+        valid = {'question_type': 'multiple_choice', 'difficulty': 'beginner', 'category': 'list',
+                 'question_text': 'valid', 'correct_answer': 'append()', 'explanation': 'append()',
+                 'choices': ['add()', 'append()', 'push()', 'insertLast()']}
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / 'questions.json'
+            commands = (('seed_learning_questions', {}),
+                        ('import_learning_bank', {'apply': True, 'backup_dir': Path(directory)}))
+            for command, options in commands:
+                for invalid in ({'choices': valid['choices'][:3]}, {'correct_answer': 'not a choice'}):
+                    with self.subTest(command=command, invalid=invalid):
+                        rows = [valid, {**valid, 'question_text': 'invalid', **invalid}]
+                        if command == 'import_learning_bank':
+                            rows = [{**row, 'subject': 'python', 'question_code': f'B-MC-{n:03}'}
+                                    for n, row in enumerate(rows, 1)]
+                        path.write_text(json.dumps(rows), encoding='utf-8')
+                        with self.assertRaises(CommandError) as error:
+                            call_command(command, file=path, stdout=StringIO(), **options)
+                        self.assertIn('보기' if 'choices' in invalid else '정답', str(error.exception))
+                        self.assertFalse(Question.objects.exists())
+                        self.assertFalse(QuestionChoice.objects.exists())
+                        self.assertFalse(LearningSession.objects.exists())
 
     def test_view_retry_complete(self):
         make_question()

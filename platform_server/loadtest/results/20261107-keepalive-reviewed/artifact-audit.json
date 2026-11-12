@@ -1,0 +1,12 @@
+{
+  "secret_matches_after_redaction": 0,
+  "redactions": 0,
+  "private_inputs_excluded": [
+    "environment.json",
+    "clients.json",
+    "sessions.json",
+    "metadata.json",
+    "Chrome profiles"
+  ],
+  "analysis_sha256": "72641acecac663dc5491111c686fc5e6652070ed1785f19a4907af8596910d39"
+}

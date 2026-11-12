@@ -13,6 +13,11 @@
   events 는 사건 하나에 한 행 — 열 `at`(그 사건의 칸 시각, AG2 (가) Silver occurred_at), 키 열, 지표 열(bigint — 그 사건의 몫), 있으면 `_valid`.
   doubt 은 열 `at` 의 DataFrame 또는 None — "차원 없음"·"코드 모르는 그룹" 칸에 센 사건(r2b C1·r3b C2: 창 mismatch 가 있는 회차에 그 시간 미확정).
   totals(frame, finished) → {지표: 합} — finished(at 열) 은 그 사건이 이번에 쓰는 칸인가.
+선택 칸 셋(ACW-2 계획 66 r3 §4 — 기본값이면 위와 같다):
+  shape(cells) — 확인 뒤 쓰기 직전, 끝난 칸(시간 열·키·지표 합·confirmed)을 쓸 모양으로 바꾼다(열 더하기·빼기·순서). 정정을 쓰는 표의 shape 는
+    시간·키·지표·confirmed 열을 남겨야 한다(정정 계산이 옛 판·새 판에서 이 열을 읽음).
+  check(sums) — 확인에서 칸의 지표 합 {지표: 합} → 견줄 값 {이름: 값}. totals 는 이 이름들의 값을 돌려준다. 없으면 지표마다 견준다.
+  corrections — 거짓이면 그 표는 정정 기록을 쓰지 않는다(catch_up 을 부르지 않음 — 정정 표 txn 도 쓰지 않으므로 "다시 만든 표 거부"도 없다).
 """
 import json
 import operator
@@ -26,7 +31,7 @@ from pipeline.gold import control
 from pipeline.silver import contracts, control as silver_control, framework as silver_framework, pointers
 
 HOURLY, KST_DAILY = "hour", "kst_date"  # 칸 단위 = Gold 표의 시간 열 이름
-Table = namedtuple("Table", "name version grain keys metrics build totals")
+Table = namedtuple("Table", "name version grain keys metrics build totals shape check corrections", defaults=(None, None, True))
 Built = namedtuple("Built", "events doubt counts")
 Result = namedtuple("Result", "ok records")
 _US = 1_000_000
@@ -224,7 +229,8 @@ def run(spark, root, domain, tables, release, *, delay_seconds, log=print, now=N
     unconfirmed = control.unconfirmed((r["kind"], r["h"], r["status"]) for r in rows)
     reconciled_us = max((r["r"] for r in rows if r["r"] is not None), default=None)
     for table in tables:
-        catch_up(spark, root, domain, table, log=log)
+        if table.corrections:
+            catch_up(spark, root, domain, table, log=log)
     previous = {table.name: last_record(spark, control.table_path(root, domain, table.name, table.version)) for table in tables}
     previous_us = max((p[1]["cutoff_us"] for p in previous.values() if p and p[1].get("cutoff_us") is not None), default=None)
     frame = view.frame.persist()
@@ -250,9 +256,10 @@ def run(spark, root, domain, tables, release, *, delay_seconds, log=print, now=N
             cells[table.name] = _cells(table, events, cutoff_us, delay_seconds, unconfirmed.everything, hours).localCheckpoint()
             sums[table.name] = cells[table.name].agg(*[F.coalesce(F.sum(m), F.lit(0)).cast("bigint").alias(m) for m in table.metrics]).first().asDict()
             expected = table.totals(frame, lambda at, grain=table.grain: finished(grain, _hour(at), cutoff_us, delay_seconds))
-            for metric in table.metrics:
-                if sums[table.name][metric] != expected.get(metric):
-                    mismatches.append((table.name, metric, sums[table.name][metric], expected.get(metric)))
+            measured = table.check(sums[table.name]) if table.check else sums[table.name]
+            for metric, value in measured.items():
+                if value != expected.get(metric):
+                    mismatches.append((table.name, metric, value, expected.get(metric)))
         if mismatches:
             for name, metric, gold, silver in mismatches:
                 log(f"gold alert check_mismatch table={name} metric={metric} gold={gold} silver={silver}")
@@ -260,7 +267,7 @@ def run(spark, root, domain, tables, release, *, delay_seconds, log=print, now=N
         records = {}
         for table in tables:
             path = control.table_path(root, domain, table.name, table.version)
-            out = cells[table.name]
+            out = table.shape(cells[table.name]) if table.shape else cells[table.name]
             record = {"domain": domain, "table": table.name, "table_version": table.version, "grain": table.grain, "gold_release": release,
                       "run_at": run_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"), "run_at_us": int(run_at.timestamp() * _US),
                       "silver_generation": view.generation, "silver_version": view.version, "silver_pointer_version": view.pointer_version,
@@ -276,7 +283,8 @@ def run(spark, root, domain, tables, release, *, delay_seconds, log=print, now=N
             records[table.name] = record
             log(f"gold table table={table.name} version=v{table.version} cells={record['cells']} unconfirmed={record['cells_unconfirmed']} "
                 f"cutoff_at={record['cutoff_at']} silver_generation={view.generation} silver_version={view.version}")
-            catch_up(spark, root, domain, table, log=log)
+            if table.corrections:
+                catch_up(spark, root, domain, table, log=log)
         return Result(True, records)
     finally:
         frame.unpersist()

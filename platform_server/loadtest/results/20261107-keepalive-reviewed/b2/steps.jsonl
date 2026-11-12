@@ -1,0 +1,5 @@
+{"name": "fixtures", "args": ["reset_scenarios"], "exit": 0, "started": 1794067641.31157, "ended": 1794067642.851639}
+{"name": "owned_fixture", "args": ["learning_baseline"], "exit": 0, "started": 1794067642.971078, "ended": 1794067644.4603672}
+{"name": "scenarios", "args": [], "exit": 0, "started": 1794067644.580238, "ended": 1794067777.293439}
+{"name": "fixtures", "args": ["audit"], "exit": 0, "started": 1794067777.50943, "ended": 1794067779.034167}
+{"name": "owned_fixture", "args": ["audit"], "exit": 0, "started": 1794067779.155346, "ended": 1794067780.6899211}

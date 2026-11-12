@@ -3,8 +3,9 @@
 - REAL: 실제 Bronze 행(`bronze_values.json` — e2e·lab 덤프에서 고른 key·value 원문, 대상 그룹 전 8쌍). 만든 도구 temp/review/SL-8-runs/make_fixture.py.
 - 광고 서버 원본을 파일 경로로 읽는다(Django import 없음): `schemas.py` 는 모듈로 불러 빌더를 쓰고, `api.py` 는 ast 로 읽어
   종류마다 `enqueue` 의 둘째·셋째 인자(원천 ID 필드·대상 키 필드)를 얻는다(리뷰 조건 C4 — 합성 행의 대상 키를 어댑터 표에서 가져오지 않는다).
-- made(): 빌더 페이로드를 실제 행의 봉투(Debezium 틀·source·키 모양)에 끼운 Bronze 행. 새 두 쌍(ad.decision 3·ad.segment_changed 1)과
-  안쪽에 segment_ids 가 있는 광고그룹 변경은 실제 Bronze 에 없어 이렇게 만든다(e2e 유입을 다시 돌리면 대상 그룹 판 행은 생기지만
+  원천 ID 는 필드 하나(`fields["x"]`)이거나 schemas 함수 호출(`schemas.profile_source_id(fields["a"], fields["b"])` — 광고 카테고리, ACW-2)이다.
+- made(): 빌더 페이로드를 실제 행의 봉투(Debezium 틀·source·키 모양)에 끼운 Bronze 행. 새 세 쌍(ad.decision 3·ad.segment_changed 1·
+  ad.ad_group_profile_changed 1)과 안쪽에 segment_ids 가 있는 광고그룹 변경은 실제 Bronze 에 없어 이렇게 만든다(e2e 유입을 다시 돌리면 대상 그룹 판 행은 생기지만
   3판 결정·광고그룹 대상 모양은 생기지 않는다 — e2e_load.py:186, 리뷰 권고 R4).
 """
 import ast
@@ -30,25 +31,46 @@ def _schemas():
 schemas = _schemas()
 
 
+def _field(arg):
+    """`fields["x"]` → "x". 다른 모양이면 AssertionError."""
+    assert isinstance(arg, ast.Subscript) and isinstance(arg.value, ast.Name) and arg.value.id == "fields" and isinstance(arg.slice, ast.Constant), ast.dump(arg)
+    return arg.slice.value
+
+
 def enqueue_fields():
-    """api.py 의 `record_*` 가 부르는 `enqueue(schemas.X, fields["원천 ID"], fields["대상 키"], ...)` → {종류: (원천 ID 필드, 대상 키 필드)}.
-    모양이 다른 줄이 있으면 AssertionError(조용히 건너뛰지 않는다)."""
+    """api.py 의 `record_*` 가 부르는 `enqueue(schemas.X, <원천 ID>, fields["대상 키"], ...)` → {종류: (원천 ID, 대상 키 필드)}.
+    원천 ID 는 `fields["x"]` → "x", `schemas.f(fields["a"], fields["b"])` → ("f", ("a", "b")). 모양이 다른 줄이 있으면 AssertionError(조용히 건너뛰지 않는다)."""
     found = {}
     for node in ast.walk(ast.parse((EVENTS / "api.py").read_text(encoding="utf-8"))):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "enqueue":
             kind, source, target = node.args[:3]
             assert isinstance(kind, ast.Attribute) and kind.value.id == "schemas", ast.dump(kind)
-            fields = []
-            for arg in (source, target):
-                assert isinstance(arg, ast.Subscript) and arg.value.id == "fields" and isinstance(arg.slice, ast.Constant), ast.dump(arg)
-                fields.append(arg.slice.value)
+            if isinstance(source, ast.Call):
+                call = source.func
+                assert isinstance(call, ast.Attribute) and isinstance(call.value, ast.Name) and call.value.id == "schemas" and not source.keywords, ast.dump(source)
+                assert callable(getattr(schemas, call.attr)), call.attr
+                source_spec = (call.attr, tuple(_field(arg) for arg in source.args))
+            else:
+                source_spec = _field(source)
             name = getattr(schemas, kind.attr)
             assert name not in found, name
-            found[name] = tuple(fields)
+            found[name] = (source_spec, _field(target))
     return found
 
 
 ENQUEUE = enqueue_fields()
+
+
+def source_fields(event_name):
+    """원천 ID 를 만드는 페이로드 필드들."""
+    spec = ENQUEUE[event_name][0]
+    return (spec,) if isinstance(spec, str) else spec[1]
+
+
+def source_id(event_name, payload):
+    """api.py 와 같은 원천 ID — 필드 값이거나 schemas 함수(예 profile_source_id)의 결과."""
+    spec = ENQUEUE[event_name][0]
+    return payload[spec] if isinstance(spec, str) else getattr(schemas, spec[0])(*(payload[f] for f in spec[1]))
 
 
 def bronze_doc(name="DECISION", *, op=None, source=None, after=..., top=None, **fields):
@@ -67,8 +89,8 @@ def made(event_name, payload, *, frame="DECISION", payload_text=None, **fields):
     """빌더 페이로드 → (key, value) 문자열. after: event_id = schemas.event_id_of(종류, 원천 ID), aggregate_id = 대상 키 값(api.py 에서 읽은 필드),
     schema_version = schemas.schema_version_of, payload = JSON 문자열(jsonb 출력처럼 ", "·": "). 봉투·created_at·source 는 실제 행 `frame` 의 것.
     fields 로 after 열을 덮을 수 있다(계약 위반 행을 만들 때)."""
-    source_field, target_field = ENQUEUE[event_name]
-    event_id = str(schemas.event_id_of(event_name, payload[source_field]))
+    target_field = ENQUEUE[event_name][1]
+    event_id = str(schemas.event_id_of(event_name, source_id(event_name, payload)))
     after = {"event_id": event_id, "event_name": event_name, "schema_version": schemas.schema_version_of(event_name, payload),
              "aggregate_id": payload[target_field], "payload": payload_text or json.dumps(payload, ensure_ascii=False, separators=(", ", ": "))}
     doc = bronze_doc(frame, **{**after, **fields})
@@ -107,6 +129,13 @@ def ad_group(n, change_type, previous_value, new_value):
                                             previous_value=previous_value, new_value=new_value, changed_at=T)
 
 
+def profile(version, category, weights=(0, 0, 0)):
+    """광고 카테고리·가중치 판(ACW-1·ACW-3). 광고 = U[2]."""
+    mlo, aio, skn = weights
+    return schemas.ad_group_profile_changed_payload(ad_group_id=U[2], version=version, category=category, weight_mlo=mlo, weight_aio=aio, weight_skn=skn,
+                                                    changed_at=T)
+
+
 MADE = {  # 결정 F (가)의 모양(계획 §3 F 끝) — 이름 → (종류, 페이로드)
     "D3_ON": ("ad.decision", decision(1)),  # 그룹 켜짐·광고 있음(target_segment_ids 둘, 정렬)
     "D3_OFF": ("ad.decision", decision(2, active=False, picked=selected([]))),  # 요청 그룹이 꺼짐
@@ -118,4 +147,6 @@ MADE = {  # 결정 F (가)의 모양(계획 §3 F 끝) — 이름 → (종류, �
     # 광고그룹 변경 값은 campaigns/services.py:570(CREATED)·:633(SEGMENTS_CHANGED)의 모양
     "AG_CREATED": ("ad.ad_group_changed", ad_group(1, "CREATED", None, {"enabled": True, "slot_ids": [U[7]], "creative_id": None, "segment_ids": [SEG_A, SEG_B]})),
     "AG_SEGMENTS": ("ad.ad_group_changed", ad_group(2, "SEGMENTS_CHANGED", {"segment_ids": [SEG_A]}, {"segment_ids": [SEG_A, SEG_B]})),
+    "PROFILE_NEW": ("ad.ad_group_profile_changed", profile(1, None)),  # 광고 만들기 — 분류 전·가중치 0
+    "PROFILE_SET": ("ad.ad_group_profile_changed", profile(2, 12, (30, 20, 0))),  # C8 쓰기 뒤 판 — 원천 ID "<광고>/2"
 }

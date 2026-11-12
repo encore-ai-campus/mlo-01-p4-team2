@@ -72,7 +72,7 @@ class PostgreSQLPlatformTests(TransactionTestCase):
         self.assertEqual(self.profile.cohort.code, 'mlo-1')
         for name in ['id','user_uuid','last_position','last_movement_event_at','movement_event_pending','created_at']:
             with self.assertRaises(FieldDoesNotExist): Profile._meta.get_field(name)
-        self.assertNotIn('eventing_eventoutbox', connection.introspection.table_names())
+        self.assertIn('eventing_eventoutbox', connection.introspection.table_names())  # 사건 outbox(CDC가 읽음) — 열·키는 eventing.test_outbox
         self.assertNotIn('community_mealcomment', connection.introspection.table_names())
         self.assertIn('content_open_request_log', connection.introspection.table_names())
         with connection.cursor() as cursor:

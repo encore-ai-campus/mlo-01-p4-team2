@@ -101,6 +101,16 @@ class TransportTests(BackendCase):
         self.assertEqual(self.client.post("/api/media/v1/decisions", {}).status_code, 404)
         self.assertEqual(FakeBackend.seen, [])
 
+    def test_the_internal_api_is_not_public(self):
+        """C8 내부 API(ACW-3)는 두 겹으로 닫힌다: 프론트는 키 헤더를 백엔드로 옮기지 않고(첫 겹 — 거쳐 가도 늘 401), `/api/` 전체를 404 로 끊어 백엔드를 부르지 않는다(둘째 겹)."""
+        from ui.transport import FORWARDED
+
+        self.assertFalse({"x-internal-key", "x-media-key"} & {h.lower() for h in FORWARDED})
+        for method, url in (("post", "/api/internal/v1/profiles/categories"), ("post", "/api/internal/v1/profiles/weights"), ("get", "/api/internal/v1/ad-groups")):
+            r = getattr(self.client, method)(url, HTTP_X_INTERNAL_KEY="0" * 32 + "." + "a" * 43)
+            self.assertEqual(r.status_code, 404, url)
+        self.assertEqual(FakeBackend.seen, [])
+
     def test_a_body_over_the_limit_is_not_sent_to_the_backend(self):
         """백엔드로 흘려보내지 않고 백엔드와 같은 문구의 413 화면을 그린다(시험 설정의 상한 = 업로드 2MB + multipart 여유)."""
         r = self.client.generic("POST", "/advertiser/creatives/", b"x" * (settings.MAX_BODY_BYTES + 1), content_type="application/octet-stream")

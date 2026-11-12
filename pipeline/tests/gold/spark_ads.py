@@ -1,10 +1,11 @@
-"""pipeline/gold/tables/ads.py 광고 소비자 표 둘(계획 temp/pipeline/41_ads-gold-plan.md r3e §3.1·§3.2·§7 — 코드 Step ②) — Spark 시험.
+"""pipeline/gold/tables/ads.py 광고 소비자 표 둘(계획 temp/pipeline/41_ads-gold-plan.md r3e §3.1·§3.2·§7 — 코드 Step ②, ML 표 v2 — ACW-2 계획 66 r3 §8.2) — Spark 시험.
 
 입력은 실제 잡 경로다: 광고 서버 빌더(`ads_server/events/schemas.py` — Django 없이 파일로 부름)의 페이로드를 실제 Bronze 봉투에 끼운 행(tests/ads/rows.made)
 → 실제 광고 어댑터·Silver 잡(silver_job.run) → 대사(reconcile) → 포인터(set_generation) → Gold(framework.run + tables/ads.TABLES).
-SL-8 실제 Bronze 행(rows.REAL)도 같은 길로 흘린다(RealRows).
+SL-8 실제 Bronze 행(rows.REAL)도 같은 길로 흘린다(RealRows). 광고 카테고리 판(ad.ad_group_profile_changed)이 여러 날에 걸친 ML 표는 Days.
 """
 import json
+import shutil
 import unittest
 from datetime import date, datetime, timedelta, timezone
 
@@ -164,10 +165,13 @@ PERF = [  # hour, campaign, ad_group, creative, media, slot, course, 노출, 클
     (naive("12:00"), None, None, None, None, None, None, 1, 0, 0, 0, 5, True),  # r11 · c3 — 결정이 Silver 에 없음(차원 없음)
     (naive("13:00"), K1, G1, C1, M, SLOT, MLO, 0, 0, 1, 0, 0, True),  # r3 전환은 전환이 들어온 칸
 ]
-COURSE = [  # kst_date, creative, course, 노출, 클릭, 전환, confirmed — 모두 KST 11-08(UTC 10~13시 = KST 19~22시)
-    (date(2026, 11, 8), C1, MLO, 2, 2, 1, True), (date(2026, 11, 8), C1, None, 3, 0, 0, True), (date(2026, 11, 8), C2, AIO, 1, 0, 0, True),
-    (date(2026, 11, 8), None, None, 1, 0, 0, True),
+COURSE = [  # kst_date, 광고, category, (클릭·클릭률·전환율) × mlo·aio·skn, confirmed — 모두 KST 11-08(UTC 10~13시 = KST 19~22시), 판 이벤트 없음
+    (date(2026, 11, 8), G1, None, 2, 1.0, 0.5, 0, None, None, 0, None, None, True),  # MLO r1·r7 노출 · r2·r5 클릭 · r2 만 r3 전환으로 이어짐
+    (date(2026, 11, 8), G2, None, 0, None, None, 0, 0.0, None, 0, None, None, True),  # AIO r6 노출(클릭 0 → 전환율 null)
 ]
+COURSE_COLUMNS = [("kst_date", "date"), ("ad_group_id", "string"), ("category", "int"),
+                  *[(f"{c}_{m}", kind) for c in ("mlo", "aio", "skn") for m, kind in (("clicks", "bigint"), ("ctr", "double"), ("cvr", "double"))],
+                  ("confirmed", "boolean")]  # 기획 63 §6.1 13열(U33 — 분모 열 없음)
 
 
 class Tables(unittest.TestCase):
@@ -180,10 +184,13 @@ class Tables(unittest.TestCase):
         self.assertEqual(lake.cells(tables.PERFORMANCE_HOURLY), sorted(PERF, key=repr))  # 15시 칸 없음
         self.assertEqual(lake.cells(tables.COURSE_DAILY), sorted(COURSE, key=repr))
         self.assertEqual(lake.record(tables.PERFORMANCE_HOURLY)["counts"], {"no_dimension": 2, "decision_v2": 1, "no_segment": 1, "unknown_code": 1})
-        self.assertEqual(lake.record(tables.COURSE_DAILY)["counts"], {"no_dimension": 1, "decision_v2": 1, "no_segment": 1, "unknown_code": 1})
+        # 판 이벤트가 없는 광고 — (날짜, 광고) 짝 셋(G1·G2 의 11-08, 끝나지 않은 G2 의 11-09 — 오늘 짝도 센다, 계획 66 C3)
+        self.assertEqual(lake.record(tables.COURSE_DAILY)["counts"], {"no_dimension": 1, "decision_v2": 1, "no_segment": 1, "unknown_code": 1,
+                                                                    "other_course": 0, "unclassified": 0, "no_profile": 3})
         self.assertEqual(lake.record(tables.PERFORMANCE_HOURLY)["cutoff_at"], "2026-11-08T16:00:00.000000Z")  # clock 의 outbox 시각
         self.assertEqual([c for c in spark.read.format("delta").load(control.table_path(lake.r, "ads", "performance_hourly", 1)).columns],
                          ["hour", *tables.DIMENSIONS, "impressions", "clicks", "conversions", "converted_clicks", "spent", "confirmed"])
+        self.assertEqual(spark.read.format("delta").load(control.table_path(lake.r, "ads", "creative_course_daily", 2)).dtypes, COURSE_COLUMNS)
 
     def test_console_rules(self):  # §7 — 콘솔(records/report.py) 규칙을 따로 쓴 계산과 같은 숫자(결정이 있는 사건 — 콘솔은 결정 범위로 센다)
         lake = started(self)
@@ -245,6 +252,149 @@ class Tables(unittest.TestCase):
             lake.gold()
 
 
+def profile(ad_group, version, category, when):
+    """광고 카테고리 판(광고 서버 빌더 — ACW-1·ACW-3). 가중치는 ML 표에 쓰이지 않아 0."""
+    payload = S.ad_group_profile_changed_payload(ad_group_id=ad_group, version=version, category=category, weight_mlo=0, weight_aio=0, weight_skn=0,
+                                                 changed_at=when)
+    return made("ad.ad_group_profile_changed", payload, when)
+
+
+# ── ML 표 v2 여러 날(계획 66 r3 §8.2-2~4) — KST 11-07·08·09 세 날, 광고 A·B·C ──
+KST = timedelta(hours=9)
+D1, D2, D3, D4 = date(2026, 11, 7), date(2026, 11, 8), date(2026, 11, 9), date(2026, 11, 10)  # D4 = 끝나지 않은 날
+A, B, C = G1, G2, "01a1c0e6-0000-7000-8000-000000000001"
+SEG_D, SEG_E = rows.U[13], rows.U[14]
+CODES = {SEG_A: "mlo", SEG_B: "aio", SEG_D: "skn", SEG_E: "mle"}
+DAYS_DECISIONS = {31: (A, SEG_A), 32: (A, SEG_B), 33: (A, SEG_D), 34: (A, SEG_E), 35: (A, None), 36: (B, SEG_A), 37: (C, SEG_B)}
+
+
+def kst(day, text):
+    """KST 날짜·시각 → UTC 시각."""
+    hour, minute = map(int, text.split(":"))
+    return datetime(day.year, day.month, day.day, hour, minute, tzinfo=UTC) - KST
+
+
+DAYS_REACTIONS = [  # (n, 결정, 유형, 수신 UTC, 사람, 상태)
+    (101, 31, "IMPRESSION", kst(D1, "10:00"), P[1], "ACCEPTED"), (102, 31, "IMPRESSION", kst(D1, "10:05"), P[2], "ACCEPTED"),
+    (103, 31, "CLICK", kst(D1, "10:10"), P[1], "ACCEPTED"),  # D2 의 113 전환으로 이어짐
+    (104, 32, "CLICK", kst(D1, "11:00"), P[3], "ACCEPTED"),  # AIO 노출 없는 클릭 → 클릭률 null, 전환율 0
+    (105, 34, "IMPRESSION", kst(D1, "12:00"), P[7], "ACCEPTED"),  # mle → other_course(행 밖)
+    (106, 35, "IMPRESSION", kst(D1, "12:10"), P[8], "ACCEPTED"),  # 그룹 없음 → no_segment(행 밖)
+    (107, 36, "IMPRESSION", kst(D1, "13:00"), P[5], "ACCEPTED"),
+    (111, 33, "IMPRESSION", kst(D2, "10:00"), P[4], "ACCEPTED"), (112, 33, "CLICK", kst(D2, "10:05"), P[4], "ACCEPTED"),  # D3 의 121 전환으로 이어짐
+    (113, 31, "CONVERSION", kst(D2, "11:00"), P[1], "ACCEPTED"),
+    (114, 36, "CLICK", kst(D2, "12:00"), P[5], "ACCEPTED"), (115, 37, "IMPRESSION", kst(D2, "13:00"), P[6], "ACCEPTED"),
+    (121, 33, "CONVERSION", kst(D3, "10:30"), P[4], "ACCEPTED"),  # A 의 D3 은 전환만 — 클릭 0·비율 null 인 행
+    (122, 37, "CLICK", kst(D3, "11:00"), P[6], "ACCEPTED"), (123, 31, "CLICK", kst(D3, "11:30"), P[9], "REJECTED"),
+    (131, 34, "IMPRESSION", kst(D4, "00:30"), P[7], "ACCEPTED"),  # 끝나지 않은 날의 행 밖 사건 — 확인이 끝난 날만 빼는지
+    (132, 31, "IMPRESSION", kst(D4, "00:40"), P[1], "ACCEPTED"),  # 끝나지 않은 날 — 행 없음
+]
+DAYS_PROFILES = [  # (광고, 판, 카테고리, 시각) — A: 만들 때 분류 전 → 둘째 날 끝 자정 정각 12 → 셋째 날 4 → 0(기타), B: 판 없음(0005 전), C: 셋째 날 판 1(0005 전 광고에 C8)
+    (A, 1, None, kst(D1, "09:00")), (A, 2, 12, kst(D3, "00:00")), (A, 3, 4, kst(D3, "10:00")), (A, 4, 0, kst(D3, "11:00")), (C, 1, 2, kst(D3, "08:00")),
+]
+LATE_REACTIONS = [(141, 36, "CONVERSION", kst(D3, "12:00"), P[5], "ACCEPTED")]  # 다음 회차 — B 의 D2 클릭(114)에 이어지는 전환
+LATE_PROFILES = [(B, 1, 8, kst(D1, "14:00"))]  # 다음 회차 — 이미 쓴 D1 안 시각의 판이 늦게 들어옴
+
+
+def days_pairs():
+    decisions = [decision(n, K1, ad, C1, segment=seg) for n, (ad, seg) in DAYS_DECISIONS.items()]
+    segments = [segment(10 + i, seg, code) for i, (seg, code) in enumerate(CODES.items(), 1)]
+    return (segments + decisions + [days_reaction(*spec) for spec in DAYS_REACTIONS] + [profile(*spec) for spec in DAYS_PROFILES]
+            + [clock(kst(D4, "01:00"))])  # D3 끝(UTC 11-09 15:00) + 5분 30초 뒤
+
+
+def days_reaction(n, d, kind, when, person, status):
+    payload = S.reaction_payload(inbox_id=uid(2, n), reaction_id=uid(3, n), media_id=M, decision_id=uid(1, d), type=kind, occurred_at=when, received_at=when,
+                                 subject_id="s", source="SERVER", status=status, reason_code=None if status == "ACCEPTED" else "R", applied_rule="funnel/v1",
+                                 basis={"person": person, "audience": "individual"})
+    return made("ad.reaction", payload, when + timedelta(minutes=1))
+
+
+def days_expected(reactions, profiles, finished=(D1, D2, D3)):
+    """입력 명세에서 따로 계산한 ML 표 행 — 콘솔 규칙 시험과 같은 방식(계획 66 §8.2-2)."""
+    accepted = [r for r in reactions if r[5] == "ACCEPTED"]
+    converted = {(d, p) for _, d, kind, _, p, _ in accepted if kind == "CONVERSION"}
+    cells = {}
+    for _, d, kind, when, person, _ in accepted:
+        ad, seg = DAYS_DECISIONS[d]
+        course, day = CODES.get(seg), (when + KST).date()
+        if course not in ("mlo", "aio", "skn") or day not in finished:
+            continue
+        row = cells.setdefault((day, ad), {c: [0, 0, 0] for c in ("mlo", "aio", "skn")})  # 노출·클릭·전환 이어진 클릭
+        row[course][0] += kind == "IMPRESSION"
+        row[course][1] += kind == "CLICK"
+        row[course][2] += kind == "CLICK" and (d, person) in converted
+    out = []
+    for (day, ad), row in cells.items():
+        end = datetime(day.year, day.month, day.day, tzinfo=UTC) + timedelta(days=1) - KST  # 다음 KST 자정
+        seen = [(v, cat) for a, v, cat, t in profiles if a == ad and t <= end]
+        category = max(seen, key=lambda item: item[0])[1] if seen else None
+        rates = [x for c in ("mlo", "aio", "skn") for x in (row[c][1], row[c][1] / row[c][0] if row[c][0] else None, row[c][2] / row[c][1] if row[c][1] else None)]
+        out.append((day, ad, category, *rates, True))
+    return sorted(out, key=repr)
+
+
+class Days(unittest.TestCase):
+    def test_categories_over_days(self):  # §8.2-2 — 판 여러 개·자정 정각 경계·0(기타)·0005 전 광고·나중에 판 1 이 생긴 광고·과정 셋·비율
+        lake = Lake(self)
+        lake.cycle(days_pairs())
+        self.assertTrue(lake.gold().ok, lake.logs)
+        got = lake.cells(tables.COURSE_DAILY)
+        self.assertEqual(got, days_expected(DAYS_REACTIONS, DAYS_PROFILES))
+        self.assertEqual(sorted(got, key=repr), sorted([  # 손으로 적은 기대 — 위 계산과 같은 값
+            (D1, A, None, 1, 0.5, 1.0, 1, None, 0.0, 0, None, None, True),  # 판 1 분류 전(unclassified)
+            (D1, B, None, 0, 0.0, None, 0, None, None, 0, None, None, True),  # 판 없음(no_profile)
+            (D2, A, 12, 0, None, None, 0, None, None, 1, 1.0, 1.0, True),  # 판 2 가 D2 끝 자정 정각 — 이하라서 D2 에 든다
+            (D2, B, None, 1, None, 0.0, 0, None, None, 0, None, None, True),
+            (D2, C, None, 0, None, None, 0, 0.0, None, 0, None, None, True),  # C 의 판 1 은 D3 — D2 는 no_profile
+            (D3, A, 0, 0, None, None, 0, None, None, 0, None, None, True),  # 그날 마지막 판 4 = 0(기타), 전환만 있는 날
+            (D3, C, 2, 0, None, None, 1, None, 0.0, 0, None, None, True),
+        ], key=repr))
+        self.assertEqual(lake.record(tables.COURSE_DAILY)["counts"], {"no_dimension": 0, "decision_v2": 0, "no_segment": 1, "unknown_code": 0,
+                                                                    "other_course": 2, "unclassified": 1, "no_profile": 3})
+
+    def test_no_corrections_and_recompute(self):  # §8.2-3 — U33: ML 표는 정정 기록 없이 다음 회차 판에서 바뀌고, 앞 판은 versionAsOf 로 읽힌다
+        lake = Lake(self)
+        lake.cycle(days_pairs())
+        self.assertTrue(lake.gold().ok, lake.logs)
+        first = lake.cells(tables.COURSE_DAILY)
+        lake.cycle([days_reaction(*spec) for spec in LATE_REACTIONS] + [profile(*spec) for spec in LATE_PROFILES] + [clock(kst(D4, "01:30"), n=98)])
+        self.assertTrue(lake.gold().ok, lake.logs)
+        self.assertEqual(lake.cells(tables.COURSE_DAILY), days_expected(DAYS_REACTIONS + LATE_REACTIONS, DAYS_PROFILES + LATE_PROFILES))
+        self.assertIn((D1, B, 8, 0, 0.0, None, 0, None, None, 0, None, None, True), lake.cells(tables.COURSE_DAILY))  # 늦은 판 → D1 카테고리
+        self.assertIn((D2, B, 8, 1, None, 1.0, 0, None, None, 0, None, None, True), lake.cells(tables.COURSE_DAILY))  # 늦은 전환 → D2 전환율
+        path = control.table_path(lake.r, "ads", "creative_course_daily", 2)
+        old = spark.read.format("delta").option("versionAsOf", 0).load(path)
+        self.assertEqual(sorted((tuple(r) for r in old.collect()), key=repr), first)
+        corrections = spark.read.format("delta").load(control.corrections_path(lake.r, "ads"))
+        self.assertEqual(corrections.where(F.col("table_name") == "creative_course_daily").count(), 0)
+        txns = framework._txn_versions(spark, control.corrections_path(lake.r, "ads"))
+        self.assertNotIn(framework.app_id("ads", tables.COURSE_DAILY), txns)
+        self.assertIn(framework.app_id("ads", tables.PERFORMANCE_HOURLY), txns)
+        perf = [r.asDict() for r in corrections.where(F.col("table_name") == "performance_hourly").collect()]  # 성과 보고 정정은 그대로
+        self.assertEqual([(r["cell_time"], r["metrics_before"]["converted_clicks"], r["metrics_after"]["converted_clicks"]) for r in perf
+                          if r["metrics_before"] and r["metrics_after"]], [(kst(D2, "12:00").replace(tzinfo=None), 0, 1)])
+
+    def test_deleted_table_folder_is_rebuilt(self):  # §8.2-4 — 정정 진행 표시가 없어 "다시 만든 표 거부"가 ML 표에는 없다(사용자 2026-11-12 받아들임)
+        lake = Lake(self)
+        lake.cycle(days_pairs())
+        self.assertTrue(lake.gold().ok, lake.logs)
+        before = lake.cells(tables.COURSE_DAILY)
+        path = control.table_path(lake.r, "ads", "creative_course_daily", 2)
+        shutil.rmtree(path)
+        self.assertTrue(lake.gold().ok, lake.logs)
+        self.assertEqual(framework.silver_framework.table_state(spark, path)[0], 0)
+        self.assertEqual(lake.cells(tables.COURSE_DAILY), before)
+
+    def test_profile_values_must_be_integers(self):  # §8.2-5 C6 — 판 번호·카테고리가 형·범위 밖이면 쓰지 않는다(행에 쓰이지 않는 판도, 개수만)
+        lake = started(self, extra=[profile(G1, 2, "3", at("09:30")), profile(rows.U[15], 0, 1, at("09:40")), profile(rows.U[16], 1, -1, at("09:50"))])
+        with self.assertRaisesRegex(framework.GoldError, r"^creative_course_daily: 카테고리 판\(ad\.ad_group_profile_changed\)의 version·category 3 개가 "
+                                                         r"형·범위를 벗어났다 — 쓰지 않는다$"):
+            lake.gold()
+        for table in tables.TABLES:
+            self.assertEqual(framework.silver_framework.table_state(spark, control.table_path(lake.r, "ads", table.name, table.version))[0], -1)
+
+
 class RealRows(unittest.TestCase):  # SL-8 실제 Bronze 행(e2e 덤프) — 반응·과금의 결정이 이 행들에 없어 "차원 없음" 칸
     def test_real_adapter_output(self):
         lake = Lake(self)
@@ -253,8 +403,10 @@ class RealRows(unittest.TestCase):  # SL-8 실제 Bronze 행(e2e 덤프) — 반
         self.assertTrue(lake.gold().ok, lake.logs)
         hour = datetime(2026, 11, 7, 2, 0)
         self.assertEqual(lake.cells(tables.PERFORMANCE_HOURLY), [(hour, None, None, None, None, None, None, 1, 1, 0, 0, 294, True)])  # 노출·클릭 인정, 과금 294
-        self.assertEqual(lake.cells(tables.COURSE_DAILY), [(date(2026, 11, 7), None, None, 1, 1, 0, True)])
+        self.assertEqual(lake.cells(tables.COURSE_DAILY), [])  # 결정이 없는 반응은 ML 표 행 밖(counts no_dimension)
         self.assertEqual(lake.record(tables.PERFORMANCE_HOURLY)["counts"], {"no_dimension": 3, "decision_v2": 0, "no_segment": 0, "unknown_code": 0})
+        self.assertEqual(lake.record(tables.COURSE_DAILY)["counts"], {"no_dimension": 2, "decision_v2": 0, "no_segment": 0, "unknown_code": 0,
+                                                                    "other_course": 0, "unclassified": 0, "no_profile": 0})
 
 
 if __name__ == "__main__":

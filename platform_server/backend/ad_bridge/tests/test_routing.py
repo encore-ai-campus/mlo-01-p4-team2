@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 from uuid import uuid4
 
 from django.core.management import call_command
-from django.test import RequestFactory, TestCase, override_settings
+from django.test import RequestFactory, TransactionTestCase, override_settings
 
 from ad_bridge.api.config import AdsConfig
 from ad_bridge.api.errors import AdsHTTPError
@@ -26,7 +26,7 @@ from ad_bridge.routing import RoutedAdsClient
 from ad_bridge.tests.support import received_reaction, shared_decision
 
 
-class MediaRoutingTests(TestCase):
+class MediaRoutingTests(TransactionTestCase):
     def setUp(self):
         self.roof, self.legacy, self.portal = (str(uuid4()) for _ in range(3))
         self.owner, self.subject = uuid4(), uuid4()

@@ -1,0 +1,19 @@
+{
+  "report": "stress-test.md",
+  "report_sha256": "da33f354cbb81b967b1f1463e6c76cdec7061f4aaca7aad03e0f1a62e76aaeaa",
+  "completed": true,
+  "reviewed_at_utc": "2026-11-07T16:38:09.000957+00:00",
+  "reviewers": [
+    {
+      "name": "/root/test_design_review",
+      "approved": true,
+      "report_sha256": "da33f354cbb81b967b1f1463e6c76cdec7061f4aaca7aad03e0f1a62e76aaeaa"
+    },
+    {
+      "name": "/root/report_review2",
+      "approved": true,
+      "report_sha256": "da33f354cbb81b967b1f1463e6c76cdec7061f4aaca7aad03e0f1a62e76aaeaa"
+    }
+  ],
+  "verified": "Both independent reviewers recalculated request counts, error classifications and P95/P99 from raw evidence."
+}

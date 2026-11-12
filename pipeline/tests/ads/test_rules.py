@@ -7,6 +7,7 @@ import inspect
 import json
 import unittest
 from datetime import date
+from unittest import mock
 
 from pipeline.common import hop_rules
 from pipeline.silver.adapters import ads_rules as rules
@@ -39,7 +40,7 @@ def after_of(value):
 
 
 def every_row():
-    """실제 행 13 + 합성 행 9 의 (이름, key, value)."""
+    """실제 행 13 + 합성 행 11 의 (이름, key, value)."""
     yield from ((name, r["key"], r["value"]) for name, r in rows.REAL.items())
     for name, (kind, payload) in rows.MADE.items():
         yield (name, *rows.made(kind, payload))
@@ -49,11 +50,11 @@ class Source(unittest.TestCase):  # 원본과 같음(계획 §4.2)
     def test_pairs(self):
         pairs = {(kind, version) for kind, version in S.SCHEMA_VERSIONS.items()} | {(S.DECISION, S.DECISION_BEFORE_SEGMENTS)}
         self.assertEqual(set(rules.CONTRACTS), pairs)
-        self.assertEqual(len(rules.CONTRACTS), 10)
+        self.assertEqual(len(rules.CONTRACTS), 11)
 
     def test_builder_keys(self):
         made = builders()
-        self.assertEqual(len(made), 9)  # 빌더 수 = 종류 수 — 새 종류의 빌더가 생기면 여기서 실패한다
+        self.assertEqual(len(made), 10)  # 빌더 수 = 종류 수 — 새 종류의 빌더가 생기면 여기서 실패한다
         self.assertEqual(len({kind for kind, _ in rules.CONTRACTS}), len(made))
         for name, f in made.items():
             payloads = [built(f)] if f is not S.decision_payload else [built(f), built(f, segment_rule="segment/v1")]
@@ -62,7 +63,8 @@ class Source(unittest.TestCase):  # 원본과 같음(계획 §4.2)
                 version = S.schema_version_of(kind, payload)
                 with self.subTest(kind=kind, version=version):
                     self.assertEqual(set(payload), rules.CONTRACTS[(kind, version)][0])
-        self.assertEqual([len(rules.CONTRACTS[(S.DECISION, v)][0]) for v in (2, 3)] + [len(rules.CONTRACTS[(S.SEGMENT_CHANGED, 1)][0])], [10, 13, 8])
+        self.assertEqual([len(rules.CONTRACTS[(S.DECISION, v)][0]) for v in (2, 3)] + [len(rules.CONTRACTS[(k, 1)][0]) for k in (S.SEGMENT_CHANGED, S.AD_GROUP_PROFILE_CHANGED)],
+                         [10, 13, 8, 7])
 
     def test_target_keys_come_from_api(self):  # 리뷰 조건 C4 — 대상 키의 원본은 api.py 의 enqueue 셋째 인자
         self.assertEqual(set(rows.ENQUEUE), set(S.SCHEMA_VERSIONS))
@@ -71,8 +73,21 @@ class Source(unittest.TestCase):  # 원본과 같음(계획 §4.2)
                 self.assertEqual(target, rows.ENQUEUE[kind][1])
                 self.assertIn(target, keys)
                 self.assertIn(stamp, keys)
-                self.assertIn(rows.ENQUEUE[kind][0], keys)  # 합성 행이 event_id 원천 ID 를 페이로드에서 얻는다
+                self.assertLessEqual(set(rows.source_fields(kind)), keys)  # 합성 행이 event_id 원천 ID 를 페이로드에서 얻는다
         self.assertEqual(rows.ENQUEUE[S.SEGMENT_CHANGED], ("segment_version_id", "segment_id"))
+        # (ACW-2) 광고 카테고리는 원천 ID 가 함수 호출 — "<광고>/<판>"(schemas.profile_source_id), 이벤트 ID 가 광고 서버와 같다
+        self.assertEqual(rows.ENQUEUE[S.AD_GROUP_PROFILE_CHANGED], (("profile_source_id", ("ad_group_id", "version")), "ad_group_id"))
+        _, payload = rows.MADE["PROFILE_SET"]
+        self.assertEqual(rows.source_id(S.AD_GROUP_PROFILE_CHANGED, payload), f"{rows.U[2]}/2")
+        self.assertEqual(after_of(rows.made(*rows.MADE["PROFILE_SET"])[1])["event_id"],
+                         str(S.event_id_of(S.AD_GROUP_PROFILE_CHANGED, S.profile_source_id(rows.U[2], 2))))
+
+    def test_enqueue_parser_refuses_other_shapes(self):  # 모르는 모양은 조용히 건너뛰지 않는다
+        for source in ('fields["a"] + "x"', 'other.f(fields["a"])', 'schemas.profile_source_id(fields["a"], 2)', 'schemas.profile_source_id(fields["a"], v=fields["b"])'):
+            with self.subTest(source=source), self.assertRaises(AssertionError):
+                text = f'enqueue(schemas.DECISION, {source}, fields["decision_id"], payload, now)'
+                with mock.patch.object(rows.Path, "read_text", return_value=text):
+                    rows.enqueue_fields()
 
     def test_real_rows_follow_the_table(self):  # 실제 행의 키 집합·대상 키(2026-11-07 lab 실데이터와 같았던 8쌍)
         seen = set()
@@ -82,7 +97,7 @@ class Source(unittest.TestCase):  # 원본과 같음(계획 §4.2)
             with self.subTest(name=name):
                 self.assertIsNone(rules.contract_reason(a["event_name"], a["schema_version"], a["aggregate_id"], payload))
                 seen.add((a["event_name"], a["schema_version"]))
-        self.assertEqual(seen, set(rules.CONTRACTS) - {(S.DECISION, 3), (S.SEGMENT_CHANGED, 1)})  # 실제 Bronze 에 없는 두 쌍(계획 §1a)
+        self.assertEqual(seen, set(rules.CONTRACTS) - {(S.DECISION, 3), (S.SEGMENT_CHANGED, 1), (S.AD_GROUP_PROFILE_CHANGED, 1)})  # 실제 Bronze 에 없는 세 쌍(계획 §1a·ACW-2)
 
 
 class Hash(unittest.TestCase):

@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "echo_requests": 8,
+  "front_upstream_channels": 1,
+  "front_to_internal_connections": 1,
+  "final_upstream_connections": 1,
+  "ambiguous_post_process_count": 1,
+  "websocket_echo": true,
+  "websocket_ping": true,
+  "invalid_origin_or_auth_rejected": 2,
+  "templates_syntax_passed": 6
+}

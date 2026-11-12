@@ -1,0 +1,16 @@
+{"name": "fixtures", "args": ["reset_scenarios"], "exit": 0, "started": 1794066969.169269, "ended": 1794066970.758316}
+{"name": "owned_fixture", "args": ["learning_baseline"], "exit": 0, "started": 1794066970.878818, "ended": 1794066972.384047}
+{"name": "scenarios", "args": [], "exit": 0, "started": 1794066972.5009012, "ended": 1794067105.590007}
+{"name": "fixtures", "args": ["audit"], "exit": 0, "started": 1794067105.8145962, "ended": 1794067107.47822}
+{"name": "owned_fixture", "args": ["audit"], "exit": 0, "started": 1794067107.5970612, "ended": 1794067109.131016}
+{"name": "fixtures", "args": ["casual"], "exit": 0, "started": 1794067109.2474592, "ended": 1794067111.006111}
+{"name": "benchmark", "args": ["walk", "180"], "exit": 0, "started": 1794067111.12581, "ended": 1794067324.8785}
+{"name": "fixtures", "args": ["casual"], "exit": 0, "started": 1794067325.098665, "ended": 1794067327.015293}
+{"name": "benchmark", "args": ["real", "180"], "exit": 0, "started": 1794067327.133282, "ended": 1794067542.875634}
+{"name": "owned_fixture", "args": ["receipt_reset"], "exit": 0, "started": 1794067543.0955892, "ended": 1794067544.746474}
+{"name": "owned_fixture", "args": ["tickets"], "exit": 0, "started": 1794067544.865566, "ended": 1794067546.3244328}
+{"name": "receipt_protocol", "args": [], "exit": 0, "started": 1794067546.442229, "ended": 1794067565.769002}
+{"name": "owned_fixture", "args": ["browser_reset"], "exit": 0, "started": 1794067565.887425, "ended": 1794067567.3723981}
+{"name": "receipt_browser", "args": [], "exit": 0, "started": 1794067567.4928782, "ended": 1794067585.150081}
+{"name": "admission", "args": [], "exit": 0, "started": 1794067585.3352718, "ended": 1794067602.30639}
+{"name": "security", "args": [], "exit": 0, "started": 1794067602.43617, "ended": 1794067605.11711}

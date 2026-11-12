@@ -74,8 +74,8 @@ class LockDiagnosticsTests(SimpleTestCase):
 
 class LearningConcurrencyTests(TransactionTestCase):
     def setUp(self):
-        if connection.vendor != 'sqlite' or 'memory' in str(connection.settings_dict['NAME']):
-            self.skipTest('Requires a disposable file-backed SQLite test database')
+        if connection.vendor != 'postgresql' and (connection.vendor != 'sqlite' or 'memory' in str(connection.settings_dict['NAME'])):
+            self.skipTest('Requires a disposable PostgreSQL or file-backed SQLite test database')
         self.user = get_user_model().objects.create_user(username='concurrency')
         prepare_event_context(self.user)
         for n in range(10):

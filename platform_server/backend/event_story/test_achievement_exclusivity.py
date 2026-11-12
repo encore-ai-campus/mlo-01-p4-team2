@@ -16,7 +16,7 @@ from tests.test_recipe_note import ticket
 from . import main, recipe
 from .achievement_services import (
     AD_ID, RECIPE_ID, SQL_ID, TIMER_ID, complete_achievement,
-    manager_ids, record_ad_impression, record_guide_talk, record_manager_action,
+    manager_ids, record_ad_click, record_guide_talk, record_manager_action,
 )
 from .game_services import finish_game, start_game
 from .models import EventProgress, GamePlay, StoryProgress
@@ -115,7 +115,7 @@ class AchievementExclusivityTests(TestCase):
 
     def test_ad_manager_and_guide_paths_cannot_bypass_account_quota(self):
         self.claim(self.a, TIMER_ID)
-        ad = record_ad_impression(SimpleNamespace(owner_id=self.a.pk, delivery_state='ACKNOWLEDGED', status='ACCEPTED'))
+        ad = record_ad_click(self.a)
         self.assertEqual(ad['newly_completed'], [])
         self.assertEqual(record_guide_talk(self.a, 1)['newly_completed'], [])
         for manager in manager_ids():result = record_manager_action(self.a, manager, 'greet')

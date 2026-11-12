@@ -13,6 +13,14 @@ class TransportTests(SimpleTestCase):
         close_backend_pool()
         self.addCleanup(close_backend_pool)
 
+    def test_click_redirect_keeps_the_signed_target_and_referrer_policy(self):
+        response = passthrough(BackendResponse(303, b'', [('Location', 'https://ads.test/c/token?s=viewer'),
+            ('Referrer-Policy', 'no-referrer'), ('Cache-Control', 'private, no-store')]))
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response['Location'], 'https://ads.test/c/token?s=viewer')
+        self.assertEqual(response['Referrer-Policy'], 'no-referrer')
+        self.assertIn('no-store', response['Cache-Control'])
+
     @override_settings(BACKEND_URL='http://127.0.0.1:9003', BACKEND_TIMEOUT=30,
                        MOVEMENT_BACKEND_URL='http://movement.internal:9004')
     def test_post_body_cookie_csrf_origin_and_public_host_are_forwarded(self):

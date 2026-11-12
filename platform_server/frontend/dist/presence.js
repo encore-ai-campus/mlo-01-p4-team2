@@ -197,8 +197,6 @@
             onControlEvent(message.event);
           } else if (ready && message.type === 'jump') {
             onJump(message);
-          } else if (ready && message.type === 'achievement_discoveries' && Array.isArray(message.discoveries)) {
-            window.dispatchEvent(new CustomEvent('campus:achievement-discoveries',{detail:message.discoveries}));
           } else if (ready && message.type === 'achievement_update' && Array.isArray(message.achievements)) {
             window.dispatchEvent(new CustomEvent('campus:achievements',{detail:message.achievements}));
             if(Array.isArray(message.newly_completed)&&message.newly_completed.length)window.dispatchEvent(new CustomEvent('campus:achievement-earned',{detail:message}));

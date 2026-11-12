@@ -5,7 +5,7 @@ Django 모델은 함수 호출 시에만
 가져오므로 저장소를 대체하는 단위 테스트와 표준 라이브러리 클라이언트가 분리된다.
 """
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import math
 import re
@@ -29,7 +29,6 @@ class StoredImpression:
     last_http_status: int | None = None
     lease_token: str | None = None
     lease_expires_at: datetime | None = None
-    achievement_update: dict | None = None
 
 
 class DecisionNotFound(Exception):
@@ -227,7 +226,6 @@ def finish_impression(
     last_error: str | None = None,
     last_http_status: int | None = None,
 ) -> StoredImpression:
-    from django.apps import apps
     from django.db.models import Case, DateTimeField, F, Value, When
 
     from ..models import Impression
@@ -283,12 +281,7 @@ def finish_impression(
             lease_token=None, lease_expires_at=None,
         )
         record = Impression.objects.get(reaction_id=reaction_uuid)
-        update = None
-        # The validated reaction-body path follows an upstream impression PUT returning 200/201.
-        if delivery_state == 'ACKNOWLEDGED' and status is not None and apps.is_installed('event_story'):
-            from event_story.achievement_services import record_ad_impression
-            update = record_ad_impression(record)
-        return replace(_snapshot(record), achievement_update=update)
+        return _snapshot(record)
 
 
 class ImpressionNotReady(Exception):

@@ -2,7 +2,7 @@
 
 from django.urls import path
 
-from .views import report_impression, request_decision, reaction_result
+from .views import report_click, report_impression, request_decision, reaction_result
 from .placements import placement
 
 
@@ -12,4 +12,5 @@ urlpatterns = [
     path("decisions/<uuid:decision_id>/result/", reaction_result, name="result"),
     path("decision/", request_decision, name="decision"),
     path("decisions/<uuid:decision_id>/impression/", report_impression, name="impression"),
+    path("decisions/<uuid:decision_id>/click/", report_click, name="click"),
 ]

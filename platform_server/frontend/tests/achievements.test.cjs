@@ -52,7 +52,17 @@ test('the nine implemented achievements render, preserving names and original im
  f.update(rows(true));assert.equal(list.children[0].dataset.achieved,'true');assert.equal(list.children[0].children[0].src,image);
  assert.equal(list.children[0].children[1].textContent,'수상한 친화력');assert.equal(list.children[0].children[2].textContent,'나의 달성 완료');
  const css=fs.readFileSync(path.join(__dirname,'../dist/achievements.css'),'utf8');
- assert.match(css,/\[data-discovered="false"\] img\{filter:brightness\(0\)\}/);assert.match(css,/data-achieved="true"/);
+ assert.match(css,/\[data-achieved="false"\] img\{filter:brightness\(0\)\}/);assert.match(css,/data-achieved="true"/);
+});
+test('badge images get a URL only after the notebook opens, while completion notices still load their art',async()=>{
+ const f=fixture();await f.respond();
+ assert.ok(f.get('achievementsList').children.every(row=>!row.children[0].src));
+ f.get('achievementsOpen').handlers.click();
+ assert.equal(new URL(f.get('achievementsList').children[0].children[0].src).pathname,rows()[0].image_url);
+ f.get('achievementsClose').handlers.click();
+ const data=rows(true);f.update(data);f.runTimer(0);
+ assert.equal(new URL(f.get('achievementNoticeImage').src).pathname,data[0].image_url);
+ assert.ok(f.get('achievementsList').children.every(row=>!row.children[0].src));
 });
 test('a personal socket update wins over an older HTTP response',async()=>{
  const f=fixture();f.update(rows(true));await f.respond(rows(false));
@@ -156,24 +166,25 @@ test('term pairing renders the supplied badge and announces its first completion
  assert.equal(f.get('achievementNoticeName').textContent,'기억력 도둑');assert.match(f.get('achievementNoticeImage').src,/term-match.png$/);
 });
 
-test('server-wide discovery reveals art without granting personal progress or reward notice',async()=>{
+test('legacy shared discovery packets cannot reveal another account artwork or nickname',async()=>{
  const f=fixture();await f.respond();
- f.listeners.get('campus:achievement-discoveries')({detail:[{event_uuid:'greeting',discovered:true,first_discoverer:{nickname:'최초 탐정'}}]});
- let row=f.get('achievementsList').children[0];
- assert.equal(row.dataset.discovered,'true');assert.equal(row.dataset.achieved,'false');
- assert.equal(row.children[3].textContent,'최초 발견 · 최초 탐정');
- assert.equal(row.children[2].textContent,'달성 마감');
+ f.listeners.get('campus:achievement-discoveries')?.({detail:[{event_uuid:'greeting',discovered:true,first_discoverer:{nickname:'최초 탐정'}}]});
+ const row=f.get('achievementsList').children[0];
+ assert.equal(row.dataset.achieved,'false');assert.equal(row.dataset.discovered,undefined);
+ assert.equal(row.children.length,3);assert.equal(row.children[2].textContent,'도전 가능');
  assert.equal(f.timers.size,0);
- // An older personal snapshot cannot hide an already confirmed global discovery.
- f.update(rows(false));row=f.get('achievementsList').children[0];assert.equal(row.dataset.discovered,'true');
 });
 
-test('a discovered egg closes for other accounts while unclaimed eggs remain available',async()=>{
+test('only personal completion reveals art even when an older API includes shared discovery metadata',async()=>{
  const f=fixture(),data=rows();data[0].discovered=true;data[0].first_discoverer={nickname:'최초 참여자',completed_at:'2026-11-05T00:00:00Z'};
  await f.respond(data);
  const list=f.get('achievementsList');
- assert.equal(list.children[0].children[2].textContent,'달성 마감');
+ assert.equal(list.children[0].dataset.achieved,'false');
+ assert.equal(list.children[0].children[2].textContent,'도전 가능');
  assert.equal(list.children[1].children[2].textContent,'도전 가능');
+ const owner=fixture();await owner.respond(rows(true));
+ assert.equal(owner.get('achievementsList').children[0].dataset.achieved,'true');
+ assert.equal(owner.get('achievementsList').children[0].children[2].textContent,'나의 달성 완료');
 });
 test('an account with one completed egg cannot collect any remaining egg',async()=>{
  const f=fixture();await f.respond(rows(true));

@@ -5,7 +5,6 @@ from uuid import UUID
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 from django.db import transaction
-from django.db.models import F, OuterRef, Subquery
 from django.utils import timezone
 
 from campus.motion import geometry, mission_geometry
@@ -51,37 +50,6 @@ def manager_ids():
     return frozenset(ids)
 
 
-DISCOVERY_GROUP = "event.achievement.discoveries"
-
-
-def discovery_snapshot():
-    """Public discovery metadata only; personal progress never enters this group."""
-    from accounts.models import get_nickname
-    first = EventProgress.objects.filter(
-        event_id=OuterRef("pk"), status=EventProgress.Status.COMPLETED,
-    ).order_by(F("completion_order").asc(nulls_last=True),
-               F("completed_at").asc(nulls_last=True), "pk").values("pk")[:1]
-    first_ids = EventDefinition.objects.filter(pk__in=ACHIEVEMENT_IMAGES).annotate(
-        first=Subquery(first)).values_list("first", flat=True)
-    winners = {row.event_id: row for row in EventProgress.objects.filter(
-        pk__in=first_ids).select_related("user", "user__campus_profile")}
-    return [{"event_uuid": str(event_id), "discovered": event_id in winners,
-             "first_discoverer": {"nickname": get_nickname(winners[event_id].user),
-                 "completed_at": winners[event_id].completed_at.isoformat()
-                 if winners[event_id].completed_at else None} if event_id in winners else None}
-            for event_id in ACHIEVEMENT_IMAGES]
-
-
-def publish_discoveries():
-    from asgiref.sync import async_to_sync
-    from channels.layers import get_channel_layer
-    layer = get_channel_layer()
-    if layer is not None:
-        async_to_sync(layer.group_send)(DISCOVERY_GROUP, {
-            "type": "achievement_discoveries", "discoveries": discovery_snapshot(),
-        })
-
-
 def achievement_snapshot(user):
     definitions = EventDefinition.objects.in_bulk(ACHIEVEMENT_IMAGES)
     if len(definitions) != len(ACHIEVEMENT_IMAGES):
@@ -89,9 +57,8 @@ def achievement_snapshot(user):
     progress = {row.event_id: row for row in EventProgress.objects.filter(
         user=user, event_id__in=ACHIEVEMENT_IMAGES,
     )}
-    discoveries = {row["event_uuid"]: row for row in discovery_snapshot()}
     return [
-        {**discoveries[str(event_id)], "event_uuid": str(event_id), "name": definitions[event_id].event_name,
+        {"event_uuid": str(event_id), "name": definitions[event_id].event_name,
          "achieved": event_id in progress and progress[event_id].status == EventProgress.Status.COMPLETED,
          "completed_at": progress[event_id].completed_at.isoformat()
          if event_id in progress and progress[event_id].completed_at else None,
@@ -121,7 +88,6 @@ def complete_achievement(user, event_id, completed_at, *, started_at=None, sessi
     progress.session = active_platform_session(user, session_uuid) if session_uuid is not None else None
     progress.save(update_fields=["status", "completed_at", "completion_order", "session"])
     record_progress_completed(progress)
-    transaction.on_commit(publish_discoveries, robust=True)
     return True
 
 
@@ -131,22 +97,19 @@ def complete_global_achievement(user, event_id, completed_at, *, started_at=None
     return complete_achievement(user, event_id, completed_at, started_at=started_at, session_uuid=session_uuid)
 
 
-def record_ad_impression(impression):
-    """A validated 200/201 impression receipt grants one account-owned badge."""
-    if (impression.owner_id is None or impression.delivery_state != 'ACKNOWLEDGED'
-            or impression.status not in ('RECEIVED', 'ACCEPTED', 'REJECTED')):
-        return None
+def record_ad_click(user, session_uuid=None):
+    """검증한 광고 클릭으로 기존 업적을 저장하고 저장 후 게임 탭에 알린다."""
     from accounts.models import ActiveLogin
     from asgiref.sync import async_to_sync
     from channels.layers import get_channel_layer
     from campus.session_registry import session_group
 
     with transaction.atomic():
-        user = get_user_model().objects.select_for_update().filter(pk=impression.owner_id, is_active=True).first()
+        user = get_user_model().objects.select_for_update().filter(pk=user.pk, is_active=True).first()
         if user is None:
-            return None
+            raise ValueError('다시 로그인해 주세요.')
         newly_completed = []
-        if complete_achievement(user, AD_ID, timezone.now()):
+        if complete_achievement(user, AD_ID, timezone.now(), session_uuid=session_uuid):
             newly_completed.append(str(AD_ID))
         result = {'achievements': achievement_snapshot(user), 'newly_completed': newly_completed}
         key = ActiveLogin.objects.filter(user=user).values_list('session_key', flat=True).first()

@@ -11,6 +11,7 @@ from django.utils import timezone
 from .api.errors import AdsHTTPError, AdsResponseError, AdsTransportError
 from .decisions.service import create_decision
 from .decisions import store
+from .clicks import click_token
 
 ROUND_SECONDS = 10
 TRANSFER_SALT = "ad-bridge.portal.v1"
@@ -69,13 +70,14 @@ def get_batch(*, client, owner_id, subject_id, transfer_id=None, now=None):
     return batch
 
 
-def public_batch(batch, subject_id):
+def public_batch(batch, subject_id, *, owner_id):
     ads = []
     for entry in batch.payload:
         ad = entry["ad"]
+        url = ad["click_url"].replace("{subject_id}", str(subject_id)) if ad else None
         ads.append({"decision_id": entry["decision_id"], "ad": None if ad is None else {
             "creative_id": ad["creative_id"], "title": ad["title"], "image_url": ad["image_url"],
-            "click_url": ad["click_url"].replace("{subject_id}", str(subject_id)),
+            "click_url": url, "click_token": click_token(entry["decision_id"], url, owner_id),
         }})
     return {"batch_id": batch.key, "state": batch.state, "ads": ads,
             "server_time": timezone.now().isoformat(), "expires_at": batch.expires_at.isoformat()}

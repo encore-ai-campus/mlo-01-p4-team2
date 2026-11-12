@@ -8,8 +8,10 @@ from uuid import UUID
 from django.apps import apps
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.core import signing
 from django.db import DatabaseError, transaction
-from django.http import JsonResponse
+from django.db.models import Q
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
@@ -22,6 +24,7 @@ from ..decisions.service import create_decision
 from ..impressions import store as impression_store
 from ..impressions.service import report_impression_once
 from ..results.service import refresh_result
+from ..clicks import click_target, click_token
 
 
 @transaction.non_atomic_requests
@@ -88,8 +91,43 @@ def request_decision(request):
         "ad": None if ad is None else {
             "creative_id": ad.creative_id, "title": ad.title,
             "image_url": ad.image_url, "click_url": ad.click_url,
+            "click_token": click_token(decision.decision_id, ad.click_url, owner_id),
         },
     }, status=201)
+
+
+@transaction.non_atomic_requests
+@never_cache
+@login_required
+@require_POST
+def report_click(request, decision_id):
+    """폼을 제출한 새 탭은 업적 저장이 끝난 뒤 광고 서버로 이동한다."""
+    from event_story.achievement_services import record_ad_click
+    from eventing.events import SESSION_KEY
+    from learning.services import LearningError
+    from ..models import IssuedDecision
+
+    try:
+        owner_id = _owner_id(request.user)
+        if owner_id is None:
+            raise ValueError('로그인 프로필을 확인해 주세요.')
+        target = click_target(request.POST.get('token', ''), decision_id, owner_id)
+        known = IssuedDecision.objects.filter(pk=decision_id, has_ad=True).filter(
+            Q(audience='shared') | Q(audience='individual', owner_id=owner_id),
+        ).exists()
+        if not known:
+            return HttpResponse('광고를 확인할 수 없습니다. 게임 화면에서 광고를 다시 눌러 주세요.',
+                                status=404, content_type='text/plain; charset=utf-8')
+        record_ad_click(request.user, request.session.get(SESSION_KEY))
+    except (signing.BadSignature, ValueError):
+        return HttpResponse('광고 링크를 확인할 수 없습니다. 게임 화면에서 광고를 다시 눌러 주세요.',
+                            status=400, content_type='text/plain; charset=utf-8')
+    except LearningError as error:
+        return HttpResponse(str(error), status=error.status, content_type='text/plain; charset=utf-8')
+    except DatabaseError:
+        return HttpResponse('업적 저장을 확인하지 못했습니다. 게임 화면에서 광고를 다시 눌러 주세요.',
+                            status=503, content_type='text/plain; charset=utf-8')
+    return HttpResponseRedirect(target, status=303, headers={'Referrer-Policy': 'no-referrer'})
 
 
 @transaction.non_atomic_requests
@@ -144,9 +182,6 @@ def report_impression(request, decision_id):
         "occurred_at": record.occurred_at, "delivery_state": record.delivery_state,
         "request_id": record.request_id, "duplicate": not outcome.created,
     }
-    update = getattr(record, 'achievement_update', None)
-    if update is not None:
-        payload.update(update)
     if outcome.error:
         payload["error"] = outcome.error
     if outcome.upstream_status is not None:

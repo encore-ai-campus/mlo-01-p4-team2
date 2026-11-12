@@ -10,6 +10,7 @@ from django.test import TestCase, override_settings
 from ad_bridge.api.errors import AdsTransportError
 from ad_bridge.api.types import Ad, Decision
 from ad_bridge.models import PlacementBatch, IssuedDecision
+from ad_bridge.clicks import click_target
 from ad_bridge.placements import get_batch, public_batch, transfer_token, transfer_identity
 
 
@@ -81,8 +82,11 @@ class PlacementTests(TestCase):
             self.batch(transfer_id=transfer)
 
     def test_public_payload_has_viewer_click_url_without_internal_owner(self):
-        payload = public_batch(self.batch(), self.subject)
+        payload = public_batch(self.batch(), self.subject, owner_id=self.owner)
         self.assertIn(str(self.subject), payload["ads"][0]["ad"]["click_url"])
+        entry = payload["ads"][0]
+        self.assertEqual(click_target(entry['ad']['click_token'], entry['decision_id'], self.owner),
+                         entry['ad']['click_url'])
         self.assertNotIn(str(self.owner), str(payload))
         self.assertNotIn("redirect_url", str(payload))
 

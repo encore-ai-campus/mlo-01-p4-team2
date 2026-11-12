@@ -37,7 +37,7 @@ def placement(request, location):
         config = AdsConfig.from_env()
         subject = _subject_id(owner, subject_secret=config.subject_secret)
         batch = get_batch(client=AdsClient(config), owner_id=owner, subject_id=subject, transfer_id=transfer)
-        return JsonResponse(public_batch(batch, subject), status=202 if batch.state == "PENDING" else 200)
+        return JsonResponse(public_batch(batch, subject, owner_id=owner), status=202 if batch.state == "PENDING" else 200)
     except (signing.BadSignature, KeyError, TypeError, json.JSONDecodeError):
         return JsonResponse({"error": "invalid_transfer"}, status=400)
     except (DatabaseError, ValueError):

@@ -176,6 +176,10 @@ class PokeControlTests(SimpleTestCase):
 @override_settings(ALLOWED_HOSTS=["127.0.0.1", "testserver"], KAFKA_BOOTSTRAP_SERVERS="")
 class PokeSocketTests(TransactionTestCase):
     def setUp(self):
+        # Poke assertions require an available campus; cold-cache blocking is
+        # covered separately by MovementAvailabilityCacheTests.
+        from campus_control import service
+        service.read_state(force=True)
         consumers.room = consumers.CampusRoom()
         self.clients = []
         from .motion import world

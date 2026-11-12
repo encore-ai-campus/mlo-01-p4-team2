@@ -24,7 +24,7 @@ from eventing.events import ensure_platform_session, record_floor_transfer, touc
 from event_story.achievement_services import record_manager_action, record_guide_talk
 from event_story.game_services import GameError, start_game
 from . import cluster, session_registry, poke, socket_db
-from campus_control.service import async_state as freeze_state
+from campus_control.service import movement_state as freeze_state
 from .interest import InterestView, SpatialIndex
 from .motion import CLASSROOM_TRANSITION_DELAY, MotionController, ControlError, World, geometry, world
 from .positions import DIRECTIONS, FLOOR_BOUNDS, flush_movement_event, get_position, movement_event_due_at, save_position, validate_position
@@ -102,7 +102,8 @@ async def flush_moves(campus):
                     if observer is None:
                         continue
                     packet = socket.interest.packet(index, observer, changed,
-                        compact=socket.compact_moves, overview=getattr(socket, "view_overview", False) is True)
+                        compact=socket.compact_moves, overview=getattr(socket, "view_overview", False) is True,
+                        reconcile=interest_dirty)
                     if mine:
                         packet["effects"] = [effect for text in mine if
                             (effect := json.loads(text)).get("actorId", player_id) in socket.interest.visible | {player_id}]

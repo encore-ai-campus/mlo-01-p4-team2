@@ -22,7 +22,7 @@
 })();
 </script></head>
 <body><main class="practice">
-<header class="intro"><div><div class="eyebrow">● YOUR DAILY CODE PRACTICE</div><h1>코드를 손에 익히는 시간<span>.</span></h1><p>입문 Python 문제를 무작위로 제공해요. 첫 글자 입력부터 11.11초 안에 완성해 보세요.</p></div><span class="tag">⌘ &nbsp; 작은 연습, 단단한 기본기</span></header>
+<header class="intro"><div><div class="eyebrow">● YOUR DAILY CODE PRACTICE</div><h1>코드를 손에 익히는 시간<span>.</span></h1><p>입문 Python 문제를 무작위로 제공해요. 첫 글자 입력부터 40초 안에 완성해 보세요.</p></div><span class="tag">⌘ &nbsp; 작은 연습, 단단한 기본기</span></header>
 <section class="selectors" aria-label="연습 설정"><label>교정 방식<select id="mode"><option value="natural">Natural · 자유 교정</option><option value="forced">Forced Correction · 필수 교정</option></select></label><label>목표 정확도 (%)<input id="minimum-accuracy" type="number" min="0" max="100" step="0.1" value="95" required></label></section>
 <div class="lesson"><span id="lesson-number">01</span><div><h2 id="problem-title"></h2><p id="problem-description"></p></div><small id="lesson-position"></small></div>
 <div class="metrics" aria-label="실시간 기록"><div>진행 시간<strong id="metric-time">00:00.00</strong></div><div>WPM<strong id="metric-wpm">0</strong></div><div>정확도<strong id="metric-accuracy">—</strong></div><div>진행률<strong id="metric-progress">0%</strong></div></div>
@@ -31,8 +31,8 @@
 <div class="toolbar"><p id="feedback" role="status">첫 글자를 입력하면 시작해요.</p><div><button id="restart">↻ 다시 시작</button><button id="exit">나가기 ↗</button></div></div>
 <section id="result" class="result" aria-label="연습 결과" hidden><div class="eyebrow">PRACTICE COMPLETE</div><h2 id="result-title"></h2><p id="result-description"></p><p id="result-errors"></p><div id="repeat-actions"><button id="repeat">다시 연습 ↻</button><button id="next">다음 문제 →</button></div></section>
 <section class="guide" aria-label="키보드와 손가락 가이드"><header><div><div class="eyebrow">FIND YOUR FINGER</div><h3 id="guide-title">키보드 & 손가락 가이드</h3></div><button id="toggle-guide" aria-expanded="true">가이드 숨기기 −</button></header><div id="guide-body"><p class="instruction"><kbd id="expected"></kbd><span id="finger-description"></span></p><div id="keyboard" class="keyboard" aria-label="QWERTY 키보드"></div><div id="hands"></div><p class="caption"><i></i> 입력할 키와 손가락 <i class="shift-dot"></i> 함께 누를 Shift</p><p id="mistake-rank" hidden></p></div></section>
-<aside id="typing-help"><strong id="mode-help"></strong><p><kbd>Tab</kbd> 공백 4칸 &nbsp; <kbd>Enter</kbd> 줄바꿈 &nbsp; <kbd>Backspace</kbd> 수정 &nbsp; <kbd>Esc</kbd> / <kbd>Shift Tab</kbd> 입력 영역 나가기</p><small>영문 QWERTY 입력 · 숫자와 코드 기호를 지원합니다.</small><br><small id="pass-rule">첫 글자를 입력한 뒤 11.11초 안에 정확도 95% 이상으로 끝까지 입력하면 성공해요.</small></aside>
-<footer class="page-footer">● 제한 시간 11.11초 · 정확도 95% 이상 <span>게임 종료 시 플레이 시간과 성공 여부를 플랫폼에 저장합니다.</span></footer>
+<aside id="typing-help"><strong id="mode-help"></strong><p><kbd>Tab</kbd> 공백 4칸 &nbsp; <kbd>Enter</kbd> 줄바꿈 &nbsp; <kbd>Backspace</kbd> 수정 &nbsp; <kbd>Esc</kbd> / <kbd>Shift Tab</kbd> 입력 영역 나가기</p><small>영문 QWERTY 입력 · 숫자와 코드 기호를 지원합니다.</small><br><small id="pass-rule">첫 글자를 입력한 뒤 40초 안에 정확도 95% 이상으로 끝까지 입력하면 성공해요.</small></aside>
+<footer class="page-footer">● 제한 시간 40초 · 정확도 95% 이상 <span>게임 종료 시 플레이 시간과 성공 여부를 플랫폼에 저장합니다.</span></footer>
 </main><script>(()=>{
 const problems = [
   {"id":"py-beginner-01","version":1,"language":"python","difficulty":"beginner","title":"Hello, Python","description":"변수를 만들고, 첫 인사를 출력해 보세요.","code":"name = \"Ada\"\nprint(f\"Hello, {name}!\")"},
@@ -503,7 +503,7 @@ function attachTypingInput(element, input, readValue, escape) {
 const $=id=>document.getElementById(id);
 const all=validateProblems(problems);
 const channel=window.minigameChannel;
-let controller, detach, clock, whitespace=false, minimumAccuracy=95, timeLimitMs=11110, sessionId=newId(), locked=false;
+let controller, detach, clock, whitespace=false, minimumAccuracy=95, timeLimitMs=40000, sessionId=newId(), locked=false;
 let spans=[], keys=new Map(), fingers=new Map(), previousCursor=-1;
 const visible=c=>c==='\n'?'Enter ↵':c===' '?'Space ␣':c;
 function createKeyboard() {
@@ -589,7 +589,7 @@ function paint() {
 function showResult(state) {
   const m=controller.metrics(),timedOut=m.elapsed_ms>timeLimitMs,success=state.status==='completed'&&!timedOut&&m.accuracy_pct!==null&&m.accuracy_pct>=minimumAccuracy;
   $('input').disabled=true;$('editor-panel').hidden=true;$('result').hidden=false;
-  $('result-title').textContent=timedOut?'11.11초가 지났어요. 다시 도전해 보세요.':success?'11.11초 안에 완료했어요!':'한 번 더, 더 정확하게.';
+  $('result-title').textContent=timedOut?`${timeLimitMs/1000}초가 지났어요. 다시 도전해 보세요.`:success?`${timeLimitMs/1000}초 안에 완료했어요!`:'한 번 더, 더 정확하게.';
   $('result-description').textContent=`${formatDuration(m.elapsed_ms)} · ${m.wpm} WPM · 정확도 ${m.accuracy_pct?.toFixed(1)}% · ${success?'성공':'실패'}`;
   $('result-errors').textContent=`미수정 오류 ${remainingErrors(state)}개 · 총 실수 ${state.mistakeCount}회`;
   $('feedback').textContent=channel?'최종 결과를 캠퍼스에 전달했어요.':'완료했어요. 다른 문제도 연습해 보세요.';

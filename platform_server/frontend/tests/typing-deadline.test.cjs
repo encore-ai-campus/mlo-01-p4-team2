@@ -1,10 +1,10 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 
-async function attempt(){
+async function attempt(timeLimitMs=11110){
  const {AttemptController}=await import('../minigames/typing/src/core/attemptController.js');
  let now=0;const events=[];
  const controller=new AttemptController({id:'deadline',version:1,language:'python',difficulty:'beginner',code:'abc'},'natural',
-  {emit:event=>events.push(event)},{timeLimitMs:11110},'play',{monotonic:()=>now,utc:()=>new Date(0).toISOString()});
+  {emit:event=>events.push(event)},{timeLimitMs},'play',{monotonic:()=>now,utc:()=>new Date(0).toISOString()});
  return {controller,events,set now(value){now=value;}};
 }
 
@@ -46,4 +46,11 @@ test('typing display never rounds an overtime result back to 11.11 seconds',asyn
  assert.equal(formatDuration(11110),'00:11.11');
  assert.equal(formatDuration(11110.1),'00:11.12');
  assert.equal(formatDuration(11111),'00:11.12');
+});
+
+for(const elapsed of [20000,40000,40000.1])test(`40-second typing round boundary at ${elapsed}ms`,async()=>{
+ const f=await attempt(40000);f.controller.input({type:'append',text:'a'});f.now=elapsed;
+ f.controller.input({type:'append',text:'bc'});
+ assert.equal(f.controller.getSnapshot().status,elapsed<=40000?'completed':'abandoned');
+ assert.equal(f.controller.expired,elapsed>40000);
 });

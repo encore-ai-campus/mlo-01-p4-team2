@@ -50,7 +50,7 @@ test('failed images retry on the existing image object without losing successful
 });
 test('games reuse their downloaded source and blob URL with the correct relative asset base',async()=>{
  const f=fixture();await f.api.prepare('male-1');
- const game='minigames/timer.html?v=20261105-typing-replay-v1';
+ const game='minigames/timer.html?v=20261110-standalone40-v1';
  assert.match(f.api.gameSource(game),/game/);const url=f.api.gameURL(game);
  assert.equal(f.api.gameURL('/static/campus/'+game),url);assert.equal(f.blobs.length,1);assert.equal(f.requests.length,5);
  assert.match(await f.blobs[0].text(),/<base href="http:\/\/campus.test\/static\/campus\/minigames\/">/);

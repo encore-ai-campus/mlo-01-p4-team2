@@ -3,7 +3,7 @@
   'use strict';
   const images = new Set(), games = new Map();
   const gamePaths = [
-    ...['timer', 'typing', 'term_match'].map(name => `minigames/${name}.html?v=20261105-typing-replay-v1`),
+    ...['timer', 'typing', 'term_match'].map(name => `minigames/${name}.html?v=20261110-standalone40-v1`),
     'event-games/sql-memory.html', 'event-games/card.html',
   ];
   const key = path => new URL(path, document.baseURI).href;

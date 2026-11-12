@@ -10,11 +10,18 @@ from .models import GameDefinition, GamePlay
 from .achievement_services import TIMER_ID, TYPING_ID, MEMORY_ID, achievement_snapshot, complete_achievement
 
 CONFIGS = {"timer": {"targetMs": 11110, "toleranceMs": 0, "overtimeMs": 2000},
-           "typing": {"minimumAccuracy": 95, "timeLimitMs": 11110},
-           "term_match": {"timeLimitMs": 11110, "totalRounds": 1, "requiredWins": 1,
+           "typing": {"minimumAccuracy": 95, "timeLimitMs": 40000},
+           "term_match": {"timeLimitMs": 40000, "totalRounds": 1, "requiredWins": 1,
                           "maxMistakes": 5, "rows": 4, "columns": 4, "topic": "mixed",
                           "previewMs": 4000, "flipStaggerMs": 35, "flipDurationMs": 250,
                           "mismatchMs": 650, "roundTransitionMs": 0}}
+
+
+EASTER_EGG_LIMIT_MS = 11110
+
+def play_time_limit(play):
+    # Existing rounds keep their original limit when a deployment changes defaults.
+    return play.evidence.get("time_limit_ms", EASTER_EGG_LIMIT_MS)
 
 
 class GameError(Exception):
@@ -74,21 +81,23 @@ def start_game(user, code, session_id):
         old.status, old.ended_at = "INTERRUPTED", now
         old.save(update_fields=["status", "ended_at"])
         record_play_ended(old)
-    play = GamePlay.objects.create(user=user, session=session, game=game)
+    evidence = {"time_limit_ms": CONFIGS[code]["timeLimitMs"]} if "timeLimitMs" in CONFIGS[code] else {}
+    play = GamePlay.objects.create(user=user, session=session, game=game, evidence=evidence)
     record_play_started(play)
     config = dict(CONFIGS[code])
     if code == 'term_match':
         deck = random.SystemRandom().sample(range(48), 8) * 2
         random.SystemRandom().shuffle(deck)
         config['deck'] = deck
-        play.evidence = {'deck': deck}
+        play.evidence = {**play.evidence, 'deck': deck}
         play.save(update_fields=['evidence'])
     return {**receipt(play), "game_code": code, "game_name": game.game_name, "config": config}
 
 
 def verify_term_match(play, duration, picks, *, success):
     deck = play.evidence.get('deck', [])
-    if not isinstance(picks, list) or len(picks) > 64 or len(deck) != 16 or not 0 <= duration <= 11110:
+    time_limit = play_time_limit(play)
+    if not isinstance(picks, list) or len(picks) > 64 or len(deck) != 16 or not 0 <= duration <= time_limit:
         raise GameError('카드 선택 기록과 제한 시간을 확인해 주세요.')
     matched, previous, blocked_until, mistakes = set(), 0, 0, 0
     for pair in picks:
@@ -106,7 +115,7 @@ def verify_term_match(play, duration, picks, *, success):
             blocked_until = at + 650
     if success and (len(matched) != 16 or not picks or picks[-1][2] != duration):
         raise GameError('모든 카드의 짝을 제한 시간 안에 맞춰 주세요.')
-    if not success and (len(matched) == 16 or (duration != 11110 and mistakes != 5)):
+    if not success and (len(matched) == 16 or (duration != time_limit and mistakes != 5)):
         raise GameError('카드 게임 종료 기록을 확인해 주세요.')
 
 
@@ -153,8 +162,8 @@ def _finish_game(user,play_id,session_id,data):
                      or play.evidence.get('picks') == data['picks'])):
             return {**receipt(play), "newly_completed": []}
         raise GameError("이미 다른 결과로 종료된 게임이에요.", 409)
-    if play.game.game_code == "typing" and status == "SUCCESS" and duration > CONFIGS["typing"]["timeLimitMs"]:
-        raise GameError("타이핑은 11.11초 안에 완료해야 해요.")
+    if play.game.game_code == "typing" and status == "SUCCESS" and duration > play_time_limit(play):
+        raise GameError(f"타이핑은 {play_time_limit(play) / 1000:g}초 안에 완료해야 해요.")
     now = timezone.now()
     if play.game.game_code == 'term_match' and status == 'SUCCESS':
         # Preview and covering animations must finish before the timed round can complete.
@@ -169,7 +178,8 @@ def _finish_game(user,play_id,session_id,data):
     play.save(update_fields=["status", "duration_ms", "ended_at", "evidence"])
     record_play_ended(play)
     newly_completed = []
-    if play.status == GamePlay.Status.SUCCESS:
+    if (play.status == GamePlay.Status.SUCCESS
+            and (play.game.game_code == "timer" or duration <= EASTER_EGG_LIMIT_MS)):
         event_id = {"timer": TIMER_ID, "typing": TYPING_ID, "term_match": MEMORY_ID}[play.game.game_code]
         if complete_achievement(user, event_id, play.ended_at, started_at=play.started_at, session_uuid=session.pk):
             newly_completed.append(str(event_id))

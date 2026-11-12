@@ -9,7 +9,7 @@ import { attachTypingInput } from './adapters/nativeTypingInput.js';
 const $=id=>document.getElementById(id);
 const all=validateProblems(problems);
 const channel=window.minigameChannel;
-let controller, detach, clock, whitespace=false, minimumAccuracy=95, timeLimitMs=11110, sessionId=newId(), locked=false;
+let controller, detach, clock, whitespace=false, minimumAccuracy=95, timeLimitMs=40000, sessionId=newId(), locked=false;
 let spans=[], keys=new Map(), fingers=new Map(), previousCursor=-1;
 const visible=c=>c==='\n'?'Enter ↵':c===' '?'Space ␣':c;
 function createKeyboard() {
@@ -95,7 +95,7 @@ function paint() {
 function showResult(state) {
   const m=controller.metrics(),timedOut=m.elapsed_ms>timeLimitMs,success=state.status==='completed'&&!timedOut&&m.accuracy_pct!==null&&m.accuracy_pct>=minimumAccuracy;
   $('input').disabled=true;$('editor-panel').hidden=true;$('result').hidden=false;
-  $('result-title').textContent=timedOut?'11.11초가 지났어요. 다시 도전해 보세요.':success?'11.11초 안에 완료했어요!':'한 번 더, 더 정확하게.';
+  $('result-title').textContent=timedOut?`${timeLimitMs/1000}초가 지났어요. 다시 도전해 보세요.`:success?`${timeLimitMs/1000}초 안에 완료했어요!`:'한 번 더, 더 정확하게.';
   $('result-description').textContent=`${formatDuration(m.elapsed_ms)} · ${m.wpm} WPM · 정확도 ${m.accuracy_pct?.toFixed(1)}% · ${success?'성공':'실패'}`;
   $('result-errors').textContent=`미수정 오류 ${remainingErrors(state)}개 · 총 실수 ${state.mistakeCount}회`;
   $('feedback').textContent=channel?'최종 결과를 캠퍼스에 전달했어요.':'완료했어요. 다른 문제도 연습해 보세요.';

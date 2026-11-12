@@ -52,7 +52,7 @@
   }
 
   function tick({ now, floor, renderer }) {
-    if (floor !== 'campus' || document.hidden || !renderer) return;
+    if (floor !== 'rooftop' || document.hidden || !renderer) return;
     if (currentImage && applied.get(renderer) !== currentImage) {
       if (renderer.setDisplayImage('roof-ad-board', currentImage)) applied.set(renderer, currentImage);
     }
@@ -92,7 +92,6 @@
     portalVersion++;
     const slot = document.getElementById('floorTransitionAdSlot');
     if (slot) { slot.replaceChildren(); slot.hidden = true; }
-    preparePortal();
   }
 
   async function startPortal() {
@@ -115,7 +114,6 @@
     }));
   }
 
-  window.addEventListener('campus:ready', preparePortal);
   window.addEventListener('campus:floor-transition-end', stopPortal);
   // 기존 게임 호출만 연결하며 광고 서버 요청·노출 보고·클릭 이동은 실행하지 않는다.
   window.CampusAds = { tick, startPortal, stopPortal, clickRoof() { return false; } };

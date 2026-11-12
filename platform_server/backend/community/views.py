@@ -11,6 +11,7 @@ from django.views.decorators.cache import never_cache
 
 from accounts.models import get_avatar, get_nickname, needs_profile_setup
 from .forms import CommentForm, PostForm
+from .read_db import call_view, read_database
 from .models import Comment, Post, PostReadLog
 from eventing.events import SESSION_KEY, record_comment_event, record_post_event
 
@@ -46,7 +47,7 @@ def community_api(methods):
                 response = error("지원하지 않는 요청입니다.", 405)
                 response["Allow"] = ", ".join(methods)
                 return response
-            return view(request, *args, **kwargs)
+            return call_view(view, request, *args, **kwargs)
         return wrapped
     return decorate
 
@@ -136,7 +137,7 @@ def page_for(request, query, size):
 
 @community_api(["GET"])
 def metadata(request):
-    counts = dict(Post.objects.order_by().values_list("category").annotate(total=Count("pk")))
+    counts = dict(Post.objects.using(read_database(request)).order_by().values_list("category").annotate(total=Count("pk")))
     return JsonResponse({
         "categories": [{"id": key, "name": label, "description": CATEGORY_DESCRIPTIONS[key],
                         "count": counts.get(key, 0), "canWrite": key != Post.Category.NOTICE or request.user.is_staff}
@@ -155,7 +156,7 @@ def posts(request):
         search = request.GET.get("q", "").strip()
         if len(search) > 100:
             return error("검색어는 100자까지 입력할 수 있어요.")
-        query = posts_query()
+        query = posts_query().using(read_database(request))
         if category != "all":
             query = query.filter(category=category)
         if search:
@@ -242,14 +243,15 @@ def post_detail(request, post_id):
 
 @community_api(["GET", "POST"])
 def comments(request, post_id):
-    post = Post.objects.filter(id=post_id, deleted_at__isnull=True).first()
+    database = read_database(request) if request.method == "GET" else "default"
+    post = Post.objects.using(database).filter(id=post_id, deleted_at__isnull=True).first()
     if post is None:
         return error("글이 삭제되었거나 존재하지 않아요.", 404)
     if request.method == "GET":
         # Paginate whole threads so a reply cannot appear without its parent.
-        replies = Comment.objects.filter(deleted_at__isnull=True).select_related("author", "author__campus_profile")
-        threads = Comment.objects.filter(post=post, parent__isnull=True).select_related(
-            "author", "author__campus_profile"
+        replies = Comment.objects.using(database).filter(deleted_at__isnull=True).select_related("author", "author__campus_profile", "post")
+        threads = Comment.objects.using(database).filter(post=post, parent__isnull=True).select_related(
+            "author", "author__campus_profile", "post"
         ).annotate(reply_count=Count("replies", filter=Q(replies__deleted_at__isnull=True))).filter(
             Q(deleted_at__isnull=True) | Q(reply_count__gt=0)
         ).prefetch_related(Prefetch("replies", queryset=replies, to_attr="visible_replies")).order_by("created_at", "pk")
@@ -259,7 +261,7 @@ def comments(request, post_id):
         page, pagination = result
         return JsonResponse({
             "comments": [comment_data(item, request) for item in page], "pagination": pagination,
-            "commentCount": Comment.objects.filter(post=post, deleted_at__isnull=True).count(),
+            "commentCount": Comment.objects.using(database).filter(post=post, deleted_at__isnull=True).count(),
         })
     data, failure = payload(request)
     if failure:

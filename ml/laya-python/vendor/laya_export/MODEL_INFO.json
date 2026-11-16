@@ -1,0 +1,48 @@
+{
+  "name": "Laya multilingual IT document classifier",
+  "max_len": 1024,
+  "epoch": 3,
+  "exported_at": "2026-11-11T14:17:19.391534+00:00",
+  "source_checkpoint": "learning\\final-training-body2000-v1v2v3-20261111\\runs-1024\\train-20261110T172451-8ade416a\\checkpoints\\epoch-003",
+  "weights_sha256": "700064d3bade6100ff7e15d09e487e7d0f1fd9be3523f3ce3d07f53e249647b2",
+  "task_sha256": "a14bd302b07da5f452aef578bebbf85b6407330f65d0dc9963b0e30fb743596a",
+  "base_model": "convaiinnovations/laya-multilingual",
+  "encoder": "jhu-clsp/mmBERT-base",
+  "training_documents": 4291,
+  "validation_documents": 919,
+  "test_documents": 919,
+  "source_batches": {
+    "data/local/bootcamp-ai-labels-v1-body2000/labeled.jsonl": 1693,
+    "data/local/bootcamp-ai-labels-v2-body2000/labeled.jsonl": 1815,
+    "data/local/bootcamp-ai-labels-v3-body2000/labeled.jsonl": 2621
+  },
+  "threshold": 0.5,
+  "title_chars": 240,
+  "body_chars": 2000,
+  "test_metrics": {
+    "micro_precision": 0.7997512437810945,
+    "micro_recall": 0.7808136004857317,
+    "micro_f1": 0.7901689708141321,
+    "macro_f1": 0.7713460665209354
+  },
+  "scores_calibrated": false,
+  "test_labels": "AI-reviewed labels",
+  "epoch3_decision": {
+    "epoch2_validation_loss": 0.24819857941720114,
+    "epoch3_validation_loss": 0.4425705134857203,
+    "continue_to_epoch5": false
+  },
+  "tested_environment": {
+    "python": "3.12.10",
+    "packages": {
+      "laya": "0.4.22",
+      "torch": "2.10.0+cu128",
+      "transformers": "4.57.1",
+      "tokenizers": "0.22.2",
+      "huggingface-hub": "0.36.0",
+      "safetensors": "0.8.0",
+      "numpy": "2.5.4",
+      "regex": "2025.11.3"
+    }
+  }
+}

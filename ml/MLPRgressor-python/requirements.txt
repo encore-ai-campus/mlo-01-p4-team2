@@ -1,0 +1,6 @@
+scikit-learn>=1.7,<1.10
+numpy>=2,<3
+joblib>=1.4,<2
+deltalake>=1.0,<2
+pyarrow>=20,<27
+python-dotenv>=1,<2

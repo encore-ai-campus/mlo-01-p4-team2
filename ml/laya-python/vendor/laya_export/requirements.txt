@@ -1,0 +1,8 @@
+torch==2.10.0
+laya==0.4.22
+transformers==4.57.1
+tokenizers==0.22.2
+huggingface-hub==0.36.0
+safetensors==0.8.0
+numpy==2.5.4
+regex==2025.11.3

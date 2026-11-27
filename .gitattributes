@@ -2,3 +2,6 @@ ads_server/events/hop_rules.py text eol=lf
 pipeline/common/hop_rules.py text eol=lf
 ads_server/events/ndjson.py text eol=lf
 pipeline/common/ndjson.py text eol=lf
+
+# Preserve event report PDFs without text conversion.
+docs/events/pepero-2026/**/*.pdf binary

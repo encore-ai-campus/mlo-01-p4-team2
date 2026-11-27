@@ -345,6 +345,7 @@ PostgreSQL·Debezium/Kafka Connect·Kafka·Spark·Delta Lake·S3 호환 저장�
 
 | 문서 | 내용 |
 | --- | --- |
+| [빼빼로 이벤트 문서](docs/events/pepero-2026/README.md) | 기안·운영명세·통합 결과·인프라·만족도·뉴스레터 |
 | [제품 소개](PRODUCT.md) | 3차·4차 기능, 이벤트 이용 흐름·화면, 팀원별 역할 |
 | [플랫폼 README](platform_server/README.md) | 메타버스 구성·브랜치 안내 |
 | [플랫폼 실행 가이드](platform_server/RUN_GUIDE.md) | PostgreSQL 설정·데이터 이전·실행·검증 |
